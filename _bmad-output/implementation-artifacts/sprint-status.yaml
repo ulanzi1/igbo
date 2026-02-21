@@ -1,0 +1,157 @@
+# generated: 2026-02-21
+# project: igbo
+# project_key: NOKEY
+# tracking_system: file-system
+# story_location: _bmad-output/implementation-artifacts
+
+# STATUS DEFINITIONS:
+# ==================
+# Epic Status:
+#   - backlog: Epic not yet started
+#   - in-progress: Epic actively being worked on
+#   - done: All stories in epic completed
+#
+# Epic Status Transitions:
+#   - backlog -> in-progress: Automatically when first story is created (via create-story)
+#   - in-progress -> done: Manually when all stories reach 'done' status
+#
+# Story Status:
+#   - backlog: Story only exists in epic file
+#   - ready-for-dev: Story file created in stories folder
+#   - in-progress: Developer actively working on implementation
+#   - review: Ready for code review (via Dev's code-review workflow)
+#   - done: Story completed
+#
+# Retrospective Status:
+#   - optional: Can be completed but not required
+#   - done: Retrospective has been completed
+#
+# WORKFLOW NOTES:
+# ===============
+# - Epic transitions to 'in-progress' automatically when first story is created
+# - Stories can be worked in parallel if team capacity allows
+# - SM typically creates next story after previous one is 'done' to incorporate learnings
+# - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
+
+generated: 2026-02-21
+project: igbo
+project_key: NOKEY
+tracking_system: file-system
+story_location: _bmad-output/implementation-artifacts
+
+development_status:
+  # Epic 1: Platform Foundation & User Identity
+  epic-1: in-progress
+  1-1a-project-scaffolding-core-setup: done
+  1-1b-security-infrastructure-api-foundation: done
+  1-1c-eventbus-job-runner-background-jobs: backlog
+  1-2-design-system-brand-foundation: backlog
+  1-3-responsive-layout-shell-pwa-foundation: backlog
+  1-4-guest-experience-landing-page: backlog
+  1-5-membership-application-email-verification: backlog
+  1-6-admin-membership-approval: backlog
+  1-7-authentication-session-management: backlog
+  1-8-member-profile-setup-onboarding: backlog
+  1-9-profile-management-privacy-controls: backlog
+  1-10-membership-tiers-permission-enforcement: backlog
+  1-11-bilingual-platform-support: backlog
+  1-12-rate-limiting-abuse-prevention: backlog
+  1-13-gdpr-compliance-data-privacy: backlog
+  1-14-file-upload-processing-pipeline: backlog
+  1-15-socket-io-realtime-server-core-notification-infrastructure: backlog
+  1-16-member-dashboard-shell: backlog
+  1-17-transactional-email-service: backlog
+  epic-1-retrospective: optional
+
+  # Epic 2: Real-Time Communication
+  epic-2: backlog
+  2-1-chat-infrastructure-messageservice: backlog
+  2-2-direct-messaging-1-1-conversations: backlog
+  2-3-group-direct-messages: backlog
+  2-4-rich-messaging-file-attachments: backlog
+  2-5-message-management-threading: backlog
+  2-6-typing-indicators-read-receipts-presence: backlog
+  2-7-message-search-block-mute-conversation-preferences: backlog
+  epic-2-retrospective: optional
+
+  # Epic 3: Member Discovery & Directory
+  epic-3: backlog
+  3-1-member-directory-search: backlog
+  3-2-geographic-fallback-discovery: backlog
+  3-3-member-suggestions-dashboard-widget: backlog
+  3-4-member-following: backlog
+  epic-3-retrospective: optional
+
+  # Epic 4: News Feed & Social Engagement
+  epic-4: backlog
+  4-1-news-feed-post-display: backlog
+  4-2-post-creation-rich-media: backlog
+  4-3-reactions-comments-sharing: backlog
+  4-4-bookmarks-pinned-announcements: backlog
+  epic-4-retrospective: optional
+
+  # Epic 5: Groups & Community Structure
+  epic-5: backlog
+  5-1-group-creation-configuration: backlog
+  5-2-group-discovery-membership: backlog
+  5-3-group-channels-feed-content: backlog
+  5-4-group-leadership-moderation: backlog
+  epic-5-retrospective: optional
+
+  # Epic 6: Articles & Cultural Preservation
+  epic-6: backlog
+  6-1-article-editor-submission: backlog
+  6-2-article-review-publication: backlog
+  6-3-article-reading-experience: backlog
+  epic-6-retrospective: optional
+
+  # Epic 7: Events & Video Meetings
+  epic-7: backlog
+  7-1-event-creation-management: backlog
+  7-2-rsvp-waitlist-event-archive: backlog
+  7-3-video-meeting-integration: backlog
+  7-4-event-reminders-recordings: backlog
+  epic-7-retrospective: optional
+
+  # Epic 8: Engagement & Gamification
+  epic-8: backlog
+  8-1-points-engine-earning-rules: backlog
+  8-2-points-dashboard-history: backlog
+  8-3-verification-badges-display: backlog
+  8-4-points-based-posting-limits: backlog
+  epic-8-retrospective: optional
+
+  # Epic 9: Notifications & Communication Preferences
+  epic-9: backlog
+  9-1-notification-routing-channel-delivery: backlog
+  9-2-email-notifications: backlog
+  9-3-push-notifications-web-push-api: backlog
+  9-4-notification-preferences-digest: backlog
+  epic-9-retrospective: optional
+
+  # Epic 10: Search & Discovery Platform
+  epic-10: backlog
+  10-1-global-search-autocomplete: backlog
+  10-2-filtered-search-results: backlog
+  10-3-recommended-groups: backlog
+  epic-10-retrospective: optional
+
+  # Epic 11: Administration & Moderation
+  epic-11: backlog
+  11-1-content-moderation-queue-automated-flagging: backlog
+  11-2-member-reporting-system: backlog
+  11-3-progressive-discipline-dispute-resolution: backlog
+  11-4-analytics-dashboard: backlog
+  11-5-audit-logs-governance-documents: backlog
+  epic-11-retrospective: optional
+
+  # Epic 12: Platform Operations & Infrastructure
+  epic-12: backlog
+  12-1-ci-cd-pipeline: backlog
+  12-2-production-deployment-infrastructure: backlog
+  12-3-monitoring-logging-alerting: backlog
+  12-4-backup-recovery-disaster-recovery: backlog
+  12-5-resilience-graceful-degradation: backlog
+  12-6-load-testing-performance-verification: backlog
+  12-7-accessibility-testing-verification: backlog
+  epic-12-retrospective: optional

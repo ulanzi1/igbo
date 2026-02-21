@@ -1,0 +1,33 @@
+@import "tailwindcss";
+
+@theme {
+  /* Primary Palette (OBIGBO Logo) */
+  --color-primary: #2d5a27; /* Deep Forest Green */
+  --color-secondary: #d4a574; /* Warm Sandy Tan */
+  --color-accent: #c4922a; /* Golden Amber */
+
+  /* Semantic Colors */
+  --color-success: #38a169; /* Leaf Green */
+  --color-warning: #d69e2e; /* Warm Amber */
+  --color-destructive: #c53030; /* Muted Terracotta Red */
+  --color-info: #3182ce; /* Calm Blue */
+
+  /* Neutral Palette */
+  --color-background: #faf8f5; /* Warm Off-White */
+  --color-foreground: #1a1612; /* Warm Near-Black */
+  --color-card: #ffffff; /* Warm White */
+  --color-muted: #f0ede8; /* Warm Light Grey */
+  --color-border: #e7e2db; /* Warm Border Grey */
+
+  /* Typography */
+  --font-sans: var(--font-inter);
+  --font-mono: var(--font-jetbrains-mono);
+}
+
+body {
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-sans), system-ui, sans-serif;
+  line-height: 1.6;
+  font-size: 16px;
+}
