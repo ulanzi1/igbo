@@ -1,0 +1,75 @@
+{
+  "name": "igbo",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio",
+    "db:seed": "npx tsx src/server/seed/admin-seed.ts",
+    "prepare": "husky"
+  },
+  "dependencies": {
+    "@serwist/next": "^9.5.6",
+    "@t3-oss/env-nextjs": "^0.13.10",
+    "@tanstack/react-query": "^5.90.21",
+    "drizzle-orm": "^0.45.1",
+    "ioredis": "^5.9.3",
+    "next": "16.1.6",
+    "next-auth": "^5.0.0-beta.30",
+    "next-intl": "^4.8.3",
+    "postgres": "^3.4.8",
+    "radix-ui": "^1.4.3",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "sanitize-html": "^2.17.1",
+    "server-only": "^0.0.1",
+    "serwist": "^9.5.6",
+    "socket.io": "^4.8.3",
+    "socket.io-client": "^4.8.3",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.58.2",
+    "@tailwindcss/postcss": "^4",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@types/sanitize-html": "^2.16.0",
+    "@vitest/coverage-v8": "^4.0.18",
+    "drizzle-kit": "^0.31.9",
+    "eslint": "^9",
+    "eslint-config-next": "16.1.6",
+    "eslint-plugin-drizzle": "^0.2.3",
+    "husky": "^9.1.7",
+    "jsdom": "^28.1.0",
+    "lint-staged": "^16.2.7",
+    "playwright": "^1.58.2",
+    "prettier": "^3.8.1",
+    "tailwindcss": "^4",
+    "typescript": "^5",
+    "vitest": "^4.0.18"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,mts}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,css,md,yml,yaml}": [
+      "prettier --write"
+    ]
+  }
+}
