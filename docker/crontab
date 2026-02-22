@@ -1,0 +1,12 @@
+# Igbo Platform - Cron Job Schedule
+# Usage: Mount this file in Docker container and configure cron service
+#
+# Format: minute hour day month weekday command
+#
+# Jobs are executed via: npx tsx src/server/jobs/run-jobs.ts <job-name>
+# Or run all registered jobs: npx tsx src/server/jobs/run-jobs.ts --all
+#
+# Future jobs (to be added by their respective stories):
+#   Story 1.13 (GDPR): Retention cleanup - daily at 2:00 AM
+#   Story 7.4 (Recordings): Recording expiry cleanup - daily at 3:00 AM
+#   Story 9.4 (Notifications): Notification digest - hourly

@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { sql } from "drizzle-orm";
 import { db } from "@/db";
-import Redis from "ioredis";
-import { env } from "@/env";
+import { getRedisClient } from "@/lib/redis";
 
 export async function GET() {
   const startTime = process.uptime();
@@ -18,15 +17,12 @@ export async function GET() {
     dbStatus = "disconnected";
   }
 
-  // Check Redis connectivity — quit() in finally to prevent connection leaks on error
-  const redis = new Redis(env.REDIS_URL);
+  // Check Redis connectivity using shared client (no connection leak)
   try {
-    await redis.ping();
+    await getRedisClient().ping();
     redisStatus = "connected";
   } catch {
     redisStatus = "disconnected";
-  } finally {
-    await redis.quit();
   }
 
   const isHealthy = dbStatus === "connected" && redisStatus === "connected";
