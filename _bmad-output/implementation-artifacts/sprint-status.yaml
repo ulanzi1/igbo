@@ -44,8 +44,8 @@ development_status:
   epic-1: in-progress
   1-1a-project-scaffolding-core-setup: done
   1-1b-security-infrastructure-api-foundation: done
-  1-1c-eventbus-job-runner-background-jobs: backlog
-  1-2-design-system-brand-foundation: backlog
+  1-1c-eventbus-job-runner-background-jobs: done
+  1-2-design-system-brand-foundation: done
   1-3-responsive-layout-shell-pwa-foundation: backlog
   1-4-guest-experience-landing-page: backlog
   1-5-membership-application-email-verification: backlog

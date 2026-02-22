@@ -8,25 +8,13 @@ vi.mock("@/db", () => ({
   },
 }));
 
-// Mock ioredis — use regular function (not arrow) so it works as a constructor with `new` in Vitest v4
-vi.mock("ioredis", () => {
-  const MockRedis = vi.fn().mockImplementation(function (this: {
-    ping: ReturnType<typeof vi.fn>;
-    quit: ReturnType<typeof vi.fn>;
-  }) {
-    this.ping = vi.fn().mockResolvedValue("PONG");
-    this.quit = vi.fn().mockResolvedValue("OK");
-  });
-  return { default: MockRedis };
-});
+const mockPing = vi.fn().mockResolvedValue("PONG");
 
-// Mock the env module
-vi.mock("@/env", () => ({
-  env: {
-    REDIS_URL: "redis://localhost:6379",
-    DATABASE_URL: "postgresql://igbo:igbo@localhost:5432/igbo",
-    DATABASE_POOL_SIZE: 20,
-  },
+// Mock the shared Redis client
+vi.mock("@/lib/redis", () => ({
+  getRedisClient: vi.fn(() => ({
+    ping: mockPing,
+  })),
 }));
 
 describe("GET /api/health", () => {
@@ -65,15 +53,7 @@ describe("GET /api/health", () => {
   it("returns degraded status when redis is down", async () => {
     const { db } = await import("@/db");
     vi.mocked(db.execute).mockResolvedValue([{ result: 1 }] as never);
-
-    const { default: Redis } = await import("ioredis");
-    vi.mocked(Redis).mockImplementation(function (this: {
-      ping: ReturnType<typeof vi.fn>;
-      quit: ReturnType<typeof vi.fn>;
-    }) {
-      this.ping = vi.fn().mockRejectedValue(new Error("Connection refused"));
-      this.quit = vi.fn().mockResolvedValue("OK");
-    });
+    mockPing.mockRejectedValueOnce(new Error("Connection refused"));
 
     const { GET } = await import("./route");
     const response = await GET();

@@ -29,6 +29,10 @@ services:
       timeout: 5s
       retries: 5
 
+# Cron configuration for background jobs:
+# Production: Use docker/crontab with a cron sidecar container
+# Development: Run jobs manually via `npm run jobs:run -- --all` or `npm run jobs:run -- <job-name>`
+
 volumes:
   pgdata:
   redisdata:
