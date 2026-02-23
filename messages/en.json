@@ -94,11 +94,80 @@
   "Apply": {
     "title": "Join OBIGBO",
     "heading": "Become a Member",
-    "description": "We'd love to welcome you to our community. Membership is currently by invitation and application.",
-    "contactInfo": "To apply for membership or learn more about joining, please reach out to us.",
-    "emailLabel": "Email Us",
-    "comingSoon": "An online application form is coming soon. In the meantime, please contact us directly.",
-    "backToHome": "Back to Home"
+    "description": "Tell us about yourself and your connection to the Igbo community.",
+    "backToHome": "Back to Home",
+    "stepProgress": "Step {step} of {total}",
+    "stepLabels": {
+      "basicInfo": "Basic Info",
+      "location": "Location",
+      "culturalConnection": "Cultural Connection",
+      "reasonForJoining": "Reason for Joining",
+      "consentAndReferral": "Referral & Consent"
+    },
+    "fields": {
+      "name": "Full Name",
+      "email": "Email Address",
+      "phone": "Phone Number",
+      "locationCity": "City",
+      "locationState": "State / Region",
+      "locationCountry": "Country",
+      "locationCountryPlaceholder": "Select a country",
+      "locationStatePlaceholder": "Select a state / region",
+      "culturalConnection": "Cultural Connection",
+      "culturalConnectionHelp": "Describe your connection to Igbo culture and heritage",
+      "reasonForJoining": "Reason for Joining",
+      "reasonForJoiningHelp": "Tell us why you want to join the community (min 10 characters)",
+      "referralName": "Member Referral",
+      "referralNameHelp": "Name of the current member who referred you (if any)",
+      "consent": "I consent to the processing of my personal data as described in the Privacy Policy"
+    },
+    "optional": "(optional)",
+    "next": "Next",
+    "back": "Back",
+    "submit": "Submit Application",
+    "submitting": "Submitting...",
+    "resend": "Resend verification email",
+    "resending": "Sending...",
+    "locationNotDetected": "We couldn't detect your location — please enter it below.",
+    "errors": {
+      "nameRequired": "Full name is required",
+      "emailRequired": "Email address is required",
+      "emailInvalid": "Please enter a valid email address",
+      "emailExists": "An application with this email address already exists",
+      "phoneInvalid": "Please enter a valid phone number with country code",
+      "locationCityRequired": "City is required",
+      "locationCountryRequired": "Country is required",
+      "culturalConnectionRequired": "Please describe your cultural connection",
+      "culturalConnectionTooShort": "Please provide more detail (minimum 10 characters)",
+      "culturalConnectionTooLong": "Maximum 2000 characters",
+      "reasonForJoiningRequired": "Please tell us why you want to join",
+      "reasonForJoiningTooShort": "Please provide more detail (minimum 10 characters)",
+      "reasonForJoiningTooLong": "Maximum 2000 characters",
+      "consentRequired": "You must consent to the Privacy Policy to submit your application",
+      "genericError": "Something went wrong. Please try again."
+    },
+    "confirmation": {
+      "title": "Check your email",
+      "description": "We've sent a verification email. Please check your inbox to continue your application.",
+      "resendPrompt": "Didn't receive the email? Enter your email to resend:",
+      "resendSuccess": "Verification email sent! Please check your inbox.",
+      "resendRateLimited": "Too many requests. Please try again later.",
+      "emailPlaceholder": "your@email.com"
+    },
+    "emailVerified": {
+      "title": "Email Verified!",
+      "description": "Your email is verified! A community admin will review your application. Welcome home soon."
+    },
+    "tokenExpired": {
+      "title": "Verification link expired",
+      "description": "This link has expired or has already been used. Enter your email to get a new link:",
+      "emailPlaceholder": "your@email.com"
+    },
+    "tokenInvalid": {
+      "title": "Invalid verification link",
+      "description": "This verification link is not valid. Please request a new one.",
+      "emailPlaceholder": "your@email.com"
+    }
   },
   "Terms": {
     "title": "Terms of Service",

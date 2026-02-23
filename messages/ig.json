@@ -94,11 +94,80 @@
   "Apply": {
     "title": "Join OBIGBO [ig]",
     "heading": "Become a Member [ig]",
-    "description": "We'd love to welcome you to our community. Membership is currently by invitation and application. [ig]",
-    "contactInfo": "To apply for membership or learn more about joining, please reach out to us. [ig]",
-    "emailLabel": "Email Us [ig]",
-    "comingSoon": "An online application form is coming soon. In the meantime, please contact us directly. [ig]",
-    "backToHome": "Back to Home [ig]"
+    "description": "Tell us about yourself and your connection to the Igbo community. [ig]",
+    "backToHome": "Back to Home [ig]",
+    "stepProgress": "Step {step} of {total} [ig]",
+    "stepLabels": {
+      "basicInfo": "Basic Info [ig]",
+      "location": "Location [ig]",
+      "culturalConnection": "Cultural Connection [ig]",
+      "reasonForJoining": "Reason for Joining [ig]",
+      "consentAndReferral": "Referral & Consent [ig]"
+    },
+    "fields": {
+      "name": "Full Name [ig]",
+      "email": "Email Address [ig]",
+      "phone": "Phone Number [ig]",
+      "locationCity": "City [ig]",
+      "locationState": "State / Region [ig]",
+      "locationCountry": "Country [ig]",
+      "locationCountryPlaceholder": "Select a country [ig]",
+      "locationStatePlaceholder": "Select a state / region [ig]",
+      "culturalConnection": "Cultural Connection [ig]",
+      "culturalConnectionHelp": "Describe your connection to Igbo culture and heritage [ig]",
+      "reasonForJoining": "Reason for Joining [ig]",
+      "reasonForJoiningHelp": "Tell us why you want to join the community (min 10 characters) [ig]",
+      "referralName": "Member Referral [ig]",
+      "referralNameHelp": "Name of the current member who referred you (if any) [ig]",
+      "consent": "I consent to the processing of my personal data as described in the Privacy Policy [ig]"
+    },
+    "optional": "(optional) [ig]",
+    "next": "Next [ig]",
+    "back": "Back [ig]",
+    "submit": "Submit Application [ig]",
+    "submitting": "Submitting... [ig]",
+    "resend": "Resend verification email [ig]",
+    "resending": "Sending... [ig]",
+    "locationNotDetected": "We couldn't detect your location — please enter it below. [ig]",
+    "errors": {
+      "nameRequired": "Full name is required [ig]",
+      "emailRequired": "Email address is required [ig]",
+      "emailInvalid": "Please enter a valid email address [ig]",
+      "emailExists": "An application with this email address already exists [ig]",
+      "phoneInvalid": "Please enter a valid phone number with country code [ig]",
+      "locationCityRequired": "City is required [ig]",
+      "locationCountryRequired": "Country is required [ig]",
+      "culturalConnectionRequired": "Please describe your cultural connection [ig]",
+      "culturalConnectionTooShort": "Please provide more detail (minimum 10 characters) [ig]",
+      "culturalConnectionTooLong": "Maximum 2000 characters [ig]",
+      "reasonForJoiningRequired": "Please tell us why you want to join [ig]",
+      "reasonForJoiningTooShort": "Please provide more detail (minimum 10 characters) [ig]",
+      "reasonForJoiningTooLong": "Maximum 2000 characters [ig]",
+      "consentRequired": "You must consent to the Privacy Policy to submit your application [ig]",
+      "genericError": "Something went wrong. Please try again. [ig]"
+    },
+    "confirmation": {
+      "title": "Check your email [ig]",
+      "description": "We've sent a verification email. Please check your inbox to continue your application. [ig]",
+      "resendPrompt": "Didn't receive the email? Enter your email to resend: [ig]",
+      "resendSuccess": "Verification email sent! Please check your inbox. [ig]",
+      "resendRateLimited": "Too many requests. Please try again later. [ig]",
+      "emailPlaceholder": "your@email.com"
+    },
+    "emailVerified": {
+      "title": "Email Verified! [ig]",
+      "description": "Your email is verified! A community admin will review your application. Welcome home soon. [ig]"
+    },
+    "tokenExpired": {
+      "title": "Verification link expired [ig]",
+      "description": "This link has expired or has already been used. Enter your email to get a new link: [ig]",
+      "emailPlaceholder": "your@email.com"
+    },
+    "tokenInvalid": {
+      "title": "Invalid verification link [ig]",
+      "description": "This verification link is not valid. Please request a new one. [ig]",
+      "emailPlaceholder": "your@email.com"
+    }
   },
   "Terms": {
     "title": "Terms of Service [ig]",
