@@ -1,6 +1,7 @@
+import { headers } from "next/headers";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
-import { MailIcon } from "lucide-react";
+import { ApplicationForm, ResendForm } from "@/features/auth";
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
@@ -29,32 +30,76 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
   };
 }
 
-export default async function ApplyPage({ params }: { params: Promise<{ locale: string }> }) {
+type ApplyStatus = "email-verified" | "token-expired" | "token-invalid" | null;
+
+export default async function ApplyPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ locale: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const { locale } = await params;
   setRequestLocale(locale);
+
   const t = await getTranslations("Apply");
+  const sp = await searchParams;
+  const statusParam = typeof sp.status === "string" ? sp.status : null;
+  const status = (
+    ["email-verified", "token-expired", "token-invalid"].includes(statusParam ?? "")
+      ? statusParam
+      : null
+  ) as ApplyStatus;
 
-  return (
-    <div className="mx-auto max-w-2xl px-4 py-12 md:py-16 text-center">
-      <h1 className="text-3xl md:text-4xl font-bold text-primary mb-4">{t("heading")}</h1>
-      <p className="text-base text-muted-foreground mb-8">{t("description")}</p>
+  // Cloudflare geo headers for location prefill (absent in local dev — fields render empty)
+  const headersList = await headers();
+  const geoDefaults = {
+    city: headersList.get("CF-IPCity") ?? "",
+    state: headersList.get("CF-IPRegion") ?? "",
+    country: headersList.get("CF-IPCountry") ?? "",
+  };
 
-      <div className="rounded-xl bg-muted p-8 mb-8">
-        <p className="text-base text-foreground mb-4">{t("contactInfo")}</p>
-        <div className="flex items-center justify-center gap-2 text-primary font-medium">
-          <MailIcon className="size-5" aria-hidden="true" />
-          <span>{t("emailLabel")}</span>
+  // Email verified confirmation page
+  if (status === "email-verified") {
+    return (
+      <div className="mx-auto max-w-2xl px-4 py-16 text-center">
+        <div className="text-5xl mb-6" aria-hidden="true">
+          ✓
         </div>
+        <h1 className="text-3xl font-bold text-primary mb-4">{t("emailVerified.title")}</h1>
+        <p className="text-base text-muted-foreground mb-8">{t("emailVerified.description")}</p>
+        <Link
+          href="/"
+          className="inline-flex items-center justify-center min-h-[44px] px-6 rounded-xl border border-border bg-background text-foreground font-medium text-base hover:bg-muted transition-colors"
+        >
+          {t("backToHome")}
+        </Link>
       </div>
+    );
+  }
 
-      <p className="text-sm text-muted-foreground mb-6">{t("comingSoon")}</p>
+  // Token expired or already used
+  if (status === "token-expired") {
+    return (
+      <div className="mx-auto max-w-2xl px-4 py-16 text-center">
+        <h1 className="text-2xl font-bold text-primary mb-4">{t("tokenExpired.title")}</h1>
+        <p className="text-base text-muted-foreground mb-8">{t("tokenExpired.description")}</p>
+        <ResendForm emailPlaceholder={t("tokenExpired.emailPlaceholder")} />
+      </div>
+    );
+  }
 
-      <Link
-        href="/"
-        className="inline-flex items-center justify-center min-h-[44px] px-6 rounded-xl border border-border bg-background text-foreground font-medium text-base hover:bg-muted transition-colors"
-      >
-        {t("backToHome")}
-      </Link>
-    </div>
-  );
+  // Invalid token
+  if (status === "token-invalid") {
+    return (
+      <div className="mx-auto max-w-2xl px-4 py-16 text-center">
+        <h1 className="text-2xl font-bold text-primary mb-4">{t("tokenInvalid.title")}</h1>
+        <p className="text-base text-muted-foreground mb-8">{t("tokenInvalid.description")}</p>
+        <ResendForm emailPlaceholder={t("tokenInvalid.emailPlaceholder")} />
+      </div>
+    );
+  }
+
+  // Default: show the multi-step application form
+  return <ApplicationForm geoDefaults={geoDefaults} />;
 }

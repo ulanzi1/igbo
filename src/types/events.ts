@@ -9,6 +9,14 @@ export interface UserCreatedEvent extends BaseEvent {
   userId: string;
 }
 
+export interface UserAppliedEvent extends BaseEvent {
+  userId: string;
+}
+
+export interface UserEmailVerifiedEvent extends BaseEvent {
+  userId: string;
+}
+
 // --- Post Events ---
 
 export interface PostPublishedEvent extends BaseEvent {
@@ -134,6 +142,8 @@ export interface JobFailedEvent extends BaseEvent {
 
 export type EventName =
   | "user.created"
+  | "user.applied"
+  | "user.email_verified"
   | "post.published"
   | "post.reacted"
   | "post.commented"
@@ -158,6 +168,8 @@ export type EventName =
 
 export interface EventMap {
   "user.created": UserCreatedEvent;
+  "user.applied": UserAppliedEvent;
+  "user.email_verified": UserEmailVerifiedEvent;
   "post.published": PostPublishedEvent;
   "post.reacted": PostReactedEvent;
   "post.commented": PostCommentedEvent;
