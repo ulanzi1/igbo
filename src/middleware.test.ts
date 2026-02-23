@@ -52,6 +52,7 @@ vi.mock("next/server", () => {
   class MockNextRequest {
     headers: MockHeaders;
     nextUrl: { pathname: string };
+    url: string;
 
     constructor(
       input: {
@@ -61,11 +62,13 @@ vi.mock("next/server", () => {
           get?: (k: string) => string | null;
         };
         nextUrl?: { pathname: string };
+        url?: string;
       },
       init?: { headers?: Map<string, string> | Headers },
     ) {
       this.headers = new MockHeaders();
       this.nextUrl = input.nextUrl ?? { pathname: "/" };
+      this.url = input.url ?? "http://localhost:3000" + this.nextUrl.pathname;
 
       // Copy headers from input
       if (typeof input.headers.entries === "function") {
@@ -84,8 +87,25 @@ vi.mock("next/server", () => {
     }
   }
 
+  class MockNextResponse {
+    headers: MockHeaders;
+    status: number;
+
+    constructor(status: number) {
+      this.headers = new MockHeaders();
+      this.status = status;
+    }
+
+    static redirect(url: URL | string) {
+      const response = new MockNextResponse(307);
+      response.headers.set("Location", typeof url === "string" ? url : url.pathname);
+      return response;
+    }
+  }
+
   return {
     NextRequest: MockNextRequest,
+    NextResponse: MockNextResponse,
   };
 });
 
@@ -95,7 +115,8 @@ describe("middleware", () => {
 
     const mockRequest = {
       headers: new Headers({ "X-Request-Id": "existing-trace-id" }),
-      nextUrl: { pathname: "/en/dashboard" },
+      nextUrl: { pathname: "/en/about" },
+      url: "http://localhost:3000/en/about",
     };
 
     const response = middleware(mockRequest as never);
@@ -107,7 +128,8 @@ describe("middleware", () => {
 
     const mockRequest = {
       headers: new Headers(),
-      nextUrl: { pathname: "/en/dashboard" },
+      nextUrl: { pathname: "/en/about" },
+      url: "http://localhost:3000/en/about",
     };
 
     const response = middleware(mockRequest as never);
@@ -124,6 +146,7 @@ describe("middleware", () => {
     const mockRequest = {
       headers: new Headers(),
       nextUrl: { pathname: "/" },
+      url: "http://localhost:3000/",
     };
 
     const response = middleware(mockRequest as never);
@@ -140,7 +163,8 @@ describe("middleware", () => {
 
     const mockRequest = {
       headers: new Headers({ "X-Request-Id": "pass-through-id" }),
-      nextUrl: { pathname: "/en/profile" },
+      nextUrl: { pathname: "/en/about" },
+      url: "http://localhost:3000/en/about",
     };
 
     const response = middleware(mockRequest as never);
@@ -162,5 +186,87 @@ describe("middleware", () => {
   it("has matcher config that excludes static file extensions", async () => {
     const { config } = await import("./middleware");
     expect(config.matcher[0]).toContain(".");
+  });
+
+  // Route protection tests
+  it("redirects unauthenticated access to protected routes to splash page", async () => {
+    const { middleware } = await import("./middleware");
+
+    const mockRequest = {
+      headers: new Headers(),
+      nextUrl: { pathname: "/en/dashboard" },
+      url: "http://localhost:3000/en/dashboard",
+    };
+
+    const response = middleware(mockRequest as never);
+    expect(response.status).toBe(307);
+    expect(response.headers.get("Location")).toBe("/en");
+  });
+
+  it("redirects protected /ig routes to /ig splash", async () => {
+    const { middleware } = await import("./middleware");
+
+    const mockRequest = {
+      headers: new Headers(),
+      nextUrl: { pathname: "/ig/chat" },
+      url: "http://localhost:3000/ig/chat",
+    };
+
+    const response = middleware(mockRequest as never);
+    expect(response.status).toBe(307);
+    expect(response.headers.get("Location")).toBe("/ig");
+  });
+
+  it("allows access to guest routes without redirect", async () => {
+    const { middleware } = await import("./middleware");
+
+    const publicPaths = [
+      "/en",
+      "/en/about",
+      "/en/articles",
+      "/en/events",
+      "/en/blog",
+      "/en/apply",
+      "/en/terms",
+      "/en/privacy",
+    ];
+
+    for (const pathname of publicPaths) {
+      const mockRequest = {
+        headers: new Headers(),
+        nextUrl: { pathname },
+        url: `http://localhost:3000${pathname}`,
+      };
+
+      const response = middleware(mockRequest as never);
+      expect(response.status).toBe(200);
+    }
+  });
+
+  it("allows access to auth routes without redirect", async () => {
+    const { middleware } = await import("./middleware");
+
+    const mockRequest = {
+      headers: new Headers(),
+      nextUrl: { pathname: "/en/login" },
+      url: "http://localhost:3000/en/login",
+    };
+
+    const response = middleware(mockRequest as never);
+    expect(response.status).toBe(200);
+  });
+
+  it("redirects protected admin routes", async () => {
+    const { middleware } = await import("./middleware");
+
+    const mockRequest = {
+      headers: new Headers(),
+      nextUrl: { pathname: "/en/admin/moderation" },
+      url: "http://localhost:3000/en/admin/moderation",
+    };
+
+    const response = middleware(mockRequest as never);
+    expect(response.status).toBe(307);
+    expect(response.headers.get("Location")).toBe("/en");
   });
 });

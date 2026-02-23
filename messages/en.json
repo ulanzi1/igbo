@@ -22,7 +22,10 @@
     "settings": "Settings",
     "notifications": "Notifications",
     "terms": "Terms",
-    "privacy": "Privacy"
+    "privacy": "Privacy",
+    "articles": "Articles",
+    "blog": "Blog",
+    "login": "Members Login"
   },
   "Shell": {
     "appName": "Igbo Community Platform",
@@ -31,7 +34,7 @@
     "menuClose": "Close menu",
     "languageToggle": "Switch language",
     "contrastToggle": "Toggle high contrast",
-    "copyright": "© {year} Igbo Community Platform"
+    "copyright": "\u00a9 {year} Igbo Community Platform"
   },
   "Errors": {
     "notFound": "Page not found",
@@ -40,5 +43,96 @@
     "offlineDescription": "Please check your internet connection and try again.",
     "generic": "Something went wrong",
     "genericDescription": "We encountered an unexpected error. Please try again."
+  },
+  "Splash": {
+    "title": "OBIGBO",
+    "subtitle": "Welcome Home",
+    "tagline": "A place of belonging for the Igbo community worldwide",
+    "exploreGuest": "Explore as Guest",
+    "contactJoin": "Contact Us to Join",
+    "membersLogin": "Members Login",
+    "stat1": "Growing community of Igbo people worldwide",
+    "stat2": "Connecting members across 15+ countries",
+    "stat3": "Preserving traditions, building bridges",
+    "socialProofHeading": "Our Community"
+  },
+  "About": {
+    "title": "About OBIGBO",
+    "mission": "Our Mission",
+    "missionText": "OBIGBO is a digital home for the global Igbo community. We connect Igbo people worldwide, preserving our rich cultural heritage while building bridges across generations and geographies.",
+    "vision": "Our Vision",
+    "visionText": "A world where every Igbo person, no matter where they are, feels connected to their roots and empowered by their community.",
+    "culture": "Cultural Context",
+    "cultureText": "The Igbo people are one of the largest ethnic groups in Africa, with a vibrant diaspora spanning every continent. OBIGBO brings us together in a space that celebrates our language, traditions, and shared values of community, enterprise, and resilience.",
+    "founding": "Our Story",
+    "foundingText": "OBIGBO was born from a simple observation: while Igbo people thrive individually across the globe, we lack a dedicated digital space to connect, share, and grow together as a community. This platform is our answer to that need.",
+    "ctaHeading": "Join Our Community",
+    "ctaText": "Be part of a growing network of Igbo people connecting, sharing, and preserving our culture together.",
+    "ctaButton": "Apply for Membership"
+  },
+  "Articles": {
+    "title": "Articles",
+    "description": "Discover stories, insights, and cultural perspectives from the Igbo community.",
+    "emptyTitle": "Articles are coming soon",
+    "emptyDescription": "Join the community to be the first to know when new articles are published!",
+    "ctaButton": "Join to Stay Updated"
+  },
+  "Events": {
+    "title": "Events Calendar",
+    "description": "Upcoming events, gatherings, and celebrations from the Igbo community.",
+    "emptyTitle": "Events are coming soon",
+    "emptyDescription": "Join the community to be the first to know about upcoming events and gatherings!",
+    "ctaButton": "Join to Stay Updated"
+  },
+  "Blog": {
+    "title": "Blog",
+    "description": "Stories and updates from the Igbo community.",
+    "emptyTitle": "Blog posts are coming soon",
+    "emptyDescription": "Join the community to be the first to read our latest stories and updates!",
+    "ctaButton": "Join to Stay Updated"
+  },
+  "Apply": {
+    "title": "Join OBIGBO",
+    "heading": "Become a Member",
+    "description": "We'd love to welcome you to our community. Membership is currently by invitation and application.",
+    "contactInfo": "To apply for membership or learn more about joining, please reach out to us.",
+    "emailLabel": "Email Us",
+    "comingSoon": "An online application form is coming soon. In the meantime, please contact us directly.",
+    "backToHome": "Back to Home"
+  },
+  "Terms": {
+    "title": "Terms of Service",
+    "heading": "Terms of Service",
+    "content": "Our full terms of service are being finalized and will be published here soon. By using this platform, you agree to engage respectfully with fellow community members and abide by our community guidelines.",
+    "lastUpdated": "Last updated: February 2026"
+  },
+  "Privacy": {
+    "title": "Privacy Policy",
+    "heading": "Privacy Policy",
+    "content": "Our full privacy policy is being finalized and will be published here soon. We are committed to protecting your personal data and complying with applicable data protection regulations including GDPR.",
+    "lastUpdated": "Last updated: February 2026"
+  },
+  "SEO": {
+    "siteTitle": "OBIGBO - Igbo Community Platform",
+    "siteDescription": "A digital home connecting the global Igbo community. Discover articles, events, and connect with Igbo people worldwide.",
+    "splashTitle": "OBIGBO - Welcome Home | Igbo Community Platform",
+    "splashDescription": "Join the global Igbo community. Connect with Igbo people worldwide, discover cultural content, attend events, and preserve our heritage together.",
+    "aboutTitle": "About OBIGBO - Our Mission & Story",
+    "aboutDescription": "Learn about OBIGBO's mission to connect the global Igbo community, preserve cultural heritage, and build bridges across generations.",
+    "articlesTitle": "Articles - OBIGBO Igbo Community",
+    "articlesDescription": "Discover stories, insights, and cultural perspectives from the global Igbo community on OBIGBO.",
+    "eventsTitle": "Events Calendar - OBIGBO Igbo Community",
+    "eventsDescription": "Find upcoming events, gatherings, and celebrations from the Igbo community worldwide on OBIGBO.",
+    "blogTitle": "Blog - OBIGBO Igbo Community",
+    "blogDescription": "Read the latest stories and updates from the global Igbo community on OBIGBO.",
+    "applyTitle": "Join OBIGBO - Apply for Membership",
+    "applyDescription": "Apply to join the OBIGBO community and connect with Igbo people worldwide.",
+    "termsTitle": "Terms of Service - OBIGBO",
+    "termsDescription": "Terms of service for the OBIGBO Igbo Community Platform.",
+    "privacyTitle": "Privacy Policy - OBIGBO",
+    "privacyDescription": "Privacy policy for the OBIGBO Igbo Community Platform.",
+    "membersOnly": "Members Only",
+    "membersOnlyDescription": "This area is for OBIGBO members only. Join our community to access all features.",
+    "membersOnlyCta": "Apply for Membership"
   }
 }

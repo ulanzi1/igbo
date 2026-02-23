@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { Link } from "@/i18n/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
@@ -29,9 +30,9 @@ function ActionButton({ action, isPrimary }: { action: ActionProps; isPrimary: b
 
   if (action.href) {
     return (
-      <a href={action.href} className={classes}>
+      <Link href={action.href} className={classes}>
         {action.label}
-      </a>
+      </Link>
     );
   }
 
