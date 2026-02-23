@@ -20,21 +20,15 @@ describe("next.config.ts security headers", () => {
     const headers = await config.headers!();
     expect(headers.length).toBeGreaterThanOrEqual(1);
 
-    const catchAll = headers.find(
-      (h: { source: string }) => h.source === "/(.*)",
-    );
+    const catchAll = headers.find((h: { source: string }) => h.source === "/(.*)");
     expect(catchAll).toBeDefined();
   });
 
   it("includes Content-Security-Policy header", async () => {
     const config = await loadNextConfig();
     const headers = await config.headers!();
-    const catchAll = headers.find(
-      (h: { source: string }) => h.source === "/(.*)",
-    );
-    const csp = catchAll.headers.find(
-      (h: { key: string }) => h.key === "Content-Security-Policy",
-    );
+    const catchAll = headers.find((h: { source: string }) => h.source === "/(.*)");
+    const csp = catchAll.headers.find((h: { key: string }) => h.key === "Content-Security-Policy");
     expect(csp).toBeDefined();
     expect(csp.value).toContain("default-src 'self'");
     expect(csp.value).toContain("script-src 'self' 'unsafe-inline'");
@@ -48,15 +42,19 @@ describe("next.config.ts security headers", () => {
     expect(csp.value).toContain("upgrade-insecure-requests");
   });
 
+  it("includes worker-src 'self' for service worker support", async () => {
+    const config = await loadNextConfig();
+    const headers = await config.headers!();
+    const catchAll = headers.find((h: { source: string }) => h.source === "/(.*)");
+    const csp = catchAll.headers.find((h: { key: string }) => h.key === "Content-Security-Policy");
+    expect(csp.value).toContain("worker-src 'self'");
+  });
+
   it("includes X-Frame-Options: DENY", async () => {
     const config = await loadNextConfig();
     const headers = await config.headers!();
-    const catchAll = headers.find(
-      (h: { source: string }) => h.source === "/(.*)",
-    );
-    const header = catchAll.headers.find(
-      (h: { key: string }) => h.key === "X-Frame-Options",
-    );
+    const catchAll = headers.find((h: { source: string }) => h.source === "/(.*)");
+    const header = catchAll.headers.find((h: { key: string }) => h.key === "X-Frame-Options");
     expect(header).toBeDefined();
     expect(header.value).toBe("DENY");
   });
@@ -64,9 +62,7 @@ describe("next.config.ts security headers", () => {
   it("includes X-Content-Type-Options: nosniff", async () => {
     const config = await loadNextConfig();
     const headers = await config.headers!();
-    const catchAll = headers.find(
-      (h: { source: string }) => h.source === "/(.*)",
-    );
+    const catchAll = headers.find((h: { source: string }) => h.source === "/(.*)");
     const header = catchAll.headers.find(
       (h: { key: string }) => h.key === "X-Content-Type-Options",
     );
@@ -77,27 +73,19 @@ describe("next.config.ts security headers", () => {
   it("includes Strict-Transport-Security header", async () => {
     const config = await loadNextConfig();
     const headers = await config.headers!();
-    const catchAll = headers.find(
-      (h: { source: string }) => h.source === "/(.*)",
-    );
+    const catchAll = headers.find((h: { source: string }) => h.source === "/(.*)");
     const header = catchAll.headers.find(
       (h: { key: string }) => h.key === "Strict-Transport-Security",
     );
     expect(header).toBeDefined();
-    expect(header.value).toBe(
-      "max-age=63072000; includeSubDomains; preload",
-    );
+    expect(header.value).toBe("max-age=63072000; includeSubDomains; preload");
   });
 
   it("includes Referrer-Policy header", async () => {
     const config = await loadNextConfig();
     const headers = await config.headers!();
-    const catchAll = headers.find(
-      (h: { source: string }) => h.source === "/(.*)",
-    );
-    const header = catchAll.headers.find(
-      (h: { key: string }) => h.key === "Referrer-Policy",
-    );
+    const catchAll = headers.find((h: { source: string }) => h.source === "/(.*)");
+    const header = catchAll.headers.find((h: { key: string }) => h.key === "Referrer-Policy");
     expect(header).toBeDefined();
     expect(header.value).toBe("strict-origin-when-cross-origin");
   });
@@ -105,12 +93,8 @@ describe("next.config.ts security headers", () => {
   it("includes Permissions-Policy header", async () => {
     const config = await loadNextConfig();
     const headers = await config.headers!();
-    const catchAll = headers.find(
-      (h: { source: string }) => h.source === "/(.*)",
-    );
-    const header = catchAll.headers.find(
-      (h: { key: string }) => h.key === "Permissions-Policy",
-    );
+    const catchAll = headers.find((h: { source: string }) => h.source === "/(.*)");
+    const header = catchAll.headers.find((h: { key: string }) => h.key === "Permissions-Policy");
     expect(header).toBeDefined();
     expect(header.value).toBe("camera=(), microphone=(), geolocation=()");
   });
@@ -124,12 +108,8 @@ describe("next.config.ts security headers", () => {
     // NODE_ENV in test/production should never include 'unsafe-eval' in CSP
     const config = await loadNextConfig();
     const headers = await config.headers!();
-    const catchAll = headers.find(
-      (h: { source: string }) => h.source === "/(.*)",
-    );
-    const csp = catchAll.headers.find(
-      (h: { key: string }) => h.key === "Content-Security-Policy",
-    );
+    const catchAll = headers.find((h: { source: string }) => h.source === "/(.*)");
+    const csp = catchAll.headers.find((h: { key: string }) => h.key === "Content-Security-Policy");
     // NODE_ENV during vitest is "test", not "development"
     expect(process.env.NODE_ENV).not.toBe("development");
     expect(csp.value).not.toContain("'unsafe-eval'");

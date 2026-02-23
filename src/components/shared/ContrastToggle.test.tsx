@@ -3,6 +3,11 @@ import { render, screen, fireEvent } from "@/test/test-utils";
 import { ContrastToggle } from "./ContrastToggle";
 import { STORAGE_KEY } from "@/hooks/use-contrast-mode";
 
+vi.mock("next-intl", () => ({
+  useTranslations: (namespace?: string) => (key: string) => `${namespace}.${key}`,
+  useLocale: () => "en",
+}));
+
 // localStorage mock for reliable cross-jsdom-version behavior
 const localStorageMock = (() => {
   let store: Record<string, string> = {};
@@ -42,7 +47,7 @@ describe("ContrastToggle", () => {
   it("renders a toggle button with accessible aria-label", () => {
     render(<ContrastToggle />);
     const button = screen.getByRole("button");
-    expect(button).toHaveAttribute("aria-label", "Switch to high contrast");
+    expect(button).toHaveAttribute("aria-label", "Shell.contrastToggle");
   });
 
   it("renders with aria-pressed=false in default mode", () => {
@@ -51,12 +56,12 @@ describe("ContrastToggle", () => {
     expect(button).toHaveAttribute("aria-pressed", "false");
   });
 
-  it("toggles to high contrast on click and updates aria-label and aria-pressed", () => {
+  it("toggles to high contrast on click and updates aria-pressed", () => {
     render(<ContrastToggle />);
     const button = screen.getByRole("button");
     fireEvent.click(button);
     expect(button).toHaveAttribute("aria-pressed", "true");
-    expect(button).toHaveAttribute("aria-label", "Switch to default contrast");
+    expect(button).toHaveAttribute("aria-label", "Shell.contrastToggle");
   });
 
   it("applies data-contrast='high' on <html> when toggled on", () => {
@@ -83,6 +88,6 @@ describe("ContrastToggle", () => {
     render(<ContrastToggle />);
     const button = screen.getByRole("button");
     expect(button).toHaveAttribute("aria-pressed", "true");
-    expect(button).toHaveAttribute("aria-label", "Switch to default contrast");
+    expect(button).toHaveAttribute("aria-label", "Shell.contrastToggle");
   });
 });

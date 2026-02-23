@@ -1,4 +1,20 @@
 import type { NextConfig } from "next";
+import createNextIntlPlugin from "next-intl/plugin";
+import withSerwistInit from "@serwist/next";
+
+const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
+
+const withSerwist = withSerwistInit({
+  swSrc: "src/app/sw.ts",
+  swDest: "public/sw.js",
+  additionalPrecacheEntries: [
+    { url: "/en/~offline", revision: Date.now().toString() },
+    { url: "/ig/~offline", revision: Date.now().toString() },
+  ],
+  cacheOnNavigation: true,
+  reloadOnOnline: true,
+  disable: process.env.NODE_ENV === "development",
+});
 
 const cspDirectives = [
   "default-src 'self'",
@@ -12,6 +28,8 @@ const cspDirectives = [
   "base-uri 'self'",
   "form-action 'self'",
   "frame-ancestors 'none'",
+  "worker-src 'self'",
+  "manifest-src 'self'",
   "upgrade-insecure-requests",
 ];
 
@@ -55,4 +73,5 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+// Compose: Serwist outermost (webpack config), next-intl inner
+export default withSerwist(withNextIntl(nextConfig));

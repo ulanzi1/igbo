@@ -1,0 +1,44 @@
+{
+  "Common": {
+    "loading": "Loading... [ig]",
+    "error": "Something went wrong [ig]",
+    "back": "Go back [ig]",
+    "save": "Save [ig]",
+    "cancel": "Cancel [ig]",
+    "confirm": "Confirm [ig]",
+    "close": "Close [ig]",
+    "search": "Search [ig]",
+    "seeAll": "See all [ig]",
+    "tryAgain": "Try again [ig]"
+  },
+  "Navigation": {
+    "home": "Home [ig]",
+    "chat": "Chat [ig]",
+    "discover": "Discover [ig]",
+    "events": "Events [ig]",
+    "profile": "Profile [ig]",
+    "about": "About [ig]",
+    "join": "Join Community [ig]",
+    "settings": "Settings [ig]",
+    "notifications": "Notifications [ig]",
+    "terms": "Terms [ig]",
+    "privacy": "Privacy [ig]"
+  },
+  "Shell": {
+    "appName": "Igbo Community Platform [ig]",
+    "skipToContent": "Skip to content [ig]",
+    "menuOpen": "Open menu [ig]",
+    "menuClose": "Close menu [ig]",
+    "languageToggle": "Switch language [ig]",
+    "contrastToggle": "Toggle high contrast [ig]",
+    "copyright": "© {year} Igbo Community Platform [ig]"
+  },
+  "Errors": {
+    "notFound": "Page not found [ig]",
+    "notFoundDescription": "The page you're looking for doesn't exist or has been moved. [ig]",
+    "offline": "You're offline [ig]",
+    "offlineDescription": "Please check your internet connection and try again. [ig]",
+    "generic": "Something went wrong [ig]",
+    "genericDescription": "We encountered an unexpected error. Please try again. [ig]"
+  }
+}
