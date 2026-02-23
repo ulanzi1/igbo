@@ -1,5 +1,8 @@
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
+import createMiddleware from "next-intl/middleware";
+import { NextRequest } from "next/server";
+import { routing } from "./i18n/routing";
+
+const handleI18nRouting = createMiddleware(routing);
 
 export function middleware(request: NextRequest) {
   const requestHeaders = new Headers(request.headers);
@@ -9,16 +12,18 @@ export function middleware(request: NextRequest) {
     requestHeaders.set("X-Request-Id", crypto.randomUUID());
   }
 
-  const response = NextResponse.next({
-    request: { headers: requestHeaders },
-  });
+  const requestId = requestHeaders.get("X-Request-Id")!;
 
-  // Echo X-Request-Id in the response for client-side correlation
-  response.headers.set("X-Request-Id", requestHeaders.get("X-Request-Id")!);
+  // Pass enriched request so X-Request-Id is forwarded to route handlers and RSCs
+  const enrichedRequest = new NextRequest(request, { headers: requestHeaders });
+  const response = handleI18nRouting(enrichedRequest);
+
+  // Echo X-Request-Id in response headers for client-side correlation
+  response.headers.set("X-Request-Id", requestId);
 
   return response;
 }
 
 export const config = {
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt).*)"],
+  matcher: ["/((?!api|_next|_vercel|.*\\..*).*)"],
 };
