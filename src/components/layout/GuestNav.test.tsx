@@ -54,6 +54,14 @@ describe("GuestNav", () => {
     expect(nav).toHaveTextContent("Navigation.about");
   });
 
+  it("renders Articles, Events, and Blog links in desktop nav", () => {
+    render(<GuestNav />);
+    const nav = screen.getByRole("navigation", { name: "Guest navigation" });
+    expect(nav).toHaveTextContent("Navigation.articles");
+    expect(nav).toHaveTextContent("Navigation.events");
+    expect(nav).toHaveTextContent("Navigation.blog");
+  });
+
   it("renders LanguageToggle", () => {
     render(<GuestNav />);
     // LanguageToggle renders button with aria-label

@@ -20,6 +20,22 @@ vi.mock("lucide-react", () => ({
   WifiOffIcon: () => <svg data-testid="wifi-off-icon" />,
 }));
 
+vi.mock("@/i18n/navigation", () => ({
+  Link: ({
+    href,
+    children,
+    ...props
+  }: {
+    href: string;
+    children: React.ReactNode;
+    [key: string]: unknown;
+  }) => (
+    <a href={href} {...props}>
+      {children}
+    </a>
+  ),
+}));
+
 describe("OfflinePage", () => {
   it("renders offline title via EmptyState", async () => {
     const { default: OfflinePage } = await import("./page");

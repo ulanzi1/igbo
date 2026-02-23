@@ -39,6 +39,24 @@ function GuestNav({ className }: { className?: string }) {
         >
           {t("about")}
         </Link>
+        <Link
+          href="/articles"
+          className="flex items-center min-h-[44px] px-3 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+        >
+          {t("articles")}
+        </Link>
+        <Link
+          href="/events"
+          className="flex items-center min-h-[44px] px-3 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+        >
+          {t("events")}
+        </Link>
+        <Link
+          href="/blog"
+          className="flex items-center min-h-[44px] px-3 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+        >
+          {t("blog")}
+        </Link>
       </nav>
 
       {/* Spacer */}
@@ -77,6 +95,27 @@ function GuestNav({ className }: { className?: string }) {
               className="flex items-center min-h-[44px] px-3 rounded-md text-sm font-medium hover:bg-muted transition-colors"
             >
               {t("about")}
+            </Link>
+            <Link
+              href="/articles"
+              onClick={() => setMenuOpen(false)}
+              className="flex items-center min-h-[44px] px-3 rounded-md text-sm font-medium hover:bg-muted transition-colors"
+            >
+              {t("articles")}
+            </Link>
+            <Link
+              href="/events"
+              onClick={() => setMenuOpen(false)}
+              className="flex items-center min-h-[44px] px-3 rounded-md text-sm font-medium hover:bg-muted transition-colors"
+            >
+              {t("events")}
+            </Link>
+            <Link
+              href="/blog"
+              onClick={() => setMenuOpen(false)}
+              className="flex items-center min-h-[44px] px-3 rounded-md text-sm font-medium hover:bg-muted transition-colors"
+            >
+              {t("blog")}
             </Link>
             <div className="flex gap-2 pt-2">
               <LanguageToggle />

@@ -1,7 +1,24 @@
 // @vitest-environment jsdom
 import { render, screen, fireEvent } from "@/test/test-utils";
-import { EmptyState, EmptyStateSkeleton } from "./EmptyState";
 import { SearchIcon } from "lucide-react";
+
+vi.mock("@/i18n/navigation", () => ({
+  Link: ({
+    href,
+    children,
+    ...props
+  }: {
+    href: string;
+    children: React.ReactNode;
+    [key: string]: unknown;
+  }) => (
+    <a href={href} {...props}>
+      {children}
+    </a>
+  ),
+}));
+
+import { EmptyState, EmptyStateSkeleton } from "./EmptyState";
 
 const defaultProps = {
   icon: <SearchIcon data-testid="icon" />,
