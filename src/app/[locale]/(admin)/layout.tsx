@@ -1,4 +1,5 @@
 import { setRequestLocale } from "next-intl/server";
+import { AdminShell } from "@/components/layout/AdminShell";
 
 export default async function AdminLayout({
   children,
@@ -10,5 +11,5 @@ export default async function AdminLayout({
   const { locale } = await params;
   setRequestLocale(locale);
 
-  return <>{children}</>;
+  return <AdminShell>{children}</AdminShell>;
 }

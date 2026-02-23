@@ -1,19 +1,20 @@
-import { sql } from "drizzle-orm";
+import "server-only";
+import { eq, isNull, and } from "drizzle-orm";
 import { db } from "@/db";
-
-// Note: auth_users is managed by Auth.js (next-auth) and is not yet in the Drizzle schema.
-// These queries use the drizzle sql template for safety while the schema is added in Story 1.2.
-// TODO: Replace with typed Drizzle schema references once auth_users is added.
+import { authUsers } from "@/db/schema/auth-users";
 
 export async function findAdminByEmail(email: string) {
-  const result = await db.execute(
-    sql`SELECT id FROM auth_users WHERE email = ${email} LIMIT 1`,
-  );
-  return result;
+  return db
+    .select()
+    .from(authUsers)
+    .where(and(eq(authUsers.email, email), isNull(authUsers.deletedAt)));
 }
 
 export async function insertAdminUser(email: string) {
-  await db.execute(
-    sql`INSERT INTO auth_users (email, role) VALUES (${email}, 'admin')`,
-  );
+  await db.insert(authUsers).values({
+    email,
+    role: "ADMIN",
+    accountStatus: "APPROVED",
+    consentGivenAt: new Date(),
+  });
 }

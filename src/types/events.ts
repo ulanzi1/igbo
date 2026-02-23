@@ -73,6 +73,17 @@ export interface MemberApprovedEvent extends BaseEvent {
   approvedBy: string;
 }
 
+export interface MemberInfoRequestedEvent extends BaseEvent {
+  userId: string;
+  requestedBy: string;
+}
+
+export interface MemberRejectedEvent extends BaseEvent {
+  userId: string;
+  rejectedBy: string;
+  reason?: string;
+}
+
 export interface MemberFollowedEvent extends BaseEvent {
   followerId: string;
   followedId: string;
@@ -152,6 +163,8 @@ export type EventName =
   | "points.awarded"
   | "member.banned"
   | "member.approved"
+  | "member.info_requested"
+  | "member.rejected"
   | "member.followed"
   | "member.unfollowed"
   | "member.anonymizing"
@@ -178,6 +191,8 @@ export interface EventMap {
   "points.awarded": PointsAwardedEvent;
   "member.banned": MemberBannedEvent;
   "member.approved": MemberApprovedEvent;
+  "member.info_requested": MemberInfoRequestedEvent;
+  "member.rejected": MemberRejectedEvent;
   "member.followed": MemberFollowedEvent;
   "member.unfollowed": MemberUnfollowedEvent;
   "member.anonymizing": MemberAnonymizingEvent;
