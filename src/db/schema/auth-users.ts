@@ -9,6 +9,8 @@ import {
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 
+export const userRoleEnum = pgEnum("user_role", ["MEMBER", "ADMIN", "MODERATOR"]);
+
 export const accountStatusEnum = pgEnum("account_status", [
   "PENDING_EMAIL_VERIFICATION",
   "PENDING_APPROVAL",
@@ -39,6 +41,8 @@ export const authUsers = pgTable(
     accountStatus: accountStatusEnum("account_status")
       .notNull()
       .default("PENDING_EMAIL_VERIFICATION"),
+    role: userRoleEnum("role").notNull().default("MEMBER"),
+    adminNotes: text("admin_notes"),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),

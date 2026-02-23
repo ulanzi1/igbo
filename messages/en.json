@@ -181,6 +181,43 @@
     "content": "Our full privacy policy is being finalized and will be published here soon. We are committed to protecting your personal data and complying with applicable data protection regulations including GDPR.",
     "lastUpdated": "Last updated: February 2026"
   },
+  "Admin": {
+    "approvals": {
+      "title": "Membership Applications",
+      "empty": "No pending applications",
+      "loading": "Loading applications\u2026",
+      "approve": "Approve",
+      "reject": "Reject",
+      "requestInfo": "Request Info",
+      "next": "Next",
+      "undo": "Undo",
+      "undoMessage": "Action applied. You have {seconds} seconds to undo.",
+      "statusPending": "Pending",
+      "statusInfoRequested": "Awaiting Info",
+      "statusApproved": "Approved",
+      "statusRejected": "Rejected",
+      "locationPrefilled": "prefilled",
+      "culturalStrengthStrong": "Strong",
+      "culturalStrengthUnclear": "Unclear",
+      "culturalStrengthWeak": "Weak",
+      "infoMessagePlaceholder": "Enter your question for the applicant\u2026",
+      "infoMessageLabel": "Message to applicant",
+      "error": "Something went wrong loading applications. Please try again.",
+      "columnApplicant": "Applicant",
+      "columnLocation": "Location",
+      "columnCulturalConnection": "Cultural Connection",
+      "columnStatus": "Status",
+      "columnActions": "Actions"
+    },
+    "sidebar": {
+      "dashboard": "Dashboard",
+      "approvals": "Approvals",
+      "moderation": "Moderation",
+      "reports": "Reports",
+      "analytics": "Analytics",
+      "auditLog": "Audit Log"
+    }
+  },
   "SEO": {
     "siteTitle": "OBIGBO - Igbo Community Platform",
     "siteDescription": "A digital home connecting the global Igbo community. Discover articles, events, and connect with Igbo people worldwide.",

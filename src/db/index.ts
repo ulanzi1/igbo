@@ -3,6 +3,7 @@ import postgres from "postgres";
 import { env } from "@/env";
 import * as platformSettingsSchema from "./schema/platform-settings";
 import * as authUsersSchema from "./schema/auth-users";
+import * as auditLogsSchema from "./schema/audit-logs";
 
 const client = postgres(env.DATABASE_URL, {
   max: env.DATABASE_POOL_SIZE,
@@ -12,6 +13,7 @@ export const db = drizzle(client, {
   schema: {
     ...platformSettingsSchema,
     ...authUsersSchema,
+    ...auditLogsSchema,
   },
 });
 

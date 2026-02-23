@@ -181,6 +181,43 @@
     "content": "Our full privacy policy is being finalized and will be published here soon. We are committed to protecting your personal data and complying with applicable data protection regulations including GDPR. [ig]",
     "lastUpdated": "Last updated: February 2026 [ig]"
   },
+  "Admin": {
+    "approvals": {
+      "title": "Membership Applications [ig]",
+      "empty": "No pending applications [ig]",
+      "loading": "Loading applications\u2026 [ig]",
+      "approve": "Approve [ig]",
+      "reject": "Reject [ig]",
+      "requestInfo": "Request Info [ig]",
+      "next": "Next [ig]",
+      "undo": "Undo [ig]",
+      "undoMessage": "Action applied. You have {seconds} seconds to undo. [ig]",
+      "statusPending": "Pending [ig]",
+      "statusInfoRequested": "Awaiting Info [ig]",
+      "statusApproved": "Approved [ig]",
+      "statusRejected": "Rejected [ig]",
+      "locationPrefilled": "prefilled [ig]",
+      "culturalStrengthStrong": "Strong [ig]",
+      "culturalStrengthUnclear": "Unclear [ig]",
+      "culturalStrengthWeak": "Weak [ig]",
+      "infoMessagePlaceholder": "Enter your question for the applicant\u2026 [ig]",
+      "infoMessageLabel": "Message to applicant [ig]",
+      "error": "Something went wrong loading applications. Please try again. [ig]",
+      "columnApplicant": "Applicant [ig]",
+      "columnLocation": "Location [ig]",
+      "columnCulturalConnection": "Cultural Connection [ig]",
+      "columnStatus": "Status [ig]",
+      "columnActions": "Actions [ig]"
+    },
+    "sidebar": {
+      "dashboard": "Dashboard [ig]",
+      "approvals": "Approvals [ig]",
+      "moderation": "Moderation [ig]",
+      "reports": "Reports [ig]",
+      "analytics": "Analytics [ig]",
+      "auditLog": "Audit Log [ig]"
+    }
+  },
   "SEO": {
     "siteTitle": "OBIGBO - Igbo Community Platform [ig]",
     "siteDescription": "A digital home connecting the global Igbo community. Discover articles, events, and connect with Igbo people worldwide. [ig]",
