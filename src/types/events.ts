@@ -169,6 +169,24 @@ export interface Member2faResetEvent extends BaseEvent {
 
 // --- Profile / Onboarding Events ---
 
+export interface MemberProfileUpdatedEvent extends BaseEvent {
+  userId: string;
+}
+
+export interface MemberPrivacySettingsUpdatedEvent extends BaseEvent {
+  userId: string;
+}
+
+export interface MemberSocialAccountLinkedEvent extends BaseEvent {
+  userId: string;
+  provider: string;
+}
+
+export interface MemberSocialAccountUnlinkedEvent extends BaseEvent {
+  userId: string;
+  provider: string;
+}
+
 export interface MemberProfileCompletedEvent extends BaseEvent {
   userId: string;
 }
@@ -179,6 +197,21 @@ export interface MemberGuidelinesAcknowledgedEvent extends BaseEvent {
 
 export interface MemberOnboardingCompletedEvent extends BaseEvent {
   userId: string;
+}
+
+// --- Tier / Permission Events ---
+
+export interface MemberTierChangedEvent extends BaseEvent {
+  userId: string;
+  previousTier: string;
+  newTier: string;
+  changedBy: string;
+}
+
+export interface PermissionDeniedEvent extends BaseEvent {
+  userId: string;
+  action: string;
+  reason: string;
 }
 
 // --- Job Events ---
@@ -221,9 +254,15 @@ export type EventName =
   | "member.password_reset"
   | "member.2fa_setup"
   | "member.2fa_reset"
+  | "member.profile_updated"
+  | "member.privacy_settings_updated"
+  | "member.social_account_linked"
+  | "member.social_account_unlinked"
   | "member.profile_completed"
   | "member.guidelines_acknowledged"
-  | "member.onboarding_completed";
+  | "member.onboarding_completed"
+  | "member.tier_changed"
+  | "member.permission_denied";
 
 // --- Event Map ---
 
@@ -257,7 +296,13 @@ export interface EventMap {
   "member.password_reset": MemberPasswordResetEvent;
   "member.2fa_setup": Member2faSetupEvent;
   "member.2fa_reset": Member2faResetEvent;
+  "member.profile_updated": MemberProfileUpdatedEvent;
+  "member.privacy_settings_updated": MemberPrivacySettingsUpdatedEvent;
+  "member.social_account_linked": MemberSocialAccountLinkedEvent;
+  "member.social_account_unlinked": MemberSocialAccountUnlinkedEvent;
   "member.profile_completed": MemberProfileCompletedEvent;
   "member.guidelines_acknowledged": MemberGuidelinesAcknowledgedEvent;
   "member.onboarding_completed": MemberOnboardingCompletedEvent;
+  "member.tier_changed": MemberTierChangedEvent;
+  "member.permission_denied": PermissionDeniedEvent;
 }

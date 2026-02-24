@@ -213,10 +213,55 @@
     "sidebar": {
       "dashboard": "Dashboard [ig]",
       "approvals": "Approvals [ig]",
+      "members": "Members [ig]",
       "moderation": "Moderation [ig]",
       "reports": "Reports [ig]",
       "analytics": "Analytics [ig]",
       "auditLog": "Audit Log [ig]"
+    },
+    "members": {
+      "title": "Member Management [ig]",
+      "searchPlaceholder": "Search by name or email… [ig]",
+      "search": "Search [ig]",
+      "loading": "Loading members… [ig]",
+      "error": "Something went wrong loading members. Please try again. [ig]",
+      "noMembers": "No members found. [ig]",
+      "tierFilter": {
+        "all": "All Tiers [ig]",
+        "basic": "Basic [ig]",
+        "professional": "Professional [ig]",
+        "topTier": "Top-tier [ig]"
+      },
+      "columns": {
+        "name": "Name [ig]",
+        "email": "Email [ig]",
+        "tier": "Tier [ig]",
+        "joinedDate": "Joined [ig]",
+        "actions": "Actions [ig]"
+      },
+      "changeTier": {
+        "title": "Change Membership Tier [ig]",
+        "currentTier": "Current tier [ig]",
+        "newTier": "New tier [ig]",
+        "confirm": "Confirm Change [ig]",
+        "cancel": "Cancel [ig]",
+        "success": "Membership tier updated successfully. [ig]",
+        "error": "Failed to update tier. Please try again. [ig]"
+      }
+    }
+  },
+  "Permissions": {
+    "upgradeRequired": "This feature requires a higher membership tier. [ig]",
+    "tierBasic": "Basic [ig]",
+    "tierProfessional": "Professional [ig]",
+    "tierTopTier": "Top-tier [ig]",
+    "groupCreationRequired": "Group creation is available to Top-tier members. [ig]",
+    "articlePublishRequired": "Article publishing is available to Professional and Top-tier members. [ig]",
+    "groupLeaderRequired": "Assigning group leaders is available to Top-tier members. [ig]",
+    "tierBenefits": {
+      "basic": "Chat, join public groups, view articles, attend events, use member directory. [ig]",
+      "professional": "All Basic capabilities plus publish 1 article per week (members-only). [ig]",
+      "topTier": "All Professional capabilities plus create groups, publish 2 articles per week, assign group leaders. [ig]"
     }
   },
   "SEO": {
@@ -430,11 +475,62 @@
     }
   },
   "Settings": {
+    "profileTab": "Profile [ig]",
+    "privacyTab": "Privacy [ig]",
+    "securityTab": "Security [ig]",
     "profile": {
       "title": "Ntọala profaịlụ [ig]",
       "heading": "Profaịlụ gị [ig]",
       "retakeTourButton": "Were njem ụlọ ọrụ ọzọ [ig]",
-      "retakeTourDescription": "Nyochaa njem nduzi ụlọ ọrụ n'oge ọ bụla. [ig]"
+      "retakeTourDescription": "Nyochaa njem nduzi ụlọ ọrụ n'oge ọ bụla. [ig]",
+      "displayName": "Display name [ig]",
+      "bio": "About you [ig]",
+      "photo": "Profile photo [ig]",
+      "locationCity": "City [ig]",
+      "locationState": "State / Region [ig]",
+      "locationCountry": "Country [ig]",
+      "interests": "Interests [ig]",
+      "culturalConnections": "Cultural connections [ig]",
+      "languages": "Languages spoken [ig]",
+      "submitButton": "Save changes [ig]",
+      "successMessage": "Profile updated successfully. [ig]",
+      "errorMessage": "Failed to update profile. Please try again. [ig]"
+    },
+    "privacy": {
+      "title": "Privacy Settings [ig]",
+      "heading": "Privacy & Visibility [ig]",
+      "profileVisibility": {
+        "label": "Profile visibility [ig]",
+        "public_to_members": "Public to members [ig]",
+        "limited": "Limited (shared groups only) [ig]",
+        "private": "Private (admins only) [ig]",
+        "limitedNote": "Visible only to members in shared groups. [ig]"
+      },
+      "locationVisible": {
+        "label": "Show my location [ig]",
+        "description": "When disabled, your city, state, and country are hidden from your public profile. [ig]"
+      },
+      "successMessage": "Settings saved. [ig]",
+      "errorMessage": "Failed to save. Please try again. [ig]",
+      "socialLinks": {
+        "heading": "Connected Accounts [ig]",
+        "link": "Link [ig]",
+        "unlink": "Unlink [ig]",
+        "linked": "Connected as [ig]",
+        "linkSuccess": "Account linked successfully. [ig]",
+        "linkError": "Failed to link account. Please try again. [ig]",
+        "unlinkSuccess": "Account unlinked. [ig]",
+        "providerUnavailable": "This provider is temporarily unavailable. [ig]"
+      }
     }
+  },
+  "Profile": {
+    "messageButton": "Send Message [ig]",
+    "noLocation": "Location hidden [ig]",
+    "noSocialLinks": "No social accounts linked [ig]",
+    "interests": "Interests [ig]",
+    "culturalConnections": "Cultural Connections [ig]",
+    "languages": "Languages [ig]",
+    "verificationBadge": "Verification badge [ig]"
   }
 }

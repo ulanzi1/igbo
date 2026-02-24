@@ -15,6 +15,7 @@ export async function insertAdminUser(email: string) {
     email,
     role: "ADMIN",
     accountStatus: "APPROVED",
+    membershipTier: "TOP_TIER",
     consentGivenAt: new Date(),
   });
 }
