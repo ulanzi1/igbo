@@ -57,6 +57,7 @@ export async function listApplications(
         accountStatus: authUsers.accountStatus,
         passwordHash: authUsers.passwordHash,
         role: authUsers.role,
+        membershipTier: authUsers.membershipTier,
         adminNotes: authUsers.adminNotes,
         deletedAt: authUsers.deletedAt,
         createdAt: authUsers.createdAt,

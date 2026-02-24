@@ -89,6 +89,16 @@ export async function middleware(request: NextRequest) {
         secret: process.env.AUTH_SECRET,
         salt: cookieName,
       });
+      // membershipTier is available at decoded.membershipTier for client-side checks;
+      // tier enforcement is handled at the PermissionService level, not in middleware.
+      if (decoded?.accountStatus === "BANNED") {
+        const locale = pathname.split("/")[1];
+        const loginUrl = new URL(`/${locale}/login`, request.url);
+        loginUrl.searchParams.set("banned", "true");
+        const response = NextResponse.redirect(loginUrl);
+        response.headers.set("X-Request-Id", requestId);
+        return response;
+      }
       if (decoded?.accountStatus === "APPROVED" && decoded?.profileCompleted === false) {
         const locale = pathname.split("/")[1];
         const response = NextResponse.redirect(new URL(`/${locale}/onboarding`, request.url));

@@ -53,9 +53,10 @@ describe("ProfileStep", () => {
   it("renders location fields pre-filled with defaults", () => {
     render(<ProfileStep {...DEFAULT_PROPS} />);
     const city = screen.getByLabelText("locationCityLabel") as HTMLInputElement;
-    const country = screen.getByLabelText("locationCountryLabel") as HTMLInputElement;
     expect(city.value).toBe("Lagos");
-    expect(country.value).toBe("Nigeria");
+    // Country uses shadcn Select (renders as <button>, not <input>) — check trigger text content
+    const countryTrigger = screen.getByLabelText("locationCountryLabel");
+    expect(countryTrigger).toHaveTextContent("Nigeria");
   });
 
   it("shows error when display name is empty on submit", async () => {

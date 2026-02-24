@@ -25,6 +25,7 @@ declare module "next-auth" {
     role: "MEMBER" | "ADMIN" | "MODERATOR";
     accountStatus: string;
     profileCompleted: boolean;
+    membershipTier: "BASIC" | "PROFESSIONAL" | "TOP_TIER";
   }
   interface Session {
     user: {
@@ -32,6 +33,7 @@ declare module "next-auth" {
       role: "MEMBER" | "ADMIN" | "MODERATOR";
       accountStatus: string;
       profileCompleted: boolean;
+      membershipTier: "BASIC" | "PROFESSIONAL" | "TOP_TIER";
       name?: string | null;
       email?: string | null;
       image?: string | null;
@@ -45,6 +47,7 @@ declare module "next-auth/jwt" {
     role: "MEMBER" | "ADMIN" | "MODERATOR";
     accountStatus: string;
     profileCompleted: boolean;
+    membershipTier: "BASIC" | "PROFESSIONAL" | "TOP_TIER";
   }
 }
 
@@ -235,6 +238,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           role: user.role,
           accountStatus: user.accountStatus,
           profileCompleted,
+          membershipTier: user.membershipTier,
         };
       },
     }),
@@ -246,6 +250,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.role = (user as { role: "MEMBER" | "ADMIN" | "MODERATOR" }).role;
         token.accountStatus = (user as { accountStatus: string }).accountStatus;
         token.profileCompleted = (user as { profileCompleted: boolean }).profileCompleted;
+        token.membershipTier =
+          (user as { membershipTier?: "BASIC" | "PROFESSIONAL" | "TOP_TIER" }).membershipTier ??
+          "BASIC";
       }
       // Allow client-side session update to refresh profileCompleted in JWT
       if (
@@ -261,6 +268,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       session.user.role = token.role;
       session.user.accountStatus = token.accountStatus;
       session.user.profileCompleted = token.profileCompleted;
+      session.user.membershipTier = token.membershipTier ?? "BASIC";
       return session;
     },
   },

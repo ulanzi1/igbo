@@ -213,10 +213,55 @@
     "sidebar": {
       "dashboard": "Dashboard",
       "approvals": "Approvals",
+      "members": "Members",
       "moderation": "Moderation",
       "reports": "Reports",
       "analytics": "Analytics",
       "auditLog": "Audit Log"
+    },
+    "members": {
+      "title": "Member Management",
+      "searchPlaceholder": "Search by name or email…",
+      "search": "Search",
+      "loading": "Loading members…",
+      "error": "Something went wrong loading members. Please try again.",
+      "noMembers": "No members found.",
+      "tierFilter": {
+        "all": "All Tiers",
+        "basic": "Basic",
+        "professional": "Professional",
+        "topTier": "Top-tier"
+      },
+      "columns": {
+        "name": "Name",
+        "email": "Email",
+        "tier": "Tier",
+        "joinedDate": "Joined",
+        "actions": "Actions"
+      },
+      "changeTier": {
+        "title": "Change Membership Tier",
+        "currentTier": "Current tier",
+        "newTier": "New tier",
+        "confirm": "Confirm Change",
+        "cancel": "Cancel",
+        "success": "Membership tier updated successfully.",
+        "error": "Failed to update tier. Please try again."
+      }
+    }
+  },
+  "Permissions": {
+    "upgradeRequired": "This feature requires a higher membership tier.",
+    "tierBasic": "Basic",
+    "tierProfessional": "Professional",
+    "tierTopTier": "Top-tier",
+    "groupCreationRequired": "Group creation is available to Top-tier members. Here's how to reach Top-tier status.",
+    "articlePublishRequired": "Article publishing is available to Professional and Top-tier members.",
+    "groupLeaderRequired": "Assigning group leaders is available to Top-tier members.",
+    "tierBenefits": {
+      "basic": "Chat, join public groups, view articles, attend events, use member directory.",
+      "professional": "All Basic capabilities plus publish 1 article per week (members-only).",
+      "topTier": "All Professional capabilities plus create groups, publish 2 articles per week, assign group leaders."
     }
   },
   "Auth": {
@@ -407,12 +452,63 @@
     }
   },
   "Settings": {
+    "profileTab": "Profile",
+    "privacyTab": "Privacy",
+    "securityTab": "Security",
     "profile": {
       "title": "Profile Settings",
       "heading": "Your Profile",
       "retakeTourButton": "Retake platform tour",
-      "retakeTourDescription": "Review the guided tour of the platform at any time."
+      "retakeTourDescription": "Review the guided tour of the platform at any time.",
+      "displayName": "Display name",
+      "bio": "About you",
+      "photo": "Profile photo",
+      "locationCity": "City",
+      "locationState": "State / Region",
+      "locationCountry": "Country",
+      "interests": "Interests",
+      "culturalConnections": "Cultural connections",
+      "languages": "Languages spoken",
+      "submitButton": "Save changes",
+      "successMessage": "Profile updated successfully.",
+      "errorMessage": "Failed to update profile. Please try again."
+    },
+    "privacy": {
+      "title": "Privacy Settings",
+      "heading": "Privacy & Visibility",
+      "profileVisibility": {
+        "label": "Profile visibility",
+        "public_to_members": "Public to members",
+        "limited": "Limited (shared groups only)",
+        "private": "Private (admins only)",
+        "limitedNote": "Visible only to members in shared groups."
+      },
+      "locationVisible": {
+        "label": "Show my location",
+        "description": "When disabled, your city, state, and country are hidden from your public profile."
+      },
+      "successMessage": "Settings saved.",
+      "errorMessage": "Failed to save. Please try again.",
+      "socialLinks": {
+        "heading": "Connected Accounts",
+        "link": "Link",
+        "unlink": "Unlink",
+        "linked": "Connected as",
+        "linkSuccess": "Account linked successfully.",
+        "linkError": "Failed to link account. Please try again.",
+        "unlinkSuccess": "Account unlinked.",
+        "providerUnavailable": "This provider is temporarily unavailable."
+      }
     }
+  },
+  "Profile": {
+    "messageButton": "Send Message",
+    "noLocation": "Location hidden",
+    "noSocialLinks": "No social accounts linked",
+    "interests": "Interests",
+    "culturalConnections": "Cultural Connections",
+    "languages": "Languages",
+    "verificationBadge": "Verification badge"
   },
   "SEO": {
     "siteTitle": "OBIGBO - Igbo Community Platform",

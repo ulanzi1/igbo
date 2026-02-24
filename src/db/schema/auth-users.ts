@@ -8,6 +8,7 @@ import {
   index,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
+import { membershipTierEnum } from "./auth-permissions";
 
 export const userRoleEnum = pgEnum("user_role", ["MEMBER", "ADMIN", "MODERATOR"]);
 
@@ -44,12 +45,16 @@ export const authUsers = pgTable(
       .default("PENDING_EMAIL_VERIFICATION"),
     passwordHash: varchar("password_hash", { length: 255 }),
     role: userRoleEnum("role").notNull().default("MEMBER"),
+    membershipTier: membershipTierEnum("membership_tier").notNull().default("BASIC"),
     adminNotes: text("admin_notes"),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },
-  (t) => [uniqueIndex("unq_auth_users_email").on(t.email)],
+  (t) => [
+    uniqueIndex("unq_auth_users_email").on(t.email),
+    index("idx_auth_users_membership_tier").on(t.membershipTier),
+  ],
 );
 
 export const authVerificationTokens = pgTable(
