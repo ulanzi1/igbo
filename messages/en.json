@@ -25,7 +25,8 @@
     "privacy": "Privacy",
     "articles": "Articles",
     "blog": "Blog",
-    "login": "Members Login"
+    "login": "Members Login",
+    "search": "Search"
   },
   "Shell": {
     "appName": "Igbo Community Platform",
@@ -216,6 +217,201 @@
       "reports": "Reports",
       "analytics": "Analytics",
       "auditLog": "Audit Log"
+    }
+  },
+  "Auth": {
+    "login": {
+      "title": "Sign In",
+      "heading": "Welcome back",
+      "emailLabel": "Email address",
+      "emailPlaceholder": "your@email.com",
+      "passwordLabel": "Password",
+      "passwordPlaceholder": "Your password",
+      "submitButton": "Sign In",
+      "submitting": "Signing in...",
+      "forgotPassword": "Forgot password?",
+      "noAccount": "Not a member?",
+      "applyLink": "Apply for membership",
+      "invalidCredentials": "Invalid email or password. Please try again.",
+      "accountLocked": "Account temporarily locked. Try again in 15 minutes or contact support.",
+      "genericError": "Something went wrong. Please try again."
+    },
+    "twoFactor": {
+      "title": "Two-Factor Authentication",
+      "heading": "Enter your verification code",
+      "description": "Enter the 6-digit code from your authenticator app.",
+      "codeLabel": "Verification code",
+      "codePlaceholder": "000000",
+      "submitButton": "Verify",
+      "submitting": "Verifying...",
+      "useEmailFallback": "Use email code instead",
+      "cantAccess": "Can't access your authenticator?",
+      "invalidCode": "Invalid code. Please try again.",
+      "emailSent": "A verification code has been sent to your email."
+    },
+    "twoFactorSetup": {
+      "title": "Set Up Two-Factor Authentication",
+      "heading": "Secure your account",
+      "description": "Scan the QR code with your authenticator app (Google Authenticator, Authy, etc.) then enter the 6-digit code to confirm.",
+      "manualEntry": "Can't scan? Enter manually:",
+      "codeLabel": "Enter the 6-digit code to confirm",
+      "codePlaceholder": "000000",
+      "submitButton": "Activate 2FA",
+      "submitting": "Activating...",
+      "recoveryCodesTitle": "Save your recovery codes",
+      "recoveryCodesDescription": "Store these codes in a safe place. Each can only be used once to access your account if you lose your authenticator.",
+      "copyRecoveryCodes": "Copy all codes",
+      "recoveryCodesCopied": "Copied!",
+      "recoveryContinue": "I have saved my recovery codes",
+      "invalidCode": "Invalid code. Please try again."
+    },
+    "forgotPassword": {
+      "title": "Forgot Password",
+      "heading": "Reset your password",
+      "description": "Enter your email address and we'll send you a link to reset your password.",
+      "emailLabel": "Email address",
+      "emailPlaceholder": "your@email.com",
+      "submitButton": "Send Reset Link",
+      "submitting": "Sending...",
+      "successTitle": "Check your email",
+      "successDescription": "If an account with that email exists, we sent a reset link. Check your inbox.",
+      "backToLogin": "Back to login",
+      "invalidEmail": "Please enter a valid email address."
+    },
+    "resetPassword": {
+      "title": "Reset Password",
+      "heading": "Create a new password",
+      "description": "Your new password must be at least 8 characters with uppercase, lowercase, number, and special character.",
+      "passwordLabel": "New password",
+      "passwordPlaceholder": "New password",
+      "confirmPasswordLabel": "Confirm new password",
+      "confirmPasswordPlaceholder": "Confirm new password",
+      "submitButton": "Reset Password",
+      "submitting": "Resetting...",
+      "successTitle": "Password reset",
+      "successDescription": "Your password has been reset successfully. Please log in.",
+      "backToLogin": "Back to login",
+      "tokenInvalid": "This reset link is invalid or has expired. Please request a new one.",
+      "passwordMismatch": "Passwords do not match.",
+      "passwordWeak": "Password must be at least 8 characters with uppercase, lowercase, number, and special character."
+    },
+    "security": {
+      "title": "Security Settings",
+      "heading": "Active Sessions",
+      "description": "Manage your active sessions across all devices.",
+      "currentSession": "Current session",
+      "revokeButton": "Sign out",
+      "revokeConfirm": "Sign out this device?",
+      "revokeSuccess": "Device signed out.",
+      "noSessions": "No active sessions.",
+      "lastActive": "Last active {time}",
+      "deviceUnknown": "Unknown device",
+      "loadError": "Failed to load sessions."
+    },
+    "adminTwoFactorReset": {
+      "requestTitle": "2FA Reset Request",
+      "requestDescription": "This member has lost access to their authenticator and recovery codes.",
+      "resetButton": "Reset 2FA",
+      "resetConfirm": "Reset this member's 2FA? They will need to set up a new method on next login.",
+      "resetSuccess": "2FA reset. Member notified by email.",
+      "resetError": "Failed to reset 2FA. Please try again."
+    }
+  },
+  "Onboarding": {
+    "pageTitle": "Complete Your Profile",
+    "stepProgress": "Step {step} of {total}",
+    "steps": {
+      "profile": "Your Profile",
+      "guidelines": "Community Guidelines",
+      "tour": "Platform Tour"
+    },
+    "profile": {
+      "heading": "Set up your profile",
+      "description": "Tell the community a bit about yourself. You can update this later in your settings.",
+      "displayNameLabel": "Display name",
+      "displayNamePlaceholder": "How you'd like to be known",
+      "bioLabel": "About you",
+      "bioPlaceholder": "Share a little about yourself, your background, or your interests",
+      "photoLabel": "Profile photo",
+      "photoSkip": "Skip for now",
+      "photoUploadHint": "Upload a photo (max 5MB, JPG/PNG/WebP)",
+      "locationHeading": "Your location",
+      "locationCityLabel": "City",
+      "locationStateLabel": "State / Region",
+      "locationStatePlaceholder": "Select state / region",
+      "locationCountryLabel": "Country",
+      "locationCountryPlaceholder": "Select country",
+      "interestsLabel": "Interests",
+      "interestsPlaceholder": "e.g. culture, music, tech, business",
+      "interestsHint": "Press Enter or comma to add",
+      "culturalConnectionsLabel": "Cultural connections",
+      "culturalConnectionsPlaceholder": "e.g. Onitsha, Nnewi, Aba",
+      "languagesLabel": "Languages spoken",
+      "languagesPlaceholder": "e.g. Igbo, English, Yoruba",
+      "continueButton": "Continue",
+      "saving": "Saving...",
+      "errors": {
+        "displayNameRequired": "Display name is required",
+        "displayNameTooLong": "Maximum 255 characters",
+        "saveFailed": "Failed to save profile. Please try again."
+      }
+    },
+    "guidelines": {
+      "heading": "Community Guidelines",
+      "description": "Please read and acknowledge our community guidelines before proceeding.",
+      "acknowledgeLabel": "I have read and agree to the community guidelines",
+      "continueButton": "I agree — continue",
+      "saving": "Saving...",
+      "errors": {
+        "mustAcknowledge": "You must acknowledge the guidelines to continue.",
+        "saveFailed": "Failed to record acknowledgment. Please try again."
+      }
+    },
+    "tour": {
+      "heading": "Welcome to OBIGBO!",
+      "description": "Here's a quick look at where to find people and connect with the community.",
+      "skipButton": "Skip tour",
+      "backButton": "\u2190 Back",
+      "nextButton": "Next \u2192",
+      "completeButton": "Get started",
+      "completing": "Getting started...",
+      "sections": {
+        "dashboard": {
+          "title": "Your Dashboard",
+          "description": "Your home base — see what's happening in the community."
+        },
+        "chat": {
+          "title": "Chat",
+          "description": "Send direct messages and have group conversations."
+        },
+        "directory": {
+          "title": "Member Directory",
+          "description": "Discover and connect with other Igbo community members worldwide."
+        },
+        "groups": {
+          "title": "Groups",
+          "description": "Join groups focused on topics that matter to you."
+        },
+        "events": {
+          "title": "Events",
+          "description": "Find and attend community events and gatherings."
+        },
+        "articles": {
+          "title": "Articles",
+          "description": "Read and share stories preserving our culture and heritage."
+        }
+      },
+      "errors": {
+        "saveFailed": "Failed to save tour status. Please try again."
+      }
+    }
+  },
+  "Settings": {
+    "profile": {
+      "title": "Profile Settings",
+      "heading": "Your Profile",
+      "retakeTourButton": "Retake platform tour",
+      "retakeTourDescription": "Review the guided tour of the platform at any time."
     }
   },
   "SEO": {

@@ -3,7 +3,7 @@ export interface ApplicationFormValues {
   email: string;
   phone?: string;
   locationCity: string;
-  locationState: string;
+  locationState?: string;
   locationCountry: string;
   culturalConnection: string;
   reasonForJoining: string;

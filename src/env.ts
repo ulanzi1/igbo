@@ -11,6 +11,10 @@ export const env = createEnv({
     AUTH_SECRET: z.string().min(1),
     AUTH_URL: z.url().optional(),
     NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
+    MAX_SESSIONS_PER_USER: z.coerce.number().int().positive().default(5),
+    SESSION_TTL_SECONDS: z.coerce.number().int().positive().default(86400),
+    ACCOUNT_LOCKOUT_SECONDS: z.coerce.number().int().positive().default(900),
+    ACCOUNT_LOCKOUT_ATTEMPTS: z.coerce.number().int().positive().default(5),
   },
   client: {
     NEXT_PUBLIC_APP_URL: z.url(),
@@ -25,5 +29,9 @@ export const env = createEnv({
     AUTH_URL: process.env.AUTH_URL,
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
     NODE_ENV: process.env.NODE_ENV,
+    MAX_SESSIONS_PER_USER: process.env.MAX_SESSIONS_PER_USER,
+    SESSION_TTL_SECONDS: process.env.SESSION_TTL_SECONDS,
+    ACCOUNT_LOCKOUT_SECONDS: process.env.ACCOUNT_LOCKOUT_SECONDS,
+    ACCOUNT_LOCKOUT_ATTEMPTS: process.env.ACCOUNT_LOCKOUT_ATTEMPTS,
   },
 });

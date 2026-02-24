@@ -2,6 +2,7 @@ import "server-only";
 import { eq, isNull, and, count } from "drizzle-orm";
 import { db } from "@/db";
 import { authUsers } from "@/db/schema/auth-users";
+import { communityProfiles } from "@/db/schema/community-profiles";
 import type { AuthUser } from "@/db/schema/auth-users";
 
 export type ApplicationStatus = "PENDING_APPROVAL" | "APPROVED" | "INFO_REQUESTED" | "REJECTED";
@@ -12,13 +13,20 @@ export interface ListApplicationsOptions {
   pageSize?: number;
 }
 
+/** An application row augmented with profile completion status. */
+export type ApplicationWithProfileStatus = AuthUser & {
+  profileIncomplete: boolean;
+};
+
 export interface ApplicationListResult {
-  data: AuthUser[];
+  data: ApplicationWithProfileStatus[];
   meta: { page: number; pageSize: number; total: number };
 }
 
 /**
  * Lists applications filtered by status with offset pagination.
+ * LEFT JOINs community_profiles to surface the "Profile incomplete" indicator
+ * for APPROVED members who have not completed onboarding.
  * Always excludes soft-deleted rows.
  */
 export async function listApplications(
@@ -29,8 +37,35 @@ export async function listApplications(
 
   const [rows, [countRow]] = await Promise.all([
     db
-      .select()
+      .select({
+        // All auth_users fields
+        id: authUsers.id,
+        email: authUsers.email,
+        emailVerified: authUsers.emailVerified,
+        name: authUsers.name,
+        phone: authUsers.phone,
+        locationCity: authUsers.locationCity,
+        locationState: authUsers.locationState,
+        locationCountry: authUsers.locationCountry,
+        culturalConnection: authUsers.culturalConnection,
+        reasonForJoining: authUsers.reasonForJoining,
+        referralName: authUsers.referralName,
+        consentGivenAt: authUsers.consentGivenAt,
+        consentIp: authUsers.consentIp,
+        consentVersion: authUsers.consentVersion,
+        image: authUsers.image,
+        accountStatus: authUsers.accountStatus,
+        passwordHash: authUsers.passwordHash,
+        role: authUsers.role,
+        adminNotes: authUsers.adminNotes,
+        deletedAt: authUsers.deletedAt,
+        createdAt: authUsers.createdAt,
+        updatedAt: authUsers.updatedAt,
+        // Profile completion indicator
+        profileCompletedAt: communityProfiles.profileCompletedAt,
+      })
       .from(authUsers)
+      .leftJoin(communityProfiles, eq(communityProfiles.userId, authUsers.id))
       .where(and(eq(authUsers.accountStatus, status), isNull(authUsers.deletedAt)))
       .orderBy(authUsers.createdAt)
       .limit(pageSize)
@@ -42,7 +77,10 @@ export async function listApplications(
   ]);
 
   return {
-    data: rows,
+    data: rows.map((row) => ({
+      ...row,
+      profileIncomplete: status === "APPROVED" && !row.profileCompletedAt,
+    })),
     meta: { page, pageSize, total: countRow?.count ?? 0 },
   };
 }

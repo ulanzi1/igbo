@@ -1,37 +1,12 @@
-import type { Metadata } from "next";
-import { Inter, JetBrains_Mono } from "next/font/google";
 import { hasLocale } from "next-intl";
 import { setRequestLocale } from "next-intl/server";
 import { NextIntlClientProvider } from "next-intl";
 import { notFound } from "next/navigation";
 import { useTranslations } from "next-intl";
+import { SessionProvider } from "next-auth/react";
 import { Toaster } from "@/components/ui/sonner";
 import { routing } from "@/i18n/routing";
-import "@/app/globals.css";
-
-const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin", "latin-ext"],
-});
-
-const jetbrainsMono = JetBrains_Mono({
-  variable: "--font-jetbrains-mono",
-  subsets: ["latin"],
-});
-
-export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "https://obigbo.com"),
-  title: "Igbo Community Platform",
-  description: "A platform connecting the Igbo community worldwide",
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: "default",
-  },
-};
-
-export const viewport = {
-  themeColor: "#2D5A27",
-};
+import { auth } from "@/server/auth/config";
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
@@ -64,15 +39,15 @@ export default async function LocaleLayout({
 
   setRequestLocale(locale);
 
+  const session = await auth();
+
   return (
-    <html lang={locale}>
-      <body className={`${inter.variable} ${jetbrainsMono.variable} antialiased`}>
-        <NextIntlClientProvider>
-          <SkipLink />
-          {children}
-          <Toaster />
-        </NextIntlClientProvider>
-      </body>
-    </html>
+    <SessionProvider session={session}>
+      <NextIntlClientProvider>
+        <SkipLink />
+        {children}
+        <Toaster />
+      </NextIntlClientProvider>
+    </SessionProvider>
   );
 }
