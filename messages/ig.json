@@ -25,7 +25,8 @@
     "privacy": "Privacy [ig]",
     "articles": "Articles [ig]",
     "blog": "Blog [ig]",
-    "login": "Members Login [ig]"
+    "login": "Members Login [ig]",
+    "search": "Search [ig]"
   },
   "Shell": {
     "appName": "Igbo Community Platform [ig]",
@@ -240,5 +241,200 @@
     "membersOnly": "Members Only [ig]",
     "membersOnlyDescription": "This area is for OBIGBO members only. Join our community to access all features. [ig]",
     "membersOnlyCta": "Apply for Membership [ig]"
+  },
+  "Auth": {
+    "login": {
+      "title": "Sign In [ig]",
+      "heading": "Welcome back [ig]",
+      "emailLabel": "Email address [ig]",
+      "emailPlaceholder": "your@email.com",
+      "passwordLabel": "Password [ig]",
+      "passwordPlaceholder": "Your password [ig]",
+      "submitButton": "Sign In [ig]",
+      "submitting": "Signing in... [ig]",
+      "forgotPassword": "Forgot password? [ig]",
+      "noAccount": "Not a member? [ig]",
+      "applyLink": "Apply for membership [ig]",
+      "invalidCredentials": "Invalid email or password. Please try again. [ig]",
+      "accountLocked": "Account temporarily locked. Try again in 15 minutes or contact support. [ig]",
+      "genericError": "Something went wrong. Please try again. [ig]"
+    },
+    "twoFactor": {
+      "title": "Two-Factor Authentication [ig]",
+      "heading": "Enter your verification code [ig]",
+      "description": "Enter the 6-digit code from your authenticator app. [ig]",
+      "codeLabel": "Verification code [ig]",
+      "codePlaceholder": "000000",
+      "submitButton": "Verify [ig]",
+      "submitting": "Verifying... [ig]",
+      "useEmailFallback": "Use email code instead [ig]",
+      "cantAccess": "Can't access your authenticator? [ig]",
+      "invalidCode": "Invalid code. Please try again. [ig]",
+      "emailSent": "A verification code has been sent to your email. [ig]"
+    },
+    "twoFactorSetup": {
+      "title": "Set Up Two-Factor Authentication [ig]",
+      "heading": "Secure your account [ig]",
+      "description": "Scan the QR code with your authenticator app then enter the 6-digit code to confirm. [ig]",
+      "manualEntry": "Can't scan? Enter manually: [ig]",
+      "codeLabel": "Enter the 6-digit code to confirm [ig]",
+      "codePlaceholder": "000000",
+      "submitButton": "Activate 2FA [ig]",
+      "submitting": "Activating... [ig]",
+      "recoveryCodesTitle": "Save your recovery codes [ig]",
+      "recoveryCodesDescription": "Store these codes in a safe place. Each can only be used once. [ig]",
+      "copyRecoveryCodes": "Copy all codes [ig]",
+      "recoveryCodesCopied": "Copied! [ig]",
+      "recoveryContinue": "I have saved my recovery codes [ig]",
+      "invalidCode": "Invalid code. Please try again. [ig]"
+    },
+    "forgotPassword": {
+      "title": "Forgot Password [ig]",
+      "heading": "Reset your password [ig]",
+      "description": "Enter your email address and we'll send you a link to reset your password. [ig]",
+      "emailLabel": "Email address [ig]",
+      "emailPlaceholder": "your@email.com",
+      "submitButton": "Send Reset Link [ig]",
+      "submitting": "Sending... [ig]",
+      "successTitle": "Check your email [ig]",
+      "successDescription": "If an account with that email exists, we sent a reset link. Check your inbox. [ig]",
+      "backToLogin": "Back to login [ig]",
+      "invalidEmail": "Please enter a valid email address. [ig]"
+    },
+    "resetPassword": {
+      "title": "Reset Password [ig]",
+      "heading": "Create a new password [ig]",
+      "description": "Your new password must be at least 8 characters with uppercase, lowercase, number, and special character. [ig]",
+      "passwordLabel": "New password [ig]",
+      "passwordPlaceholder": "New password [ig]",
+      "confirmPasswordLabel": "Confirm new password [ig]",
+      "confirmPasswordPlaceholder": "Confirm new password [ig]",
+      "submitButton": "Reset Password [ig]",
+      "submitting": "Resetting... [ig]",
+      "successTitle": "Password reset [ig]",
+      "successDescription": "Your password has been reset successfully. Please log in. [ig]",
+      "backToLogin": "Back to login [ig]",
+      "tokenInvalid": "This reset link is invalid or has expired. Please request a new one. [ig]",
+      "passwordMismatch": "Passwords do not match. [ig]",
+      "passwordWeak": "Password must be at least 8 characters with uppercase, lowercase, number, and special character. [ig]"
+    },
+    "security": {
+      "title": "Security Settings [ig]",
+      "heading": "Active Sessions [ig]",
+      "description": "Manage your active sessions across all devices. [ig]",
+      "currentSession": "Current session [ig]",
+      "revokeButton": "Sign out [ig]",
+      "revokeConfirm": "Sign out this device? [ig]",
+      "revokeSuccess": "Device signed out. [ig]",
+      "noSessions": "No active sessions. [ig]",
+      "lastActive": "Last active {time} [ig]",
+      "deviceUnknown": "Unknown device [ig]",
+      "loadError": "Failed to load sessions. [ig]"
+    },
+    "adminTwoFactorReset": {
+      "requestTitle": "2FA Reset Request [ig]",
+      "requestDescription": "This member has lost access to their authenticator and recovery codes. [ig]",
+      "resetButton": "Reset 2FA [ig]",
+      "resetConfirm": "Reset this member's 2FA? They will need to set up a new method on next login. [ig]",
+      "resetSuccess": "2FA reset. Member notified by email. [ig]",
+      "resetError": "Failed to reset 2FA. Please try again. [ig]"
+    }
+  },
+  "Onboarding": {
+    "pageTitle": "Zụọ profaịlụ gị [ig]",
+    "stepProgress": "Nzọ {step} nke {total} [ig]",
+    "steps": {
+      "profile": "Profaịlụ gị [ig]",
+      "guidelines": "Iwu obodo [ig]",
+      "tour": "Njem ụlọ ọrụ [ig]"
+    },
+    "profile": {
+      "heading": "Dozie profaịlụ gị [ig]",
+      "description": "Kọọ obodo ihe banyere gị. Ị nwere ike ịmelite nke a n'oge ọzọ n'imeụlọ ihe ntọala gị. [ig]",
+      "displayNameLabel": "Aha ị ga-apụ [ig]",
+      "displayNamePlaceholder": "Otu ị chọrọ ka a maara gị [ig]",
+      "bioLabel": "Banyere gị [ig]",
+      "bioPlaceholder": "Kọọ ihe obere banyere gị, ọsọ ndu gị, ma ọ bụ mmasị gị [ig]",
+      "photoLabel": "Foto profaịlụ [ig]",
+      "photoSkip": "Wụfee ugbu a [ig]",
+      "photoUploadHint": "Bulite foto (nke karịrị 5MB, JPG/PNG/WebP) [ig]",
+      "locationHeading": "Ọnọdụ gị [ig]",
+      "locationCityLabel": "Obodo [ig]",
+      "locationStateLabel": "Steeti / Mpaghara [ig]",
+      "locationStatePlaceholder": "Họọ steeti / mpaghara [ig]",
+      "locationCountryLabel": "Mba [ig]",
+      "locationCountryPlaceholder": "Họọ mba [ig]",
+      "interestsLabel": "Mmasị [ig]",
+      "interestsPlaceholder": "dịka ọmụmaatụ omenala, ụlọọrụ, nkà ihe ọmụma, azụmahịa [ig]",
+      "interestsHint": "Pịa Enter ma ọ bụ ọmọ iji tinye [ig]",
+      "culturalConnectionsLabel": "Njikọ omenala [ig]",
+      "culturalConnectionsPlaceholder": "dịka ọmụmaatụ Onitsha, Nnewi, Aba [ig]",
+      "languagesLabel": "Asụsụ ị na-asụ [ig]",
+      "languagesPlaceholder": "dịka ọmụmaatụ Igbo, Bekee, Yoruba [ig]",
+      "continueButton": "Gaa n'ihu [ig]",
+      "saving": "Na-echekwa... [ig]",
+      "errors": {
+        "displayNameRequired": "Achọrọ aha ngosipụta [ig]",
+        "displayNameTooLong": "Ọ karịrị mkpụrụ edemede 255 [ig]",
+        "saveFailed": "Ọ dịghị mfe ichekwa profaịlụ. Nwaa ọzọ. [ig]"
+      }
+    },
+    "guidelines": {
+      "heading": "Iwu Obodo [ig]",
+      "description": "Biko gụọ ma nabata iwu obodo anyị tupu ịga n'ihu. [ig]",
+      "acknowledgeLabel": "Agụọla m ma kwenyere iwu obodo [ig]",
+      "continueButton": "Ekwenyere m — gaa n'ihu [ig]",
+      "saving": "Na-echekwa... [ig]",
+      "errors": {
+        "mustAcknowledge": "Ị ga-anabata iwu iji gaa n'ihu. [ig]",
+        "saveFailed": "Ọ dịghị mfe idekọ nkwado. Nwaa ọzọ. [ig]"
+      }
+    },
+    "tour": {
+      "heading": "Nnọọ na OBIGBO! [ig]",
+      "description": "Ọ bụ oge ụlọ ọrụ a na-atụle isi ebe isi iji chọta ndị mmadụ ma jikọọ n'ọha. [ig]",
+      "skipButton": "Wụfee njem [ig]",
+      "backButton": "\u2190 Azụ [ig]",
+      "nextButton": "Ọzọ \u2192 [ig]",
+      "completeButton": "Bido [ig]",
+      "completing": "Na-ebido... [ig]",
+      "sections": {
+        "dashboard": {
+          "title": "Dashiboodu gị [ig]",
+          "description": "Ebe nke gị — hụ ihe na-eme n'ọha. [ig]"
+        },
+        "chat": {
+          "title": "Mkparịta ụka [ig]",
+          "description": "Ziga ozi kpọmkwem ma nwee mkparịta ụka ọgbakọ. [ig]"
+        },
+        "directory": {
+          "title": "Ndepụta ndị otu [ig]",
+          "description": "Chọta ma jikọọ n'ibe ndị ọha Igbo n'ụwa nile. [ig]"
+        },
+        "groups": {
+          "title": "Otu [ig]",
+          "description": "Sonyere otu ndị lekwasịrị anya na ihe ndị dị mkpa n'ebe gị nọ. [ig]"
+        },
+        "events": {
+          "title": "Ihe omume [ig]",
+          "description": "Chọta ma sonyere ihe omume ọha na obodo. [ig]"
+        },
+        "articles": {
+          "title": "Akụkọ [ig]",
+          "description": "Gụọ ma kesaa akụkọ na-echekwa omenala na ihe nketa anyị. [ig]"
+        }
+      },
+      "errors": {
+        "saveFailed": "Ọ dịghị mfe ichekwa ọnọdụ njem. Nwaa ọzọ. [ig]"
+      }
+    }
+  },
+  "Settings": {
+    "profile": {
+      "title": "Ntọala profaịlụ [ig]",
+      "heading": "Profaịlụ gị [ig]",
+      "retakeTourButton": "Were njem ụlọ ọrụ ọzọ [ig]",
+      "retakeTourDescription": "Nyochaa njem nduzi ụlọ ọrụ n'oge ọ bụla. [ig]"
+    }
   }
 }

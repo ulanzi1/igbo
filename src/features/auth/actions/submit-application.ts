@@ -54,7 +54,7 @@ export async function submitApplication(
   // Server-side validation
   const parsed = submitApplicationSchema.safeParse(values);
   if (!parsed.success) {
-    const issues = parsed.error.issues ?? parsed.error.errors ?? [];
+    const issues = parsed.error.issues ?? [];
     const firstError = issues[0];
     return {
       success: false,

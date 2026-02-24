@@ -22,6 +22,27 @@
       "when": 1708000002000,
       "tag": "0002_auth_users",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1708000003000,
+      "tag": "0003_admin_role_audit_logs",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1708000004000,
+      "tag": "0004_auth_sessions_mfa",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1708000005000,
+      "tag": "0005_community_profiles",
+      "breakpoints": true
     }
   ]
 }

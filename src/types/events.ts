@@ -141,6 +141,46 @@ export interface RecordingExpiredEvent extends BaseEvent {
   eventId: string;
 }
 
+// --- Auth Events ---
+
+export interface MemberLoggedInEvent extends BaseEvent {
+  userId: string;
+  sessionToken: string;
+  deviceIp?: string;
+}
+
+export interface MemberLockedOutEvent extends BaseEvent {
+  userId: string;
+  deviceIp?: string;
+}
+
+export interface MemberPasswordResetEvent extends BaseEvent {
+  userId: string;
+}
+
+export interface Member2faSetupEvent extends BaseEvent {
+  userId: string;
+}
+
+export interface Member2faResetEvent extends BaseEvent {
+  userId: string;
+  resetBy: string;
+}
+
+// --- Profile / Onboarding Events ---
+
+export interface MemberProfileCompletedEvent extends BaseEvent {
+  userId: string;
+}
+
+export interface MemberGuidelinesAcknowledgedEvent extends BaseEvent {
+  userId: string;
+}
+
+export interface MemberOnboardingCompletedEvent extends BaseEvent {
+  userId: string;
+}
+
 // --- Job Events ---
 
 export interface JobFailedEvent extends BaseEvent {
@@ -175,7 +215,15 @@ export type EventName =
   | "group.archived"
   | "event.attended"
   | "recording.expired"
-  | "job.failed";
+  | "job.failed"
+  | "member.logged_in"
+  | "member.locked_out"
+  | "member.password_reset"
+  | "member.2fa_setup"
+  | "member.2fa_reset"
+  | "member.profile_completed"
+  | "member.guidelines_acknowledged"
+  | "member.onboarding_completed";
 
 // --- Event Map ---
 
@@ -204,4 +252,12 @@ export interface EventMap {
   "event.attended": EventAttendedEvent;
   "recording.expired": RecordingExpiredEvent;
   "job.failed": JobFailedEvent;
+  "member.logged_in": MemberLoggedInEvent;
+  "member.locked_out": MemberLockedOutEvent;
+  "member.password_reset": MemberPasswordResetEvent;
+  "member.2fa_setup": Member2faSetupEvent;
+  "member.2fa_reset": Member2faResetEvent;
+  "member.profile_completed": MemberProfileCompletedEvent;
+  "member.guidelines_acknowledged": MemberGuidelinesAcknowledgedEvent;
+  "member.onboarding_completed": MemberOnboardingCompletedEvent;
 }

@@ -6,7 +6,8 @@ export type AdminAction =
   | "APPROVE_APPLICATION"
   | "REQUEST_INFO"
   | "REJECT_APPLICATION"
-  | "UNDO_ACTION";
+  | "UNDO_ACTION"
+  | "RESET_2FA";
 
 interface AuditParams {
   actorId: string;

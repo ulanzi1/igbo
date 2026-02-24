@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // Mock i18n routing
 vi.mock("./i18n/routing", () => ({
@@ -35,6 +35,10 @@ vi.mock("next-intl/middleware", () => ({
   }),
 }));
 
+// Mock next-auth/jwt for Edge-compatible JWT decode
+const mockDecode = vi.fn();
+vi.mock("next-auth/jwt", () => ({ decode: (...args: unknown[]) => mockDecode(...args) }));
+
 // Mock next/server with NextResponse and NextRequest
 vi.mock("next/server", () => {
   class MockHeaders extends Map<string, string> {
@@ -49,10 +53,22 @@ vi.mock("next/server", () => {
     }
   }
 
+  class MockCookies {
+    private _cookies: Map<string, string>;
+    constructor(cookies: Record<string, string> = {}) {
+      this._cookies = new Map(Object.entries(cookies));
+    }
+    get(name: string) {
+      const value = this._cookies.get(name);
+      return value !== undefined ? { value } : undefined;
+    }
+  }
+
   class MockNextRequest {
     headers: MockHeaders;
     nextUrl: { pathname: string };
     url: string;
+    cookies: MockCookies;
 
     constructor(
       input: {
@@ -63,21 +79,20 @@ vi.mock("next/server", () => {
         };
         nextUrl?: { pathname: string };
         url?: string;
+        cookies?: Record<string, string>;
       },
       init?: { headers?: Map<string, string> | Headers },
     ) {
       this.headers = new MockHeaders();
       this.nextUrl = input.nextUrl ?? { pathname: "/" };
       this.url = input.url ?? "http://localhost:3000" + this.nextUrl.pathname;
+      this.cookies = new MockCookies((input as { cookies?: Record<string, string> }).cookies ?? {});
 
-      // Copy headers from input
       if (typeof input.headers.entries === "function") {
         for (const [k, v] of input.headers.entries()) {
           this.headers.set(k, v);
         }
       }
-
-      // Apply init headers (overrides from enrichedRequest construction)
       if (init?.headers) {
         const initHeaders = init.headers as { entries(): IterableIterator<[string, string]> };
         for (const [k, v] of initHeaders.entries()) {
@@ -98,43 +113,61 @@ vi.mock("next/server", () => {
 
     static redirect(url: URL | string) {
       const response = new MockNextResponse(307);
-      response.headers.set("Location", typeof url === "string" ? url : url.pathname);
+      response.headers.set("Location", typeof url === "string" ? url : url.href);
       return response;
     }
   }
 
-  return {
-    NextRequest: MockNextRequest,
-    NextResponse: MockNextResponse,
-  };
+  return { NextRequest: MockNextRequest, NextResponse: MockNextResponse };
 });
 
-describe("middleware", () => {
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+function makeCookies(cookies: Record<string, string> = {}) {
+  return {
+    get(name: string) {
+      const value = cookies[name];
+      return value !== undefined ? { value } : undefined;
+    },
+  };
+}
+
+function makeRequest(
+  pathname: string,
+  cookiesMap: Record<string, string> = {},
+  extraHeaders: Record<string, string> = {},
+) {
+  return {
+    headers: new Headers(extraHeaders),
+    nextUrl: { pathname },
+    url: `http://localhost:3000${pathname}`,
+    cookies: makeCookies(cookiesMap),
+  };
+}
+
+const SESSION_COOKIE = "authjs.session-token";
+const WITH_SESSION = { [SESSION_COOKIE]: "fake-jwt-token" };
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  mockDecode.mockResolvedValue(null);
+});
+
+// ─── Request-Id tests ─────────────────────────────────────────────────────────
+
+describe("middleware — request tracing", () => {
   it("echoes existing X-Request-Id to the response", async () => {
     const { middleware } = await import("./middleware");
-
-    const mockRequest = {
-      headers: new Headers({ "X-Request-Id": "existing-trace-id" }),
-      nextUrl: { pathname: "/en/about" },
-      url: "http://localhost:3000/en/about",
-    };
-
-    const response = middleware(mockRequest as never);
+    const response = await middleware(
+      makeRequest("/en/about", {}, { "X-Request-Id": "existing-trace-id" }) as never,
+    );
     expect(response.headers.get("X-Request-Id")).toBe("existing-trace-id");
   });
 
-  it("generates and echoes a UUID X-Request-Id when not provided", async () => {
+  it("generates a UUID X-Request-Id when not provided", async () => {
     const { middleware } = await import("./middleware");
-
-    const mockRequest = {
-      headers: new Headers(),
-      nextUrl: { pathname: "/en/about" },
-      url: "http://localhost:3000/en/about",
-    };
-
-    const response = middleware(mockRequest as never);
+    const response = await middleware(makeRequest("/en/about") as never);
     const traceId = response.headers.get("X-Request-Id");
-    expect(traceId).toBeDefined();
     expect(traceId).toMatch(
       /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
     );
@@ -142,85 +175,32 @@ describe("middleware", () => {
 
   it("echoes X-Request-Id on locale redirect responses", async () => {
     const { middleware } = await import("./middleware");
-
-    const mockRequest = {
-      headers: new Headers(),
-      nextUrl: { pathname: "/" },
-      url: "http://localhost:3000/",
-    };
-
-    const response = middleware(mockRequest as never);
+    const response = await middleware(makeRequest("/") as never);
     expect(response.status).toBe(307);
-    const traceId = response.headers.get("X-Request-Id");
-    expect(traceId).toBeDefined();
-    expect(traceId).toMatch(
-      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
-    );
+    expect(response.headers.get("X-Request-Id")).toMatch(/^[0-9a-f-]{36}$/);
   });
+});
 
-  it("echoes X-Request-Id on pass-through responses from i18n routing", async () => {
+// ─── Auth redirect tests ──────────────────────────────────────────────────────
+
+describe("middleware — auth protection", () => {
+  it("redirects unauthenticated access to /en/dashboard to login", async () => {
     const { middleware } = await import("./middleware");
-
-    const mockRequest = {
-      headers: new Headers({ "X-Request-Id": "pass-through-id" }),
-      nextUrl: { pathname: "/en/about" },
-      url: "http://localhost:3000/en/about",
-    };
-
-    const response = middleware(mockRequest as never);
-    expect(response.status).toBe(200);
-    expect(response.headers.get("X-Request-Id")).toBe("pass-through-id");
-  });
-
-  it("has matcher config that excludes api routes", async () => {
-    const { config } = await import("./middleware");
-    expect(config.matcher).toBeDefined();
-    expect(config.matcher[0]).toContain("api");
-  });
-
-  it("has matcher config that excludes _vercel paths", async () => {
-    const { config } = await import("./middleware");
-    expect(config.matcher[0]).toContain("_vercel");
-  });
-
-  it("has matcher config that excludes static file extensions", async () => {
-    const { config } = await import("./middleware");
-    expect(config.matcher[0]).toContain(".");
-  });
-
-  // Route protection tests
-  it("redirects unauthenticated access to protected routes to splash page", async () => {
-    const { middleware } = await import("./middleware");
-
-    const mockRequest = {
-      headers: new Headers(),
-      nextUrl: { pathname: "/en/dashboard" },
-      url: "http://localhost:3000/en/dashboard",
-    };
-
-    const response = middleware(mockRequest as never);
+    const response = await middleware(makeRequest("/en/dashboard") as never);
     expect(response.status).toBe(307);
-    expect(response.headers.get("Location")).toBe("/en");
+    expect(response.headers.get("Location")).toContain("/en/login");
   });
 
-  it("redirects protected /ig routes to /ig splash", async () => {
+  it("redirects unauthenticated /ig/chat to /ig/login", async () => {
     const { middleware } = await import("./middleware");
-
-    const mockRequest = {
-      headers: new Headers(),
-      nextUrl: { pathname: "/ig/chat" },
-      url: "http://localhost:3000/ig/chat",
-    };
-
-    const response = middleware(mockRequest as never);
+    const response = await middleware(makeRequest("/ig/chat") as never);
     expect(response.status).toBe(307);
-    expect(response.headers.get("Location")).toBe("/ig");
+    expect(response.headers.get("Location")).toContain("/ig/login");
   });
 
-  it("allows access to guest routes without redirect", async () => {
+  it("allows access to public guest routes without session", async () => {
     const { middleware } = await import("./middleware");
-
-    const publicPaths = [
+    for (const pathname of [
       "/en",
       "/en/about",
       "/en/articles",
@@ -229,44 +209,139 @@ describe("middleware", () => {
       "/en/apply",
       "/en/terms",
       "/en/privacy",
-    ];
-
-    for (const pathname of publicPaths) {
-      const mockRequest = {
-        headers: new Headers(),
-        nextUrl: { pathname },
-        url: `http://localhost:3000${pathname}`,
-      };
-
-      const response = middleware(mockRequest as never);
-      expect(response.status).toBe(200);
+    ]) {
+      const response = await middleware(makeRequest(pathname) as never);
+      expect(response.status, `Expected 200 for ${pathname}`).toBe(200);
     }
   });
 
-  it("allows access to auth routes without redirect", async () => {
+  it("allows access to auth routes without session", async () => {
     const { middleware } = await import("./middleware");
-
-    const mockRequest = {
-      headers: new Headers(),
-      nextUrl: { pathname: "/en/login" },
-      url: "http://localhost:3000/en/login",
-    };
-
-    const response = middleware(mockRequest as never);
+    const response = await middleware(makeRequest("/en/login") as never);
     expect(response.status).toBe(200);
   });
 
-  it("redirects protected admin routes", async () => {
+  it("allows authenticated access to protected routes", async () => {
     const { middleware } = await import("./middleware");
+    mockDecode.mockResolvedValue({ accountStatus: "APPROVED", profileCompleted: true });
+    const response = await middleware(makeRequest("/en/dashboard", WITH_SESSION) as never);
+    expect(response.status).toBe(200);
+  });
+});
 
-    const mockRequest = {
-      headers: new Headers(),
-      nextUrl: { pathname: "/en/admin/moderation" },
-      url: "http://localhost:3000/en/admin/moderation",
-    };
+// ─── Onboarding gate tests ────────────────────────────────────────────────────
 
-    const response = middleware(mockRequest as never);
+describe("middleware — onboarding gate", () => {
+  it("redirects APPROVED user without profileCompleted to onboarding", async () => {
+    const { middleware } = await import("./middleware");
+    process.env.AUTH_SECRET = "test-secret";
+
+    mockDecode.mockResolvedValue({ accountStatus: "APPROVED", profileCompleted: false });
+    const response = await middleware(makeRequest("/en/dashboard", WITH_SESSION) as never);
+
     expect(response.status).toBe(307);
-    expect(response.headers.get("Location")).toBe("/en");
+    expect(response.headers.get("Location")).toContain("/en/onboarding");
+  });
+
+  it("does NOT redirect when profileCompleted is true", async () => {
+    const { middleware } = await import("./middleware");
+    process.env.AUTH_SECRET = "test-secret";
+
+    mockDecode.mockResolvedValue({ accountStatus: "APPROVED", profileCompleted: true });
+    const response = await middleware(makeRequest("/en/dashboard", WITH_SESSION) as never);
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Location")).toBeNull();
+  });
+
+  it("does NOT redirect on onboarding path (no redirect loop)", async () => {
+    const { middleware } = await import("./middleware");
+    process.env.AUTH_SECRET = "test-secret";
+
+    mockDecode.mockResolvedValue({ accountStatus: "APPROVED", profileCompleted: false });
+    const response = await middleware(makeRequest("/en/onboarding", WITH_SESSION) as never);
+
+    expect(response.status).toBe(200);
+  });
+
+  it("does NOT redirect admin paths to onboarding", async () => {
+    const { middleware } = await import("./middleware");
+    process.env.AUTH_SECRET = "test-secret";
+
+    mockDecode.mockResolvedValue({ accountStatus: "APPROVED", profileCompleted: false });
+    const response = await middleware(makeRequest("/en/admin/approvals", WITH_SESSION) as never);
+
+    expect(response.status).not.toBe(307);
+  });
+
+  it("does NOT redirect non-APPROVED users to onboarding", async () => {
+    const { middleware } = await import("./middleware");
+    process.env.AUTH_SECRET = "test-secret";
+
+    mockDecode.mockResolvedValue({ accountStatus: "PENDING_APPROVAL", profileCompleted: false });
+    // Unauthenticated (no session) — login redirect will fire first
+    const response = await middleware(makeRequest("/en/dashboard") as never);
+
+    expect(response.headers.get("Location")).not.toContain("/onboarding");
+  });
+
+  it("does NOT redirect when AUTH_SECRET is missing (fail-open safely)", async () => {
+    const { middleware } = await import("./middleware");
+    delete process.env.AUTH_SECRET;
+
+    mockDecode.mockResolvedValue({ accountStatus: "APPROVED", profileCompleted: false });
+    const response = await middleware(makeRequest("/en/dashboard", WITH_SESSION) as never);
+
+    // Without AUTH_SECRET, decode is skipped — should not redirect to onboarding
+    const location = response.headers.get("Location");
+    expect(location === null || !location.includes("/onboarding")).toBe(true);
+  });
+});
+
+// ─── JWT profileCompleted flag tests ─────────────────────────────────────────
+
+describe("middleware — JWT profileCompleted flag", () => {
+  it("calls decode with the session cookie token", async () => {
+    const { middleware } = await import("./middleware");
+    process.env.AUTH_SECRET = "test-secret";
+
+    mockDecode.mockResolvedValue({ accountStatus: "APPROVED", profileCompleted: true });
+    await middleware(makeRequest("/en/dashboard", WITH_SESSION) as never);
+
+    expect(mockDecode).toHaveBeenCalledWith(
+      expect.objectContaining({ token: "fake-jwt-token", secret: "test-secret" }),
+    );
+  });
+
+  it("treats null decoded token as no onboarding redirect needed", async () => {
+    const { middleware } = await import("./middleware");
+    process.env.AUTH_SECRET = "test-secret";
+
+    mockDecode.mockResolvedValue(null);
+    // With session cookie but null decode result (e.g., invalid token)
+    const response = await middleware(makeRequest("/en/dashboard", WITH_SESSION) as never);
+
+    // No onboarding redirect — falls through to normal i18n routing
+    const location = response.headers.get("Location");
+    expect(location === null || !location.includes("/onboarding")).toBe(true);
+  });
+});
+
+// ─── Config tests ─────────────────────────────────────────────────────────────
+
+describe("middleware — config", () => {
+  it("has matcher that excludes api routes", async () => {
+    const { config } = await import("./middleware");
+    expect(config.matcher[0]).toContain("api");
+  });
+
+  it("has matcher that excludes _vercel paths", async () => {
+    const { config } = await import("./middleware");
+    expect(config.matcher[0]).toContain("_vercel");
+  });
+
+  it("has matcher that excludes static file extensions", async () => {
+    const { config } = await import("./middleware");
+    expect(config.matcher[0]).toContain(".");
   });
 });

@@ -38,9 +38,11 @@ export const authUsers = pgTable(
     consentGivenAt: timestamp("consent_given_at", { withTimezone: true }).notNull(),
     consentIp: varchar("consent_ip", { length: 45 }),
     consentVersion: varchar("consent_version", { length: 20 }),
+    image: text("image"),
     accountStatus: accountStatusEnum("account_status")
       .notNull()
       .default("PENDING_EMAIL_VERIFICATION"),
+    passwordHash: varchar("password_hash", { length: 255 }),
     role: userRoleEnum("role").notNull().default("MEMBER"),
     adminNotes: text("admin_notes"),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
@@ -56,7 +58,7 @@ export const authVerificationTokens = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
     userId: uuid("user_id")
       .notNull()
-      .references(() => authUsers.id),
+      .references(() => authUsers.id, { onDelete: "cascade" }),
     tokenHash: varchar("token_hash", { length: 64 }).notNull(),
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
     usedAt: timestamp("used_at", { withTimezone: true }),
