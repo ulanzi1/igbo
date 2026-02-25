@@ -5,6 +5,19 @@ export interface RateLimitResult {
   allowed: boolean;
   remaining: number;
   resetAt: number;
+  limit: number;
+}
+
+/**
+ * Builds standard rate limit headers from a RateLimitResult.
+ * X-RateLimit-Reset is epoch seconds (not milliseconds) per RFC 6585.
+ */
+export function buildRateLimitHeaders(result: RateLimitResult): Record<string, string> {
+  return {
+    "X-RateLimit-Limit": String(result.limit),
+    "X-RateLimit-Remaining": String(result.remaining),
+    "X-RateLimit-Reset": String(Math.ceil(result.resetAt / 1000)),
+  };
 }
 
 /**
@@ -35,5 +48,5 @@ export async function checkRateLimit(
   const allowed = count <= maxRequests;
   const remaining = Math.max(0, maxRequests - count);
 
-  return { allowed, remaining, resetAt: now + windowMs };
+  return { allowed, remaining, resetAt: now + windowMs, limit: maxRequests };
 }

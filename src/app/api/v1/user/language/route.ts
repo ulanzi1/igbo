@@ -4,12 +4,14 @@ import { ApiError } from "@/lib/api-error";
 import { requireAuthenticatedSession } from "@/services/permissions";
 import { updateLanguagePreference } from "@/db/queries/auth-queries";
 import { z } from "zod/v4";
+import { auth } from "@/server/auth/config";
+import { RATE_LIMIT_PRESETS } from "@/services/rate-limiter";
 
 const languageSchema = z.object({
   locale: z.enum(["en", "ig"]),
 });
 
-export const PATCH = withApiHandler(async (request: Request) => {
+const handler = async (request: Request) => {
   const { userId } = await requireAuthenticatedSession();
 
   let body: unknown;
@@ -33,4 +35,14 @@ export const PATCH = withApiHandler(async (request: Request) => {
   await updateLanguagePreference(userId, locale);
 
   return successResponse({ locale });
+};
+
+export const PATCH = withApiHandler(handler, {
+  rateLimit: {
+    key: async (req) => {
+      const session = await auth();
+      return `lang-update:${session?.user?.id ?? req.headers.get("x-client-ip") ?? "anonymous"}`;
+    },
+    ...RATE_LIMIT_PRESETS.LANGUAGE_UPDATE,
+  },
 });

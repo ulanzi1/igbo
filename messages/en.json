@@ -252,6 +252,28 @@
         "success": "Membership tier updated successfully.",
         "error": "Failed to update tier. Please try again."
       }
+    },
+    "breachResponse": {
+      "heading": "Breach Response",
+      "step1Title": "Step 1: Generate Affected Member List",
+      "sinceLabel": "Since (ISO date)",
+      "untilLabel": "Until (ISO date)",
+      "generateButton": "Generate List",
+      "loading": "Loading...",
+      "dateRequired": "Both 'since' and 'until' dates are required.",
+      "networkError": "Network error",
+      "membersFound": "{count} affected member(s) found",
+      "columnEmail": "Email",
+      "columnName": "Name",
+      "columnStatus": "Status",
+      "noName": "—",
+      "step2Title": "Step 2: Send Breach Notification",
+      "incidentTimestampLabel": "Incident Timestamp (ISO)",
+      "notificationMessageLabel": "Notification Message",
+      "messagePlaceholder": "Describe the breach and any actions members should take...",
+      "sendButton": "Send to {count} Member(s)",
+      "sending": "Sending...",
+      "gdprWarning": "GDPR Article 33 requires breach notification within 72 hours. See docs/gdpr-breach-runbook.md for the full procedure."
     }
   },
   "Permissions": {
@@ -459,6 +481,7 @@
     "profileTab": "Profile",
     "privacyTab": "Privacy",
     "securityTab": "Security",
+    "accountTab": "Account",
     "profile": {
       "title": "Profile Settings",
       "heading": "Your Profile",
@@ -513,6 +536,45 @@
     "culturalConnections": "Cultural Connections",
     "languages": "Languages",
     "verificationBadge": "Verification badge"
+  },
+  "cookieConsent": {
+    "title": "Cookie Preferences",
+    "description": "We use cookies to improve your experience. Essential cookies are required for the site to function.",
+    "essential": "Essential (Required)",
+    "analytics": "Analytics",
+    "preferences": "Preferences",
+    "acceptAll": "Accept All",
+    "acceptEssential": "Essential Only",
+    "save": "Save Preferences",
+    "customize": "Customize"
+  },
+  "settings": {
+    "account": {
+      "heading": "Account Settings",
+      "exportData": {
+        "heading": "Export My Data",
+        "description": "Download a copy of all personal data we hold about you (GDPR Article 20). Exports are rate-limited to 1 request per 7 days.",
+        "button": "Request Data Export",
+        "requesting": "Requesting...",
+        "requested": "Export requested! You will receive an email with a download link within 24 hours.",
+        "rateLimit": "You can request one export per 7 days.",
+        "errorGeneric": "Failed to request export. Please try again."
+      },
+      "deleteAccount": {
+        "heading": "Delete My Account",
+        "description": "Once you initiate account deletion, you have 30 days to cancel. After 30 days, all your personal data will be permanently anonymised.",
+        "button": "Delete My Account",
+        "confirmTitle": "Are you sure you want to delete your account?",
+        "confirmDescription": "This will schedule your account for deletion. You will receive an email with a cancellation link valid for 30 days. After 30 days, your personal data will be permanently anonymised and cannot be recovered.",
+        "passwordLabel": "Confirm your password",
+        "passwordPlaceholder": "Enter your password to confirm",
+        "confirmButton": "Yes, delete my account",
+        "cancel": "Cancel",
+        "deleting": "Scheduling deletion...",
+        "success": "Account deletion scheduled. Check your email for a cancellation link.",
+        "errorGeneric": "Failed to schedule deletion. Please try again."
+      }
+    }
   },
   "SEO": {
     "siteTitle": "OBIGBO - Igbo Community Platform",

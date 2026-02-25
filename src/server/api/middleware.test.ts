@@ -1,5 +1,14 @@
 // @vitest-environment node
 import { describe, it, expect, vi, beforeEach } from "vitest";
+
+// ─── Rate limiter mock ────────────────────────────────────────────────────────
+const mockCheckRateLimit = vi.fn();
+const mockBuildRateLimitHeaders = vi.fn();
+vi.mock("@/lib/rate-limiter", () => ({
+  checkRateLimit: (...args: unknown[]) => mockCheckRateLimit(...args),
+  buildRateLimitHeaders: (...args: unknown[]) => mockBuildRateLimitHeaders(...args),
+}));
+
 import { withApiHandler } from "./middleware";
 import { ApiError } from "@/lib/api-error";
 import { getRequestContext } from "@/lib/request-context";
@@ -23,12 +32,24 @@ function createRequest(
 
 describe("withApiHandler", () => {
   beforeEach(() => {
-    vi.restoreAllMocks();
+    vi.clearAllMocks();
+    // Default: rate limiter allows the request
+    mockCheckRateLimit.mockResolvedValue({
+      allowed: true,
+      remaining: 9,
+      resetAt: Date.now() + 60_000,
+      limit: 10,
+    });
+    mockBuildRateLimitHeaders.mockReturnValue({
+      "X-RateLimit-Limit": "10",
+      "X-RateLimit-Remaining": "9",
+      "X-RateLimit-Reset": "9999999999",
+    });
   });
 
   describe("success path", () => {
     it("passes request to handler and returns response", async () => {
-      const handler = withApiHandler(async (req) => {
+      const handler = withApiHandler(async () => {
         return Response.json({ data: { message: "ok" } });
       });
 
@@ -93,9 +114,7 @@ describe("withApiHandler", () => {
       const body = await response.json();
 
       expect(response.status).toBe(404);
-      expect(response.headers.get("Content-Type")).toBe(
-        "application/problem+json",
-      );
+      expect(response.headers.get("Content-Type")).toBe("application/problem+json");
       expect(body).toEqual({
         type: "https://example.com/not-found",
         title: "Not Found",
@@ -116,9 +135,7 @@ describe("withApiHandler", () => {
       const body = await response.json();
 
       expect(response.status).toBe(500);
-      expect(response.headers.get("Content-Type")).toBe(
-        "application/problem+json",
-      );
+      expect(response.headers.get("Content-Type")).toBe("application/problem+json");
       expect(body.title).toBe("Internal Server Error");
       expect(body.status).toBe(500);
       // Must not expose the actual error message
@@ -241,6 +258,175 @@ describe("withApiHandler", () => {
       const response = await handler(request);
 
       expect(response.headers.get("X-Request-Id")).toBe("trace-response-test");
+    });
+  });
+
+  describe("rate limiting", () => {
+    const rateLimitOptions = {
+      rateLimit: {
+        key: () => "test-key",
+        maxRequests: 10,
+        windowMs: 60_000,
+      },
+    };
+
+    it("passes through when allowed: true and adds X-RateLimit-* headers to success response", async () => {
+      mockCheckRateLimit.mockResolvedValue({
+        allowed: true,
+        remaining: 9,
+        resetAt: Date.now() + 60_000,
+        limit: 10,
+      });
+      mockBuildRateLimitHeaders.mockReturnValue({
+        "X-RateLimit-Limit": "10",
+        "X-RateLimit-Remaining": "9",
+        "X-RateLimit-Reset": "9999999999",
+      });
+
+      const handler = withApiHandler(async () => {
+        return Response.json({ data: { ok: true } });
+      }, rateLimitOptions);
+
+      const response = await handler(createRequest("GET"));
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get("X-RateLimit-Limit")).toBe("10");
+      expect(response.headers.get("X-RateLimit-Remaining")).toBe("9");
+      expect(response.headers.get("X-RateLimit-Reset")).toBe("9999999999");
+    });
+
+    it("returns 429 RFC 7807 body when allowed: false", async () => {
+      mockCheckRateLimit.mockResolvedValue({
+        allowed: false,
+        remaining: 0,
+        resetAt: Date.now() + 60_000,
+        limit: 10,
+      });
+      mockBuildRateLimitHeaders.mockReturnValue({
+        "X-RateLimit-Limit": "10",
+        "X-RateLimit-Remaining": "0",
+        "X-RateLimit-Reset": "9999999999",
+      });
+
+      const handler = withApiHandler(async () => {
+        return Response.json({ data: {} });
+      }, rateLimitOptions);
+
+      const response = await handler(createRequest("GET"));
+      const body = await response.json();
+
+      expect(response.status).toBe(429);
+      expect(response.headers.get("Content-Type")).toBe("application/problem+json");
+      expect(body.title).toBe("Too Many Requests");
+      expect(body.status).toBe(429);
+    });
+
+    it("adds X-RateLimit-* headers to 429 response when rate limited", async () => {
+      mockCheckRateLimit.mockResolvedValue({
+        allowed: false,
+        remaining: 0,
+        resetAt: Date.now() + 60_000,
+        limit: 10,
+      });
+      mockBuildRateLimitHeaders.mockReturnValue({
+        "X-RateLimit-Limit": "10",
+        "X-RateLimit-Remaining": "0",
+        "X-RateLimit-Reset": "9999999999",
+      });
+
+      const handler = withApiHandler(async () => {
+        return Response.json({ data: {} });
+      }, rateLimitOptions);
+
+      const response = await handler(createRequest("GET"));
+
+      expect(response.status).toBe(429);
+      expect(response.headers.get("X-RateLimit-Limit")).toBe("10");
+      expect(response.headers.get("X-RateLimit-Remaining")).toBe("0");
+      expect(response.headers.get("X-RateLimit-Reset")).toBe("9999999999");
+    });
+
+    it("does NOT add rate limit headers when options.rateLimit is not set", async () => {
+      const handler = withApiHandler(async () => {
+        return Response.json({ data: {} });
+      });
+
+      const response = await handler(createRequest("GET"));
+
+      expect(response.headers.get("X-RateLimit-Limit")).toBeNull();
+      expect(response.headers.get("X-RateLimit-Remaining")).toBeNull();
+      expect(response.headers.get("X-RateLimit-Reset")).toBeNull();
+    });
+
+    it("adds X-RateLimit-* headers to non-429 error responses when rate limiting is enabled", async () => {
+      mockCheckRateLimit.mockResolvedValue({
+        allowed: true,
+        remaining: 9,
+        resetAt: Date.now() + 60_000,
+        limit: 10,
+      });
+      mockBuildRateLimitHeaders.mockReturnValue({
+        "X-RateLimit-Limit": "10",
+        "X-RateLimit-Remaining": "9",
+        "X-RateLimit-Reset": "9999999999",
+      });
+
+      const handler = withApiHandler(async () => {
+        throw new ApiError({ title: "Not Found", status: 404, detail: "Resource not found" });
+      }, rateLimitOptions);
+
+      const response = await handler(createRequest("GET"));
+
+      expect(response.status).toBe(404);
+      expect(response.headers.get("X-RateLimit-Limit")).toBe("10");
+      expect(response.headers.get("X-RateLimit-Remaining")).toBe("9");
+      expect(response.headers.get("X-RateLimit-Reset")).toBe("9999999999");
+    });
+
+    it("adds X-RateLimit-* headers to 500 error responses when rate limiting is enabled", async () => {
+      mockCheckRateLimit.mockResolvedValue({
+        allowed: true,
+        remaining: 8,
+        resetAt: Date.now() + 60_000,
+        limit: 10,
+      });
+      mockBuildRateLimitHeaders.mockReturnValue({
+        "X-RateLimit-Limit": "10",
+        "X-RateLimit-Remaining": "8",
+        "X-RateLimit-Reset": "9999999999",
+      });
+
+      const handler = withApiHandler(async () => {
+        throw new Error("Unexpected failure");
+      }, rateLimitOptions);
+
+      const response = await handler(createRequest("GET"));
+
+      expect(response.status).toBe(500);
+      expect(response.headers.get("X-RateLimit-Limit")).toBe("10");
+      expect(response.headers.get("X-RateLimit-Remaining")).toBe("8");
+      expect(response.headers.get("X-RateLimit-Reset")).toBe("9999999999");
+    });
+
+    it("calls key resolver with the request", async () => {
+      mockCheckRateLimit.mockResolvedValue({
+        allowed: true,
+        remaining: 5,
+        resetAt: Date.now() + 60_000,
+        limit: 10,
+      });
+      mockBuildRateLimitHeaders.mockReturnValue({});
+
+      const keyResolver = vi.fn().mockReturnValue("resolved-key");
+      const handler = withApiHandler(async () => Response.json({ data: {} }), {
+        rateLimit: { key: keyResolver, maxRequests: 10, windowMs: 60_000 },
+      });
+
+      const request = createRequest("GET");
+      await handler(request);
+
+      expect(keyResolver).toHaveBeenCalledWith(request);
+      expect(mockCheckRateLimit).toHaveBeenCalledWith("resolved-key", 10, 60_000);
     });
   });
 });

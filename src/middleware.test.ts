@@ -6,32 +6,38 @@ vi.mock("./i18n/routing", () => ({
   routing: { locales: ["en", "ig"], defaultLocale: "en" },
 }));
 
-// Mock next-intl/middleware to simulate locale routing behavior
+// Mock next-intl/middleware to simulate locale routing behavior.
+// lastEnrichedRequest captures the enriched NextRequest passed to handleI18nRouting
+// so tests can assert on forwarded headers like X-Client-IP.
+let lastEnrichedRequest: { headers: { get(k: string): string | null } } | null = null;
 vi.mock("next-intl/middleware", () => ({
   default: vi.fn(() => {
-    return vi.fn((req: { nextUrl?: { pathname: string } }) => {
-      const pathname = req.nextUrl?.pathname ?? "/";
-      const headers = new Map<string, string>();
-      const isLocalePrefixed = pathname.startsWith("/en") || pathname.startsWith("/ig");
-      const status = isLocalePrefixed ? 200 : 307;
-      if (status === 307) {
-        headers.set("Location", "/en" + (pathname === "/" ? "/" : pathname));
-      }
-      return {
-        headers: {
-          set(k: string, v: string) {
-            headers.set(k, v);
+    return vi.fn(
+      (req: { nextUrl?: { pathname: string }; headers: { get(k: string): string | null } }) => {
+        lastEnrichedRequest = req;
+        const pathname = req.nextUrl?.pathname ?? "/";
+        const headers = new Map<string, string>();
+        const isLocalePrefixed = pathname.startsWith("/en") || pathname.startsWith("/ig");
+        const status = isLocalePrefixed ? 200 : 307;
+        if (status === 307) {
+          headers.set("Location", "/en" + (pathname === "/" ? "/" : pathname));
+        }
+        return {
+          headers: {
+            set(k: string, v: string) {
+              headers.set(k, v);
+            },
+            get(k: string) {
+              return headers.get(k) ?? null;
+            },
+            has(k: string) {
+              return headers.has(k);
+            },
           },
-          get(k: string) {
-            return headers.get(k) ?? null;
-          },
-          has(k: string) {
-            return headers.has(k);
-          },
-        },
-        status,
-      };
-    });
+          status,
+        };
+      },
+    );
   }),
 }));
 
@@ -43,13 +49,13 @@ vi.mock("next-auth/jwt", () => ({ decode: (...args: unknown[]) => mockDecode(...
 vi.mock("next/server", () => {
   class MockHeaders extends Map<string, string> {
     override set(key: string, value: string) {
-      return super.set(key, value);
+      return super.set(key.toLowerCase(), value);
     }
     override get(key: string) {
-      return super.get(key) ?? null;
+      return super.get(key.toLowerCase()) ?? null;
     }
     override has(key: string) {
-      return super.has(key);
+      return super.has(key.toLowerCase());
     }
   }
 
@@ -151,6 +157,7 @@ const WITH_SESSION = { [SESSION_COOKIE]: "fake-jwt-token" };
 beforeEach(() => {
   vi.clearAllMocks();
   mockDecode.mockResolvedValue(null);
+  lastEnrichedRequest = null;
 });
 
 // ─── Request-Id tests ─────────────────────────────────────────────────────────
@@ -324,6 +331,65 @@ describe("middleware — JWT profileCompleted flag", () => {
     // No onboarding redirect — falls through to normal i18n routing
     const location = response.headers.get("Location");
     expect(location === null || !location.includes("/onboarding")).toBe(true);
+  });
+});
+
+// ─── X-Client-IP extraction tests ────────────────────────────────────────────
+
+describe("middleware — X-Client-IP extraction", () => {
+  it("sets X-Client-IP from CF-Connecting-IP (highest priority)", async () => {
+    const { middleware } = await import("./middleware");
+    await middleware(
+      makeRequest(
+        "/en/about",
+        {},
+        {
+          "CF-Connecting-IP": "1.2.3.4",
+          "X-Real-IP": "5.6.7.8",
+          "X-Forwarded-For": "9.10.11.12, 13.14.15.16",
+        },
+      ) as never,
+    );
+    expect(lastEnrichedRequest).not.toBeNull();
+    expect(lastEnrichedRequest!.headers.get("X-Client-IP")).toBe("1.2.3.4");
+  });
+
+  it("falls back to X-Real-IP when CF-Connecting-IP is absent", async () => {
+    const { middleware } = await import("./middleware");
+    await middleware(
+      makeRequest(
+        "/en/about",
+        {},
+        {
+          "X-Real-IP": "5.6.7.8",
+          "X-Forwarded-For": "9.10.11.12",
+        },
+      ) as never,
+    );
+    expect(lastEnrichedRequest).not.toBeNull();
+    expect(lastEnrichedRequest!.headers.get("X-Client-IP")).toBe("5.6.7.8");
+  });
+
+  it("falls back to first entry of X-Forwarded-For when CF and X-Real-IP absent", async () => {
+    const { middleware } = await import("./middleware");
+    await middleware(
+      makeRequest(
+        "/en/about",
+        {},
+        {
+          "X-Forwarded-For": "9.10.11.12, 13.14.15.16",
+        },
+      ) as never,
+    );
+    expect(lastEnrichedRequest).not.toBeNull();
+    expect(lastEnrichedRequest!.headers.get("X-Client-IP")).toBe("9.10.11.12");
+  });
+
+  it("sets X-Client-IP to 'unknown' when no IP headers present", async () => {
+    const { middleware } = await import("./middleware");
+    await middleware(makeRequest("/en/about") as never);
+    expect(lastEnrichedRequest).not.toBeNull();
+    expect(lastEnrichedRequest!.headers.get("X-Client-IP")).toBe("unknown");
   });
 });
 

@@ -5,6 +5,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const mockRequireAuthenticatedSession = vi.fn();
 const mockUpdateLanguagePreference = vi.fn();
+const mockAuth = vi.fn();
 
 vi.mock("@/services/permissions", () => ({
   requireAuthenticatedSession: (...args: unknown[]) => mockRequireAuthenticatedSession(...args),
@@ -12,10 +13,43 @@ vi.mock("@/services/permissions", () => ({
 
 vi.mock("@/db/queries/auth-queries", () => ({
   updateLanguagePreference: (...args: unknown[]) => mockUpdateLanguagePreference(...args),
+  findUserByEmail: vi.fn(),
+  findUserById: vi.fn(),
 }));
 
 vi.mock("@/lib/request-context", () => ({
   runWithContext: vi.fn((_ctx: unknown, fn: () => unknown) => fn()),
+}));
+
+vi.mock("@/server/auth/config", () => ({
+  auth: (...args: unknown[]) => mockAuth(...args),
+  handlers: {},
+  signIn: vi.fn(),
+  signOut: vi.fn(),
+  getChallenge: vi.fn(),
+  setChallenge: vi.fn(),
+  deleteChallenge: vi.fn(),
+  CHALLENGE_TTL: 300,
+}));
+
+vi.mock("@/services/rate-limiter", () => ({
+  RATE_LIMIT_PRESETS: {
+    LANGUAGE_UPDATE: { maxRequests: 30, windowMs: 60_000 },
+  },
+}));
+
+vi.mock("@/lib/rate-limiter", () => ({
+  checkRateLimit: vi.fn().mockResolvedValue({
+    allowed: true,
+    remaining: 29,
+    resetAt: Date.now() + 60_000,
+    limit: 30,
+  }),
+  buildRateLimitHeaders: vi.fn().mockReturnValue({
+    "X-RateLimit-Limit": "30",
+    "X-RateLimit-Remaining": "29",
+    "X-RateLimit-Reset": "9999999999",
+  }),
 }));
 
 import { PATCH } from "./route";
@@ -38,6 +72,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   mockRequireAuthenticatedSession.mockResolvedValue({ userId: USER_ID, role: "MEMBER" });
   mockUpdateLanguagePreference.mockResolvedValue(undefined);
+  mockAuth.mockResolvedValue({ user: { id: USER_ID } });
 });
 
 describe("PATCH /api/v1/user/language", () => {

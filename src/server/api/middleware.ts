@@ -2,8 +2,17 @@ import { randomUUID } from "node:crypto";
 import { ApiError } from "@/lib/api-error";
 import { errorResponse } from "@/lib/api-response";
 import { runWithContext } from "@/lib/request-context";
+import type { RateLimitResult } from "@/lib/rate-limiter";
 
 type RouteHandler = (request: Request) => Promise<Response>;
+
+interface ApiHandlerOptions {
+  rateLimit?: {
+    key: (request: Request) => string | Promise<string>;
+    maxRequests: number;
+    windowMs: number;
+  };
+}
 
 const MUTATING_METHODS = new Set(["POST", "PATCH", "PUT", "DELETE"]);
 
@@ -56,49 +65,69 @@ function validateCsrf(request: Request): void {
   }
 }
 
-export function withApiHandler(handler: RouteHandler): RouteHandler {
+export function withApiHandler(handler: RouteHandler, options?: ApiHandlerOptions): RouteHandler {
   return async (request: Request): Promise<Response> => {
-    const traceId =
-      request.headers.get("X-Request-Id") ?? randomUUID();
+    const traceId = request.headers.get("X-Request-Id") ?? randomUUID();
+
+    let rateLimitResult: RateLimitResult | undefined;
+    let buildRateLimitHeadersFn: ((r: RateLimitResult) => Record<string, string>) | undefined;
+
+    function enrichHeaders(baseHeaders: Headers): Headers {
+      const headers = new Headers(baseHeaders);
+      headers.set("X-Request-Id", traceId);
+      if (rateLimitResult && buildRateLimitHeadersFn) {
+        const rlHeaders = buildRateLimitHeadersFn(rateLimitResult);
+        for (const [k, v] of Object.entries(rlHeaders)) headers.set(k, v);
+      }
+      return headers;
+    }
 
     try {
       validateCsrf(request);
 
-      const response = await runWithContext({ traceId }, () =>
-        handler(request),
-      );
+      if (options?.rateLimit) {
+        const rl = await import("@/lib/rate-limiter");
+        buildRateLimitHeadersFn = rl.buildRateLimitHeaders;
+        const key = await options.rateLimit.key(request);
+        rateLimitResult = await rl.checkRateLimit(
+          key,
+          options.rateLimit.maxRequests,
+          options.rateLimit.windowMs,
+        );
+        if (!rateLimitResult.allowed) {
+          throw new ApiError({
+            title: "Too Many Requests",
+            status: 429,
+            detail: "Rate limit exceeded. Please try again later.",
+          });
+        }
+      }
 
-      // Add traceId to response headers
-      const headers = new Headers(response.headers);
-      headers.set("X-Request-Id", traceId);
+      const response = await runWithContext({ traceId }, () => handler(request));
 
       return new Response(response.body, {
         status: response.status,
         statusText: response.statusText,
-        headers,
+        headers: enrichHeaders(response.headers),
       });
     } catch (error) {
       if (error instanceof ApiError) {
-        const response = errorResponse(error.toProblemDetails());
-        const headers = new Headers(response.headers);
-        headers.set("X-Request-Id", traceId);
-        return new Response(response.body, {
-          status: response.status,
-          headers,
+        const errResponse = errorResponse(error.toProblemDetails());
+        return new Response(errResponse.body, {
+          status: errResponse.status,
+          headers: enrichHeaders(errResponse.headers),
         });
       }
 
       // Unknown error — never expose internals
-      const response = errorResponse({
+      const errResponse = errorResponse({
         type: "about:blank",
         title: "Internal Server Error",
         status: 500,
       });
-      const headers = new Headers(response.headers);
-      headers.set("X-Request-Id", traceId);
-      return new Response(response.body, {
-        status: response.status,
-        headers,
+      return new Response(errResponse.body, {
+        status: errResponse.status,
+        headers: enrichHeaders(errResponse.headers),
       });
     }
   };

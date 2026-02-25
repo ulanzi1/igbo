@@ -55,8 +55,8 @@ development_status:
   1-9-profile-management-privacy-controls: done
   1-10-membership-tiers-permission-enforcement: done
   1-11-bilingual-platform-support: done
-  1-12-rate-limiting-abuse-prevention: backlog
-  1-13-gdpr-compliance-data-privacy: backlog
+  1-12-rate-limiting-abuse-prevention: done
+  1-13-gdpr-compliance-data-privacy: done
   1-14-file-upload-processing-pipeline: backlog
   1-15-socket-io-realtime-server-core-notification-infrastructure: backlog
   1-16-member-dashboard-shell: backlog

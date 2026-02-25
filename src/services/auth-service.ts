@@ -22,6 +22,7 @@ import {
 import { evictCachedSession, evictAllUserSessions } from "@/server/auth/redis-session-cache";
 import { setChallenge } from "@/server/auth/config";
 import { getRedisClient } from "@/lib/redis";
+import { checkRateLimit } from "@/lib/rate-limiter";
 import { eventBus } from "@/services/event-bus";
 import { enqueueEmailJob } from "@/services/email-service";
 import { env } from "@/env";
@@ -338,23 +339,17 @@ export async function sendEmailOtp(userId: string, challengeToken: string): Prom
     throw new ApiError({ title: "Bad Request", status: 400, detail: "Invalid challenge" });
 
   // Rate limit: 3 per 15 min
-  const redis = getRedisClient();
-  const rateLimitKey = `email_otp_rl:${userId}`;
-  const windowStart = Date.now() - EMAIL_OTP_RATE_WINDOW_MS;
-
-  const pipeline = redis.pipeline();
-  pipeline.zremrangebyscore(rateLimitKey, 0, windowStart);
-  pipeline.zadd(rateLimitKey, Date.now(), `${Date.now()}-${randomUUID()}`);
-  pipeline.zcount(rateLimitKey, windowStart, "+inf");
-  pipeline.expire(rateLimitKey, Math.ceil(EMAIL_OTP_RATE_WINDOW_MS / 1000));
-  const results = await pipeline.exec();
-  const count = (results?.[2]?.[1] as number) ?? 1;
-
-  if (count > EMAIL_OTP_RATE_LIMIT) {
+  const rlResult = await checkRateLimit(
+    `email_otp_rl:${userId}`,
+    EMAIL_OTP_RATE_LIMIT,
+    EMAIL_OTP_RATE_WINDOW_MS,
+  );
+  if (!rlResult.allowed) {
     throw new ApiError({ title: "Too Many Requests", status: 429, detail: "Rate limit exceeded" });
   }
 
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  const redis = getRedisClient();
   await redis.set(`email_otp:${userId}`, otp, "EX", EMAIL_OTP_TTL);
 
   const user = await findUserById(userId);

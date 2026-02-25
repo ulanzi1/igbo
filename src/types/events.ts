@@ -102,6 +102,15 @@ export interface MemberAnonymizedEvent extends BaseEvent {
   userId: string;
 }
 
+export interface MemberDeletionRequestedEvent extends BaseEvent {
+  userId: string;
+}
+
+export interface GdprExportReadyEvent extends BaseEvent {
+  userId: string;
+  requestId: string;
+}
+
 // --- Article Events ---
 
 export interface ArticleSubmittedEvent extends BaseEvent {
@@ -242,6 +251,8 @@ export type EventName =
   | "member.unfollowed"
   | "member.anonymizing"
   | "member.anonymized"
+  | "member.deletion_requested"
+  | "gdpr.export_ready"
   | "article.submitted"
   | "article.published"
   | "article.commented"
@@ -284,6 +295,8 @@ export interface EventMap {
   "member.unfollowed": MemberUnfollowedEvent;
   "member.anonymizing": MemberAnonymizingEvent;
   "member.anonymized": MemberAnonymizedEvent;
+  "member.deletion_requested": MemberDeletionRequestedEvent;
+  "gdpr.export_ready": GdprExportReadyEvent;
   "article.submitted": ArticleSubmittedEvent;
   "article.published": ArticlePublishedEvent;
   "article.commented": ArticleCommentedEvent;

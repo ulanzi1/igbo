@@ -45,6 +45,14 @@ function hasSessionCookie(request: NextRequest): boolean {
 export async function middleware(request: NextRequest) {
   const requestHeaders = new Headers(request.headers);
 
+  // Extract real client IP from Cloudflare or proxy headers for IP-based rate limiting
+  const clientIp =
+    request.headers.get("CF-Connecting-IP") ??
+    request.headers.get("X-Real-IP") ??
+    request.headers.get("X-Forwarded-For")?.split(",")[0]?.trim() ??
+    "unknown";
+  requestHeaders.set("X-Client-IP", clientIp);
+
   // Ensure X-Request-Id is present for downstream tracing
   if (!requestHeaders.has("X-Request-Id")) {
     requestHeaders.set("X-Request-Id", crypto.randomUUID());
