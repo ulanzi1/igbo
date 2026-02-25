@@ -86,6 +86,29 @@ export async function findTokenByHash(tokenHash: string) {
 }
 
 /**
+ * Update the language preference for a user.
+ */
+export async function updateLanguagePreference(userId: string, locale: "en" | "ig"): Promise<void> {
+  await db
+    .update(authUsers)
+    .set({ languagePreference: locale, updatedAt: new Date() })
+    .where(and(eq(authUsers.id, userId), isNull(authUsers.deletedAt)));
+}
+
+/**
+ * Get the language preference for a user. Returns "en" as fallback.
+ */
+export async function getLanguagePreference(userId: string): Promise<"en" | "ig"> {
+  const [user] = await db
+    .select({ languagePreference: authUsers.languagePreference })
+    .from(authUsers)
+    .where(and(eq(authUsers.id, userId), isNull(authUsers.deletedAt)))
+    .limit(1);
+  const pref = user?.languagePreference;
+  return pref === "ig" ? "ig" : "en";
+}
+
+/**
  * Delete all existing verification tokens for a user before issuing a new one.
  */
 export async function deleteUserVerificationTokens(userId: string) {

@@ -54,7 +54,7 @@ development_status:
   1-8-member-profile-setup-onboarding: done
   1-9-profile-management-privacy-controls: done
   1-10-membership-tiers-permission-enforcement: done
-  1-11-bilingual-platform-support: backlog
+  1-11-bilingual-platform-support: done
   1-12-rate-limiting-abuse-prevention: backlog
   1-13-gdpr-compliance-data-privacy: backlog
   1-14-file-upload-processing-pipeline: backlog

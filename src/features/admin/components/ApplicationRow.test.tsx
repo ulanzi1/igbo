@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent } from "@/test/test-utils";
 import userEvent from "@testing-library/user-event";
 
 // ─── Mocks ─────────────────────────────────────────────────────────────────
@@ -67,6 +67,7 @@ const mockApplication: AuthUser = {
   passwordHash: null,
   role: "MEMBER",
   membershipTier: "BASIC",
+  languagePreference: "en",
   adminNotes: null,
   deletedAt: null,
   createdAt: new Date("2026-02-01"),

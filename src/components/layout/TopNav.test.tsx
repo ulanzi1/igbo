@@ -36,6 +36,10 @@ vi.mock("@/hooks/use-contrast-mode", () => ({
   }),
 }));
 
+vi.mock("next-auth/react", () => ({
+  useSession: () => ({ data: null }),
+}));
+
 describe("TopNav", () => {
   it("renders as a header element", () => {
     render(<TopNav />);

@@ -46,6 +46,7 @@ export const authUsers = pgTable(
     passwordHash: varchar("password_hash", { length: 255 }),
     role: userRoleEnum("role").notNull().default("MEMBER"),
     membershipTier: membershipTierEnum("membership_tier").notNull().default("BASIC"),
+    languagePreference: varchar("language_preference", { length: 2 }).notNull().default("en"),
     adminNotes: text("admin_notes"),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
