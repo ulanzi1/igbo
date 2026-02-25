@@ -7,6 +7,7 @@ import { SessionProvider } from "next-auth/react";
 import { Toaster } from "@/components/ui/sonner";
 import { routing } from "@/i18n/routing";
 import { auth } from "@/server/auth/config";
+import { CookieConsentBanner } from "@/components/shared/CookieConsentBanner";
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
@@ -47,6 +48,7 @@ export default async function LocaleLayout({
         <SkipLink />
         {children}
         <Toaster />
+        <CookieConsentBanner />
       </NextIntlClientProvider>
     </SessionProvider>
   );

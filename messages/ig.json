@@ -252,6 +252,28 @@
         "success": "Membership tier updated successfully.",
         "error": "Failed to update tier. Please try again."
       }
+    },
+    "breachResponse": {
+      "heading": "Breach Response",
+      "step1Title": "Step 1: Generate Affected Member List",
+      "sinceLabel": "Since (ISO date)",
+      "untilLabel": "Until (ISO date)",
+      "generateButton": "Generate List",
+      "loading": "Loading...",
+      "dateRequired": "Both 'since' and 'until' dates are required.",
+      "networkError": "Network error",
+      "membersFound": "{count} affected member(s) found",
+      "columnEmail": "Email",
+      "columnName": "Name",
+      "columnStatus": "Status",
+      "noName": "—",
+      "step2Title": "Step 2: Send Breach Notification",
+      "incidentTimestampLabel": "Incident Timestamp (ISO)",
+      "notificationMessageLabel": "Notification Message",
+      "messagePlaceholder": "Describe the breach and any actions members should take...",
+      "sendButton": "Send to {count} Member(s)",
+      "sending": "Sending...",
+      "gdprWarning": "GDPR Article 33 requires breach notification within 72 hours. See docs/gdpr-breach-runbook.md for the full procedure."
     }
   },
   "Permissions": {
@@ -459,6 +481,7 @@
     "profileTab": "Profaịlụ",
     "privacyTab": "Nzuzo",
     "securityTab": "Nchekwa",
+    "accountTab": "Akanta",
     "profile": {
       "title": "Ntọala Profaịlụ",
       "heading": "Profaịlụ gị",
@@ -513,6 +536,45 @@
     "culturalConnections": "Njikọ omenala",
     "languages": "Asụsụ",
     "verificationBadge": "Akara nkwenye"
+  },
+  "cookieConsent": {
+    "title": "Nhọrọ Cookie",
+    "description": "Anyị na-eji cookie iji mezuo ahụmahụ gị. Cookie ndị dị mkpa dị mkpa ka saịtị ọrụ.",
+    "essential": "Dị mkpa (Achọrọ)",
+    "analytics": "Nyocha",
+    "preferences": "Nhọrọ",
+    "acceptAll": "Nabata Niile",
+    "acceptEssential": "Ndị Dị Mkpa Naanị",
+    "save": "Chekwaa Nhọrọ",
+    "customize": "Hazie"
+  },
+  "settings": {
+    "account": {
+      "heading": "Ntọala Akanta",
+      "exportData": {
+        "heading": "Buga Data m",
+        "description": "Budata ọdịdị nke data nkeonwe niile anyị nwere maka gị (GDPR Isiokwu 20). Ọ dị ohere otu arịrịọ kwa ụbọchị 7.",
+        "button": "Rịọ Ịbuga Data",
+        "requesting": "Na-arịọ...",
+        "requested": "Arịọla ibuga! Ị ga-enweta email nwere njikọ ịbudata n'ime awa 24.",
+        "rateLimit": "Ị nwere ike rịọ otu ibuga kwa ụbọchị 7.",
+        "errorGeneric": "Ọ dịghị mfe ịrịọ ibuga. Biko nwaa ọzọ."
+      },
+      "deleteAccount": {
+        "heading": "Hichapụ Akanta m",
+        "description": "Ozugbo ị malite ihichapụ akanta, ị nwere ụbọchị 30 ịkagbuo. Mgbe ụbọchị 30 gasịrị, a ga-emezigharịpụ data nkeonwe gị niile kpamkpam.",
+        "button": "Hichapụ Akanta m",
+        "confirmTitle": "Ị na-arọ ajụjụ ma ọ bụrụ na ị chọọ ihichapụ akanta gị?",
+        "confirmDescription": "Nke a ga-atọ akanta gị maka ihichapụ. Ị ga-enweta email nwere njikọ ikagbuo dị maka ụbọchị 30. Mgbe ụbọchị 30 gasịrị, a ga-emezigharịpụ data nkeonwe gị kpamkpam.",
+        "passwordLabel": "Nkwenye paswọọdụ gị",
+        "passwordPlaceholder": "Tinye paswọọdụ gị iji nkwenye",
+        "confirmButton": "Ee, hichapụ akanta m",
+        "cancel": "Kagbuo",
+        "deleting": "Na-ahaziri ihichapụ...",
+        "success": "Atọrọ ihichapụ akanta. Lelee email gị maka njikọ ikagbuo.",
+        "errorGeneric": "Ọ dịghị mfe ịtọ ihichapụ. Biko nwaa ọzọ."
+      }
+    }
   },
   "SEO": {
     "siteTitle": "OBIGBO - Igbo Community Platform",

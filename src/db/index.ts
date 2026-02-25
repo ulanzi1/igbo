@@ -9,6 +9,7 @@ import * as authMfaSchema from "./schema/auth-mfa";
 import * as authPasswordResetSchema from "./schema/auth-password-reset";
 import * as communityProfilesSchema from "./schema/community-profiles";
 import * as authPermissionsSchema from "./schema/auth-permissions";
+import * as gdprSchema from "./schema/gdpr";
 
 const client = postgres(env.DATABASE_URL, {
   max: env.DATABASE_POOL_SIZE,
@@ -24,6 +25,7 @@ export const db = drizzle(client, {
     ...authPasswordResetSchema,
     ...communityProfilesSchema,
     ...authPermissionsSchema,
+    ...gdprSchema,
   },
 });
 

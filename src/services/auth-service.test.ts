@@ -32,19 +32,18 @@ vi.mock("@/lib/redis", () => ({
     get: vi.fn(),
     set: vi.fn(),
     del: vi.fn(),
-    pipeline: () => ({
-      zremrangebyscore: vi.fn().mockReturnThis(),
-      zadd: vi.fn().mockReturnThis(),
-      zcount: vi.fn().mockReturnThis(),
-      expire: vi.fn().mockReturnThis(),
-      exec: vi.fn().mockResolvedValue([
-        [null, 0],
-        [null, 1],
-        [null, 1],
-        [null, 1],
-      ]),
-    }),
+    incr: vi.fn().mockResolvedValue(1),
+    expire: vi.fn().mockResolvedValue(1),
   }),
+}));
+vi.mock("@/lib/rate-limiter", () => ({
+  checkRateLimit: vi.fn().mockResolvedValue({
+    allowed: true,
+    remaining: 2,
+    resetAt: Date.now() + 900_000,
+    limit: 3,
+  }),
+  buildRateLimitHeaders: vi.fn().mockReturnValue({}),
 }));
 vi.mock("@/services/event-bus", () => ({ eventBus: { emit: vi.fn() } }));
 vi.mock("@/services/email-service", () => ({ enqueueEmailJob: vi.fn() }));

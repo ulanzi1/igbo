@@ -20,6 +20,8 @@ export const accountStatusEnum = pgEnum("account_status", [
   "REJECTED",
   "SUSPENDED",
   "BANNED",
+  "PENDING_DELETION",
+  "ANONYMIZED",
 ]);
 
 export const authUsers = pgTable(
@@ -48,6 +50,7 @@ export const authUsers = pgTable(
     membershipTier: membershipTierEnum("membership_tier").notNull().default("BASIC"),
     languagePreference: varchar("language_preference", { length: 2 }).notNull().default("en"),
     adminNotes: text("admin_notes"),
+    scheduledDeletionAt: timestamp("scheduled_deletion_at", { withTimezone: true }),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),

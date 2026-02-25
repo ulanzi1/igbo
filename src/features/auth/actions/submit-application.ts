@@ -43,6 +43,7 @@ const submitApplicationSchema = z.object({
 function getClientIp(headersList: Awaited<ReturnType<typeof headers>>): string {
   return (
     headersList.get("CF-Connecting-IP") ??
+    headersList.get("X-Client-IP") ??
     headersList.get("X-Forwarded-For")?.split(",")[0]?.trim() ??
     ""
   );
