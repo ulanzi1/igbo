@@ -576,6 +576,18 @@
       }
     }
   },
+  "fileUpload": {
+    "selectFile": "Họọ faịlụ",
+    "dragAndDrop": "Dọlụ ma tụlee faịlụ ebe a, ma ọ bụ pịa iji họọ",
+    "uploading": "Na-ebufe...",
+    "processing": "Na-arụ ọrụ...",
+    "uploadComplete": "Ebufeela nke ọma",
+    "errorInvalidType": "Ụdị faịlụ a anarịghị",
+    "errorTooLarge": "Faịlụ dị nnọọ ukwuu. Nha kachasị ukwuu: {maxSize}",
+    "errorUploadFailed": "Ibufe dara ada. Biko nwaa ọzọ.",
+    "errorQuarantined": "Enweghị ike ibufe faịlụ gị. Biko nwaa faịlụ ọzọ.",
+    "maxSizeHint": "Nha faịlụ kachasị ukwuu: {maxSize}"
+  },
   "SEO": {
     "siteTitle": "OBIGBO - Igbo Community Platform",
     "siteDescription": "A digital home connecting the global Igbo community. Discover articles, events, and connect with Igbo people worldwide.",

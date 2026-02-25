@@ -57,7 +57,7 @@ development_status:
   1-11-bilingual-platform-support: done
   1-12-rate-limiting-abuse-prevention: done
   1-13-gdpr-compliance-data-privacy: done
-  1-14-file-upload-processing-pipeline: backlog
+  1-14-file-upload-processing-pipeline: done
   1-15-socket-io-realtime-server-core-notification-infrastructure: backlog
   1-16-member-dashboard-shell: backlog
   1-17-transactional-email-service: backlog

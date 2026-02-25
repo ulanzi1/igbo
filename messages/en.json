@@ -576,6 +576,18 @@
       }
     }
   },
+  "fileUpload": {
+    "selectFile": "Select file",
+    "dragAndDrop": "Drag and drop a file here, or click to select",
+    "uploading": "Uploading...",
+    "processing": "Processing...",
+    "uploadComplete": "Upload complete",
+    "errorInvalidType": "File type not allowed",
+    "errorTooLarge": "File is too large. Maximum size: {maxSize}",
+    "errorUploadFailed": "Upload failed. Please try again.",
+    "errorQuarantined": "Your file could not be uploaded. Please try a different file.",
+    "maxSizeHint": "Maximum file size: {maxSize}"
+  },
   "SEO": {
     "siteTitle": "OBIGBO - Igbo Community Platform",
     "siteDescription": "A digital home connecting the global Igbo community. Discover articles, events, and connect with Igbo people worldwide.",

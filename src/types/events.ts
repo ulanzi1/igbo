@@ -111,6 +111,22 @@ export interface GdprExportReadyEvent extends BaseEvent {
   requestId: string;
 }
 
+// --- File Upload Events ---
+
+export interface FileProcessedEvent extends BaseEvent {
+  fileUploadId: string;
+  uploaderId: string;
+  objectKey: string;
+  processedUrl: string;
+}
+
+export interface FileQuarantinedEvent extends BaseEvent {
+  fileUploadId: string;
+  uploaderId: string;
+  objectKey: string;
+  reason: string;
+}
+
 // --- Article Events ---
 
 export interface ArticleSubmittedEvent extends BaseEvent {
@@ -273,7 +289,9 @@ export type EventName =
   | "member.guidelines_acknowledged"
   | "member.onboarding_completed"
   | "member.tier_changed"
-  | "member.permission_denied";
+  | "member.permission_denied"
+  | "file.processed"
+  | "file.quarantined";
 
 // --- Event Map ---
 
@@ -318,4 +336,6 @@ export interface EventMap {
   "member.onboarding_completed": MemberOnboardingCompletedEvent;
   "member.tier_changed": MemberTierChangedEvent;
   "member.permission_denied": PermissionDeniedEvent;
+  "file.processed": FileProcessedEvent;
+  "file.quarantined": FileQuarantinedEvent;
 }

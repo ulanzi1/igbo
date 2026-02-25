@@ -1,0 +1,21 @@
+services:
+  # ClamAV virus scanner (optional — enable for production by setting ENABLE_CLAMAV=true)
+  # Memory: ~1.5GB minimum required for virus definitions database
+  # To enable: uncomment this service AND set ENABLE_CLAMAV=true in environment
+  # clamav:
+  #   image: clamav/clamav:stable
+  #   restart: unless-stopped
+  #   mem_limit: 1.5g
+  #   environment:
+  #     - FRESHCLAM_CHECKS=4  # Update virus definitions every 6 hours (24/4)
+  #   healthcheck:
+  #     test: ["CMD", "clamdcheck"]
+  #     interval: 60s
+  #     timeout: 10s
+  #     retries: 3
+  #   networks:
+  #     - app-network
+
+networks:
+  app-network:
+    driver: bridge
