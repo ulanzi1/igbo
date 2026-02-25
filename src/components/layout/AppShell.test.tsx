@@ -36,6 +36,10 @@ vi.mock("@/hooks/use-contrast-mode", () => ({
   }),
 }));
 
+vi.mock("next-auth/react", () => ({
+  useSession: () => ({ data: null }),
+}));
+
 describe("AppShell", () => {
   it("renders children in main content area", () => {
     render(

@@ -35,7 +35,11 @@
     "menuClose": "Close menu",
     "languageToggle": "Switch language",
     "contrastToggle": "Toggle high contrast",
-    "copyright": "\u00a9 {year} Igbo Community Platform"
+    "copyright": "\u00a9 {year} Igbo Community Platform",
+    "language": {
+      "english": "English",
+      "igbo": "Igbo"
+    }
   },
   "Errors": {
     "notFound": "Page not found",

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen } from "@/test/test-utils";
 
 // ─── Mocks ─────────────────────────────────────────────────────────────────
 
@@ -45,6 +45,7 @@ const makeApplication = (id: string): AuthUser => ({
   passwordHash: null,
   role: "MEMBER",
   membershipTier: "BASIC",
+  languagePreference: "en",
   adminNotes: null,
   deletedAt: null,
   createdAt: new Date("2026-02-01"),
