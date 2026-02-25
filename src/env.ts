@@ -23,6 +23,17 @@ export const env = createEnv({
     X_CLIENT_SECRET: z.string().optional(),
     INSTAGRAM_APP_ID: z.string().optional(),
     INSTAGRAM_APP_SECRET: z.string().optional(),
+    // Hetzner Object Storage (S3-compatible)
+    HETZNER_S3_ENDPOINT: z.string().min(1),
+    HETZNER_S3_REGION: z.string().min(1),
+    HETZNER_S3_BUCKET: z.string().min(1),
+    HETZNER_S3_ACCESS_KEY_ID: z.string().min(1),
+    HETZNER_S3_SECRET_ACCESS_KEY: z.string().min(1),
+    HETZNER_S3_PUBLIC_URL: z.string().min(1),
+    // ClamAV (optional)
+    ENABLE_CLAMAV: z.string().optional().default("false"),
+    CLAMAV_HOST: z.string().optional().default("clamav"),
+    CLAMAV_PORT: z.coerce.number().int().positive().optional().default(3310),
   },
   client: {
     NEXT_PUBLIC_APP_URL: z.url(),
@@ -49,5 +60,14 @@ export const env = createEnv({
     X_CLIENT_SECRET: process.env.X_CLIENT_SECRET,
     INSTAGRAM_APP_ID: process.env.INSTAGRAM_APP_ID,
     INSTAGRAM_APP_SECRET: process.env.INSTAGRAM_APP_SECRET,
+    HETZNER_S3_ENDPOINT: process.env.HETZNER_S3_ENDPOINT,
+    HETZNER_S3_REGION: process.env.HETZNER_S3_REGION,
+    HETZNER_S3_BUCKET: process.env.HETZNER_S3_BUCKET,
+    HETZNER_S3_ACCESS_KEY_ID: process.env.HETZNER_S3_ACCESS_KEY_ID,
+    HETZNER_S3_SECRET_ACCESS_KEY: process.env.HETZNER_S3_SECRET_ACCESS_KEY,
+    HETZNER_S3_PUBLIC_URL: process.env.HETZNER_S3_PUBLIC_URL,
+    ENABLE_CLAMAV: process.env.ENABLE_CLAMAV,
+    CLAMAV_HOST: process.env.CLAMAV_HOST,
+    CLAMAV_PORT: process.env.CLAMAV_PORT,
   },
 });

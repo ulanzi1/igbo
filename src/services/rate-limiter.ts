@@ -16,6 +16,8 @@ export const RATE_LIMIT_PRESETS = {
   GDPR_EXPORT: { maxRequests: 1, windowMs: 604_800_000 }, // 1/7days per userId (per Story 1.13 AC)
   // General API
   API_GENERAL: { maxRequests: 100, windowMs: 60_000 }, // 100/min per userId
+  // File upload endpoints
+  FILE_UPLOAD_PRESIGN: { maxRequests: 20, windowMs: 3_600_000 }, // 20/hour per userId
   // Tier-based API quotas (per hour)
   TIER_BASIC: { maxRequests: 200, windowMs: 3_600_000 },
   TIER_PROFESSIONAL: { maxRequests: 1000, windowMs: 3_600_000 },
