@@ -19,6 +19,7 @@ export async function createNotification(
   data: NewPlatformNotification,
 ): Promise<PlatformNotification> {
   const [record] = await db.insert(platformNotifications).values(data).returning();
+  if (!record) throw new Error("Insert returned no record");
   return record;
 }
 

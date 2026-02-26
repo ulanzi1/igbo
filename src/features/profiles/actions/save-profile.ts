@@ -42,7 +42,10 @@ export async function saveProfileAction(input: SaveProfileInput): Promise<SavePr
     await saveProfile(session.user.id, parsed.data);
     return { success: true };
   } catch (err) {
-    const message = err instanceof ApiError ? err.detail : "Failed to save profile";
-    return { success: false, error: message ?? "Failed to save profile" };
+    const message =
+      err instanceof ApiError && typeof err.detail === "string"
+        ? err.detail
+        : "Failed to save profile";
+    return { success: false, error: message };
   }
 }
