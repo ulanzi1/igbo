@@ -286,7 +286,6 @@ The PRD specifies Jest + Cypress. This architecture selects **Vitest + Playwrigh
 - **Namespaces:**
   - `/chat` — messaging (1:1 and group conversations)
   - `/notifications` — real-time notifications, presence indicators, unread counts
-  - `/events` — live event updates (attendee count, live status, reactions)
 - **Room design (`/chat`):** One room per conversation (`conversation:{id}`), user joins rooms for all active conversations on connect
 - **Presence:** Maintained in Redis (`user:{id}:online` with 30s TTL + heartbeat), broadcast via `/notifications` namespace
 - **Message flow:** Client → Socket.IO server → validate + persist to PostgreSQL → broadcast to conversation room → update read receipts in Redis → TanStack Query cache invalidation on receiving clients
@@ -1043,8 +1042,7 @@ igbo/
     │   │   ├── index.ts                    # Socket.IO server entry point
     │   │   ├── namespaces/
     │   │   │   ├── chat.ts                 # /chat namespace handlers
-    │   │   │   ├── notifications.ts        # /notifications namespace handlers
-    │   │   │   └── events.ts               # /events namespace handlers
+    │   │   │   └── notifications.ts        # /notifications namespace handlers
     │   │   ├── middleware/
     │   │   │   └── auth.ts                 # Socket.IO auth middleware
     │   │   └── adapters/

@@ -41,7 +41,7 @@ story_location: _bmad-output/implementation-artifacts
 
 development_status:
   # Epic 1: Platform Foundation & User Identity
-  epic-1: in-progress
+  epic-1: done
   1-1a-project-scaffolding-core-setup: done
   1-1b-security-infrastructure-api-foundation: done
   1-1c-eventbus-job-runner-background-jobs: done
@@ -61,7 +61,7 @@ development_status:
   1-15-socket-io-realtime-server-core-notification-infrastructure: done
   1-16-member-dashboard-shell: done
   1-17-transactional-email-service: done
-  epic-1-retrospective: optional
+  epic-1-retrospective: done
 
   # Epic 2: Real-Time Communication
   epic-2: backlog
