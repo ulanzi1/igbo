@@ -1,4 +1,5 @@
 import { setRequestLocale } from "next-intl/server";
+import { AuthQueryProvider } from "./AuthQueryProvider";
 
 export default async function AuthLayout({
   children,
@@ -10,5 +11,5 @@ export default async function AuthLayout({
   const { locale } = await params;
   setRequestLocale(locale);
 
-  return <>{children}</>;
+  return <AuthQueryProvider>{children}</AuthQueryProvider>;
 }
