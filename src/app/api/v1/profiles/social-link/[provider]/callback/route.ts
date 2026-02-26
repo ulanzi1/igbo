@@ -171,7 +171,7 @@ export async function GET(
 
   const stateValue = await redis.get(`social_link_state:${state}`);
   if (!stateValue) {
-    return errorRedirect(locale, provider);
+    return errorRedirect("en", provider);
   }
   await redis.del(`social_link_state:${state}`);
 
@@ -211,6 +211,6 @@ export async function GET(
       },
     });
   } catch {
-    return errorRedirect(locale, provider);
+    return errorRedirect(storedLocale, provider);
   }
 }
