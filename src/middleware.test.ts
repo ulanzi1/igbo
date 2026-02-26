@@ -234,6 +234,41 @@ describe("middleware — auth protection", () => {
     const response = await middleware(makeRequest("/en/dashboard", WITH_SESSION) as never);
     expect(response.status).toBe(200);
   });
+
+  it("redirects authenticated users from /en/login to /en/dashboard", async () => {
+    const { middleware } = await import("./middleware");
+    const response = await middleware(makeRequest("/en/login", WITH_SESSION) as never);
+    expect(response.status).toBe(307);
+    expect(response.headers.get("Location")).toContain("/en/dashboard");
+  });
+
+  it("redirects authenticated users from /ig/register to /ig/dashboard", async () => {
+    const { middleware } = await import("./middleware");
+    const response = await middleware(makeRequest("/ig/register", WITH_SESSION) as never);
+    expect(response.status).toBe(307);
+    expect(response.headers.get("Location")).toContain("/ig/dashboard");
+  });
+
+  it("redirects authenticated users from all auth routes to dashboard", async () => {
+    const { middleware } = await import("./middleware");
+    for (const path of [
+      "/en/forgot-password",
+      "/en/reset-password",
+      "/en/verify",
+      "/en/2fa-setup",
+    ]) {
+      const response = await middleware(makeRequest(path, WITH_SESSION) as never);
+      expect(response.status, `Expected 307 for ${path}`).toBe(307);
+      expect(response.headers.get("Location")).toContain("/en/dashboard");
+    }
+  });
+
+  it("does NOT redirect authenticated users from guest routes like /en/about", async () => {
+    const { middleware } = await import("./middleware");
+    mockDecode.mockResolvedValue({ accountStatus: "APPROVED", profileCompleted: true });
+    const response = await middleware(makeRequest("/en/about", WITH_SESSION) as never);
+    expect(response.status).toBe(200);
+  });
 });
 
 // ─── Onboarding gate tests ────────────────────────────────────────────────────

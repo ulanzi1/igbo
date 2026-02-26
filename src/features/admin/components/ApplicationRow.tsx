@@ -166,6 +166,8 @@ export function ApplicationRow({ application, isActive, onNext }: ApplicationRow
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       if (!isActive) return;
+      const tag = (e.target as HTMLElement).tagName.toLowerCase();
+      if (tag === "textarea" || tag === "input" || tag === "select") return;
       switch (e.key.toLowerCase()) {
         case "a":
           e.preventDefault();
@@ -298,7 +300,7 @@ export function ApplicationRow({ application, isActive, onNext }: ApplicationRow
               </Button>
               <Button
                 size="sm"
-                variant="outline"
+                variant="secondary"
                 onClick={handleRequestInfo}
                 disabled={isBusy}
                 aria-label={t("approvals.requestInfo")}

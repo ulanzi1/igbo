@@ -5,7 +5,6 @@ import { useTranslations } from "next-intl";
 import { useSession } from "next-auth/react";
 import { completeTourAction } from "@/features/profiles";
 import { useRouter } from "@/i18n/navigation";
-import { useLocale } from "next-intl";
 
 const TOUR_SECTIONS = ["dashboard", "chat", "directory", "groups", "events", "articles"] as const;
 
@@ -16,7 +15,6 @@ interface Props {
 export function TourStep({ onComplete }: Props) {
   const t = useTranslations("Onboarding.tour");
   const router = useRouter();
-  const locale = useLocale();
   const { update } = useSession();
 
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -38,7 +36,7 @@ export function TourStep({ onComplete }: Props) {
       if (onComplete) {
         onComplete();
       } else {
-        router.push(`/${locale}/dashboard` as never);
+        router.push("/dashboard");
       }
     } catch {
       setError(t("errors.saveFailed"));

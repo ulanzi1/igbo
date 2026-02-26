@@ -13,6 +13,7 @@ import { eventBus } from "@/services/event-bus";
 import { enqueueEmailJob } from "@/services/email-service";
 import { runJob } from "@/server/jobs/job-runner";
 import { ApiError } from "@/lib/api-error";
+import { env } from "@/env";
 
 export { findAccountsPendingAnonymization } from "@/db/queries/gdpr";
 
@@ -63,6 +64,7 @@ export async function requestAccountDeletion(userId: string, password: string): 
       name: user.name ?? user.email,
       scheduledDeletionAt: scheduledDeletionAt.toISOString(),
       cancellationToken,
+      cancellationUrl: `${env.NEXT_PUBLIC_APP_URL}/api/v1/gdpr/cancel-deletion?token=${cancellationToken}`,
     },
   });
 

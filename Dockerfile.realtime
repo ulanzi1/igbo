@@ -1,0 +1,53 @@
+# Multi-stage Dockerfile for the standalone Socket.IO realtime server
+# Stage 1: Builder — transpile TypeScript with esbuild
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+# Copy package files and install all dependencies (including devDependencies for tsx)
+COPY package*.json ./
+RUN npm ci --prefer-offline
+
+# Copy source code
+COPY tsconfig.json ./
+COPY src/config/ ./src/config/
+COPY src/server/realtime/ ./src/server/realtime/
+COPY src/server/auth/redis-session-cache.ts ./src/server/auth/redis-session-cache.ts
+COPY src/lib/redis.ts ./src/lib/redis.ts
+COPY src/db/ ./src/db/
+COPY src/services/event-bus.ts ./src/services/event-bus.ts
+COPY src/types/ ./src/types/
+
+# Transpile entry point with esbuild
+RUN npx esbuild src/server/realtime/index.ts \
+  --bundle \
+  --platform=node \
+  --target=node20 \
+  --format=cjs \
+  --outfile=dist/realtime.js \
+  --external:ioredis \
+  --external:@socket.io/redis-adapter \
+  --external:socket.io \
+  --external:drizzle-orm \
+  --external:postgres \
+  --external:server-only \
+  --define:process.env.NODE_ENV='"production"'
+
+# Stage 2: Production runner
+FROM node:20-alpine AS runner
+
+WORKDIR /app
+
+# Copy package files and install production dependencies only
+COPY package*.json ./
+RUN npm ci --omit=dev --prefer-offline
+
+# Copy built output
+COPY --from=builder /app/dist/realtime.js ./dist/realtime.js
+
+EXPOSE 3001
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD wget -qO- http://localhost:3001/health || exit 1
+
+CMD ["node", "dist/realtime.js"]

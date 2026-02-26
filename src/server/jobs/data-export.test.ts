@@ -17,6 +17,12 @@ const mockDbChain = {
   limit: vi.fn().mockResolvedValue([]),
 };
 
+vi.mock("@/env", () => ({
+  env: {
+    NEXT_PUBLIC_APP_URL: "http://localhost:3000",
+  },
+}));
+
 vi.mock("@/db", () => ({
   db: {
     select: () => mockDbChain,

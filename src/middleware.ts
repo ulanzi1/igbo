@@ -20,11 +20,17 @@ const PUBLIC_PATH_PATTERNS = [
   /^\/[^/]+\/~offline(\/|$)/,
 ];
 
+const AUTH_PATH_PATTERN =
+  /^\/[^/]+\/(login|register|forgot-password|reset-password|verify|2fa-setup)(\/|$)/;
 const ONBOARDING_PATTERN = /^\/[^/]+\/onboarding(\/|$)/;
 const ADMIN_PATTERN = /^\/[^/]+\/admin(\/|$)/;
 
 function isPublicPath(pathname: string): boolean {
   return PUBLIC_PATH_PATTERNS.some((pattern) => pattern.test(pathname));
+}
+
+function isAuthPath(pathname: string): boolean {
+  return AUTH_PATH_PATTERN.test(pathname);
 }
 
 function isOnboardingPath(pathname: string): boolean {
@@ -64,6 +70,14 @@ export async function middleware(request: NextRequest) {
   const hasLocalePrefix = routing.locales.some(
     (locale) => pathname === `/${locale}` || pathname.startsWith(`/${locale}/`),
   );
+
+  // Reverse auth: redirect authenticated users away from auth pages to dashboard
+  if (hasLocalePrefix && isAuthPath(pathname) && hasSessionCookie(request)) {
+    const locale = pathname.split("/")[1];
+    const response = NextResponse.redirect(new URL(`/${locale}/dashboard`, request.url));
+    response.headers.set("X-Request-Id", requestId);
+    return response;
+  }
 
   // Auth protection: redirect unauthenticated users from protected routes to login
   if (hasLocalePrefix && !isPublicPath(pathname) && !hasSessionCookie(request)) {

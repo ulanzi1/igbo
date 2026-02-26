@@ -11,6 +11,8 @@ import * as communityProfilesSchema from "./schema/community-profiles";
 import * as authPermissionsSchema from "./schema/auth-permissions";
 import * as gdprSchema from "./schema/gdpr";
 import * as fileUploadsSchema from "./schema/file-uploads";
+import * as platformNotificationsSchema from "./schema/platform-notifications";
+import * as platformSocialSchema from "./schema/platform-social";
 
 const client = postgres(env.DATABASE_URL, {
   max: env.DATABASE_POOL_SIZE,
@@ -28,6 +30,8 @@ export const db = drizzle(client, {
     ...authPermissionsSchema,
     ...gdprSchema,
     ...fileUploadsSchema,
+    ...platformNotificationsSchema,
+    ...platformSocialSchema,
   },
 });
 

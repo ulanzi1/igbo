@@ -8,6 +8,7 @@ import {
 import { findUserById } from "@/db/queries/auth-queries";
 import { eventBus } from "@/services/event-bus";
 import { enqueueEmailJob } from "@/services/email-service";
+import { env } from "@/env";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -190,7 +191,12 @@ export function registerOnboardingCompletionSubscriber(): void {
       to: user.email,
       subject: "Welcome to OBIGBO!",
       templateId: "member-welcome",
-      data: { name: user.name ?? user.email },
+      data: {
+        name: user.name ?? user.email,
+        dashboardUrl: `${env.NEXT_PUBLIC_APP_URL}/en/dashboard`,
+        groupsUrl: `${env.NEXT_PUBLIC_APP_URL}/en/groups`,
+        membersUrl: `${env.NEXT_PUBLIC_APP_URL}/en/members`,
+      },
     });
 
     // TODO: replace with real notification service once Story 1.15/1.17 ships

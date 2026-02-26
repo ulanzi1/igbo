@@ -1,6 +1,13 @@
 // @vitest-environment node
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
+// Mock env to prevent validation failures for NEXT_PUBLIC_REALTIME_URL etc.
+vi.mock("@/env", () => ({
+  env: {
+    REALTIME_INTERNAL_URL: "http://localhost:3001",
+  },
+}));
+
 // Mock the db module
 vi.mock("@/db", () => ({
   db: {
@@ -20,6 +27,8 @@ vi.mock("@/lib/redis", () => ({
 describe("GET /api/health", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Mock global fetch: realtime health check succeeds by default
+    global.fetch = vi.fn().mockResolvedValue({ ok: true });
   });
 
   it("returns healthy status with db and redis connected", async () => {
