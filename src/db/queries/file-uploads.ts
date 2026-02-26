@@ -23,6 +23,7 @@ export async function createFileUpload(data: {
       fileSize: data.fileSize,
     })
     .returning();
+  if (!record) throw new Error("Insert returned no record");
   return record;
 }
 
