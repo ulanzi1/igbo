@@ -58,6 +58,8 @@ export async function listApplications(
         passwordHash: authUsers.passwordHash,
         role: authUsers.role,
         membershipTier: authUsers.membershipTier,
+        languagePreference: authUsers.languagePreference,
+        scheduledDeletionAt: authUsers.scheduledDeletionAt,
         adminNotes: authUsers.adminNotes,
         deletedAt: authUsers.deletedAt,
         createdAt: authUsers.createdAt,
