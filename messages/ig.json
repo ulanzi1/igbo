@@ -588,6 +588,57 @@
     "errorQuarantined": "Enweghị ike ibufe faịlụ gị. Biko nwaa faịlụ ọzọ.",
     "maxSizeHint": "Nha faịlụ kachasị ukwuu: {maxSize}"
   },
+  "Notifications": {
+    "title": "Ọkwa",
+    "empty": "Ọ dịghị ọkwa ọ bụla ugbu a",
+    "emptyDescription": "Ị ga-ahụ ihe ndị metụtara gị ebe a.",
+    "markAllRead": "Kee niile dị ka e gụọla",
+    "markRead": "Kee dị ka e gụọla",
+    "unreadBadge": "Agụghị {count}",
+    "unreadBadgeLabel": "Ọkwa {count} agụghị",
+    "viewAll": "Hụ niile",
+    "loading": "Na-ebugharị ọkwa...",
+    "error": "Ọ dara ada ịbugharị ọkwa",
+    "types": {
+      "message": "Ozi",
+      "mention": "Akpọ aha",
+      "group_activity": "Ọrụ otu",
+      "event_reminder": "Ndekọ ihe omume",
+      "post_interaction": "Mmekọrịta ozi",
+      "admin_announcement": "Ọkwa",
+      "system": "Sistemu"
+    },
+    "timeAgo": {
+      "justNow": "Ọtụtụ ugbu a",
+      "minutesAgo": "{count}m gara aga",
+      "hoursAgo": "{count}h gara aga",
+      "daysAgo": "{count}d gara aga"
+    }
+  },
+  "Dashboard": {
+    "pageTitle": "Ụlọ",
+    "greeting": {
+      "welcome": "Nnọ, {name}",
+      "subtitle": "Ihe na-eme n'obodo gị"
+    },
+    "gettingStarted": {
+      "title": "Nnọọ na OBIGBO",
+      "subtitle": "Ị bụ akụkụ nke ihe pụrụ iche. Otu esi amalite:",
+      "joinGroup": "Sonyere otu",
+      "joinGroupDesc": "Chọta ndị gị — obodo, ọrụ, ma ọ bụ mmasị",
+      "completeProfile": "Mejupụta profaịlụ gị",
+      "completeProfileDesc": "Nyere ndị ọzọ aka ịchọta ma jikọọ na gị",
+      "exploreMembers": "Chọgharịa ndị otu",
+      "exploreMembersDesc": "Chọpụta ndị obodo nọ gị nso"
+    },
+    "stats": {
+      "notifications": "{count} ozi a na-agụbeghị",
+      "noNotifications": "Enweghị ozi ọhụrụ"
+    },
+    "widget": {
+      "error": "Ihe adaghị nke ọma n'ibugo akụkụ a"
+    }
+  },
   "SEO": {
     "siteTitle": "OBIGBO - Igbo Community Platform",
     "siteDescription": "A digital home connecting the global Igbo community. Discover articles, events, and connect with Igbo people worldwide.",

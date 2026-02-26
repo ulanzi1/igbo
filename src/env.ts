@@ -34,9 +34,19 @@ export const env = createEnv({
     ENABLE_CLAMAV: z.string().optional().default("false"),
     CLAMAV_HOST: z.string().optional().default("clamav"),
     CLAMAV_PORT: z.coerce.number().int().positive().optional().default(3310),
+    // Realtime server (internal URL for health checks, service-name in Docker)
+    REALTIME_INTERNAL_URL: z.url().optional().default("http://localhost:3001"),
+    // Email Service (Story 1.17)
+    EMAIL_PROVIDER: z.enum(["resend"]).default("resend"),
+    RESEND_API_KEY: z.string().optional(),
+    EMAIL_FROM_ADDRESS: z.string().email().default("noreply@igbo.global"),
+    EMAIL_FROM_NAME: z.string().default("OBIGBO"),
+    EMAIL_SUPPORT_ADDRESS: z.string().email().default("support@igbo.global"),
+    ENABLE_EMAIL_SENDING: z.string().optional().default("true"),
   },
   client: {
     NEXT_PUBLIC_APP_URL: z.url(),
+    NEXT_PUBLIC_REALTIME_URL: z.url(),
   },
   runtimeEnv: {
     DATABASE_URL: process.env.DATABASE_URL,
@@ -69,5 +79,13 @@ export const env = createEnv({
     ENABLE_CLAMAV: process.env.ENABLE_CLAMAV,
     CLAMAV_HOST: process.env.CLAMAV_HOST,
     CLAMAV_PORT: process.env.CLAMAV_PORT,
+    REALTIME_INTERNAL_URL: process.env.REALTIME_INTERNAL_URL,
+    NEXT_PUBLIC_REALTIME_URL: process.env.NEXT_PUBLIC_REALTIME_URL,
+    EMAIL_PROVIDER: process.env.EMAIL_PROVIDER,
+    RESEND_API_KEY: process.env.RESEND_API_KEY,
+    EMAIL_FROM_ADDRESS: process.env.EMAIL_FROM_ADDRESS,
+    EMAIL_FROM_NAME: process.env.EMAIL_FROM_NAME,
+    EMAIL_SUPPORT_ADDRESS: process.env.EMAIL_SUPPORT_ADDRESS,
+    ENABLE_EMAIL_SENDING: process.env.ENABLE_EMAIL_SENDING,
   },
 });

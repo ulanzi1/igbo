@@ -1,5 +1,6 @@
 "use client";
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
+import { createPortal } from "react-dom";
 import { useTranslations } from "next-intl";
 
 const COOKIE_NAME = "cookie-consent";
@@ -33,13 +34,21 @@ function writeConsentCookie(prefs: ConsentPreferences): void {
 
 export function CookieConsentBanner() {
   const t = useTranslations("cookieConsent");
-  const [visible, setVisible] = useState(() => {
-    const existing = readConsentCookie();
-    return !existing || existing.version !== COOKIE_VERSION;
-  });
   const [analytics, setAnalytics] = useState(false);
   const [preferences, setPreferences] = useState(false);
   const [showCustomize, setShowCustomize] = useState(false);
+
+  const needsConsent = () => {
+    const existing = readConsentCookie();
+    return !existing || existing.version !== COOKIE_VERSION;
+  };
+
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
+  const [visible, setVisible] = useState(needsConsent);
 
   const save = (analyticsConsent: boolean, preferencesConsent: boolean) => {
     const prefs: ConsentPreferences = {
@@ -55,13 +64,14 @@ export function CookieConsentBanner() {
     // this cookie before initializing. Only initialize analytics if prefs.analytics === true.
   };
 
-  if (!visible) return null;
+  if (!mounted || !visible) return null;
 
-  return (
+  return createPortal(
     <div
       role="dialog"
+      aria-modal="true"
       aria-label={t("title")}
-      className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 shadow-lg p-4"
+      className="fixed bottom-0 left-0 right-0 z-[9999] bg-white border-t border-gray-200 shadow-lg p-4"
     >
       <div className="mx-auto max-w-4xl">
         <h2 className="text-base font-semibold text-gray-900 mb-1">{t("title")}</h2>
@@ -97,12 +107,14 @@ export function CookieConsentBanner() {
 
         <div className="flex flex-wrap gap-2">
           <button
+            type="button"
             onClick={() => save(true, true)}
             className="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-4 py-2 rounded"
           >
             {t("acceptAll")}
           </button>
           <button
+            type="button"
             onClick={() => save(false, false)}
             className="bg-gray-100 hover:bg-gray-200 text-gray-800 text-sm font-medium px-4 py-2 rounded"
           >
@@ -110,6 +122,7 @@ export function CookieConsentBanner() {
           </button>
           {showCustomize ? (
             <button
+              type="button"
               onClick={() => save(analytics, preferences)}
               className="bg-gray-100 hover:bg-gray-200 text-gray-800 text-sm font-medium px-4 py-2 rounded"
             >
@@ -117,6 +130,7 @@ export function CookieConsentBanner() {
             </button>
           ) : (
             <button
+              type="button"
               onClick={() => setShowCustomize(true)}
               className="text-indigo-600 hover:underline text-sm font-medium px-4 py-2"
             >
@@ -125,6 +139,7 @@ export function CookieConsentBanner() {
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

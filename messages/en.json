@@ -161,7 +161,7 @@
     },
     "emailVerified": {
       "title": "Email Verified!",
-      "description": "Your email is verified! A community admin will review your application. Welcome home soon."
+      "description": "Your email is verified! A community admin will review your application. You will receive an email regarding approval of your membership."
     },
     "tokenExpired": {
       "title": "Verification link expired",
@@ -587,6 +587,57 @@
     "errorUploadFailed": "Upload failed. Please try again.",
     "errorQuarantined": "Your file could not be uploaded. Please try a different file.",
     "maxSizeHint": "Maximum file size: {maxSize}"
+  },
+  "Notifications": {
+    "title": "Notifications",
+    "empty": "No notifications yet",
+    "emptyDescription": "You'll see activity relevant to you here.",
+    "markAllRead": "Mark all as read",
+    "markRead": "Mark as read",
+    "unreadBadge": "{count} unread",
+    "unreadBadgeLabel": "{count} unread notifications",
+    "viewAll": "View all",
+    "loading": "Loading notifications...",
+    "error": "Failed to load notifications",
+    "types": {
+      "message": "Message",
+      "mention": "Mention",
+      "group_activity": "Group activity",
+      "event_reminder": "Event reminder",
+      "post_interaction": "Post interaction",
+      "admin_announcement": "Announcement",
+      "system": "System"
+    },
+    "timeAgo": {
+      "justNow": "Just now",
+      "minutesAgo": "{count}m ago",
+      "hoursAgo": "{count}h ago",
+      "daysAgo": "{count}d ago"
+    }
+  },
+  "Dashboard": {
+    "pageTitle": "Home",
+    "greeting": {
+      "welcome": "Welcome home, {name}",
+      "subtitle": "Here's what's happening in your community"
+    },
+    "gettingStarted": {
+      "title": "Welcome to OBIGBO",
+      "subtitle": "You're part of something special. Here's how to get started:",
+      "joinGroup": "Join a group",
+      "joinGroupDesc": "Find your people — hometown, profession, or interest",
+      "completeProfile": "Complete your profile",
+      "completeProfileDesc": "Help others find and connect with you",
+      "exploreMembers": "Explore members",
+      "exploreMembersDesc": "Discover community members near you"
+    },
+    "stats": {
+      "notifications": "{count} unread notifications",
+      "noNotifications": "No new notifications"
+    },
+    "widget": {
+      "error": "Something went wrong loading this section"
+    }
   },
   "SEO": {
     "siteTitle": "OBIGBO - Igbo Community Platform",

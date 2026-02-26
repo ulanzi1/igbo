@@ -383,6 +383,24 @@ export async function verifyEmailOtp(
 
 // ─── Password reset ───────────────────────────────────────────────────────────
 
+const PASSWORD_SET_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours — longer than reset (new account setup)
+
+/**
+ * Generates a one-time "set your password" token for a newly approved member.
+ * Uses the same authPasswordResetTokens table — the reset-password page handles
+ * initial password creation just as well as a reset.
+ * Returns the raw token to be embedded in the approval email URL.
+ */
+export async function generatePasswordSetToken(userId: string): Promise<string> {
+  const rawToken = randomBytes(32).toString("hex");
+  const tokenHash = createHash("sha256").update(rawToken).digest("hex");
+  const expiresAt = new Date(Date.now() + PASSWORD_SET_TTL_MS);
+
+  await db.insert(authPasswordResetTokens).values({ userId, tokenHash, expiresAt });
+
+  return rawToken;
+}
+
 export async function requestPasswordReset(email: string): Promise<void> {
   // Always return success — prevent enumeration
   const user = await findUserByEmail(email);

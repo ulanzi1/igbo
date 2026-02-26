@@ -1,10 +1,11 @@
 "use client";
 
-import { BellIcon, UserCircleIcon, SearchIcon } from "lucide-react";
+import { UserCircleIcon, SearchIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { ContrastToggle } from "@/components/shared/ContrastToggle";
 import { LanguageToggle } from "@/components/shared/LanguageToggle";
+import { NotificationBell } from "@/features/notifications";
 import { cn } from "@/lib/utils";
 
 const navLinks = [
@@ -59,24 +60,13 @@ function TopNav({ className }: { className?: string }) {
         </div>
       </div>
 
-      {/* Spacer */}
-      <div className="flex-1 md:flex-none" />
+      {/* Spacer — pushes right actions to the far right */}
+      <div className="flex-1" />
 
       {/* Right actions */}
       <div className="flex items-center gap-1">
-        {/* Notification bell placeholder */}
-        <button
-          type="button"
-          aria-label={t("notifications")}
-          className="relative flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-full text-muted-foreground hover:bg-muted transition-colors"
-        >
-          <BellIcon className="size-5" aria-hidden="true" />
-          {/* Badge dot */}
-          <span
-            className="absolute top-2 right-2 size-2 rounded-full bg-primary"
-            aria-hidden="true"
-          />
-        </button>
+        {/* Notification bell */}
+        <NotificationBell />
 
         <ContrastToggle />
         <LanguageToggle />

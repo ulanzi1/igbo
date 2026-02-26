@@ -17,6 +17,12 @@ const mockCreateExportRequest = vi.fn();
 const mockUpdateExportRequest = vi.fn();
 const mockFindAccountsPendingAnonymization = vi.fn();
 
+vi.mock("@/env", () => ({
+  env: {
+    NEXT_PUBLIC_APP_URL: "http://localhost:3000",
+  },
+}));
+
 vi.mock("@/db/queries/auth-queries", () => ({
   findUserById: (...args: unknown[]) => mockFindUserById(...args),
 }));

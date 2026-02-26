@@ -11,7 +11,9 @@ import {
   type ListApplicationsOptions,
   type ApplicationStatus,
 } from "@/db/queries/admin-approvals";
+import { generatePasswordSetToken } from "@/services/auth-service";
 import { ApiError } from "@/lib/api-error";
+import { env } from "@/env";
 
 const VALID_TRANSITIONS: ApplicationStatus[] = ["APPROVED", "INFO_REQUESTED", "REJECTED"];
 
@@ -52,11 +54,17 @@ export async function approveApplication(request: Request, targetUserId: string)
     timestamp: new Date().toISOString(),
   });
 
+  const rawToken = await generatePasswordSetToken(targetUserId);
+  const setPasswordUrl = `${env.NEXT_PUBLIC_APP_URL}/en/reset-password?token=${rawToken}`;
+
   enqueueEmailJob(`email-welcome-approved-${targetUserId}`, {
     to: updated.email,
     subject: "Welcome to OBIGBO — Your membership has been approved",
     templateId: "welcome-approved",
-    data: { name: updated.name ?? updated.email },
+    data: {
+      name: updated.name ?? updated.email,
+      setPasswordUrl,
+    },
   });
 
   const ipAddress =
@@ -109,6 +117,7 @@ export async function requestMoreInfo(
     to: updated.email,
     subject: "We have a question about your OBIGBO application",
     templateId: "request-info",
+    from: `${env.EMAIL_FROM_NAME} Support <${env.EMAIL_SUPPORT_ADDRESS}>`,
     data: { name: updated.name ?? updated.email, message: safeMessage },
   });
 

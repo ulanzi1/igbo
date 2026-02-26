@@ -9,6 +9,7 @@ import { communityProfiles, communitySocialLinks } from "@/db/schema/community-p
 import { getRedisClient } from "@/lib/redis";
 import { eventBus } from "@/services/event-bus";
 import { enqueueEmailJob } from "@/services/email-service";
+import { env } from "@/env";
 
 const INCLUDE_RECEIVED_MESSAGES = process.env.INCLUDE_RECEIVED_MESSAGES_IN_EXPORT === "true";
 const DOWNLOAD_TOKEN_TTL_MS = 48 * 60 * 60 * 1000; // 48 hours
@@ -139,19 +140,18 @@ async function processExportRequest(requestId: string, userId: string): Promise<
     timestamp: new Date().toISOString(),
   });
 
-  // Get user email for notification
-  if (user) {
-    enqueueEmailJob(`gdpr-export-ready-${requestId}`, {
-      to: user.email,
-      subject: "Your data export is ready",
-      templateId: "gdpr-export-ready",
-      data: {
-        name: user.name ?? user.email,
-        downloadToken,
-        expiresAt: expiresAt.toISOString(),
-      },
-    });
-  }
+  // Notify user that export is ready
+  enqueueEmailJob(`gdpr-export-ready-${requestId}`, {
+    to: user.email,
+    subject: "Your data export is ready",
+    templateId: "gdpr-export-ready",
+    data: {
+      name: user.name ?? user.email,
+      downloadToken,
+      expiresAt: expiresAt.toISOString(),
+      downloadUrl: `${env.NEXT_PUBLIC_APP_URL}/api/v1/gdpr/download?token=${downloadToken}`,
+    },
+  });
 
   // Clean up Redis key
   const redis = getRedisClient();

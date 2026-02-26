@@ -37,7 +37,7 @@ so that I can begin the admin approval process to join the community.
    **And** the verification token's `used_at` is set atomically (preventing replay)
    **And** `auth_users.email_verified` timestamp is set
    **And** a `user.email_verified` EventBus event is emitted
-   **And** a confirmation page displays warm messaging: "Your email is verified! A community admin will review your application. Welcome home soon."
+   **And** a confirmation page displays warm messaging: "Your email is verified! A community admin will review your application. You will receive an email regarding approval of your membership."
    **And** the system enqueues a status notification email (dispatched as a delayed job, not immediately)
 
 5. **Given** the verification link has expired (24 hours) or has already been used

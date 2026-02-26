@@ -111,6 +111,22 @@ export interface GdprExportReadyEvent extends BaseEvent {
   requestId: string;
 }
 
+// --- Notification Events ---
+
+export interface NotificationCreatedEvent extends BaseEvent {
+  userId: string; // target recipient — used by bridge to route to user:{userId} room
+  notificationId: string;
+  type: string; // NotificationType enum value
+  title: string;
+  body: string;
+  link?: string;
+}
+
+export interface NotificationReadEvent extends BaseEvent {
+  userId: string;
+  notificationId: string | "all"; // 'all' for mark-all-read
+}
+
 // --- File Upload Events ---
 
 export interface FileProcessedEvent extends BaseEvent {
@@ -291,7 +307,9 @@ export type EventName =
   | "member.tier_changed"
   | "member.permission_denied"
   | "file.processed"
-  | "file.quarantined";
+  | "file.quarantined"
+  | "notification.created"
+  | "notification.read";
 
 // --- Event Map ---
 
@@ -338,4 +356,6 @@ export interface EventMap {
   "member.permission_denied": PermissionDeniedEvent;
   "file.processed": FileProcessedEvent;
   "file.quarantined": FileQuarantinedEvent;
+  "notification.created": NotificationCreatedEvent;
+  "notification.read": NotificationReadEvent;
 }

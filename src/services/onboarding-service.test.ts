@@ -24,6 +24,12 @@ vi.mock("@/services/email-service", () => ({
   enqueueEmailJob: vi.fn(),
 }));
 
+vi.mock("@/env", () => ({
+  env: {
+    NEXT_PUBLIC_APP_URL: "http://localhost:3000",
+  },
+}));
+
 vi.mock("@/db", () => ({ db: {} }));
 vi.mock("@/db/schema/auth-users", () => ({ authUsers: {} }));
 vi.mock("@/db/schema/community-profiles", () => ({ communityProfiles: {} }));

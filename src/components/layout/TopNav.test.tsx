@@ -40,6 +40,14 @@ vi.mock("next-auth/react", () => ({
   useSession: () => ({ data: null }),
 }));
 
+vi.mock("@/features/notifications", () => ({
+  NotificationBell: () => (
+    <button type="button" aria-label="Navigation.notifications">
+      Bell
+    </button>
+  ),
+}));
+
 describe("TopNav", () => {
   it("renders as a header element", () => {
     render(<TopNav />);

@@ -812,7 +812,7 @@ So that I can begin the admin approval process to join the community.
 - **Given** the applicant receives the verification email
 - **When** they click the verification link within the email
 - **Then** their account transitions to `pending_approval` state
-- **And** a confirmation page displays warm messaging: "Your email is verified! A community admin will review your application. Welcome home soon."
+- **And** a confirmation page displays warm messaging: "Your email is verified! A community admin will review your application. You will receive an email regarding approval of your membership."
 - **And** the system sends a status notification email within 24 hours confirming application is in review
 
 - **Given** the verification link has expired (24 hours)
