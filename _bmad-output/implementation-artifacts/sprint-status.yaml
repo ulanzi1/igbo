@@ -64,8 +64,8 @@ development_status:
   epic-1-retrospective: done
 
   # Epic 2: Real-Time Communication
-  epic-2: backlog
-  2-1-chat-infrastructure-messageservice: backlog
+  epic-2: in-progress
+  2-1-chat-infrastructure-messageservice: done
   2-2-direct-messaging-1-1-conversations: backlog
   2-3-group-direct-messages: backlog
   2-4-rich-messaging-file-attachments: backlog

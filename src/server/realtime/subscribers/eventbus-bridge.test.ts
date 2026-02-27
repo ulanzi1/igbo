@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("@/config/realtime", () => ({
   ROOM_USER: (id: string) => `user:${id}`,
+  ROOM_CONVERSATION: (id: string) => `conversation:${id}`,
   NAMESPACE_NOTIFICATIONS: "/notifications",
   NAMESPACE_CHAT: "/chat",
 }));
@@ -28,17 +29,22 @@ function makeSubscriber(): {
   return { subscriber, pmessageCallbacks };
 }
 
-function makeIo(emitMock: ReturnType<typeof vi.fn>): Server {
+function makeIo(notifEmit: ReturnType<typeof vi.fn>, chatEmit?: ReturnType<typeof vi.fn>): Server {
   return {
-    of: vi.fn().mockReturnValue({
-      to: vi.fn().mockReturnValue({ emit: emitMock }),
-    }),
+    of: vi.fn().mockImplementation((namespace: string) => ({
+      to: vi.fn().mockReturnValue({
+        emit: namespace === "/chat" && chatEmit ? chatEmit : notifEmit,
+      }),
+    })),
   } as unknown as Server;
 }
 
 beforeEach(() => {
   vi.clearAllMocks();
 });
+
+const CONV_ID = "00000000-0000-4000-8000-000000000010";
+const MSG_ID = "00000000-0000-4000-8000-000000000011";
 
 describe("startEventBusBridge", () => {
   it("subscribes to eventbus:* pattern", async () => {
@@ -116,6 +122,57 @@ describe("startEventBusBridge", () => {
       "notification:read",
       expect.objectContaining({ notificationId: "notif-456" }),
     );
+  });
+
+  it("routes message.sent to conversation room on /chat namespace", async () => {
+    const notifEmit = vi.fn();
+    const chatEmit = vi.fn();
+    const { subscriber, pmessageCallbacks } = makeSubscriber();
+    const io = makeIo(notifEmit, chatEmit);
+
+    await startEventBusBridge(io, subscriber);
+
+    const ts = new Date().toISOString();
+    const payload = {
+      messageId: MSG_ID,
+      senderId: USER_ID,
+      conversationId: CONV_ID,
+      content: "Hello!",
+      contentType: "text",
+      createdAt: ts,
+      timestamp: ts,
+    };
+
+    pmessageCallbacks[0]?.("eventbus:*", "eventbus:message.sent", JSON.stringify(payload));
+
+    expect(io.of).toHaveBeenCalledWith("/chat");
+    expect(chatEmit).toHaveBeenCalledWith(
+      "message:new",
+      expect.objectContaining({
+        messageId: MSG_ID,
+        conversationId: CONV_ID,
+        senderId: USER_ID,
+        content: "Hello!",
+        contentType: "text",
+        createdAt: ts,
+      }),
+    );
+  });
+
+  it("ignores message.sent when conversationId is missing", async () => {
+    const chatEmit = vi.fn();
+    const { subscriber, pmessageCallbacks } = makeSubscriber();
+    const io = makeIo(vi.fn(), chatEmit);
+
+    await startEventBusBridge(io, subscriber);
+
+    pmessageCallbacks[0]?.(
+      "eventbus:*",
+      "eventbus:message.sent",
+      JSON.stringify({ messageId: MSG_ID, senderId: USER_ID }), // no conversationId
+    );
+
+    expect(chatEmit).not.toHaveBeenCalled();
   });
 
   it("ignores unknown event types gracefully", async () => {
