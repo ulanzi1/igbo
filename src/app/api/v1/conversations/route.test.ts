@@ -6,6 +6,8 @@ const mockRequireAuthenticatedSession = vi.fn();
 const mockGetUserConversations = vi.fn();
 const mockCreateConversation = vi.fn();
 const mockIsBlocked = vi.fn();
+const mockFindExistingDirectConversation = vi.fn();
+const mockGetConversationById = vi.fn();
 
 vi.mock("@/services/permissions", () => ({
   requireAuthenticatedSession: (...args: unknown[]) => mockRequireAuthenticatedSession(...args),
@@ -14,6 +16,9 @@ vi.mock("@/services/permissions", () => ({
 vi.mock("@/db/queries/chat-conversations", () => ({
   getUserConversations: (...args: unknown[]) => mockGetUserConversations(...args),
   createConversation: (...args: unknown[]) => mockCreateConversation(...args),
+  findExistingDirectConversation: (...args: unknown[]) =>
+    mockFindExistingDirectConversation(...args),
+  getConversationById: (...args: unknown[]) => mockGetConversationById(...args),
 }));
 
 vi.mock("@/db/queries/block-mute", () => ({
@@ -22,6 +27,10 @@ vi.mock("@/db/queries/block-mute", () => ({
 
 vi.mock("@/lib/request-context", () => ({
   runWithContext: vi.fn((_ctx: unknown, fn: () => unknown) => fn()),
+}));
+
+vi.mock("@/services/event-bus", () => ({
+  eventBus: { emit: vi.fn() },
 }));
 
 vi.mock("@/services/rate-limiter", () => ({
@@ -82,6 +91,8 @@ beforeEach(() => {
   mockGetUserConversations.mockResolvedValue({ conversations: [mockConversation], hasMore: false });
   mockCreateConversation.mockResolvedValue(mockConversation);
   mockIsBlocked.mockResolvedValue(false);
+  mockFindExistingDirectConversation.mockResolvedValue(null);
+  mockGetConversationById.mockResolvedValue(mockConversation);
 });
 
 describe("GET /api/v1/conversations", () => {
@@ -164,5 +175,33 @@ describe("POST /api/v1/conversations", () => {
     });
     const res = await POST(req);
     expect(res.status).toBe(400);
+  });
+
+  it("returns 400 for non-UUID memberIds", async () => {
+    const res = await POST(makePostRequest({ type: "direct", memberIds: ["not-a-uuid"] }));
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.detail).toContain("valid UUIDs");
+    expect(mockCreateConversation).not.toHaveBeenCalled();
+  });
+
+  it("returns 400 when creating direct conversation with self only", async () => {
+    const res = await POST(makePostRequest({ type: "direct", memberIds: [USER_ID] }));
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.detail).toContain("yourself");
+    expect(mockCreateConversation).not.toHaveBeenCalled();
+  });
+
+  it("returns 200 with existing conversation when direct conversation already exists (idempotent)", async () => {
+    mockFindExistingDirectConversation.mockResolvedValue(CONV_ID);
+    mockGetConversationById.mockResolvedValue(mockConversation);
+
+    const res = await POST(makePostRequest({ type: "direct", memberIds: [OTHER_ID] }));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.data.conversation.id).toBe(CONV_ID);
+    // Should NOT call createConversation since it already exists
+    expect(mockCreateConversation).not.toHaveBeenCalled();
   });
 });

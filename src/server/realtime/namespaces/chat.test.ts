@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // ── Config mock ─────────────────────────────────────────────────────────────
 vi.mock("@/config/realtime", () => ({
+  ROOM_USER: (id: string) => `user:${id}`,
   ROOM_CONVERSATION: (id: string) => `conversation:${id}`,
   CHAT_REPLAY_WINDOW_MS: 86_400_000, // 24h
 }));
@@ -71,7 +72,8 @@ function makeSocket(userId: string = USER_ID): {
   return { socket, events };
 }
 
-function makeNamespace(_socket: Socket): {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function makeNamespace(_socket?: Socket): {
   ns: Namespace;
   connectionCallbacks: ((s: Socket) => void)[];
 } {

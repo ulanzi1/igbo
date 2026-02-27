@@ -1,4 +1,4 @@
-import "server-only";
+// NOTE: No "server-only" — used by both Next.js and the standalone realtime server
 import { eq, and, desc, gt, count as sqlCount } from "drizzle-orm";
 import { db } from "@/db";
 import { platformNotifications } from "@/db/schema/platform-notifications";

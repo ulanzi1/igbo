@@ -1,6 +1,7 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
+import { SignJWT } from "jose";
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { DrizzleAdapter } from "@auth/drizzle-adapter";
@@ -28,6 +29,7 @@ declare module "next-auth" {
     membershipTier: "BASIC" | "PROFESSIONAL" | "TOP_TIER";
   }
   interface Session {
+    sessionToken?: string;
     user: {
       id: string;
       role: "MEMBER" | "ADMIN" | "MODERATOR";
@@ -263,12 +265,18 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       }
       return token;
     },
-    session({ session, token }) {
+    async session({ session, token }) {
       session.user.id = token.id;
       session.user.role = token.role;
       session.user.accountStatus = token.accountStatus;
       session.user.profileCompleted = token.profileCompleted;
       session.user.membershipTier = token.membershipTier ?? "BASIC";
+      // Create a short-lived JWT for Socket.IO auth (realtime server verifies with same AUTH_SECRET)
+      const secret = new TextEncoder().encode(env.AUTH_SECRET);
+      session.sessionToken = await new SignJWT({ id: token.id })
+        .setProtectedHeader({ alg: "HS256" })
+        .setExpirationTime("1h")
+        .sign(secret);
       return session;
     },
   },

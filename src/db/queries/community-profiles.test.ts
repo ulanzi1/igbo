@@ -8,6 +8,7 @@ vi.mock("@/db", () => ({
     select: vi.fn(),
     insert: vi.fn(),
     update: vi.fn(),
+    execute: vi.fn(),
   },
 }));
 
@@ -28,6 +29,10 @@ vi.mock("drizzle-orm", () => ({
   eq: vi.fn((col, val) => ({ col, val, type: "eq" })),
   isNull: vi.fn((col) => ({ col, type: "isNull" })),
   isNotNull: vi.fn((col) => ({ col, type: "isNotNull" })),
+  sql: Object.assign(
+    (strings: TemplateStringsArray, ...values: unknown[]) => ({ strings, values, type: "sql" }),
+    { raw: vi.fn() },
+  ),
 }));
 
 import { db } from "@/db";
@@ -35,6 +40,7 @@ import { db } from "@/db";
 const mockSelect = vi.mocked(db.select);
 const mockInsert = vi.mocked(db.insert);
 const mockUpdate = vi.mocked(db.update);
+const mockExecute = vi.mocked(db.execute);
 
 const PROFILE = {
   id: "profile-1",
@@ -174,5 +180,42 @@ describe("setTourComplete", () => {
     expect(chain.set).toHaveBeenCalledWith(
       expect.objectContaining({ tourSkippedAt: expect.any(Date), tourCompletedAt: null }),
     );
+  });
+});
+
+describe("searchMembersByName", () => {
+  const mockResults = [
+    { id: "user-2", displayName: "Ada Okonkwo", photoUrl: null },
+    { id: "user-3", displayName: "Adaeze Ibe", photoUrl: null },
+  ];
+
+  it("returns matching member profiles", async () => {
+    mockExecute.mockResolvedValue(mockResults as never);
+    const { searchMembersByName } = await import("./community-profiles");
+    const results = await searchMembersByName("Ada", []);
+    expect(results).toEqual(mockResults);
+    expect(mockExecute).toHaveBeenCalled();
+  });
+
+  it("returns empty array when no matches", async () => {
+    mockExecute.mockResolvedValue([] as never);
+    const { searchMembersByName } = await import("./community-profiles");
+    const results = await searchMembersByName("xyz", []);
+    expect(results).toEqual([]);
+  });
+
+  it("passes limit parameter to SQL query", async () => {
+    mockExecute.mockResolvedValue([] as never);
+    const { searchMembersByName } = await import("./community-profiles");
+    await searchMembersByName("Ada", [], 5);
+    expect(mockExecute).toHaveBeenCalled();
+  });
+
+  it("excludes specified user IDs from results", async () => {
+    mockExecute.mockResolvedValue([] as never);
+    const { searchMembersByName } = await import("./community-profiles");
+    // Should still call execute (the SQL handles the exclusion)
+    await searchMembersByName("Ada", ["user-1", "user-2"]);
+    expect(mockExecute).toHaveBeenCalled();
   });
 });

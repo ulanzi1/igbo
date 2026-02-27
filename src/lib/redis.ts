@@ -1,13 +1,20 @@
-import "server-only";
+// NOTE: No "server-only" — this is used by both Next.js server code and the standalone realtime server
 import Redis from "ioredis";
-import { env } from "@/env";
+
+// Use process.env directly so this module works in both Next.js and the standalone realtime server
+// (importing @/env would trigger full env validation which fails outside Next.js)
+function getRedisUrl(): string {
+  const url = process.env.REDIS_URL;
+  if (!url) throw new Error("REDIS_URL environment variable is required");
+  return url;
+}
 
 let redisClient: Redis | null = null;
 let redisPublisher: Redis | null = null;
 let redisSubscriber: Redis | null = null;
 
 function createRedisInstance(name: string): Redis {
-  const instance = new Redis(env.REDIS_URL, {
+  const instance = new Redis(getRedisUrl(), {
     maxRetriesPerRequest: 3,
     lazyConnect: false,
     connectionName: name,

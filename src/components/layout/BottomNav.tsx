@@ -4,6 +4,7 @@ import { HouseIcon, MessageCircleIcon, SearchIcon, CalendarIcon, UserIcon } from
 import { useTranslations } from "next-intl";
 import { usePathname, Link } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
+import { useUnreadCount } from "@/features/chat/hooks/use-unread-count";
 
 const tabs = [
   { key: "home" as const, icon: HouseIcon, href: "/" },
@@ -16,6 +17,8 @@ const tabs = [
 function BottomNav() {
   const t = useTranslations("Navigation");
   const pathname = usePathname();
+  const { totalUnread } = useUnreadCount();
+  const unreadLabel = t("chatUnread", { count: totalUnread });
 
   return (
     <nav
@@ -25,6 +28,7 @@ function BottomNav() {
     >
       {tabs.map(({ key, icon: Icon, href }) => {
         const isActive = pathname === href || (href !== "/" && pathname.startsWith(href));
+        const isChatTab = key === "chat";
         return (
           <Link
             key={key}
@@ -36,7 +40,18 @@ function BottomNav() {
               isActive ? "text-primary" : "text-muted-foreground hover:text-foreground",
             )}
           >
-            <Icon className="size-5" aria-hidden="true" />
+            <div className="relative">
+              <Icon className="size-5" aria-hidden="true" />
+              {isChatTab && totalUnread > 0 && (
+                <span
+                  className="absolute -top-1 -right-1.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-destructive px-0.5 text-[10px] font-bold text-destructive-foreground"
+                  role="status"
+                  aria-label={unreadLabel}
+                >
+                  {totalUnread > 99 ? "99+" : totalUnread}
+                </span>
+              )}
+            </div>
             <span>{t(key)}</span>
           </Link>
         );

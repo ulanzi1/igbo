@@ -1,11 +1,13 @@
 // NOTE: No "server-only" import — this runs as standalone Node.js, not inside Next.js
 import type { Socket } from "socket.io";
-import { getCachedSession } from "@/server/auth/redis-session-cache";
+import { jwtVerify } from "jose";
+
+const AUTH_SECRET = process.env.AUTH_SECRET;
 
 /**
  * Socket.IO authentication middleware.
- * Extracts the session token from the handshake, validates it via Redis,
- * and attaches userId to socket.data.
+ * Verifies the Auth.js JWT directly using AUTH_SECRET.
+ * Extracts userId from the JWT payload and attaches to socket.data.
  *
  * MUST always call next() — Socket.IO middleware contract.
  */
@@ -18,21 +20,23 @@ export async function authMiddleware(socket: Socket, next: (err?: Error) => void
       return;
     }
 
-    const session = await getCachedSession(token);
-
-    if (!session) {
-      next(new Error("UNAUTHORIZED: invalid or expired session"));
+    if (!AUTH_SECRET) {
+      next(new Error("UNAUTHORIZED: AUTH_SECRET not configured"));
       return;
     }
 
-    // Check session expiry
-    if (session.expires < new Date()) {
-      next(new Error("UNAUTHORIZED: session expired"));
+    // Verify the Auth.js JWT using the same secret
+    const secret = new TextEncoder().encode(AUTH_SECRET);
+    const { payload } = await jwtVerify(token, secret);
+
+    const userId = payload.id as string | undefined;
+    if (!userId) {
+      next(new Error("UNAUTHORIZED: JWT missing user id"));
       return;
     }
 
     // Attach userId so namespace handlers can access it
-    socket.data.userId = session.userId;
+    socket.data.userId = userId;
     next();
   } catch (err: unknown) {
     next(

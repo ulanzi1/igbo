@@ -3,8 +3,17 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@/test/test-utils";
 import { BottomNav } from "./BottomNav";
 
+const mockUseUnreadCount = vi.fn().mockReturnValue({
+  totalUnread: 0,
+  unreadCounts: {},
+  markConversationRead: vi.fn(),
+});
+
 vi.mock("next-intl", () => ({
-  useTranslations: (namespace?: string) => (key: string) => `${namespace}.${key}`,
+  useTranslations: (namespace?: string) => (key: string, params?: Record<string, unknown>) => {
+    if (params) return `${namespace}.${key}:${JSON.stringify(params)}`;
+    return `${namespace}.${key}`;
+  },
   useLocale: () => "en",
 }));
 
@@ -28,7 +37,27 @@ vi.mock("@/i18n/navigation", () => ({
   getPathname: vi.fn(),
 }));
 
+vi.mock("@/providers/SocketProvider", () => ({
+  useSocketContext: () => ({
+    chatSocket: null,
+    notificationsSocket: null,
+    isConnected: false,
+  }),
+}));
+
+vi.mock("@/features/chat/hooks/use-unread-count", () => ({
+  useUnreadCount: (...args: unknown[]) => mockUseUnreadCount(...args),
+}));
+
 describe("BottomNav", () => {
+  beforeEach(() => {
+    mockUseUnreadCount.mockReturnValue({
+      totalUnread: 0,
+      unreadCounts: {},
+      markConversationRead: vi.fn(),
+    });
+  });
+
   it("renders as a navigation element with correct aria-label", () => {
     render(<BottomNav />);
     expect(screen.getByRole("navigation", { name: "Main navigation" })).toBeInTheDocument();
@@ -61,5 +90,44 @@ describe("BottomNav", () => {
     tabs.forEach((tab) => {
       expect(tab).toHaveClass("min-h-[44px]");
     });
+  });
+
+  it("does not render unread badge when totalUnread is 0", () => {
+    render(<BottomNav />);
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  });
+
+  it("renders unread badge on chat tab when totalUnread > 0", () => {
+    mockUseUnreadCount.mockReturnValue({
+      totalUnread: 5,
+      unreadCounts: { "conv-1": 3, "conv-2": 2 },
+      markConversationRead: vi.fn(),
+    });
+    render(<BottomNav />);
+    const badge = screen.getByRole("status");
+    expect(badge).toBeInTheDocument();
+    expect(badge).toHaveTextContent("5");
+  });
+
+  it("displays 99+ when totalUnread exceeds 99", () => {
+    mockUseUnreadCount.mockReturnValue({
+      totalUnread: 150,
+      unreadCounts: { "conv-1": 150 },
+      markConversationRead: vi.fn(),
+    });
+    render(<BottomNav />);
+    const badge = screen.getByRole("status");
+    expect(badge).toHaveTextContent("99+");
+  });
+
+  it("badge has translated aria-label for accessibility", () => {
+    mockUseUnreadCount.mockReturnValue({
+      totalUnread: 3,
+      unreadCounts: { "conv-1": 3 },
+      markConversationRead: vi.fn(),
+    });
+    render(<BottomNav />);
+    const badge = screen.getByRole("status");
+    expect(badge).toHaveAttribute("aria-label", expect.stringContaining("chatUnread"));
   });
 });

@@ -1,7 +1,11 @@
 "use client";
 import { useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
+import { useSession } from "next-auth/react";
+import { useTransition } from "react";
+import { useRouter } from "@/i18n/navigation";
 import type { CommunityProfile, CommunitySocialLink } from "@/db/schema/community-profiles";
+import { createOrFindDirectConversation } from "@/features/chat/actions/create-conversation";
 
 interface Props {
   profile: CommunityProfile;
@@ -15,10 +19,42 @@ const SOCIAL_ICONS: Record<string, string> = {
   INSTAGRAM: "ig",
 };
 
+function MessageButton({ profileUserId }: { profileUserId: string }) {
+  const t = useTranslations("Profile");
+  const { data: session } = useSession();
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+
+  // Don't show message button for own profile
+  if (!session?.user?.id || session.user.id === profileUserId) return null;
+
+  function handleMessage() {
+    startTransition(async () => {
+      const result = await createOrFindDirectConversation(profileUserId);
+      if ("conversationId" in result) {
+        router.push(`/chat/${result.conversationId}`);
+      }
+    });
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={handleMessage}
+      disabled={isPending}
+      aria-label={t("messageButton")}
+      className="inline-block rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-60"
+    >
+      {isPending ? "..." : t("messageButton")}
+    </button>
+  );
+}
+
 export function ProfileView({ profile, socialLinks }: Props) {
   const t = useTranslations("Profile");
   const params = useParams<{ locale: string }>();
-  const locale = params.locale ?? "en";
+  // locale used for social link display; kept for potential future use
+  void params;
 
   return (
     <div className="space-y-6">
@@ -132,14 +168,8 @@ export function ProfileView({ profile, socialLinks }: Props) {
         <p className="text-xs text-gray-400">{t("noSocialLinks")}</p>
       )}
 
-      {/* Message button — stub until Epic 2 (chat) ships */}
-      <a
-        href={`/${locale}/chat`}
-        aria-label={t("messageButton")}
-        className="inline-block rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
-      >
-        {t("messageButton")}
-      </a>
+      {/* Message button — uses create-conversation server action */}
+      <MessageButton profileUserId={profile.userId} />
     </div>
   );
 }

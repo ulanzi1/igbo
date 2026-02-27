@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { renderHook, act, waitFor } from "@testing-library/react";
+import { renderHook, waitFor } from "@testing-library/react";
 import React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
@@ -25,6 +25,9 @@ const mockConversations = [
     type: "direct",
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
+    otherMember: { id: "user-2", displayName: "Test User", photoUrl: null },
+    lastMessage: null,
+    unreadCount: 0,
   },
 ];
 
@@ -71,7 +74,7 @@ beforeEach(() => {
 });
 
 describe("useConversations", () => {
-  it("fetches conversations on mount", async () => {
+  it("fetches conversations on mount using infinite query", async () => {
     getSocketHandlers();
     const { result } = renderHook(() => useConversations(), {
       wrapper: makeWrapper(),
@@ -83,6 +86,17 @@ describe("useConversations", () => {
 
     expect(result.current.conversations).toHaveLength(1);
     expect(result.current.conversations[0]?.id).toBe("conv-1");
+  });
+
+  it("exposes pagination controls from useInfiniteQuery", async () => {
+    getSocketHandlers();
+    const { result } = renderHook(() => useConversations(), { wrapper: makeWrapper() });
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(typeof result.current.fetchNextPage).toBe("function");
+    expect(result.current.hasNextPage).toBe(false);
+    expect(result.current.isFetchingNextPage).toBe(false);
   });
 
   it("registers message:new socket listener", async () => {
@@ -103,5 +117,16 @@ describe("useConversations", () => {
     await waitFor(() => {
       expect(result.current.isError).toBe(true);
     });
+  });
+
+  it("flattens pages into conversations array", async () => {
+    getSocketHandlers();
+    const { result } = renderHook(() => useConversations(), { wrapper: makeWrapper() });
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    // All pages are flattened
+    expect(Array.isArray(result.current.conversations)).toBe(true);
+    expect(result.current.conversations[0]?.otherMember.displayName).toBe("Test User");
   });
 });

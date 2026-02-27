@@ -26,7 +26,8 @@
     "articles": "Articles",
     "blog": "Blog",
     "login": "Members Login",
-    "search": "Search"
+    "search": "Search",
+    "chatUnread": "{count} unread messages"
   },
   "Shell": {
     "appName": "Igbo Community Platform",
@@ -663,18 +664,74 @@
     "membersOnlyCta": "Apply for Membership"
   },
   "Chat": {
+    "conversations": {
+      "title": "Messages",
+      "searchPlaceholder": "Search conversations",
+      "online": "Online",
+      "offline": "Offline",
+      "unreadMessages": "{count} unread",
+      "lastMessageFallback": "No messages yet",
+      "startedConversation": "Conversation started",
+      "loadMore": "Load more",
+      "loading": "Loading conversations"
+    },
+    "messages": {
+      "title": "Chat",
+      "loadOlder": "Load older messages",
+      "sending": "Sending...",
+      "sent": "Sent",
+      "delivered": "Delivered",
+      "today": "Today",
+      "yesterday": "Yesterday",
+      "failedToSend": "Failed to send",
+      "loadingMessages": "Loading messages",
+      "deletedMessage": "This message was deleted",
+      "editedLabel": "(edited)"
+    },
+    "input": {
+      "placeholder": "Type a message...",
+      "sendButton": "Send",
+      "sendAriaLabel": "Send message",
+      "shiftEnterHint": "Shift+Enter for new line"
+    },
+    "empty": {
+      "title": "Start a conversation",
+      "subtitle": "Find community members and say hello",
+      "cta": "Find Members"
+    },
     "errors": {
       "notMember": "You are not a member of this conversation",
-      "blocked": "Cannot send message to this user",
+      "blocked": "This member is not accepting messages",
       "sendFailed": "Failed to send message. Please try again.",
       "conversationNotFound": "Conversation not found",
       "fetchFailed": "Failed to load messages. Please try again.",
-      "invalidContent": "Message content is required"
+      "invalidContent": "Message content is required",
+      "createFailed": "Failed to start conversation. Please try again."
     },
     "system": {
       "conversationCreated": "Conversation started",
       "memberJoined": "{name} joined the conversation",
       "memberLeft": "{name} left the conversation"
+    },
+    "group": {
+      "newGroup": "New Group Message",
+      "addMembers": "Add members",
+      "leaveGroup": "Leave Conversation",
+      "memberAdded": "{name} was added to the conversation",
+      "memberLeft": "{name} left the conversation",
+      "participants": "Participants",
+      "participantCount": "{count} participants",
+      "minMembers": "Select at least 2 members",
+      "searchMembers": "Search members...",
+      "createGroup": "Create Group",
+      "leaveConfirm": "Are you sure you want to leave this conversation?",
+      "addMemberConfirm": "Add {name} to the conversation?",
+      "addMember": "Add Member",
+      "leave": "Leave",
+      "cancel": "Cancel",
+      "you": "(you)",
+      "removeMember": "Remove {name}",
+      "groupMembers": "Group members: {names}"
     },
     "status": {
       "connecting": "Connecting...",

@@ -26,7 +26,8 @@
     "articles": "Akụkọ",
     "blog": "Blọgụ",
     "login": "Ndeere ndị otu",
-    "search": "Chọọ"
+    "search": "Chọọ",
+    "chatUnread": "Ozi {count} a gụghị"
   },
   "Shell": {
     "appName": "Ụlọ Ọha Igbo",
@@ -663,18 +664,74 @@
     "membersOnlyCta": "Apply for Membership"
   },
   "Chat": {
+    "conversations": {
+      "title": "Ozi",
+      "searchPlaceholder": "Chọọ mkparịta ụka",
+      "online": "Nọ n'ịntanetị",
+      "offline": "Ọ dịghị n'ịntanetị",
+      "unreadMessages": "Ozi {count} a gụghị",
+      "lastMessageFallback": "Ọ dịghị ozi ọ bụla",
+      "startedConversation": "Mkparịta ụka amalite",
+      "loadMore": "Bọpụta ndị ọzọ",
+      "loading": "Na-ebopụta mkparịta ụka"
+    },
+    "messages": {
+      "title": "Mkparịta ụka",
+      "loadOlder": "Bọpụta ozi ochie",
+      "sending": "Na-eziga...",
+      "sent": "Ezigara",
+      "delivered": "Nnyefere",
+      "today": "Taa",
+      "yesterday": "Ụnyaahụ",
+      "failedToSend": "Enweghị ike iziga",
+      "loadingMessages": "Na-ebopụta ozi",
+      "deletedMessage": "Ehichapụrụ ozi a",
+      "editedLabel": "(editeere)"
+    },
+    "input": {
+      "placeholder": "Pịnye ozi...",
+      "sendButton": "Ziga",
+      "sendAriaLabel": "Ziga ozi",
+      "shiftEnterHint": "Shift+Enter maka ahịrị ọhụrụ"
+    },
+    "empty": {
+      "title": "Malite mkparịta ụka",
+      "subtitle": "Chọọ ndị ọha ma kpọọ ha",
+      "cta": "Chọọ Ndị Ọha"
+    },
     "errors": {
       "notMember": "Ị bụghị onye ọ bụla nke mkparịta ụka a",
-      "blocked": "Enweghị ike zipu ozi nye onye a",
+      "blocked": "Onye a anaghị anabata ozi",
       "sendFailed": "Ọ dịghị mma iziga ozi. Biko nwaa ọzọ.",
       "conversationNotFound": "Ahụghị mkparịta ụka",
       "fetchFailed": "Enweghị ike ịbọpụta ozi. Biko nwaa ọzọ.",
-      "invalidContent": "Ọdịnaya ozi achọrọ"
+      "invalidContent": "Ọdịnaya ozi achọrọ",
+      "createFailed": "Enweghị ike ịmalite mkparịta ụka. Biko nwaa ọzọ."
     },
     "system": {
       "conversationCreated": "Mkparịta ụka amalite",
       "memberJoined": "{name} sonye n'mkparịta ụka",
       "memberLeft": "{name} hapụ mkparịta ụka"
+    },
+    "group": {
+      "newGroup": "Ozi Ọgbọ Ọhụrụ",
+      "addMembers": "Tinye ndị ọha",
+      "leaveGroup": "Hapụ Mkparịta Ụka",
+      "memberAdded": "Atinyere {name} n'mkparịta ụka",
+      "memberLeft": "{name} hapụ mkparịta ụka",
+      "participants": "Ndị sonye",
+      "participantCount": "Ndị sonye {count}",
+      "minMembers": "Họọrọ ọbụna ndị abụọ",
+      "searchMembers": "Chọọ ndị ọha...",
+      "createGroup": "Mee Ọgbọ",
+      "leaveConfirm": "Ị chọrọ ịhapụ mkparịta ụka a?",
+      "addMemberConfirm": "Tinye {name} n'mkparịta ụka?",
+      "addMember": "Tinye Onye",
+      "leave": "Hapụ",
+      "cancel": "Kagbuo",
+      "you": "(gị)",
+      "removeMember": "Wepụ {name}",
+      "groupMembers": "Ndị otu: {names}"
     },
     "status": {
       "connecting": "Na-ejikọta...",

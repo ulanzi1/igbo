@@ -1,4 +1,4 @@
-import "server-only";
+// NOTE: No "server-only" — used by both Next.js and the standalone realtime server
 import { eventBus } from "@/services/event-bus";
 import { createMessage, getMessageById, getConversationMessages } from "@/db/queries/chat-messages";
 import type { ChatMessage, MessageContentType } from "@/db/schema/chat-messages";
@@ -17,6 +17,8 @@ export interface GetMessagesParams {
   cursor?: string;
   limit?: number;
   direction?: "before" | "after";
+  /** For group conversations: filter to messages on/after this date (enforces AC4 join visibility) */
+  joinedAfter?: Date;
 }
 
 export interface GetMessagesResult {
@@ -32,6 +34,17 @@ export interface GetMessagesResult {
  */
 export interface MessageService {
   sendMessage(params: SendMessageParams): Promise<ChatMessage>;
+  /**
+   * Send a system message (member added/left notifications).
+   * Uses content_type: "system" to distinguish from user messages.
+   * actingUserId is the real user who triggered the action — NOT a fake system UUID
+   * (sender_id has NOT NULL FK constraint to auth_users.id).
+   */
+  sendSystemMessage(
+    conversationId: string,
+    actingUserId: string,
+    content: string,
+  ): Promise<ChatMessage>;
   getMessages(conversationId: string, params?: GetMessagesParams): Promise<GetMessagesResult>;
   getMessage(messageId: string): Promise<ChatMessage | null>;
 }
@@ -56,6 +69,33 @@ class PlaintextMessageService implements MessageService {
     });
 
     // Emit from service (never from routes or namespace handlers)
+    eventBus.emit("message.sent", {
+      messageId: message.id,
+      senderId: message.senderId,
+      conversationId: message.conversationId,
+      content: message.content,
+      contentType: message.contentType,
+      createdAt: message.createdAt.toISOString(),
+      timestamp: message.createdAt.toISOString(),
+    });
+
+    return message;
+  }
+
+  async sendSystemMessage(
+    conversationId: string,
+    actingUserId: string,
+    content: string,
+  ): Promise<ChatMessage> {
+    const message = await createMessage({
+      conversationId,
+      senderId: actingUserId,
+      content,
+      contentType: "system",
+      parentMessageId: null,
+    });
+
+    // Emit so the EventBus bridge broadcasts to the conversation room
     eventBus.emit("message.sent", {
       messageId: message.id,
       senderId: message.senderId,
