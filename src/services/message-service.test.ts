@@ -136,6 +136,48 @@ describe("messageService.sendMessage", () => {
   });
 });
 
+describe("messageService.sendSystemMessage", () => {
+  it("creates a message with contentType=system", async () => {
+    const sysMsg = { ...mockMessage, contentType: "system" as const };
+    mockCreateMessage.mockResolvedValue(sysMsg);
+
+    const result = await messageService.sendSystemMessage(CONV_ID, USER_ID, "Ada was added");
+
+    expect(mockCreateMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        conversationId: CONV_ID,
+        senderId: USER_ID,
+        content: "Ada was added",
+        contentType: "system",
+      }),
+    );
+    expect(result.contentType).toBe("system");
+  });
+
+  it("emits message.sent event with system contentType", async () => {
+    const sysMsg = { ...mockMessage, contentType: "system" as const };
+    mockCreateMessage.mockResolvedValue(sysMsg);
+
+    await messageService.sendSystemMessage(CONV_ID, USER_ID, "Ada left");
+
+    expect(mockEventBusEmit).toHaveBeenCalledWith(
+      "message.sent",
+      expect.objectContaining({
+        contentType: "system",
+        conversationId: CONV_ID,
+      }),
+    );
+  });
+
+  it("propagates DB errors without emitting event", async () => {
+    mockCreateMessage.mockRejectedValue(new Error("DB error"));
+    await expect(messageService.sendSystemMessage(CONV_ID, USER_ID, "test")).rejects.toThrow(
+      "DB error",
+    );
+    expect(mockEventBusEmit).not.toHaveBeenCalled();
+  });
+});
+
 describe("messageService.getMessage", () => {
   it("returns message when found", async () => {
     mockGetMessageById.mockResolvedValue(mockMessage);

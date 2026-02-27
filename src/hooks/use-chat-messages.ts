@@ -69,8 +69,8 @@ export function useChatMessages(conversationId: string) {
   // ── 1. Cursor-based infinite query ──────────────────────────────────────────
   const query = useInfiniteQuery({
     queryKey,
-    queryFn: ({ pageParam }) => fetchMessages(conversationId, pageParam as string | null),
-    initialPageParam: null,
+    queryFn: ({ pageParam }) => fetchMessages(conversationId, pageParam),
+    initialPageParam: null as string | null,
     // getNextPageParam drives the "load older" scroll-up pagination:
     // nextCursor from the last fetched page becomes the cursor for the next fetch.
     getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,

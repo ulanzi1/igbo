@@ -1,5 +1,5 @@
-import "server-only";
-import { eq, and, lt, gt, desc, asc, isNull } from "drizzle-orm";
+// NOTE: No "server-only" — used by both Next.js and the standalone realtime server
+import { eq, and, lt, gt, gte, desc, asc, isNull } from "drizzle-orm";
 import { db } from "@/db";
 import { chatMessages } from "@/db/schema/chat-messages";
 import { chatConversations } from "@/db/schema/chat-conversations";
@@ -54,7 +54,13 @@ export async function getMessageById(messageId: string): Promise<ChatMessage | n
  */
 export async function getConversationMessages(
   conversationId: string,
-  options: { cursor?: string; limit?: number; direction?: "before" | "after" } = {},
+  options: {
+    cursor?: string;
+    limit?: number;
+    direction?: "before" | "after";
+    /** Filter to messages at/after this date — enforces AC4 join visibility for group members */
+    joinedAfter?: Date;
+  } = {},
 ): Promise<{ messages: ChatMessage[]; hasMore: boolean }> {
   const limit = Math.min(options.limit ?? DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE);
   const direction = options.direction ?? "before";
@@ -73,6 +79,8 @@ export async function getConversationMessages(
   const baseConditions = [
     eq(chatMessages.conversationId, conversationId),
     isNull(chatMessages.deletedAt),
+    // Enforce join-point visibility for group members (AC4 of Story 2.3)
+    ...(options.joinedAfter ? [gte(chatMessages.createdAt, options.joinedAfter)] : []),
   ];
 
   // Add cursor condition based on direction

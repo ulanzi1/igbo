@@ -49,6 +49,24 @@ export interface MessageSentEvent extends BaseEvent {
   createdAt: string; // ISO 8601
 }
 
+export interface ConversationCreatedEvent extends BaseEvent {
+  conversationId: string;
+  type: "group" | "direct" | "channel";
+  /** All member user IDs (including creator) — bridge uses this to auto-join sockets */
+  memberIds: string[];
+}
+
+export interface ConversationMemberAddedEvent extends BaseEvent {
+  conversationId: string;
+  newUserId: string;
+  addedByUserId: string;
+}
+
+export interface ConversationMemberLeftEvent extends BaseEvent {
+  conversationId: string;
+  userId: string;
+}
+
 export interface MessageMentionedEvent extends BaseEvent {
   messageId: string;
   mentionedUserId: string;
@@ -313,7 +331,10 @@ export type EventName =
   | "file.processed"
   | "file.quarantined"
   | "notification.created"
-  | "notification.read";
+  | "notification.read"
+  | "conversation.created"
+  | "conversation.member_added"
+  | "conversation.member_left";
 
 // --- Event Map ---
 
@@ -362,4 +383,7 @@ export interface EventMap {
   "file.quarantined": FileQuarantinedEvent;
   "notification.created": NotificationCreatedEvent;
   "notification.read": NotificationReadEvent;
+  "conversation.created": ConversationCreatedEvent;
+  "conversation.member_added": ConversationMemberAddedEvent;
+  "conversation.member_left": ConversationMemberLeftEvent;
 }

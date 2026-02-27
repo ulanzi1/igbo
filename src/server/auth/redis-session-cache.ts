@@ -1,4 +1,4 @@
-import "server-only";
+// NOTE: No "server-only" — this is used by both Next.js server code and the standalone realtime server
 import { getRedisClient } from "@/lib/redis";
 import type { AuthSession } from "@/db/schema/auth-sessions";
 

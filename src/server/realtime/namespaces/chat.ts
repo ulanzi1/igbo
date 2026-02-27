@@ -1,7 +1,6 @@
 // NOTE: No "server-only" import — this runs as standalone Node.js, not inside Next.js
 import type { Namespace, Socket } from "socket.io";
-import type Redis from "ioredis";
-import { ROOM_CONVERSATION, CHAT_REPLAY_WINDOW_MS } from "@/config/realtime";
+import { ROOM_USER, ROOM_CONVERSATION, CHAT_REPLAY_WINDOW_MS } from "@/config/realtime";
 import { getUserConversationIds, isConversationMember } from "@/db/queries/chat-conversations";
 import { getMessagesSince } from "@/db/queries/chat-messages";
 import { messageService } from "@/services/message-service";
@@ -27,9 +26,13 @@ interface SyncRequestPayload {
  * Block enforcement: import raw DB queries directly (no @/services/block-service)
  * — established realtime container pattern (same as notifications.ts).
  */
-export function setupChatNamespace(ns: Namespace, _redis?: Redis): void {
+export function setupChatNamespace(ns: Namespace): void {
   ns.on("connection", (socket: Socket) => {
     const userId = socket.data.userId as string;
+
+    // Join personal user room so bridge can target this socket by userId
+    // (needed for conversation.created / conversation.member_added events)
+    void socket.join(ROOM_USER(userId));
 
     // Auto-join all active conversation rooms
     void autoJoinConversations(ns, socket, userId);

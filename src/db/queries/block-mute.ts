@@ -1,4 +1,4 @@
-import "server-only";
+// NOTE: No "server-only" — used by both Next.js and the standalone realtime server
 import { eq, and, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import { platformBlockedUsers, platformMutedUsers } from "@/db/schema/platform-social";

@@ -1,5 +1,5 @@
 import "server-only";
-import { and, eq, isNull, isNotNull } from "drizzle-orm";
+import { and, eq, isNull, isNotNull, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { communityProfiles, communitySocialLinks } from "@/db/schema/community-profiles";
 import type { NewCommunityProfile, CommunitySocialLink } from "@/db/schema/community-profiles";
@@ -143,6 +143,39 @@ export async function getProfileWithSocialLinks(userId: string): Promise<{
     .filter((s): s is CommunitySocialLink => s !== null);
 
   return { profile, socialLinks };
+}
+
+export type MemberSearchResult = {
+  id: string;
+  displayName: string;
+  photoUrl: string | null;
+};
+
+/**
+ * Search for members by display name (case-insensitive ILIKE match).
+ * Excludes specified user IDs (already-selected members + self).
+ * Only returns members with a completed profile.
+ * Used by the NewGroupDialog member search autocomplete.
+ */
+export async function searchMembersByName(
+  query: string,
+  excludeUserIds: string[],
+  limit = 10,
+): Promise<MemberSearchResult[]> {
+  const rows = await db.execute(sql`
+    SELECT
+      cp.user_id::text as id,
+      COALESCE(cp.display_name, 'Unknown') as "displayName",
+      cp.photo_url as "photoUrl"
+    FROM community_profiles cp
+    WHERE cp.deleted_at IS NULL
+      AND cp.profile_completed_at IS NOT NULL
+      AND cp.display_name ILIKE '%' || ${query.replace(/%/g, "\\%").replace(/_/g, "\\_")} || '%'
+      ${excludeUserIds.length > 0 ? sql`AND cp.user_id != ALL(${`{${excludeUserIds.join(",")}}`}::uuid[])` : sql``}
+    ORDER BY cp.display_name ASC
+    LIMIT ${limit}
+  `);
+  return rows as unknown as MemberSearchResult[];
 }
 
 type ViewerRole = "MEMBER" | "ADMIN" | "MODERATOR";
