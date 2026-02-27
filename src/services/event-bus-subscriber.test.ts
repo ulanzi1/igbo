@@ -3,7 +3,6 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const mockPsubscribe = vi.fn().mockResolvedValue(undefined);
 const mockPunsubscribe = vi.fn().mockResolvedValue(undefined);
-const mockOn = vi.fn();
 const mockPublish = vi.fn().mockResolvedValue(1);
 const mockQuit = vi.fn().mockResolvedValue("OK");
 
@@ -31,15 +30,12 @@ vi.mock("ioredis", () => {
   return { default: MockRedis };
 });
 
-vi.mock("@/env", () => ({
-  env: { REDIS_URL: "redis://localhost:6379" },
-}));
-
 describe("EventBus Subscriber", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.resetModules();
     pmessageHandler = null;
+    process.env.REDIS_URL = "redis://localhost:6379";
   });
 
   it("subscribes to eventbus:* pattern on start", async () => {

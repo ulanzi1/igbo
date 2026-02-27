@@ -16,6 +16,11 @@ const withSerwist = withSerwistInit({
   disable: process.env.NODE_ENV === "development",
 });
 
+// Realtime server URL for connect-src (WebSocket + HTTP polling)
+const realtimeUrl = process.env.NEXT_PUBLIC_REALTIME_URL ?? "";
+// Derive ws:// or wss:// variant for WebSocket connections
+const realtimeWsUrl = realtimeUrl.replace(/^https:/, "wss:").replace(/^http:/, "ws:");
+
 const cspDirectives = [
   "default-src 'self'",
   process.env.NODE_ENV === "development"
@@ -24,6 +29,7 @@ const cspDirectives = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' blob: data:",
   "font-src 'self'",
+  `connect-src 'self'${realtimeUrl ? ` ${realtimeUrl} ${realtimeWsUrl}` : ""}`,
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",

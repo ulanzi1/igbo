@@ -16,15 +16,13 @@ vi.mock("ioredis", () => {
   return { default: MockRedis };
 });
 
-vi.mock("@/env", () => ({
-  env: { REDIS_URL: "redis://localhost:6379" },
-}));
-
 describe("Redis connection manager", () => {
   beforeEach(async () => {
     vi.clearAllMocks();
     // Reset singletons by re-importing fresh module
     vi.resetModules();
+    // redis.ts reads process.env.REDIS_URL directly (not @/env)
+    process.env.REDIS_URL = "redis://localhost:6379";
   });
 
   it("getRedisClient returns a singleton instance", async () => {

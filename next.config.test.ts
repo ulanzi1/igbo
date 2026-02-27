@@ -42,6 +42,14 @@ describe("next.config.ts security headers", () => {
     expect(csp.value).toContain("upgrade-insecure-requests");
   });
 
+  it("includes connect-src with realtime server URL for WebSocket support", async () => {
+    const config = await loadNextConfig();
+    const headers = await config.headers!();
+    const catchAll = headers.find((h: { source: string }) => h.source === "/(.*)");
+    const csp = catchAll.headers.find((h: { key: string }) => h.key === "Content-Security-Policy");
+    expect(csp.value).toContain("connect-src 'self'");
+  });
+
   it("includes worker-src 'self' for service worker support", async () => {
     const config = await loadNextConfig();
     const headers = await config.headers!();

@@ -2,7 +2,11 @@ import { withApiHandler } from "@/server/api/middleware";
 import { successResponse } from "@/lib/api-response";
 import { ApiError } from "@/lib/api-error";
 import { requireAuthenticatedSession } from "@/services/permissions";
-import { isConversationMember, getConversationById } from "@/db/queries/chat-conversations";
+import {
+  isConversationMember,
+  getConversationById,
+  getMemberJoinedAt,
+} from "@/db/queries/chat-conversations";
 import { messageService } from "@/services/message-service";
 import { RATE_LIMIT_PRESETS } from "@/services/rate-limiter";
 
@@ -59,16 +63,31 @@ const handler = async (request: Request) => {
     });
   }
 
+  // For group conversations, enforce join-point visibility (AC4: new members only see
+  // messages from when they were added, not full history)
+  const joinedAt = await getMemberJoinedAt(conversationId, userId);
+
   const { messages, hasMore } = await messageService.getMessages(conversationId, {
     cursor,
     limit,
     direction,
+    joinedAfter: joinedAt ?? undefined,
   });
 
   const nextCursor = hasMore && messages.length > 0 ? messages[messages.length - 1]?.id : null;
 
+  // Map DB rows (id) to frontend shape (messageId) to match Socket.IO message:new payloads
+  const mapped = messages.map((m) => ({
+    messageId: m.id,
+    conversationId: m.conversationId,
+    senderId: m.senderId,
+    content: m.content,
+    contentType: m.contentType,
+    createdAt: m.createdAt.toISOString(),
+  }));
+
   return successResponse({
-    messages,
+    messages: mapped,
     meta: { cursor: nextCursor ?? null, hasMore },
   });
 };

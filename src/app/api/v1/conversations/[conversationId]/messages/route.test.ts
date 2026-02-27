@@ -5,6 +5,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 const mockRequireAuthenticatedSession = vi.fn();
 const mockGetConversationById = vi.fn();
 const mockIsConversationMember = vi.fn();
+const mockGetMemberJoinedAt = vi.fn();
 const mockGetMessages = vi.fn();
 
 vi.mock("@/services/permissions", () => ({
@@ -14,6 +15,7 @@ vi.mock("@/services/permissions", () => ({
 vi.mock("@/db/queries/chat-conversations", () => ({
   getConversationById: (...args: unknown[]) => mockGetConversationById(...args),
   isConversationMember: (...args: unknown[]) => mockIsConversationMember(...args),
+  getMemberJoinedAt: (...args: unknown[]) => mockGetMemberJoinedAt(...args),
 }));
 
 vi.mock("@/services/message-service", () => ({
@@ -82,6 +84,7 @@ beforeEach(() => {
   mockRequireAuthenticatedSession.mockResolvedValue({ userId: USER_ID, role: "MEMBER" });
   mockGetConversationById.mockResolvedValue(mockConversation);
   mockIsConversationMember.mockResolvedValue(true);
+  mockGetMemberJoinedAt.mockResolvedValue(null); // default: no join restriction
   mockGetMessages.mockResolvedValue({ messages: [mockMessage], hasMore: false });
 });
 
@@ -91,7 +94,7 @@ describe("GET /api/v1/conversations/[conversationId]/messages", () => {
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.data.messages).toHaveLength(1);
-    expect(body.data.messages[0].id).toBe(MSG_ID);
+    expect(body.data.messages[0].messageId).toBe(MSG_ID);
     expect(body.data.meta.hasMore).toBe(false);
   });
 

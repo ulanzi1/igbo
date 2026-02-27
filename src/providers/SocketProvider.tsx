@@ -30,7 +30,9 @@ interface SocketProviderProps {
  * - Connects on auth, disconnects on logout
  * - Dynamically imports socket.io-client to avoid loading on unauthenticated pages
  * - Manages /notifications and /chat namespaces
+ * - Uses session.sessionToken (exposed via Auth.js session callback) for Socket.IO auth
  * - Uses useState for sockets so consumers re-render when sockets become available
+ * - Tracks isConnected = true when EITHER namespace is connected
  */
 export function SocketProvider({ children }: SocketProviderProps) {
   const { data: session, status } = useSession();
@@ -39,11 +41,17 @@ export function SocketProvider({ children }: SocketProviderProps) {
   const [chatSocket, setChatSocket] = useState<Socket | null>(null);
   // Track session token to avoid reconnect churn on session object reference changes
   const sessionToken = (session as { sessionToken?: string } | null)?.sessionToken;
+  // Track connection state of each namespace independently
+  const notifConnectedRef = useRef(false);
+  const chatConnectedRef = useRef(false);
   // Ref to track cleanup so async import doesn't update state after unmount
   const mountedRef = useRef(true);
+  // Ref to track the connection attempt ID so stale async callbacks are discarded
+  const connectionIdRef = useRef(0);
 
   useEffect(() => {
     mountedRef.current = true;
+    const thisConnectionId = ++connectionIdRef.current;
 
     if (status !== "authenticated" || !sessionToken) {
       // Disconnect if session ends
@@ -55,6 +63,8 @@ export function SocketProvider({ children }: SocketProviderProps) {
         prev?.disconnect();
         return null;
       });
+      notifConnectedRef.current = false;
+      chatConnectedRef.current = false;
       setIsConnected(false);
       return;
     }
@@ -62,7 +72,7 @@ export function SocketProvider({ children }: SocketProviderProps) {
     void (async () => {
       // Dynamic import to avoid loading socket.io-client on public pages
       const { io } = await import("socket.io-client");
-      if (!mountedRef.current) return;
+      if (!mountedRef.current || connectionIdRef.current !== thisConnectionId) return;
 
       const realtimeUrl = env.NEXT_PUBLIC_REALTIME_URL;
       const socketOptions = {
@@ -74,25 +84,49 @@ export function SocketProvider({ children }: SocketProviderProps) {
         reconnectionDelayMax: 5000,
       };
 
+      function updateConnectedState() {
+        if (mountedRef.current && connectionIdRef.current === thisConnectionId) {
+          setIsConnected(notifConnectedRef.current || chatConnectedRef.current);
+        }
+      }
+
       // Connect /notifications namespace
       const notifSocket = io(`${realtimeUrl}/notifications`, socketOptions);
 
       notifSocket.on("connect", () => {
-        if (mountedRef.current) setIsConnected(true);
+        notifConnectedRef.current = true;
+        updateConnectedState();
       });
       notifSocket.on("disconnect", () => {
-        if (mountedRef.current) setIsConnected(false);
+        notifConnectedRef.current = false;
+        updateConnectedState();
       });
 
-      if (mountedRef.current) setNotificationsSocket(notifSocket);
+      if (mountedRef.current && connectionIdRef.current === thisConnectionId) {
+        setNotificationsSocket(notifSocket);
+      }
 
-      // Connect /chat namespace (skeleton — events wired in Epic 2)
+      // Connect /chat namespace
       const chatSock = io(`${realtimeUrl}/chat`, socketOptions);
-      if (mountedRef.current) setChatSocket(chatSock);
+
+      chatSock.on("connect", () => {
+        chatConnectedRef.current = true;
+        updateConnectedState();
+      });
+      chatSock.on("disconnect", () => {
+        chatConnectedRef.current = false;
+        updateConnectedState();
+      });
+
+      if (mountedRef.current && connectionIdRef.current === thisConnectionId) {
+        setChatSocket(chatSock);
+      }
     })();
 
     return () => {
       mountedRef.current = false;
+      notifConnectedRef.current = false;
+      chatConnectedRef.current = false;
       setNotificationsSocket((prev) => {
         prev?.disconnect();
         return null;
