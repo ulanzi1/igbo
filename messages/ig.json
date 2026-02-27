@@ -35,7 +35,7 @@
     "menuClose": "Mechie menu",
     "languageToggle": "Gbanwee asụsụ",
     "contrastToggle": "Gbanwee ọkwa ìhè",
-    "copyright": "\u00a9 {year} Ụlọ Ọha Igbo",
+    "copyright": "© {year} Ụlọ Ọha Igbo",
     "language": {
       "english": "Bekee",
       "igbo": "Igbo"
@@ -190,7 +190,7 @@
     "approvals": {
       "title": "Membership Applications",
       "empty": "No pending applications",
-      "loading": "Loading applications\u2026",
+      "loading": "Loading applications…",
       "approve": "Approve",
       "reject": "Reject",
       "requestInfo": "Request Info",
@@ -205,7 +205,7 @@
       "culturalStrengthStrong": "Strong",
       "culturalStrengthUnclear": "Unclear",
       "culturalStrengthWeak": "Weak",
-      "infoMessagePlaceholder": "Enter your question for the applicant\u2026",
+      "infoMessagePlaceholder": "Enter your question for the applicant…",
       "infoMessageLabel": "Message to applicant",
       "error": "Something went wrong loading applications. Please try again.",
       "columnApplicant": "Applicant",
@@ -225,9 +225,9 @@
     },
     "members": {
       "title": "Member Management",
-      "searchPlaceholder": "Search by name or email\u2026",
+      "searchPlaceholder": "Search by name or email…",
       "search": "Search",
-      "loading": "Loading members\u2026",
+      "loading": "Loading members…",
       "error": "Something went wrong loading members. Please try again.",
       "noMembers": "No members found.",
       "tierFilter": {
@@ -442,8 +442,8 @@
       "heading": "Nnọọ na OBIGBO!",
       "description": "Ọ bụ oge ụlọ ọrụ a na-atụle isi ebe isi iji chọta ndị mmadụ ma jikọọ n'ọha.",
       "skipButton": "Wụfee njem",
-      "backButton": "\u2190 Azụ",
-      "nextButton": "Ọzọ \u2192",
+      "backButton": "← Azụ",
+      "nextButton": "Ọzọ →",
       "completeButton": "Bido",
       "completing": "Na-ebido...",
       "sections": {
@@ -661,5 +661,26 @@
     "membersOnly": "Members Only",
     "membersOnlyDescription": "This area is for OBIGBO members only. Join our community to access all features.",
     "membersOnlyCta": "Apply for Membership"
+  },
+  "Chat": {
+    "errors": {
+      "notMember": "Ị bụghị onye ọ bụla nke mkparịta ụka a",
+      "blocked": "Enweghị ike zipu ozi nye onye a",
+      "sendFailed": "Ọ dịghị mma iziga ozi. Biko nwaa ọzọ.",
+      "conversationNotFound": "Ahụghị mkparịta ụka",
+      "fetchFailed": "Enweghị ike ịbọpụta ozi. Biko nwaa ọzọ.",
+      "invalidContent": "Ọdịnaya ozi achọrọ"
+    },
+    "system": {
+      "conversationCreated": "Mkparịta ụka amalite",
+      "memberJoined": "{name} sonye n'mkparịta ụka",
+      "memberLeft": "{name} hapụ mkparịta ụka"
+    },
+    "status": {
+      "connecting": "Na-ejikọta...",
+      "connected": "Ejikọtara",
+      "disconnected": "Kewapụtara",
+      "reconnecting": "Na-ejikọtaghachi..."
+    }
   }
 }

@@ -20,6 +20,10 @@ export const RATE_LIMIT_PRESETS = {
   FILE_UPLOAD_PRESIGN: { maxRequests: 20, windowMs: 3_600_000 }, // 20/hour per userId
   // Notification fetch
   NOTIFICATION_FETCH: { maxRequests: 60, windowMs: 60_000 }, // 60/min per userId
+  // Chat / Conversation endpoints
+  CONVERSATION_LIST: { maxRequests: 60, windowMs: 60_000 }, // 60/min per userId
+  CONVERSATION_CREATE: { maxRequests: 10, windowMs: 60_000 }, // 10/min per userId
+  MESSAGE_FETCH: { maxRequests: 120, windowMs: 60_000 }, // 120/min per userId
   // Tier-based API quotas (per hour)
   TIER_BASIC: { maxRequests: 200, windowMs: 3_600_000 },
   TIER_PROFESSIONAL: { maxRequests: 1000, windowMs: 3_600_000 },

@@ -1,8 +1,17 @@
 // NOTE: No "server-only" import — this runs as standalone Node.js, not inside Next.js
 import type Redis from "ioredis";
 import type { Server } from "socket.io";
-import { ROOM_USER, NAMESPACE_NOTIFICATIONS } from "@/config/realtime";
-import type { NotificationCreatedEvent, NotificationReadEvent } from "@/types/events";
+import {
+  ROOM_USER,
+  ROOM_CONVERSATION,
+  NAMESPACE_NOTIFICATIONS,
+  NAMESPACE_CHAT,
+} from "@/config/realtime";
+import type {
+  NotificationCreatedEvent,
+  NotificationReadEvent,
+  MessageSentEvent,
+} from "@/types/events";
 
 const CHANNEL_PREFIX = "eventbus:";
 
@@ -36,6 +45,7 @@ export async function stopEventBusBridge(subscriber: Redis): Promise<void> {
 
 function routeToNamespace(io: Server, eventName: string, payload: unknown): void {
   const notificationsNs = io.of(NAMESPACE_NOTIFICATIONS);
+  const chatNs = io.of(NAMESPACE_CHAT);
 
   switch (eventName) {
     case "notification.created": {
@@ -67,6 +77,19 @@ function routeToNamespace(io: Server, eventName: string, payload: unknown): void
       notificationsNs.to(ROOM_USER(readPayload.userId)).emit("notification:read", {
         notificationId: readPayload.notificationId,
         timestamp: readPayload.timestamp,
+      });
+      break;
+    }
+    case "message.sent": {
+      const msgPayload = payload as MessageSentEvent;
+      if (!msgPayload?.conversationId) break;
+      chatNs.to(ROOM_CONVERSATION(msgPayload.conversationId)).emit("message:new", {
+        messageId: msgPayload.messageId,
+        conversationId: msgPayload.conversationId,
+        senderId: msgPayload.senderId,
+        content: msgPayload.content,
+        contentType: msgPayload.contentType,
+        createdAt: msgPayload.createdAt,
       });
       break;
     }

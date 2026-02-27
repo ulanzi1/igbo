@@ -43,6 +43,10 @@ export interface MessageSentEvent extends BaseEvent {
   messageId: string;
   senderId: string;
   conversationId: string;
+  /** Full message payload — required by EventBus bridge to emit message:new without a DB query */
+  content: string;
+  contentType: string;
+  createdAt: string; // ISO 8601
 }
 
 export interface MessageMentionedEvent extends BaseEvent {

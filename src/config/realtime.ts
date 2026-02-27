@@ -12,7 +12,11 @@ export const PRESENCE_TTL_SECONDS = 30;
 
 // Reconnect gap: if client's last received timestamp is within this window,
 // replay missed notifications. Otherwise emit sync:full_refresh.
-export const REPLAY_WINDOW_MS = 60 * 60 * 1000; // 1 hour
+export const REPLAY_WINDOW_MS = 60 * 60 * 1000; // 1 hour (notifications)
+
+// Chat replay window — longer than notifications because messages are higher-value content.
+// Gap <= 24h: replay missed messages. Gap > 24h: emit sync:full_refresh.
+export const CHAT_REPLAY_WINDOW_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 // Namespace paths
 export const NAMESPACE_NOTIFICATIONS = "/notifications";

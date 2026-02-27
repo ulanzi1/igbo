@@ -35,7 +35,7 @@
     "menuClose": "Close menu",
     "languageToggle": "Switch language",
     "contrastToggle": "Toggle high contrast",
-    "copyright": "\u00a9 {year} Igbo Community Platform",
+    "copyright": "© {year} Igbo Community Platform",
     "language": {
       "english": "English",
       "igbo": "Igbo"
@@ -190,7 +190,7 @@
     "approvals": {
       "title": "Membership Applications",
       "empty": "No pending applications",
-      "loading": "Loading applications\u2026",
+      "loading": "Loading applications…",
       "approve": "Approve",
       "reject": "Reject",
       "requestInfo": "Request Info",
@@ -205,7 +205,7 @@
       "culturalStrengthStrong": "Strong",
       "culturalStrengthUnclear": "Unclear",
       "culturalStrengthWeak": "Weak",
-      "infoMessagePlaceholder": "Enter your question for the applicant\u2026",
+      "infoMessagePlaceholder": "Enter your question for the applicant…",
       "infoMessageLabel": "Message to applicant",
       "error": "Something went wrong loading applications. Please try again.",
       "columnApplicant": "Applicant",
@@ -442,8 +442,8 @@
       "heading": "Welcome to OBIGBO!",
       "description": "Here's a quick look at where to find people and connect with the community.",
       "skipButton": "Skip tour",
-      "backButton": "\u2190 Back",
-      "nextButton": "Next \u2192",
+      "backButton": "← Back",
+      "nextButton": "Next →",
       "completeButton": "Get started",
       "completing": "Getting started...",
       "sections": {
@@ -661,5 +661,26 @@
     "membersOnly": "Members Only",
     "membersOnlyDescription": "This area is for OBIGBO members only. Join our community to access all features.",
     "membersOnlyCta": "Apply for Membership"
+  },
+  "Chat": {
+    "errors": {
+      "notMember": "You are not a member of this conversation",
+      "blocked": "Cannot send message to this user",
+      "sendFailed": "Failed to send message. Please try again.",
+      "conversationNotFound": "Conversation not found",
+      "fetchFailed": "Failed to load messages. Please try again.",
+      "invalidContent": "Message content is required"
+    },
+    "system": {
+      "conversationCreated": "Conversation started",
+      "memberJoined": "{name} joined the conversation",
+      "memberLeft": "{name} left the conversation"
+    },
+    "status": {
+      "connecting": "Connecting...",
+      "connected": "Connected",
+      "disconnected": "Disconnected",
+      "reconnecting": "Reconnecting..."
+    }
   }
 }
