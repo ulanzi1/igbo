@@ -16,14 +16,11 @@ vi.mock("ioredis", () => {
   return { default: MockRedis };
 });
 
-vi.mock("@/env", () => ({
-  env: { REDIS_URL: "redis://localhost:6379" },
-}));
-
 describe("EventBus", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.resetModules();
+    process.env.REDIS_URL = "redis://localhost:6379";
   });
 
   async function getEventBus() {

@@ -16,10 +16,6 @@ vi.mock("ioredis", () => {
   return { default: MockRedis };
 });
 
-vi.mock("@/env", () => ({
-  env: { REDIS_URL: "redis://localhost:6379" },
-}));
-
 describe("Job Runner", () => {
   let registerJob: typeof import("./job-runner").registerJob;
   let runJob: typeof import("./job-runner").runJob;
@@ -32,6 +28,7 @@ describe("Job Runner", () => {
   beforeEach(async () => {
     vi.clearAllMocks();
     vi.useRealTimers();
+    process.env.REDIS_URL = "redis://localhost:6379";
 
     const mod = await import("./job-runner");
     registerJob = mod.registerJob;

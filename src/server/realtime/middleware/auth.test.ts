@@ -1,14 +1,10 @@
 // @vitest-environment node
 import { describe, it, expect, vi, beforeEach } from "vitest";
-
-const mockGetCachedSession = vi.fn();
-
-vi.mock("@/server/auth/redis-session-cache", () => ({
-  getCachedSession: (...args: unknown[]) => mockGetCachedSession(...args),
-}));
-
-import { authMiddleware } from "./auth";
+import { SignJWT } from "jose";
 import type { Socket } from "socket.io";
+
+const TEST_SECRET = "test-auth-secret-for-jwt-signing";
+const TEST_USER_ID = "00000000-0000-4000-8000-000000000001";
 
 function makeSocket(token?: unknown): Socket {
   return {
@@ -17,20 +13,44 @@ function makeSocket(token?: unknown): Socket {
   } as unknown as Socket;
 }
 
-const VALID_SESSION = {
-  userId: "00000000-0000-4000-8000-000000000001",
-  sessionToken: "tok_abc",
-  expires: new Date(Date.now() + 86400_000),
-  lastActiveAt: new Date(),
-  createdAt: new Date(),
-};
+async function makeValidToken(userId: string = TEST_USER_ID, expiresIn = "1h"): Promise<string> {
+  const secret = new TextEncoder().encode(TEST_SECRET);
+  return new SignJWT({ id: userId })
+    .setProtectedHeader({ alg: "HS256" })
+    .setExpirationTime(expiresIn)
+    .sign(secret);
+}
 
-beforeEach(() => {
-  vi.clearAllMocks();
-});
+async function makeExpiredToken(userId: string = TEST_USER_ID): Promise<string> {
+  const secret = new TextEncoder().encode(TEST_SECRET);
+  const now = Math.floor(Date.now() / 1000);
+  return new SignJWT({ id: userId })
+    .setProtectedHeader({ alg: "HS256" })
+    .setExpirationTime(now - 3600)
+    .setIssuedAt(now - 7200)
+    .sign(secret);
+}
 
 describe("authMiddleware", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.resetModules();
+  });
+
+  // AUTH_SECRET is captured at module load time, so we must set process.env
+  // before importing the module via vi.resetModules() + dynamic import.
+  async function getAuthMiddleware(secret?: string) {
+    if (secret !== undefined) {
+      process.env.AUTH_SECRET = secret;
+    } else {
+      delete process.env.AUTH_SECRET;
+    }
+    const mod = await import("./auth");
+    return mod.authMiddleware;
+  }
+
   it("calls next() with error when token is missing", async () => {
+    const authMiddleware = await getAuthMiddleware(TEST_SECRET);
     const socket = makeSocket();
     const next = vi.fn();
 
@@ -38,55 +58,87 @@ describe("authMiddleware", () => {
 
     expect(next).toHaveBeenCalledWith(expect.any(Error));
     expect(next.mock.calls[0][0]?.message).toContain("UNAUTHORIZED");
-    expect(mockGetCachedSession).not.toHaveBeenCalled();
+    expect(next.mock.calls[0][0]?.message).toContain("missing session token");
   });
 
-  it("calls next() with error when session is not found", async () => {
-    mockGetCachedSession.mockResolvedValue(null);
-    const socket = makeSocket("tok_invalid");
+  it("calls next() with error when token is not a string", async () => {
+    const authMiddleware = await getAuthMiddleware(TEST_SECRET);
+    const socket = makeSocket(12345);
     const next = vi.fn();
 
     await authMiddleware(socket, next);
 
-    expect(mockGetCachedSession).toHaveBeenCalledWith("tok_invalid");
     expect(next).toHaveBeenCalledWith(expect.any(Error));
     expect(next.mock.calls[0][0]?.message).toContain("UNAUTHORIZED");
   });
 
-  it("calls next() with error when session is expired", async () => {
-    mockGetCachedSession.mockResolvedValue({
-      ...VALID_SESSION,
-      expires: new Date(Date.now() - 1000),
-    });
-    const socket = makeSocket("tok_expired");
+  it("calls next() with error when AUTH_SECRET is not configured", async () => {
+    const authMiddleware = await getAuthMiddleware(undefined);
+    const socket = makeSocket("some-token");
     const next = vi.fn();
 
     await authMiddleware(socket, next);
 
     expect(next).toHaveBeenCalledWith(expect.any(Error));
-    expect(next.mock.calls[0][0]?.message).toContain("expired");
+    expect(next.mock.calls[0][0]?.message).toContain("AUTH_SECRET not configured");
   });
 
-  it("attaches userId and calls next() without error on valid session", async () => {
-    mockGetCachedSession.mockResolvedValue(VALID_SESSION);
-    const socket = makeSocket("tok_valid");
-    const next = vi.fn();
+  it("calls next() with error when token is signed with wrong secret", async () => {
+    const authMiddleware = await getAuthMiddleware(TEST_SECRET);
+    const wrongSecret = new TextEncoder().encode("wrong-secret");
+    const badToken = await new SignJWT({ id: TEST_USER_ID })
+      .setProtectedHeader({ alg: "HS256" })
+      .setExpirationTime("1h")
+      .sign(wrongSecret);
 
-    await authMiddleware(socket, next);
-
-    expect(socket.data.userId).toBe(VALID_SESSION.userId);
-    expect(next).toHaveBeenCalledWith();
-    expect(next.mock.calls[0]).toHaveLength(0);
-  });
-
-  it("calls next() with error when getCachedSession throws (Redis down)", async () => {
-    mockGetCachedSession.mockRejectedValue(new Error("Redis connection refused"));
-    const socket = makeSocket("tok_valid");
+    const socket = makeSocket(badToken);
     const next = vi.fn();
 
     await authMiddleware(socket, next);
 
     expect(next).toHaveBeenCalledWith(expect.any(Error));
     expect(next.mock.calls[0][0]?.message).toContain("session validation failed");
+  });
+
+  it("calls next() with error when token is expired", async () => {
+    const authMiddleware = await getAuthMiddleware(TEST_SECRET);
+    const expiredToken = await makeExpiredToken();
+    const socket = makeSocket(expiredToken);
+    const next = vi.fn();
+
+    await authMiddleware(socket, next);
+
+    expect(next).toHaveBeenCalledWith(expect.any(Error));
+    expect(next.mock.calls[0][0]?.message).toContain("session validation failed");
+  });
+
+  it("calls next() with error when JWT is missing user id", async () => {
+    const authMiddleware = await getAuthMiddleware(TEST_SECRET);
+    const secret = new TextEncoder().encode(TEST_SECRET);
+    const noIdToken = await new SignJWT({ sub: "no-id-field" })
+      .setProtectedHeader({ alg: "HS256" })
+      .setExpirationTime("1h")
+      .sign(secret);
+
+    const socket = makeSocket(noIdToken);
+    const next = vi.fn();
+
+    await authMiddleware(socket, next);
+
+    expect(next).toHaveBeenCalledWith(expect.any(Error));
+    expect(next.mock.calls[0][0]?.message).toContain("JWT missing user id");
+  });
+
+  it("attaches userId and calls next() without error on valid token", async () => {
+    const authMiddleware = await getAuthMiddleware(TEST_SECRET);
+    const validToken = await makeValidToken();
+    const socket = makeSocket(validToken);
+    const next = vi.fn();
+
+    await authMiddleware(socket, next);
+
+    expect(socket.data.userId).toBe(TEST_USER_ID);
+    expect(next).toHaveBeenCalledWith();
+    expect(next.mock.calls[0]).toHaveLength(0);
   });
 });
