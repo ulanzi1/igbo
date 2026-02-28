@@ -72,7 +72,7 @@ development_status:
   2-5-message-management-threading: done
   2-6-typing-indicators-read-receipts-presence: done
   2-7-message-search-block-mute-conversation-preferences: done
-  epic-2-retrospective: optional
+  epic-2-retrospective: done
 
   # Epic 3: Member Discovery & Directory
   epic-3: backlog
