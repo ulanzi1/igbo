@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useTranslations } from "next-intl";
 import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeftIcon, InfoIcon } from "lucide-react";
+import { ArrowLeftIcon, InfoIcon, SearchIcon, SettingsIcon } from "lucide-react";
 import { useChat } from "@/features/chat/hooks/use-chat";
 import { useNotificationSound } from "@/features/chat/hooks/use-notification-sound";
 import { useTypingIndicator } from "@/features/chat/hooks/use-typing-indicator";
@@ -16,6 +16,8 @@ import { MessageInput } from "./MessageInput";
 import { TypingIndicator } from "./TypingIndicator";
 import { GroupAvatarStack } from "./GroupAvatarStack";
 import { GroupInfoPanel } from "./GroupInfoPanel";
+import { MessageSearch } from "./MessageSearch";
+import { ConversationPreferences } from "./ConversationPreferences";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -124,6 +126,8 @@ export function ChatWindow({ conversationId }: ChatWindowProps) {
 
   // Fetch conversation details for header
   const [showGroupInfo, setShowGroupInfo] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isPreferencesOpen, setIsPreferencesOpen] = useState(false);
 
   const conversationQuery = useQuery({
     queryKey: ["conversation", conversationId],
@@ -499,6 +503,17 @@ export function ChatWindow({ conversationId }: ChatWindowProps) {
     setTimeout(() => el.classList.remove("bg-accent/30"), 2000);
   }, []);
 
+  const handleNavigateToMessage = useCallback(
+    (targetConversationId: string, messageId: string) => {
+      if (targetConversationId === conversationId) {
+        handleScrollToMessage(messageId);
+      } else {
+        router.push(`/chat?conversation=${targetConversationId}`);
+      }
+    },
+    [conversationId, handleScrollToMessage, router],
+  );
+
   // Determine whether to show avatar for consecutive messages from same sender within 5 min
   function shouldShowAvatar(index: number): boolean {
     if (index === 0) return true;
@@ -615,6 +630,28 @@ export function ChatWindow({ conversationId }: ChatWindowProps) {
             )}
           </div>
 
+          {/* Search icon */}
+          <button
+            type="button"
+            onClick={() => setIsSearchOpen(true)}
+            data-testid="search-button"
+            className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+            aria-label={t("search.openSearch")}
+          >
+            <SearchIcon className="h-4 w-4" aria-hidden="true" />
+          </button>
+
+          {/* Preferences icon */}
+          <button
+            type="button"
+            onClick={() => setIsPreferencesOpen(true)}
+            data-testid="preferences-button"
+            className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+            aria-label={t("preferences.title")}
+          >
+            <SettingsIcon className="h-4 w-4" aria-hidden="true" />
+          </button>
+
           {isGroup && (
             <button
               type="button"
@@ -649,49 +686,53 @@ export function ChatWindow({ conversationId }: ChatWindowProps) {
             const isOwnMessage = msg.senderId === currentUserId;
             const senderInfo = isGroup ? getSenderInfo(msg.senderId) : {};
             return (
-              <MessageBubble
+              <div
                 key={isLocal ? (msg as LocalChatMessage).tempId : msg.messageId}
-                message={msg}
-                isOwnMessage={isOwnMessage}
-                showAvatar={shouldShowAvatar(index)}
-                senderName={
-                  !isOwnMessage ? (senderInfo.name ?? otherMember?.displayName) : undefined
-                }
-                senderPhotoUrl={
-                  !isOwnMessage ? (senderInfo.photoUrl ?? otherMember?.photoUrl) : undefined
-                }
-                currentUserId={currentUserId}
-                allMessages={allMessages as ChatMessage[]}
-                parentMessageCache={parentMessageCache}
-                memberDisplayNameMap={memberDisplayNameMap}
-                editingMessageId={editingMessageId}
-                deliveryStatus={
-                  isOwnMessage && !isLocal
-                    ? getDeliveryStatus(msg as ChatMessage, memberReadAt, deliveredMessageIds)
-                    : undefined
-                }
-                onReply={(m) => {
-                  setParentMessageCache((prev) => new Map(prev).set(m.messageId, m));
-                  setReplyTo(m);
-                }}
-                onEdit={(m) => setEditingMessageId(m.messageId)}
-                onEditSave={async (id, content) => {
-                  const snapshot = optimisticEditMessage(id, content);
-                  const r = await editMessage(id, conversationId, content);
-                  if (r.success) {
-                    setEditingMessageId(null);
-                  } else {
-                    // Rollback
-                    if (snapshot) {
-                      queryClient.setQueryData(["messages", conversationId], snapshot);
-                    }
-                    toast.error(r.error ?? tEditMessage("editFailed"));
+                data-message-id={msg.messageId}
+              >
+                <MessageBubble
+                  message={msg}
+                  isOwnMessage={isOwnMessage}
+                  showAvatar={shouldShowAvatar(index)}
+                  senderName={
+                    !isOwnMessage ? (senderInfo.name ?? otherMember?.displayName) : undefined
                   }
-                }}
-                onEditCancel={() => setEditingMessageId(null)}
-                onDelete={(id) => setDeleteConfirmMessageId(id)}
-                onScrollToMessage={handleScrollToMessage}
-              />
+                  senderPhotoUrl={
+                    !isOwnMessage ? (senderInfo.photoUrl ?? otherMember?.photoUrl) : undefined
+                  }
+                  currentUserId={currentUserId}
+                  allMessages={allMessages as ChatMessage[]}
+                  parentMessageCache={parentMessageCache}
+                  memberDisplayNameMap={memberDisplayNameMap}
+                  editingMessageId={editingMessageId}
+                  deliveryStatus={
+                    isOwnMessage && !isLocal
+                      ? getDeliveryStatus(msg as ChatMessage, memberReadAt, deliveredMessageIds)
+                      : undefined
+                  }
+                  onReply={(m) => {
+                    setParentMessageCache((prev) => new Map(prev).set(m.messageId, m));
+                    setReplyTo(m);
+                  }}
+                  onEdit={(m) => setEditingMessageId(m.messageId)}
+                  onEditSave={async (id, content) => {
+                    const snapshot = optimisticEditMessage(id, content);
+                    const r = await editMessage(id, conversationId, content);
+                    if (r.success) {
+                      setEditingMessageId(null);
+                    } else {
+                      // Rollback
+                      if (snapshot) {
+                        queryClient.setQueryData(["messages", conversationId], snapshot);
+                      }
+                      toast.error(r.error ?? tEditMessage("editFailed"));
+                    }
+                  }}
+                  onEditCancel={() => setEditingMessageId(null)}
+                  onDelete={(id) => setDeleteConfirmMessageId(id)}
+                  onScrollToMessage={handleScrollToMessage}
+                />
+              </div>
             );
           })}
           <div ref={messagesEndRef} />
@@ -763,6 +804,23 @@ export function ChatWindow({ conversationId }: ChatWindowProps) {
           isOnline={isOnline}
         />
       )}
+
+      {/* Message search dialog */}
+      <MessageSearch
+        isOpen={isSearchOpen}
+        onNavigate={handleNavigateToMessage}
+        onClose={() => setIsSearchOpen(false)}
+      />
+
+      {/* Conversation preferences panel */}
+      <ConversationPreferences
+        conversationId={conversationId}
+        otherMemberId={!isGroup ? otherMember?.id : undefined}
+        otherMemberName={!isGroup ? otherMember?.displayName : undefined}
+        isOpen={isPreferencesOpen}
+        onClose={() => setIsPreferencesOpen(false)}
+        onBlockComplete={() => router.push("/chat")}
+      />
     </div>
   );
 }

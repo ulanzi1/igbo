@@ -6,10 +6,12 @@ import {
   markAllNotificationsRead,
 } from "@/db/queries/notifications";
 import { filterNotificationRecipients } from "@/services/block-service";
+import { getConversationNotificationPreference } from "@/db/queries/chat-conversations";
 import { getRedisPublisher } from "@/lib/redis";
 import type {
   MemberApprovedEvent,
   MemberFollowedEvent,
+  MessageMentionedEvent,
   NotificationCreatedEvent,
 } from "@/types/events";
 import type { NotificationType } from "@/db/schema/platform-notifications";
@@ -104,6 +106,36 @@ eventBus.on("member.followed", async (payload: MemberFollowedEvent) => {
     body: "notifications.new_follower.body",
     link: "/profile",
   });
+});
+
+eventBus.on("message.mentioned", async (payload: MessageMentionedEvent) => {
+  const { conversationId, senderId, mentionedUserIds, contentPreview } = payload;
+  const redis = getRedisPublisher();
+
+  for (const recipientId of mentionedUserIds) {
+    // Check per-conversation notification preference
+    const pref = await getConversationNotificationPreference(conversationId, recipientId);
+    if (pref === "muted") {
+      continue; // suppress — user has muted this conversation
+    }
+    // "mentions" preference allows message.mentioned through (it IS a mention)
+    // "all" also allows through
+
+    // Check global DnD
+    const isDnd = await redis.exists(`dnd:${recipientId}`);
+    if (isDnd) {
+      continue; // suppress — DnD active
+    }
+
+    await deliverNotification({
+      userId: recipientId,
+      actorId: senderId,
+      type: "mention",
+      title: "notifications.mention.title",
+      body: contentPreview,
+      link: `/chat?conversation=${conversationId}`,
+    });
+  }
 });
 
 // ─── Service Functions (called by API routes) ─────────────────────────────────
