@@ -1,3 +1,8 @@
+/**
+ * React render helpers for tests.
+ * For vi.mock() factories (socket context, EventBus handler capture, React Query timers),
+ * see `vi-patterns.ts` in this directory.
+ */
 import { render, type RenderOptions } from "@testing-library/react";
 import { type ReactElement } from "react";
 

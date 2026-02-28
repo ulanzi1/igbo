@@ -43,6 +43,9 @@ export const env = createEnv({
     EMAIL_FROM_NAME: z.string().default("OBIGBO"),
     EMAIL_SUPPORT_ADDRESS: z.string().email().default("support@igbo.global"),
     ENABLE_EMAIL_SENDING: z.string().optional().default("true"),
+    // Geocoding (Story 3.x — disabled by default, self-host Nominatim for production)
+    ENABLE_GEOCODING: z.string().optional().default("false"),
+    NOMINATIM_URL: z.string().url().optional().default("https://nominatim.openstreetmap.org"),
   },
   client: {
     NEXT_PUBLIC_APP_URL: z.url(),
@@ -87,5 +90,7 @@ export const env = createEnv({
     EMAIL_FROM_NAME: process.env.EMAIL_FROM_NAME,
     EMAIL_SUPPORT_ADDRESS: process.env.EMAIL_SUPPORT_ADDRESS,
     ENABLE_EMAIL_SENDING: process.env.ENABLE_EMAIL_SENDING,
+    ENABLE_GEOCODING: process.env.ENABLE_GEOCODING,
+    NOMINATIM_URL: process.env.NOMINATIM_URL,
   },
 });
