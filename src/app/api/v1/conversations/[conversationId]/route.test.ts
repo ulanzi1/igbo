@@ -80,6 +80,26 @@ describe("GET /api/v1/conversations/[conversationId]", () => {
     expect(body.data.conversation.id).toBe(CONV_ID);
   });
 
+  it("includes otherMember in direct conversation response", async () => {
+    const OTHER_ID = "00000000-0000-4000-8000-000000000099";
+    mockGetConversationWithMembers.mockResolvedValue({
+      conversation: mockConversation,
+      members: [
+        { id: USER_ID, displayName: "Me", photoUrl: null, lastReadAt: null },
+        { id: OTHER_ID, displayName: "Alice", photoUrl: null, lastReadAt: null },
+      ],
+      memberCount: 2,
+    });
+    const res = await GET(makeRequest("GET"));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.data.conversation.otherMember).toEqual({
+      id: OTHER_ID,
+      displayName: "Alice",
+      photoUrl: null,
+    });
+  });
+
   it("returns 404 when conversation not found", async () => {
     mockGetConversationById.mockResolvedValue(null);
     const res = await GET(makeRequest("GET"));

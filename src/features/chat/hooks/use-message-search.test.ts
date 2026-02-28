@@ -37,8 +37,8 @@ beforeEach(() => {
   vi.useFakeTimers();
   mockFetch.mockResolvedValue({
     ok: true,
-    // Hook returns res.json() directly, typed as { results: MessageSearchResult[] }
-    json: async () => ({ results: MOCK_RESULTS }),
+    // API wraps response in { data: { results, query } } via successResponse()
+    json: async () => ({ data: { results: MOCK_RESULTS, query: "igbo" } }),
   });
 });
 

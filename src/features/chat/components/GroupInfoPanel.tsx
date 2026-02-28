@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { useTranslations } from "next-intl";
-import { XIcon, PlusIcon, LogOutIcon } from "lucide-react";
+import { XIcon, PlusIcon, LogOutIcon, BanIcon } from "lucide-react";
 import { useMemberSearch } from "@/features/chat/hooks/use-member-search";
 import { useSession } from "next-auth/react";
 
@@ -35,9 +35,12 @@ export function GroupInfoPanel({
   isOnline,
 }: GroupInfoPanelProps) {
   const t = useTranslations("Chat");
+  const tPrefs = useTranslations("Chat.preferences");
   const { data: session } = useSession();
   const currentUserId = session?.user?.id ?? "";
 
+  const [blockingMemberId, setBlockingMemberId] = useState<string | null>(null);
+  const [isBlocking, setIsBlocking] = useState(false);
   const [showAddMember, setShowAddMember] = useState(false);
   const [addSearchQuery, setAddSearchQuery] = useState("");
   const [isAdding, setIsAdding] = useState(false);
@@ -96,6 +99,18 @@ export function GroupInfoPanel({
     }
   }, [conversationId, onLeave]);
 
+  const handleBlock = useCallback(async (targetUserId: string) => {
+    setIsBlocking(true);
+    try {
+      await fetch(`${window.location.origin}/api/v1/members/${targetUserId}/block`, {
+        method: "POST",
+      });
+    } finally {
+      setIsBlocking(false);
+      setBlockingMemberId(null);
+    }
+  }, []);
+
   return (
     <div
       role="dialog"
@@ -124,38 +139,76 @@ export function GroupInfoPanel({
       {/* Member list */}
       <div className="flex-1 overflow-y-auto px-2 py-1">
         {members.map((member) => (
-          <div key={member.id} className="flex items-center gap-2 rounded-md px-2 py-2">
-            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center overflow-hidden rounded-full bg-muted">
-              {member.photoUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={member.photoUrl}
-                  alt={member.displayName}
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                <span className="text-xs font-semibold text-muted-foreground">
-                  {member.displayName.charAt(0).toUpperCase()}
-                </span>
-              )}
-            </div>
-            <span className="flex-1 truncate text-sm">
-              {member.displayName}
-              {member.id === currentUserId && (
-                <span className="ml-1 text-xs text-muted-foreground">{t("group.you")}</span>
-              )}
-            </span>
-            {isOnline?.(member.id) ? (
-              <span
-                className="h-2.5 w-2.5 flex-shrink-0 rounded-full bg-green-500"
-                aria-label={t("conversations.online")}
-                role="img"
-              />
+          <div key={member.id} className="rounded-md px-2 py-2">
+            {blockingMemberId === member.id ? (
+              /* Inline block confirmation */
+              <div className="rounded-md bg-destructive/10 px-3 py-2">
+                <p className="mb-2 text-xs text-foreground">
+                  {tPrefs("blockConfirmTitle", { name: member.displayName })}
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => void handleBlock(member.id)}
+                    disabled={isBlocking}
+                    className="flex-1 rounded-md bg-destructive py-1.5 text-xs font-medium text-destructive-foreground disabled:opacity-50"
+                  >
+                    {tPrefs("blockConfirmButton")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setBlockingMemberId(null)}
+                    className="flex-1 rounded-md border border-border py-1.5 text-xs"
+                  >
+                    {t("group.cancel")}
+                  </button>
+                </div>
+              </div>
             ) : (
-              <span
-                className="h-2 w-2 flex-shrink-0 rounded-full bg-muted-foreground/30"
-                aria-hidden="true"
-              />
+              /* Normal member row */
+              <div className="flex items-center gap-2">
+                <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center overflow-hidden rounded-full bg-muted">
+                  {member.photoUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={member.photoUrl}
+                      alt={member.displayName}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-xs font-semibold text-muted-foreground">
+                      {member.displayName.charAt(0).toUpperCase()}
+                    </span>
+                  )}
+                </div>
+                <span className="flex-1 truncate text-sm">
+                  {member.displayName}
+                  {member.id === currentUserId && (
+                    <span className="ml-1 text-xs text-muted-foreground">{t("group.you")}</span>
+                  )}
+                </span>
+                {member.id !== currentUserId ? (
+                  <button
+                    type="button"
+                    onClick={() => setBlockingMemberId(member.id)}
+                    className="flex-shrink-0 rounded-md p-1 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                    aria-label={tPrefs("blockMember", { name: member.displayName })}
+                  >
+                    <BanIcon className="h-3.5 w-3.5" aria-hidden="true" />
+                  </button>
+                ) : isOnline?.(member.id) ? (
+                  <span
+                    className="h-2.5 w-2.5 flex-shrink-0 rounded-full bg-green-500"
+                    aria-label={t("conversations.online")}
+                    role="img"
+                  />
+                ) : (
+                  <span
+                    className="h-2 w-2 flex-shrink-0 rounded-full bg-muted-foreground/30"
+                    aria-hidden="true"
+                  />
+                )}
+              </div>
             )}
           </div>
         ))}

@@ -186,7 +186,7 @@ export function ConversationPreferences({
             <SheetTitle>{t("title")}</SheetTitle>
           </SheetHeader>
 
-          <div className="mt-6 space-y-6">
+          <div className="mt-6 space-y-6 px-2">
             {/* Notification preference */}
             <section>
               <h3 className="mb-3 text-sm font-semibold text-foreground">

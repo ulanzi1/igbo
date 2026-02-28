@@ -57,7 +57,21 @@ const getHandler = async (request: Request) => {
     });
   }
 
-  return successResponse({ conversation: { ...conversation, memberLastReadAt } });
+  // For direct conversations, include the other member's profile
+  const otherMemberData = withMembers?.members?.find((m) => m.id !== userId);
+  return successResponse({
+    conversation: {
+      ...conversation,
+      otherMember: otherMemberData
+        ? {
+            id: otherMemberData.id,
+            displayName: otherMemberData.displayName,
+            photoUrl: otherMemberData.photoUrl,
+          }
+        : undefined,
+      memberLastReadAt,
+    },
+  });
 };
 
 export const GET = withApiHandler(getHandler, {

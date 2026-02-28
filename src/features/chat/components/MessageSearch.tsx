@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { useTranslations } from "next-intl";
-import { SearchIcon, XIcon } from "lucide-react";
+import { SearchIcon } from "lucide-react";
 import { useMessageSearch } from "@/features/chat/hooks/use-message-search";
 import type { MessageSearchResult } from "@/db/queries/chat-conversations";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -57,23 +57,13 @@ export function MessageSearch({ isOpen, onNavigate, onClose }: MessageSearchProp
             />
             <input
               ref={inputRef}
-              type="search"
+              type="text"
               value={query}
               onChange={(e) => updateQuery(e.target.value)}
               placeholder={t("placeholder")}
-              className="w-full rounded-md border border-input bg-background py-2 pl-9 pr-9 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              className="w-full rounded-md border border-input bg-background py-2 pl-9 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
               aria-label={t("openSearch")}
             />
-            {query && (
-              <button
-                type="button"
-                onClick={() => updateQuery("")}
-                className="absolute right-3 text-muted-foreground hover:text-foreground"
-                aria-label={t("clearSearch")}
-              >
-                <XIcon className="h-4 w-4" />
-              </button>
-            )}
           </div>
         </DialogHeader>
 

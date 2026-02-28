@@ -35,7 +35,8 @@ export function useMessageSearch() {
         `/api/v1/conversations/search?q=${encodeURIComponent(debouncedQuery)}&limit=20`,
       );
       if (!res.ok) throw new Error("Search failed");
-      return res.json() as Promise<{ results: MessageSearchResult[] }>;
+      const json = (await res.json()) as { data: { results: MessageSearchResult[] } };
+      return json.data;
     },
     enabled: debouncedQuery.length >= MIN_QUERY_LENGTH,
     staleTime: 30_000,
