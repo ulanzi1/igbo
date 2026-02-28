@@ -141,6 +141,22 @@ vi.mock("./GroupInfoPanel", () => ({
   GroupInfoPanel: () => React.createElement("div", { "data-testid": "group-info-panel" }),
 }));
 
+vi.mock("./MessageSearch", () => ({
+  MessageSearch: ({ isOpen }: { isOpen: boolean; onNavigate?: unknown; onClose?: unknown }) =>
+    isOpen ? React.createElement("div", { "data-testid": "message-search" }) : null,
+}));
+
+vi.mock("./ConversationPreferences", () => ({
+  ConversationPreferences: ({
+    isOpen,
+  }: {
+    isOpen: boolean;
+    conversationId?: string;
+    onClose?: unknown;
+    onBlockComplete?: unknown;
+  }) => (isOpen ? React.createElement("div", { "data-testid": "conversation-preferences" }) : null),
+}));
+
 // Mock scrollIntoView — not available in jsdom
 window.HTMLElement.prototype.scrollIntoView = vi.fn();
 
@@ -312,6 +328,35 @@ describe("ChatWindow", () => {
     await waitFor(() => {
       expect(mockDeleteMessage).toHaveBeenCalledWith("msg-1", "conv-1");
     });
+  });
+});
+
+describe("ChatWindow — search and preferences (Story 2.7)", () => {
+  it("renders search icon button in header", async () => {
+    render(<ChatWindow conversationId="conv-1" />, { wrapper: makeWrapper() });
+    await waitFor(() => screen.getByTestId("chat-header"));
+    expect(screen.getByTestId("search-button")).toBeInTheDocument();
+  });
+
+  it("clicking search icon opens MessageSearch panel", async () => {
+    const { fireEvent: fe } = await import("@testing-library/react");
+    render(<ChatWindow conversationId="conv-1" />, { wrapper: makeWrapper() });
+    await waitFor(() => screen.getByTestId("chat-header"));
+
+    // Initially closed
+    expect(screen.queryByTestId("message-search")).not.toBeInTheDocument();
+
+    fe.click(screen.getByTestId("search-button"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("message-search")).toBeInTheDocument();
+    });
+  });
+
+  it("renders preferences button in header", async () => {
+    render(<ChatWindow conversationId="conv-1" />, { wrapper: makeWrapper() });
+    await waitFor(() => screen.getByTestId("chat-header"));
+    expect(screen.getByTestId("preferences-button")).toBeInTheDocument();
   });
 });
 

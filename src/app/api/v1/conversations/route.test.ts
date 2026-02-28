@@ -6,6 +6,7 @@ const mockRequireAuthenticatedSession = vi.fn();
 const mockGetUserConversations = vi.fn();
 const mockCreateConversation = vi.fn();
 const mockIsBlocked = vi.fn();
+const mockGetBlockedUserIds = vi.fn();
 const mockFindExistingDirectConversation = vi.fn();
 const mockGetConversationById = vi.fn();
 
@@ -23,6 +24,7 @@ vi.mock("@/db/queries/chat-conversations", () => ({
 
 vi.mock("@/db/queries/block-mute", () => ({
   isBlocked: (...args: unknown[]) => mockIsBlocked(...args),
+  getBlockedUserIds: (...args: unknown[]) => mockGetBlockedUserIds(...args),
 }));
 
 vi.mock("@/lib/request-context", () => ({
@@ -91,6 +93,7 @@ beforeEach(() => {
   mockGetUserConversations.mockResolvedValue({ conversations: [mockConversation], hasMore: false });
   mockCreateConversation.mockResolvedValue(mockConversation);
   mockIsBlocked.mockResolvedValue(false);
+  mockGetBlockedUserIds.mockResolvedValue([]);
   mockFindExistingDirectConversation.mockResolvedValue(null);
   mockGetConversationById.mockResolvedValue(mockConversation);
 });
@@ -127,6 +130,24 @@ describe("GET /api/v1/conversations", () => {
     );
     const res = await GET(makeGetRequest());
     expect(res.status).toBe(401);
+  });
+
+  it("passes blockedUserIds to getUserConversations when user has blocked someone", async () => {
+    mockGetBlockedUserIds.mockResolvedValue([OTHER_ID]);
+    await GET(makeGetRequest());
+    expect(mockGetUserConversations).toHaveBeenCalledWith(
+      USER_ID,
+      expect.objectContaining({ blockedUserIds: [OTHER_ID] }),
+    );
+  });
+
+  it("passes empty blockedUserIds when user has no blocks", async () => {
+    mockGetBlockedUserIds.mockResolvedValue([]);
+    await GET(makeGetRequest());
+    expect(mockGetUserConversations).toHaveBeenCalledWith(
+      USER_ID,
+      expect.objectContaining({ blockedUserIds: [] }),
+    );
   });
 });
 

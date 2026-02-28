@@ -805,6 +805,32 @@
       "twoUsersTyping": "{name1} and {name2} are typing...",
       "manyUsersTyping": "{count} members are typing...",
       "unknownUser": "Someone"
+    },
+    "search": {
+      "placeholder": "Search messages...",
+      "minQueryHint": "Type at least 3 characters",
+      "noResults": "No messages found",
+      "searching": "Searching...",
+      "resultFrom": "In conversation with {name}",
+      "openSearch": "Search messages",
+      "clearSearch": "Clear search"
+    },
+    "preferences": {
+      "title": "Conversation Settings",
+      "notificationPreference": "Notifications",
+      "all": "All messages",
+      "mentions": "Mentions only",
+      "muted": "Muted",
+      "blockMember": "Block {name}",
+      "unblockMember": "Unblock {name}",
+      "muteMember": "Mute {name}",
+      "unmuteMember": "Unmute {name}",
+      "blockConfirmTitle": "Block {name}?",
+      "blockConfirmBody": "They will no longer be able to message you and their existing conversation will be hidden.",
+      "blockConfirmButton": "Block",
+      "doNotDisturb": "Do Not Disturb",
+      "dndDescription": "Suppress all chat notifications",
+      "close": "Close"
     }
   }
 }

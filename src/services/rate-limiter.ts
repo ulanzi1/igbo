@@ -30,6 +30,11 @@ export const RATE_LIMIT_PRESETS = {
   MESSAGE_REACTION: { maxRequests: 60, windowMs: 60_000 }, // 60/min per userId (reaction spam prevention)
   MESSAGE_EDIT: { maxRequests: 20, windowMs: 60_000 }, // 20/min per userId
   MESSAGE_DELETE: { maxRequests: 10, windowMs: 60_000 }, // 10/min per userId
+  // Story 2.7 additions
+  MESSAGE_SEARCH: { maxRequests: 30, windowMs: 60_000 }, // 30/min per userId
+  BLOCK_MUTE: { maxRequests: 30, windowMs: 60_000 }, // 30/min per userId
+  CONVERSATION_PREFERENCE: { maxRequests: 60, windowMs: 60_000 }, // 60/min per userId
+  DND_TOGGLE: { maxRequests: 10, windowMs: 60_000 }, // 10/min per userId
   // Tier-based API quotas (per hour)
   TIER_BASIC: { maxRequests: 200, windowMs: 3_600_000 },
   TIER_PROFESSIONAL: { maxRequests: 1000, windowMs: 3_600_000 },

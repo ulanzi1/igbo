@@ -95,7 +95,7 @@ export type EnrichedUserConversation = {
  */
 export async function getUserConversations(
   userId: string,
-  options: { limit?: number; cursor?: string } = {},
+  options: { limit?: number; cursor?: string; blockedUserIds?: string[] } = {},
 ): Promise<{ conversations: EnrichedUserConversation[]; hasMore: boolean }> {
   const limit = Math.min(options.limit ?? 20, 50);
   const cursorDate = options.cursor ? new Date(options.cursor) : null;
@@ -161,6 +161,14 @@ export async function getUserConversations(
     ) lm ON true
     WHERE c.deleted_at IS NULL
     ${cursorDate ? sql`AND c.updated_at < ${cursorDate}` : sql``}
+    ${
+      (options.blockedUserIds ?? []).length > 0
+        ? sql`AND NOT (c.type = 'direct' AND ccm_other.user_id::text = ANY(ARRAY[${sql.join(
+            (options.blockedUserIds ?? []).map((id) => sql`${id}`),
+            sql`, `,
+          )}]::text[]))`
+        : sql``
+    }
     ORDER BY c.updated_at DESC
     LIMIT ${limit + 1}
   `);
@@ -458,6 +466,134 @@ export async function checkBlocksAmongMembers(memberIds: string[]): Promise<bool
     LIMIT 1
   `);
   return rows.length > 0;
+}
+
+// ── Message search ────────────────────────────────────────────────────────────
+
+export type MessageSearchResult = {
+  messageId: string;
+  conversationId: string;
+  senderId: string;
+  senderDisplayName: string;
+  senderPhotoUrl: string | null;
+  content: string;
+  snippet: string; // ts_headline excerpt with <mark> tags
+  contentType: string;
+  createdAt: Date;
+  conversationType: "direct" | "group" | "channel";
+  conversationName: string; // other member name (direct) or "Group" (group)
+};
+
+/**
+ * Full-text search across messages visible to userId.
+ * Uses the GIN index idx_chat_messages_content_search (migration 0013).
+ * Uses plainto_tsquery so arbitrary user input is safe (no special syntax).
+ */
+export async function searchMessages(
+  userId: string,
+  query: string,
+  limit = 20,
+): Promise<MessageSearchResult[]> {
+  const safeLimit = Math.min(Math.max(1, limit), 50);
+  const rows = await db.execute(sql`
+    SELECT
+      cm.id::text                                                               AS message_id,
+      cm.conversation_id::text                                                  AS conversation_id,
+      cm.sender_id::text                                                        AS sender_id,
+      COALESCE(cp_sender.display_name, 'Unknown')                               AS sender_display_name,
+      cp_sender.photo_url                                                       AS sender_photo_url,
+      cm.content,
+      cm.content_type::text,
+      cm.created_at,
+      ts_headline(
+        'english', cm.content,
+        plainto_tsquery('english', ${query}),
+        'MaxFragments=1, MaxWords=15, MinWords=5, StartSel=<mark>, StopSel=</mark>'
+      )                                                                         AS snippet,
+      c.type::text                                                              AS conversation_type,
+      COALESCE(cp_other.display_name, 'Group')                                  AS conversation_name
+    FROM chat_messages cm
+    INNER JOIN chat_conversations c
+      ON c.id = cm.conversation_id AND c.deleted_at IS NULL
+    INNER JOIN chat_conversation_members ccm_me
+      ON ccm_me.conversation_id = cm.conversation_id AND ccm_me.user_id = ${userId}::uuid
+    LEFT JOIN community_profiles cp_sender
+      ON cp_sender.user_id = cm.sender_id AND cp_sender.deleted_at IS NULL
+    LEFT JOIN LATERAL (
+      SELECT user_id
+      FROM chat_conversation_members
+      WHERE conversation_id = cm.conversation_id AND user_id != ${userId}::uuid
+      LIMIT 1
+    ) ccm_other ON true
+    LEFT JOIN community_profiles cp_other
+      ON cp_other.user_id = ccm_other.user_id AND cp_other.deleted_at IS NULL
+    WHERE cm.deleted_at IS NULL
+      AND cm.content_type != 'system'
+      AND cm.created_at >= ccm_me.joined_at
+      AND to_tsvector('english', cm.content) @@ plainto_tsquery('english', ${query})
+    ORDER BY
+      ts_rank(to_tsvector('english', cm.content), plainto_tsquery('english', ${query})) DESC,
+      cm.created_at DESC
+    LIMIT ${safeLimit}
+  `);
+
+  return (rows as Array<Record<string, unknown>>).map((row) => ({
+    messageId: String(row.message_id),
+    conversationId: String(row.conversation_id),
+    senderId: String(row.sender_id),
+    senderDisplayName: String(row.sender_display_name),
+    senderPhotoUrl: row.sender_photo_url as string | null,
+    content: String(row.content),
+    snippet: String(row.snippet),
+    contentType: String(row.content_type),
+    createdAt: row.created_at as Date,
+    conversationType: row.conversation_type as "direct" | "group" | "channel",
+    conversationName: String(row.conversation_name),
+  }));
+}
+
+// ── Notification preference ────────────────────────────────────────────────────
+
+export type NotificationPreference = "all" | "mentions" | "muted";
+
+/**
+ * Update a conversation member's per-conversation notification preference.
+ */
+export async function updateConversationNotificationPreference(
+  conversationId: string,
+  userId: string,
+  preference: NotificationPreference,
+): Promise<void> {
+  await db
+    .update(chatConversationMembers)
+    .set({ notificationPreference: preference })
+    .where(
+      and(
+        eq(chatConversationMembers.conversationId, conversationId),
+        eq(chatConversationMembers.userId, userId),
+      ),
+    );
+}
+
+/**
+ * Read a conversation member's current per-conversation notification preference.
+ * Returns "all" if the member row is not found.
+ */
+export async function getConversationNotificationPreference(
+  conversationId: string,
+  userId: string,
+): Promise<NotificationPreference> {
+  const [row] = await db
+    .select({ notificationPreference: chatConversationMembers.notificationPreference })
+    .from(chatConversationMembers)
+    .where(
+      and(
+        eq(chatConversationMembers.conversationId, conversationId),
+        eq(chatConversationMembers.userId, userId),
+      ),
+    )
+    .limit(1);
+  return (row?.notificationPreference ?? "all") as NotificationPreference;
 }
 
 // Suppress unused import warning — communityProfiles is referenced in SQL template literals

@@ -9,7 +9,7 @@ import {
   getConversationById,
   checkBlocksAmongMembers,
 } from "@/db/queries/chat-conversations";
-import { isBlocked } from "@/db/queries/block-mute";
+import { isBlocked, getBlockedUserIds } from "@/db/queries/block-mute";
 import { RATE_LIMIT_PRESETS } from "@/services/rate-limiter";
 import { MAX_GROUP_MEMBERS } from "@/config/chat";
 import { eventBus } from "@/services/event-bus";
@@ -36,7 +36,12 @@ const getHandler = async (request: Request) => {
     limit = parsed;
   }
 
-  const { conversations, hasMore } = await getUserConversations(userId, { limit, cursor });
+  const blockedUserIds = await getBlockedUserIds(userId);
+  const { conversations, hasMore } = await getUserConversations(userId, {
+    limit,
+    cursor,
+    blockedUserIds,
+  });
   const nextCursor =
     hasMore && conversations.length > 0
       ? conversations[conversations.length - 1]?.updatedAt.toISOString()

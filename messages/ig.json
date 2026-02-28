@@ -805,6 +805,32 @@
       "twoUsersTyping": "{name1} na {name2} na-ede...",
       "manyUsersTyping": "Ndị otu {count} na-ede...",
       "unknownUser": "Mmadụ"
+    },
+    "search": {
+      "placeholder": "Chọọ ọ̀bá...",
+      "minQueryHint": "Dee mkpụrụedemede 3 ma ọ bụ karịa",
+      "noResults": "Ahụghị ọ̀bá ọ bụla",
+      "searching": "Na-achọ...",
+      "resultFrom": "N'ọ̀bá ya na {name}",
+      "openSearch": "Chọọ ọ̀bá",
+      "clearSearch": "Hichapụ nchọta"
+    },
+    "preferences": {
+      "title": "Ntọala Mkparịta Ụka",
+      "notificationPreference": "Ọkwa",
+      "all": "Ọ̀bá nile",
+      "mentions": "Naanị mgbe a na-akpọ aha m",
+      "muted": "Mechie",
+      "blockMember": "Gbochie {name}",
+      "unblockMember": "Wepu mgbochi maka {name}",
+      "muteMember": "Mechie {name}",
+      "unmuteMember": "Mepee {name}",
+      "blockConfirmTitle": "Gbochie {name}?",
+      "blockConfirmBody": "Ọ gaghị enwe ike izitere gị ọ̀bá ọzọ, a na-ezochie mkparịta ụka ha dị ugbu a.",
+      "blockConfirmButton": "Gbochie",
+      "doNotDisturb": "Ejikọghị Aka",
+      "dndDescription": "Gbochie ọkwa mkparịta ụka nile",
+      "close": "Mechie"
     }
   }
 }

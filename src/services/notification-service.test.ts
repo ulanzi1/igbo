@@ -20,7 +20,13 @@ const mockMarkNotificationRead = vi.hoisted(() => vi.fn());
 const mockMarkAllNotificationsRead = vi.hoisted(() => vi.fn());
 const mockFilterNotificationRecipients = vi.hoisted(() => vi.fn());
 const mockPublish = vi.hoisted(() => vi.fn().mockResolvedValue(1));
-const mockGetRedisPublisher = vi.hoisted(() => vi.fn().mockReturnValue({ publish: mockPublish }));
+const mockRedisExists = vi.hoisted(() => vi.fn().mockResolvedValue(0));
+const mockGetRedisPublisher = vi.hoisted(() =>
+  vi.fn().mockReturnValue({ publish: mockPublish, exists: mockRedisExists }),
+);
+const mockGetConversationNotificationPreference = vi.hoisted(() =>
+  vi.fn().mockResolvedValue("all"),
+);
 
 vi.mock("@/services/event-bus", () => ({
   eventBus: { on: mockEventBusOn, emit: mockEventBusEmit },
@@ -38,6 +44,11 @@ vi.mock("@/services/block-service", () => ({
 
 vi.mock("@/lib/redis", () => ({
   getRedisPublisher: () => mockGetRedisPublisher(),
+}));
+
+vi.mock("@/db/queries/chat-conversations", () => ({
+  getConversationNotificationPreference: (...args: unknown[]) =>
+    mockGetConversationNotificationPreference(...args),
 }));
 
 // Import module once — listeners are registered at load time and captured by handlerRef
@@ -61,7 +72,9 @@ beforeEach(() => {
   mockCreateNotification.mockResolvedValue(NOTIFICATION_STUB);
   mockFilterNotificationRecipients.mockResolvedValue(["00000000-0000-4000-8000-000000000001"]);
   mockPublish.mockResolvedValue(1);
-  mockGetRedisPublisher.mockReturnValue({ publish: mockPublish });
+  mockRedisExists.mockResolvedValue(0);
+  mockGetRedisPublisher.mockReturnValue({ publish: mockPublish, exists: mockRedisExists });
+  mockGetConversationNotificationPreference.mockResolvedValue("all");
 });
 
 describe("notification-service module loading", () => {
@@ -232,5 +245,97 @@ describe("markAllNotificationsAsRead", () => {
         notificationId: "all",
       }),
     );
+  });
+});
+
+describe("message.mentioned handler (Story 2.7)", () => {
+  const CONV_ID = "00000000-0000-4000-8000-000000000030";
+  const SENDER_ID = "00000000-0000-4000-8000-000000000002";
+  const RECIPIENT_1 = "00000000-0000-4000-8000-000000000003";
+  const RECIPIENT_2 = "00000000-0000-4000-8000-000000000004";
+
+  const makeMentionPayload = (mentionedUserIds: string[]) => ({
+    messageId: "00000000-0000-4000-8000-000000000010",
+    conversationId: CONV_ID,
+    senderId: SENDER_ID,
+    mentionedUserIds,
+    contentPreview: "Hey @Alice check this out",
+    timestamp: new Date().toISOString(),
+  });
+
+  it("registers message.mentioned listener", () => {
+    expect(handlerRef.current.has("message.mentioned")).toBe(true);
+  });
+
+  it("delivers notification for each mentioned user (no preference set — defaults to 'all')", async () => {
+    mockGetConversationNotificationPreference.mockResolvedValue("all");
+    mockFilterNotificationRecipients.mockResolvedValue([RECIPIENT_1]);
+    const handler = handlerRef.current.get("message.mentioned");
+
+    await handler?.(makeMentionPayload([RECIPIENT_1]));
+
+    expect(mockCreateNotification).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: RECIPIENT_1,
+        type: "mention",
+      }),
+    );
+  });
+
+  it("suppresses notification when conversation preference is 'muted'", async () => {
+    mockGetConversationNotificationPreference.mockResolvedValue("muted");
+    const handler = handlerRef.current.get("message.mentioned");
+
+    await handler?.(makeMentionPayload([RECIPIENT_1]));
+
+    expect(mockCreateNotification).not.toHaveBeenCalled();
+  });
+
+  it("delivers notification when preference is 'mentions' (it IS a mention)", async () => {
+    mockGetConversationNotificationPreference.mockResolvedValue("mentions");
+    mockFilterNotificationRecipients.mockResolvedValue([RECIPIENT_1]);
+    const handler = handlerRef.current.get("message.mentioned");
+
+    await handler?.(makeMentionPayload([RECIPIENT_1]));
+
+    expect(mockCreateNotification).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: RECIPIENT_1, type: "mention" }),
+    );
+  });
+
+  it("suppresses notification when DnD is active (redis.exists returns 1)", async () => {
+    mockGetConversationNotificationPreference.mockResolvedValue("all");
+    mockRedisExists.mockResolvedValue(1); // DnD active
+    const handler = handlerRef.current.get("message.mentioned");
+
+    await handler?.(makeMentionPayload([RECIPIENT_1]));
+
+    expect(mockCreateNotification).not.toHaveBeenCalled();
+  });
+
+  it("handles 2 mentioned users: one muted, one not — only unmuted receives notification", async () => {
+    mockGetConversationNotificationPreference
+      .mockResolvedValueOnce("muted") // RECIPIENT_1 has muted this conversation
+      .mockResolvedValueOnce("all"); // RECIPIENT_2 has no preference
+    mockFilterNotificationRecipients.mockResolvedValue([RECIPIENT_2]);
+    const handler = handlerRef.current.get("message.mentioned");
+
+    await handler?.(makeMentionPayload([RECIPIENT_1, RECIPIENT_2]));
+
+    expect(mockCreateNotification).toHaveBeenCalledTimes(1);
+    expect(mockCreateNotification).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: RECIPIENT_2 }),
+    );
+  });
+
+  it("delivers notification for all mentioned users when none have preferences set", async () => {
+    mockGetConversationNotificationPreference.mockResolvedValue("all");
+    mockFilterNotificationRecipients.mockResolvedValue([RECIPIENT_1]);
+    const handler = handlerRef.current.get("message.mentioned");
+
+    await handler?.(makeMentionPayload([RECIPIENT_1, RECIPIENT_2]));
+
+    // Called once per recipient (2 calls to getConversationNotificationPreference)
+    expect(mockGetConversationNotificationPreference).toHaveBeenCalledTimes(2);
   });
 });
