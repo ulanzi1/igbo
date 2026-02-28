@@ -1,5 +1,5 @@
 import { defaultCache } from "@serwist/next/worker";
-import type { PrecacheEntry, SerwistGlobalConfig } from "serwist";
+import type { PrecacheEntry, RuntimeCaching, SerwistGlobalConfig } from "serwist";
 import { Serwist } from "serwist";
 
 declare global {
@@ -10,12 +10,22 @@ declare global {
 
 declare const self: ServiceWorkerGlobalScope;
 
+// Exclude /api/ routes from SW caching — API responses must always be fresh
+// to avoid stale data (e.g. deleted messages reappearing after refresh).
+const runtimeCaching: RuntimeCaching[] = defaultCache.filter((entry) => {
+  const pattern = entry.urlPattern;
+  if (pattern instanceof RegExp) {
+    return !pattern.test("/api/test");
+  }
+  return true;
+});
+
 const serwist = new Serwist({
   precacheEntries: self.__SW_MANIFEST,
   skipWaiting: true,
   clientsClaim: true,
   navigationPreload: true,
-  runtimeCaching: defaultCache,
+  runtimeCaching,
   fallbacks: {
     entries: [
       {

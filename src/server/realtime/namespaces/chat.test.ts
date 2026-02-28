@@ -14,6 +14,8 @@ const mockGetMessagesSince = vi.hoisted(() => vi.fn());
 const mockIsConversationMember = vi.hoisted(() => vi.fn());
 const mockGetConversationMembers = vi.hoisted(() => vi.fn());
 const mockGetUsersWhoBlocked = vi.hoisted(() => vi.fn());
+const mockGetAttachmentsForMessages = vi.hoisted(() => vi.fn());
+const mockGetReactionsForMessages = vi.hoisted(() => vi.fn());
 
 vi.mock("@/db/queries/chat-conversations", () => ({
   getUserConversationIds: (...args: unknown[]) => mockGetUserConversationIds(...args),
@@ -29,11 +31,31 @@ vi.mock("@/db/queries/block-mute", () => ({
   getUsersWhoBlocked: (...args: unknown[]) => mockGetUsersWhoBlocked(...args),
 }));
 
+vi.mock("@/db/queries/chat-message-attachments", () => ({
+  getAttachmentsForMessages: (...args: unknown[]) => mockGetAttachmentsForMessages(...args),
+}));
+
+vi.mock("@/db/queries/chat-message-reactions", () => ({
+  getReactionsForMessages: (...args: unknown[]) => mockGetReactionsForMessages(...args),
+}));
+
 const mockSendMessage = vi.hoisted(() => vi.fn());
+const mockSendMessageWithAttachments = vi.hoisted(() => vi.fn());
+const mockUpdateMessage = vi.hoisted(() => vi.fn());
+const mockDeleteMessage = vi.hoisted(() => vi.fn());
+const mockGetFileUploadById = vi.hoisted(() => vi.fn());
+
 vi.mock("@/services/message-service", () => ({
   messageService: {
     sendMessage: (...args: unknown[]) => mockSendMessage(...args),
+    sendMessageWithAttachments: (...args: unknown[]) => mockSendMessageWithAttachments(...args),
+    updateMessage: (...args: unknown[]) => mockUpdateMessage(...args),
+    deleteMessage: (...args: unknown[]) => mockDeleteMessage(...args),
   },
+}));
+
+vi.mock("@/db/queries/file-uploads", () => ({
+  getFileUploadById: (...args: unknown[]) => mockGetFileUploadById(...args),
 }));
 
 import { setupChatNamespace } from "./chat";
@@ -89,6 +111,20 @@ function makeNamespace(_socket?: Socket): {
   return { ns, connectionCallbacks };
 }
 
+const UPLOAD_ID = "00000000-0000-4000-8000-000000000005";
+
+const mockReadyUpload = {
+  id: UPLOAD_ID,
+  uploaderId: USER_ID,
+  objectKey: "chat/img.jpg",
+  originalFilename: "img.jpg",
+  fileType: "image/jpeg",
+  fileSize: 12345,
+  status: "ready" as const,
+  processedUrl: "https://cdn.example.com/img.jpg",
+  createdAt: new Date(),
+};
+
 beforeEach(() => {
   vi.clearAllMocks();
   mockGetUserConversationIds.mockResolvedValue([CONV_ID]);
@@ -96,7 +132,13 @@ beforeEach(() => {
   mockGetConversationMembers.mockResolvedValue([{ userId: "other-user", conversationId: CONV_ID }]);
   mockGetUsersWhoBlocked.mockResolvedValue([]);
   mockSendMessage.mockResolvedValue(mockMessage);
+  mockSendMessageWithAttachments.mockResolvedValue(mockMessage);
+  mockUpdateMessage.mockResolvedValue({ ...mockMessage, content: "Updated", editedAt: new Date() });
+  mockDeleteMessage.mockResolvedValue(undefined);
+  mockGetFileUploadById.mockResolvedValue(mockReadyUpload);
   mockGetMessagesSince.mockResolvedValue([]);
+  mockGetAttachmentsForMessages.mockResolvedValue([]);
+  mockGetReactionsForMessages.mockResolvedValue([]);
 });
 
 describe("setupChatNamespace", () => {
@@ -133,7 +175,7 @@ describe("setupChatNamespace", () => {
     });
   });
 
-  it("registers message:send, message:delivered, sync:request handlers", async () => {
+  it("registers message:send, message:delivered, sync:request, message:edit, message:delete handlers", async () => {
     const { socket, events } = makeSocket();
     const { ns, connectionCallbacks } = makeNamespace(socket);
     setupChatNamespace(ns);
@@ -142,6 +184,8 @@ describe("setupChatNamespace", () => {
     expect(events["message:send"]).toBeDefined();
     expect(events["message:delivered"]).toBeDefined();
     expect(events["sync:request"]).toBeDefined();
+    expect(events["message:edit"]).toBeDefined();
+    expect(events["message:delete"]).toBeDefined();
   });
 });
 
@@ -212,11 +256,31 @@ describe("message:send handler", () => {
     expect(ack).toHaveBeenCalledWith(expect.objectContaining({ error: expect.any(String) }));
   });
 
-  it("rejects when content is empty whitespace", async () => {
+  it("rejects when content is empty whitespace with no attachments", async () => {
     const { events } = await triggerConnect();
     const ack = vi.fn();
     await events["message:send"]![0]!({ conversationId: CONV_ID, content: "   " }, ack);
     expect(ack).toHaveBeenCalledWith(expect.objectContaining({ error: expect.any(String) }));
+  });
+
+  it("allows attachment-only message with empty content", async () => {
+    const { events } = await triggerConnect();
+    const ack = vi.fn();
+
+    await events["message:send"]![0]!(
+      { conversationId: CONV_ID, content: "", attachmentFileUploadIds: [UPLOAD_ID] },
+      ack,
+    );
+
+    expect(mockSendMessageWithAttachments).toHaveBeenCalledWith(
+      expect.objectContaining({
+        conversationId: CONV_ID,
+        senderId: USER_ID,
+        content: "",
+        attachmentFileUploadIds: [UPLOAD_ID],
+      }),
+    );
+    expect(ack).toHaveBeenCalledWith(expect.objectContaining({ messageId: MSG_ID }));
   });
 
   it("handles DB errors gracefully", async () => {
@@ -227,6 +291,82 @@ describe("message:send handler", () => {
     await events["message:send"]![0]!({ conversationId: CONV_ID, content: "Hello!" }, ack);
 
     expect(ack).toHaveBeenCalledWith(expect.objectContaining({ error: expect.any(String) }));
+  });
+
+  it("calls sendMessageWithAttachments when attachmentFileUploadIds provided", async () => {
+    const { events } = await triggerConnect();
+    const ack = vi.fn();
+
+    await events["message:send"]![0]!(
+      { conversationId: CONV_ID, content: "Look at this!", attachmentFileUploadIds: [UPLOAD_ID] },
+      ack,
+    );
+
+    expect(mockSendMessageWithAttachments).toHaveBeenCalledWith(
+      expect.objectContaining({
+        conversationId: CONV_ID,
+        senderId: USER_ID,
+        content: "Look at this!",
+        attachmentFileUploadIds: [UPLOAD_ID],
+      }),
+    );
+    expect(mockSendMessage).not.toHaveBeenCalled();
+    expect(ack).toHaveBeenCalledWith(expect.objectContaining({ messageId: MSG_ID }));
+  });
+
+  it("calls sendMessage (no attachments) when empty attachmentFileUploadIds provided", async () => {
+    const { events } = await triggerConnect();
+    const ack = vi.fn();
+
+    await events["message:send"]![0]!(
+      { conversationId: CONV_ID, content: "Hello!", attachmentFileUploadIds: [] },
+      ack,
+    );
+
+    expect(mockSendMessage).toHaveBeenCalled();
+    expect(mockSendMessageWithAttachments).not.toHaveBeenCalled();
+  });
+
+  it("rejects when more than 10 attachments provided", async () => {
+    const { events } = await triggerConnect();
+    const ack = vi.fn();
+    const ids = Array.from({ length: 11 }, (_, i) => `upload-${i}`);
+
+    await events["message:send"]![0]!(
+      { conversationId: CONV_ID, content: "Too many", attachmentFileUploadIds: ids },
+      ack,
+    );
+
+    expect(ack).toHaveBeenCalledWith(expect.objectContaining({ error: expect.any(String) }));
+    expect(mockSendMessageWithAttachments).not.toHaveBeenCalled();
+  });
+
+  it("rejects when attachment upload is not ready", async () => {
+    mockGetFileUploadById.mockResolvedValue({ ...mockReadyUpload, status: "pending_scan" });
+    const { events } = await triggerConnect();
+    const ack = vi.fn();
+
+    await events["message:send"]![0]!(
+      { conversationId: CONV_ID, content: "Test", attachmentFileUploadIds: [UPLOAD_ID] },
+      ack,
+    );
+
+    expect(ack).toHaveBeenCalledWith(expect.objectContaining({ error: expect.any(String) }));
+    expect(mockSendMessageWithAttachments).not.toHaveBeenCalled();
+  });
+
+  it("rejects when attachment does not belong to sender", async () => {
+    mockGetFileUploadById.mockResolvedValue({ ...mockReadyUpload, uploaderId: "other-user" });
+    const { events } = await triggerConnect();
+    const ack = vi.fn();
+
+    await events["message:send"]![0]!(
+      { conversationId: CONV_ID, content: "Test", attachmentFileUploadIds: [UPLOAD_ID] },
+      ack,
+    );
+
+    expect(ack).toHaveBeenCalledWith(expect.objectContaining({ error: expect.any(String) }));
+    expect(mockSendMessageWithAttachments).not.toHaveBeenCalled();
   });
 });
 
@@ -283,11 +423,66 @@ describe("sync:request handler", () => {
 
     await events["sync:request"]![0]!({ lastReceivedAt: recentTs.toISOString() });
 
+    expect(mockGetAttachmentsForMessages).toHaveBeenCalledWith([MSG_ID]);
+    expect(mockGetReactionsForMessages).toHaveBeenCalledWith([MSG_ID]);
     expect(socket.emit as ReturnType<typeof vi.fn>).toHaveBeenCalledWith(
       "sync:replay",
       expect.objectContaining({
-        messages: expect.arrayContaining([expect.objectContaining({ messageId: MSG_ID })]),
+        messages: expect.arrayContaining([
+          expect.objectContaining({
+            messageId: MSG_ID,
+            attachments: [],
+            reactions: [],
+          }),
+        ]),
         hasMore: false,
+      }),
+    );
+  });
+
+  it("replays missed messages with attachments and reactions", async () => {
+    const recentTs = new Date(Date.now() - 60_000);
+    const missedMsg = { ...mockMessage, createdAt: new Date(Date.now() - 30_000) };
+    mockGetMessagesSince.mockResolvedValue([missedMsg]);
+    mockGetAttachmentsForMessages.mockResolvedValue([
+      {
+        id: "att-1",
+        messageId: MSG_ID,
+        fileUrl: "/img.webp",
+        fileName: "img.png",
+        fileType: "image/png",
+        fileSize: 1024,
+      },
+    ]);
+    mockGetReactionsForMessages.mockResolvedValue([
+      { messageId: MSG_ID, userId: "other-user", emoji: "👍", createdAt: new Date() },
+    ]);
+
+    const { socket, events } = makeSocket();
+    const { ns, connectionCallbacks } = makeNamespace(socket);
+    setupChatNamespace(ns);
+    await connectionCallbacks[0]!(socket);
+
+    await events["sync:request"]![0]!({ lastReceivedAt: recentTs.toISOString() });
+
+    expect(socket.emit as ReturnType<typeof vi.fn>).toHaveBeenCalledWith(
+      "sync:replay",
+      expect.objectContaining({
+        messages: expect.arrayContaining([
+          expect.objectContaining({
+            messageId: MSG_ID,
+            attachments: [
+              {
+                id: "att-1",
+                fileUrl: "/img.webp",
+                fileName: "img.png",
+                fileType: "image/png",
+                fileSize: 1024,
+              },
+            ],
+            reactions: [expect.objectContaining({ emoji: "👍", userId: "other-user" })],
+          }),
+        ]),
       }),
     );
   });
@@ -319,5 +514,220 @@ describe("sync:request handler", () => {
       "sync:full_refresh",
       expect.any(Object),
     );
+  });
+});
+
+describe("message:edit handler", () => {
+  async function triggerConnect(userId = USER_ID) {
+    const { socket, events } = makeSocket(userId);
+    const { ns, connectionCallbacks } = makeNamespace(socket);
+    setupChatNamespace(ns);
+    await connectionCallbacks[0]!(socket);
+    return { socket, events, ns };
+  }
+
+  it("edits message via messageService and ACKs success", async () => {
+    const { events } = await triggerConnect();
+    const ack = vi.fn();
+
+    await events["message:edit"]![0]!(
+      { conversationId: CONV_ID, messageId: MSG_ID, content: "Updated" },
+      ack,
+    );
+
+    expect(mockUpdateMessage).toHaveBeenCalledWith(MSG_ID, USER_ID, "Updated");
+    expect(ack).toHaveBeenCalledWith(expect.objectContaining({ ok: true }));
+  });
+
+  it("rejects when conversationId is missing", async () => {
+    const { events } = await triggerConnect();
+    const ack = vi.fn();
+
+    await events["message:edit"]![0]!({ messageId: MSG_ID, content: "x" }, ack);
+
+    expect(mockUpdateMessage).not.toHaveBeenCalled();
+    expect(ack).toHaveBeenCalledWith(expect.objectContaining({ error: expect.any(String) }));
+  });
+
+  it("rejects when messageId is missing", async () => {
+    const { events } = await triggerConnect();
+    const ack = vi.fn();
+
+    await events["message:edit"]![0]!({ conversationId: CONV_ID, content: "x" }, ack);
+
+    expect(mockUpdateMessage).not.toHaveBeenCalled();
+    expect(ack).toHaveBeenCalledWith(expect.objectContaining({ error: expect.any(String) }));
+  });
+
+  it("rejects when content is empty", async () => {
+    const { events } = await triggerConnect();
+    const ack = vi.fn();
+
+    await events["message:edit"]![0]!(
+      { conversationId: CONV_ID, messageId: MSG_ID, content: "" },
+      ack,
+    );
+
+    expect(mockUpdateMessage).not.toHaveBeenCalled();
+    expect(ack).toHaveBeenCalledWith(expect.objectContaining({ error: expect.any(String) }));
+  });
+
+  it("rejects when content exceeds 4000 characters", async () => {
+    const { events } = await triggerConnect();
+    const ack = vi.fn();
+
+    await events["message:edit"]![0]!(
+      { conversationId: CONV_ID, messageId: MSG_ID, content: "x".repeat(4001) },
+      ack,
+    );
+
+    expect(mockUpdateMessage).not.toHaveBeenCalled();
+    expect(ack).toHaveBeenCalledWith(expect.objectContaining({ error: expect.any(String) }));
+  });
+
+  it("rejects when user is not a conversation member", async () => {
+    mockIsConversationMember.mockResolvedValue(false);
+    const { events } = await triggerConnect();
+    const ack = vi.fn();
+
+    await events["message:edit"]![0]!(
+      { conversationId: CONV_ID, messageId: MSG_ID, content: "x" },
+      ack,
+    );
+
+    expect(mockUpdateMessage).not.toHaveBeenCalled();
+    expect(ack).toHaveBeenCalledWith(expect.objectContaining({ error: expect.any(String) }));
+  });
+
+  it("returns NOT_FOUND error when service throws NOT_FOUND code", async () => {
+    const err = new Error("not found") as NodeJS.ErrnoException;
+    err.code = "NOT_FOUND";
+    mockUpdateMessage.mockRejectedValue(err);
+    const { events } = await triggerConnect();
+    const ack = vi.fn();
+
+    await events["message:edit"]![0]!(
+      { conversationId: CONV_ID, messageId: MSG_ID, content: "x" },
+      ack,
+    );
+
+    expect(ack).toHaveBeenCalledWith(expect.objectContaining({ error: expect.any(String) }));
+  });
+
+  it("returns FORBIDDEN error when service throws FORBIDDEN code", async () => {
+    const err = new Error("forbidden") as NodeJS.ErrnoException;
+    err.code = "FORBIDDEN";
+    mockUpdateMessage.mockRejectedValue(err);
+    const { events } = await triggerConnect();
+    const ack = vi.fn();
+
+    await events["message:edit"]![0]!(
+      { conversationId: CONV_ID, messageId: MSG_ID, content: "x" },
+      ack,
+    );
+
+    expect(ack).toHaveBeenCalledWith(expect.objectContaining({ error: expect.any(String) }));
+  });
+
+  it("returns GONE error when service throws GONE code", async () => {
+    const err = new Error("gone") as NodeJS.ErrnoException;
+    err.code = "GONE";
+    mockUpdateMessage.mockRejectedValue(err);
+    const { events } = await triggerConnect();
+    const ack = vi.fn();
+
+    await events["message:edit"]![0]!(
+      { conversationId: CONV_ID, messageId: MSG_ID, content: "x" },
+      ack,
+    );
+
+    expect(ack).toHaveBeenCalledWith(expect.objectContaining({ error: expect.any(String) }));
+  });
+});
+
+describe("message:delete handler", () => {
+  async function triggerConnect(userId = USER_ID) {
+    const { socket, events } = makeSocket(userId);
+    const { ns, connectionCallbacks } = makeNamespace(socket);
+    setupChatNamespace(ns);
+    await connectionCallbacks[0]!(socket);
+    return { socket, events, ns };
+  }
+
+  it("deletes message via messageService and ACKs success", async () => {
+    const { events } = await triggerConnect();
+    const ack = vi.fn();
+
+    await events["message:delete"]![0]!({ conversationId: CONV_ID, messageId: MSG_ID }, ack);
+
+    expect(mockDeleteMessage).toHaveBeenCalledWith(MSG_ID, USER_ID);
+    expect(ack).toHaveBeenCalledWith(expect.objectContaining({ ok: true }));
+  });
+
+  it("rejects when conversationId is missing", async () => {
+    const { events } = await triggerConnect();
+    const ack = vi.fn();
+
+    await events["message:delete"]![0]!({ messageId: MSG_ID }, ack);
+
+    expect(mockDeleteMessage).not.toHaveBeenCalled();
+    expect(ack).toHaveBeenCalledWith(expect.objectContaining({ error: expect.any(String) }));
+  });
+
+  it("rejects when messageId is missing", async () => {
+    const { events } = await triggerConnect();
+    const ack = vi.fn();
+
+    await events["message:delete"]![0]!({ conversationId: CONV_ID }, ack);
+
+    expect(mockDeleteMessage).not.toHaveBeenCalled();
+    expect(ack).toHaveBeenCalledWith(expect.objectContaining({ error: expect.any(String) }));
+  });
+
+  it("rejects when user is not a conversation member", async () => {
+    mockIsConversationMember.mockResolvedValue(false);
+    const { events } = await triggerConnect();
+    const ack = vi.fn();
+
+    await events["message:delete"]![0]!({ conversationId: CONV_ID, messageId: MSG_ID }, ack);
+
+    expect(mockDeleteMessage).not.toHaveBeenCalled();
+    expect(ack).toHaveBeenCalledWith(expect.objectContaining({ error: expect.any(String) }));
+  });
+
+  it("returns NOT_FOUND error when service throws NOT_FOUND code", async () => {
+    const err = new Error("not found") as NodeJS.ErrnoException;
+    err.code = "NOT_FOUND";
+    mockDeleteMessage.mockRejectedValue(err);
+    const { events } = await triggerConnect();
+    const ack = vi.fn();
+
+    await events["message:delete"]![0]!({ conversationId: CONV_ID, messageId: MSG_ID }, ack);
+
+    expect(ack).toHaveBeenCalledWith(expect.objectContaining({ error: expect.any(String) }));
+  });
+
+  it("returns FORBIDDEN error when service throws FORBIDDEN code", async () => {
+    const err = new Error("forbidden") as NodeJS.ErrnoException;
+    err.code = "FORBIDDEN";
+    mockDeleteMessage.mockRejectedValue(err);
+    const { events } = await triggerConnect();
+    const ack = vi.fn();
+
+    await events["message:delete"]![0]!({ conversationId: CONV_ID, messageId: MSG_ID }, ack);
+
+    expect(ack).toHaveBeenCalledWith(expect.objectContaining({ error: expect.any(String) }));
+  });
+
+  it("returns GONE error when service throws GONE code", async () => {
+    const err = new Error("gone") as NodeJS.ErrnoException;
+    err.code = "GONE";
+    mockDeleteMessage.mockRejectedValue(err);
+    const { events } = await triggerConnect();
+    const ack = vi.fn();
+
+    await events["message:delete"]![0]!({ conversationId: CONV_ID, messageId: MSG_ID }, ack);
+
+    expect(ack).toHaveBeenCalledWith(expect.objectContaining({ error: expect.any(String) }));
   });
 });

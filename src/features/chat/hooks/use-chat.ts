@@ -2,7 +2,37 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useSocketContext } from "@/providers/SocketProvider";
-import type { ChatMessage, SyncReplayPayload } from "@/features/chat/types";
+import type { ChatMessage, ChatMessageReaction, SyncReplayPayload } from "@/features/chat/types";
+
+interface ReactionPayload {
+  messageId: string;
+  conversationId: string;
+  userId: string;
+  emoji: string;
+  action: "added" | "removed";
+}
+
+/**
+ * Pure helper — compute updated reactions list from a reaction event.
+ * Used for real-time cache updates.
+ */
+export function computeUpdatedReactions(
+  existing: ChatMessageReaction[],
+  payload: ReactionPayload,
+): ChatMessageReaction[] {
+  if (payload.action === "added") {
+    const alreadyExists = existing.some(
+      (r) => r.emoji === payload.emoji && r.userId === payload.userId,
+    );
+    if (alreadyExists) return existing;
+    return [
+      ...existing,
+      { emoji: payload.emoji, userId: payload.userId, createdAt: new Date().toISOString() },
+    ];
+  } else {
+    return existing.filter((r) => !(r.emoji === payload.emoji && r.userId === payload.userId));
+  }
+}
 
 /**
  * useChat — subscribes to chat events via the /chat Socket.IO namespace.
@@ -52,9 +82,16 @@ export function useChat(conversationId?: string) {
       // Update lastReceivedAt timestamp
       lastReceivedAtRef.current = msg.createdAt;
 
+      // Ensure attachments and reactions are always arrays (defensive)
+      const normalized: ChatMessage = {
+        ...msg,
+        attachments: msg.attachments ?? [],
+        reactions: msg.reactions ?? [],
+      };
+
       // Only add to local state if it's for the active conversation (if provided)
-      if (!conversationId || msg.conversationId === conversationId) {
-        setMessages((prev) => [...prev, msg]);
+      if (!conversationId || normalized.conversationId === conversationId) {
+        setMessages((prev) => [...prev, normalized]);
       }
     }
 
@@ -76,7 +113,13 @@ export function useChat(conversationId?: string) {
       if (relevant.length > 0) {
         setMessages((prev) => {
           const existingIds = new Set(prev.map((m) => m.messageId));
-          const newMsgs = relevant.filter((m) => !existingIds.has(m.messageId));
+          const newMsgs = relevant
+            .filter((m) => !existingIds.has(m.messageId))
+            .map((m) => ({
+              ...m,
+              attachments: m.attachments ?? [],
+              reactions: m.reactions ?? [],
+            }));
           return [...newMsgs, ...prev];
         });
         // Update lastReceivedAt to the most recent replayed message
@@ -91,15 +134,140 @@ export function useChat(conversationId?: string) {
     };
   }, [chatSocket, conversationId]);
 
+  // Subscribe to message:edited and message:deleted events
+  useEffect(() => {
+    if (!chatSocket) return;
+
+    function handleMessageEdited(payload: {
+      messageId: string;
+      conversationId: string;
+      content: string;
+      editedAt: string;
+    }) {
+      if (conversationId && payload.conversationId !== conversationId) return;
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.messageId === payload.messageId
+            ? { ...m, content: payload.content, editedAt: payload.editedAt }
+            : m,
+        ),
+      );
+    }
+
+    function handleMessageDeleted(payload: {
+      messageId: string;
+      conversationId: string;
+      timestamp: string;
+    }) {
+      if (conversationId && payload.conversationId !== conversationId) return;
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.messageId === payload.messageId
+            ? { ...m, content: "", deletedAt: payload.timestamp }
+            : m,
+        ),
+      );
+    }
+
+    chatSocket.on("message:edited", handleMessageEdited);
+    chatSocket.on("message:deleted", handleMessageDeleted);
+    return () => {
+      chatSocket.off("message:edited", handleMessageEdited);
+      chatSocket.off("message:deleted", handleMessageDeleted);
+    };
+  }, [chatSocket, conversationId]);
+
+  // Subscribe to reaction:added and reaction:removed events
+  useEffect(() => {
+    if (!chatSocket) return;
+
+    function handleReactionChange(payload: ReactionPayload) {
+      if (conversationId && payload.conversationId !== conversationId) return;
+
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.messageId === payload.messageId
+            ? { ...m, reactions: computeUpdatedReactions(m.reactions, payload) }
+            : m,
+        ),
+      );
+    }
+
+    chatSocket.on("reaction:added", handleReactionChange);
+    chatSocket.on("reaction:removed", handleReactionChange);
+    return () => {
+      chatSocket.off("reaction:added", handleReactionChange);
+      chatSocket.off("reaction:removed", handleReactionChange);
+    };
+  }, [chatSocket, conversationId]);
+
   const sendMessage = useCallback(
-    (payload: { conversationId: string; content: string; contentType?: string }) => {
+    (payload: {
+      conversationId: string;
+      content: string;
+      contentType?: string;
+      attachmentFileUploadIds?: string[];
+      parentMessageId?: string;
+    }) => {
       return new Promise<{ messageId: string } | { error: string }>((resolve) => {
         if (!chatSocket) {
           resolve({ error: "Not connected" });
           return;
         }
+        const timeout = setTimeout(() => resolve({ error: "Request timed out" }), 10_000);
         chatSocket.emit("message:send", payload, (response: unknown) => {
+          clearTimeout(timeout);
           resolve(response as { messageId: string } | { error: string });
+        });
+      });
+    },
+    [chatSocket],
+  );
+
+  const editMessage = useCallback(
+    (messageId: string, conversationId: string, content: string) => {
+      return new Promise<{ success: boolean; error?: string }>((resolve) => {
+        if (!chatSocket) {
+          resolve({ success: false, error: "Not connected" });
+          return;
+        }
+        const timeout = setTimeout(
+          () => resolve({ success: false, error: "Request timed out" }),
+          10_000,
+        );
+        chatSocket.emit("message:edit", { messageId, conversationId, content }, (ack: unknown) => {
+          clearTimeout(timeout);
+          const response = ack as { ok?: boolean; error?: string };
+          if (response?.ok) {
+            resolve({ success: true });
+          } else {
+            resolve({ success: false, error: response?.error ?? "Unknown error" });
+          }
+        });
+      });
+    },
+    [chatSocket],
+  );
+
+  const deleteMessage = useCallback(
+    (messageId: string, conversationId: string) => {
+      return new Promise<{ success: boolean; error?: string }>((resolve) => {
+        if (!chatSocket) {
+          resolve({ success: false, error: "Not connected" });
+          return;
+        }
+        const timeout = setTimeout(
+          () => resolve({ success: false, error: "Request timed out" }),
+          10_000,
+        );
+        chatSocket.emit("message:delete", { messageId, conversationId }, (ack: unknown) => {
+          clearTimeout(timeout);
+          const response = ack as { ok?: boolean; error?: string };
+          if (response?.ok) {
+            resolve({ success: true });
+          } else {
+            resolve({ success: false, error: response?.error ?? "Unknown error" });
+          }
         });
       });
     },
@@ -113,6 +281,8 @@ export function useChat(conversationId?: string) {
   return {
     messages,
     sendMessage,
+    editMessage,
+    deleteMessage,
     clearMessages,
     isConnected: chatSocket?.connected ?? false,
   };

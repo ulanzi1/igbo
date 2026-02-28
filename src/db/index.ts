@@ -15,6 +15,8 @@ import * as platformNotificationsSchema from "./schema/platform-notifications";
 import * as platformSocialSchema from "./schema/platform-social";
 import * as chatConversationsSchema from "./schema/chat-conversations";
 import * as chatMessagesSchema from "./schema/chat-messages";
+import * as chatMessageAttachmentsSchema from "./schema/chat-message-attachments";
+import * as chatMessageReactionsSchema from "./schema/chat-message-reactions";
 
 const client = postgres(env.DATABASE_URL, {
   max: env.DATABASE_POOL_SIZE,
@@ -36,6 +38,8 @@ export const db = drizzle(client, {
     ...platformSocialSchema,
     ...chatConversationsSchema,
     ...chatMessagesSchema,
+    ...chatMessageAttachmentsSchema,
+    ...chatMessageReactionsSchema,
   },
 });
 

@@ -44,6 +44,42 @@ export async function getMessageById(messageId: string): Promise<ChatMessage | n
 }
 
 /**
+ * Get a single message by ID regardless of soft-delete status.
+ * Used by MessageService to check ownership and deleted state before update/delete.
+ */
+export async function getMessageByIdUnfiltered(messageId: string): Promise<ChatMessage | null> {
+  const [row] = await db.select().from(chatMessages).where(eq(chatMessages.id, messageId)).limit(1);
+  return row ?? null;
+}
+
+/**
+ * Update message content and set edited_at timestamp.
+ * Returns the updated row.
+ */
+export async function updateMessageContent(
+  messageId: string,
+  content: string,
+): Promise<ChatMessage | null> {
+  const [row] = await db
+    .update(chatMessages)
+    .set({ content, editedAt: new Date() })
+    .where(eq(chatMessages.id, messageId))
+    .returning();
+  return row ?? null;
+}
+
+/**
+ * Get all non-deleted replies to a parent message, ordered chronologically.
+ */
+export async function getThreadReplies(parentMessageId: string): Promise<ChatMessage[]> {
+  return db
+    .select()
+    .from(chatMessages)
+    .where(and(eq(chatMessages.parentMessageId, parentMessageId), isNull(chatMessages.deletedAt)))
+    .orderBy(asc(chatMessages.createdAt));
+}
+
+/**
  * Cursor-based pagination for conversation messages.
  *
  * @param conversationId - The conversation to load messages for
@@ -78,7 +114,8 @@ export async function getConversationMessages(
 
   const baseConditions = [
     eq(chatMessages.conversationId, conversationId),
-    isNull(chatMessages.deletedAt),
+    // Note: deleted messages are intentionally included (soft-delete) so thread coherence is preserved.
+    // The service layer blanks content for deleted messages before sending to clients.
     // Enforce join-point visibility for group members (AC4 of Story 2.3)
     ...(options.joinedAfter ? [gte(chatMessages.createdAt, options.joinedAfter)] : []),
   ];
@@ -121,16 +158,12 @@ export async function getMessagesSince(
   since: Date,
   limit = MAX_PAGE_SIZE,
 ): Promise<ChatMessage[]> {
+  // Note: deleted messages are intentionally included (same as getConversationMessages)
+  // so sync:replay can deliver deletion info. The caller blanks content for deleted messages.
   return db
     .select()
     .from(chatMessages)
-    .where(
-      and(
-        eq(chatMessages.conversationId, conversationId),
-        gt(chatMessages.createdAt, since),
-        isNull(chatMessages.deletedAt),
-      ),
-    )
+    .where(and(eq(chatMessages.conversationId, conversationId), gt(chatMessages.createdAt, since)))
     .orderBy(asc(chatMessages.createdAt))
     .limit(limit);
 }

@@ -11,9 +11,14 @@ import type {
   NotificationCreatedEvent,
   NotificationReadEvent,
   MessageSentEvent,
+  MessageEditedEvent,
+  MessageDeletedEvent,
+  MessageMentionedEvent,
   ConversationCreatedEvent,
   ConversationMemberAddedEvent,
   ConversationMemberLeftEvent,
+  ReactionAddedEvent,
+  ReactionRemovedEvent,
 } from "@/types/events";
 
 const CHANNEL_PREFIX = "eventbus:";
@@ -93,6 +98,71 @@ function routeToNamespace(io: Server, eventName: string, payload: unknown): void
         content: msgPayload.content,
         contentType: msgPayload.contentType,
         createdAt: msgPayload.createdAt,
+        parentMessageId: msgPayload.parentMessageId ?? null,
+        attachments: msgPayload.attachments ?? [],
+        reactions: [],
+      });
+      break;
+    }
+    case "message.edited": {
+      const editedPayload = payload as MessageEditedEvent;
+      if (!editedPayload?.conversationId || !editedPayload?.messageId) break;
+      chatNs.to(ROOM_CONVERSATION(editedPayload.conversationId)).emit("message:edited", {
+        messageId: editedPayload.messageId,
+        conversationId: editedPayload.conversationId,
+        content: editedPayload.content,
+        editedAt: editedPayload.editedAt,
+        senderId: editedPayload.senderId,
+        timestamp: editedPayload.timestamp,
+      });
+      break;
+    }
+    case "message.deleted": {
+      const deletedPayload = payload as MessageDeletedEvent;
+      if (!deletedPayload?.conversationId || !deletedPayload?.messageId) break;
+      chatNs.to(ROOM_CONVERSATION(deletedPayload.conversationId)).emit("message:deleted", {
+        messageId: deletedPayload.messageId,
+        conversationId: deletedPayload.conversationId,
+        senderId: deletedPayload.senderId,
+        timestamp: deletedPayload.timestamp,
+      });
+      break;
+    }
+    case "message.mentioned": {
+      const mentionedPayload = payload as MessageMentionedEvent;
+      if (!mentionedPayload?.mentionedUserIds?.length) break;
+      for (const mentionedUserId of mentionedPayload.mentionedUserIds) {
+        notificationsNs.to(ROOM_USER(mentionedUserId)).emit("mention:received", {
+          messageId: mentionedPayload.messageId,
+          conversationId: mentionedPayload.conversationId,
+          senderId: mentionedPayload.senderId,
+          contentPreview: mentionedPayload.contentPreview,
+          timestamp: mentionedPayload.timestamp,
+        });
+      }
+      break;
+    }
+    case "reaction.added": {
+      const reactionPayload = payload as ReactionAddedEvent;
+      if (!reactionPayload?.conversationId || !reactionPayload?.messageId) break;
+      chatNs.to(ROOM_CONVERSATION(reactionPayload.conversationId)).emit("reaction:added", {
+        messageId: reactionPayload.messageId,
+        conversationId: reactionPayload.conversationId,
+        userId: reactionPayload.userId,
+        emoji: reactionPayload.emoji,
+        action: "added",
+      });
+      break;
+    }
+    case "reaction.removed": {
+      const reactionPayload = payload as ReactionRemovedEvent;
+      if (!reactionPayload?.conversationId || !reactionPayload?.messageId) break;
+      chatNs.to(ROOM_CONVERSATION(reactionPayload.conversationId)).emit("reaction:removed", {
+        messageId: reactionPayload.messageId,
+        conversationId: reactionPayload.conversationId,
+        userId: reactionPayload.userId,
+        emoji: reactionPayload.emoji,
+        action: "removed",
       });
       break;
     }

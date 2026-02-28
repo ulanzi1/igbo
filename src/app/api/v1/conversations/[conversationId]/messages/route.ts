@@ -8,6 +8,7 @@ import {
   getMemberJoinedAt,
 } from "@/db/queries/chat-conversations";
 import { messageService } from "@/services/message-service";
+import { getReactionsForMessages } from "@/db/queries/chat-message-reactions";
 import { RATE_LIMIT_PRESETS } from "@/services/rate-limiter";
 
 // ── GET /api/v1/conversations/[conversationId]/messages ───────────────────────
@@ -76,15 +77,67 @@ const handler = async (request: Request) => {
 
   const nextCursor = hasMore && messages.length > 0 ? messages[messages.length - 1]?.id : null;
 
+  // Batch-load reactions for this page to avoid N+1
+  const messageIds = messages.map((m) => m.id);
+  const allReactions = messageIds.length > 0 ? await getReactionsForMessages(messageIds) : [];
+
+  // Group reactions by messageId
+  const reactionsByMessageId = new Map<string, typeof allReactions>();
+  for (const r of allReactions) {
+    const list = reactionsByMessageId.get(r.messageId) ?? [];
+    list.push(r);
+    reactionsByMessageId.set(r.messageId, list);
+  }
+
   // Map DB rows (id) to frontend shape (messageId) to match Socket.IO message:new payloads
-  const mapped = messages.map((m) => ({
-    messageId: m.id,
-    conversationId: m.conversationId,
-    senderId: m.senderId,
-    content: m.content,
-    contentType: m.contentType,
-    createdAt: m.createdAt.toISOString(),
-  }));
+  // Also include attachments (pre-loaded by MessageService.getMessages) and reactions
+  const mapped = messages.map((m) => {
+    // _attachments is tagged by MessageService.getMessages for non-empty results
+    const msgWithAtts = m as unknown as {
+      id: string;
+      conversationId: string;
+      senderId: string;
+      content: string;
+      contentType: string;
+      createdAt: Date;
+      parentMessageId: string | null;
+      editedAt: Date | null;
+      deletedAt: Date | null;
+      _attachments?: Array<{
+        id: string;
+        fileUrl: string;
+        fileName: string;
+        fileType: string | null;
+        fileSize: number | null;
+      }>;
+    };
+
+    const reactions = (reactionsByMessageId.get(m.id) ?? []).map((r) => ({
+      emoji: r.emoji,
+      userId: r.userId,
+      createdAt: r.createdAt.toISOString(),
+    }));
+
+    return {
+      messageId: msgWithAtts.id,
+      conversationId: msgWithAtts.conversationId,
+      senderId: msgWithAtts.senderId,
+      content: msgWithAtts.content,
+      contentType: msgWithAtts.contentType,
+      createdAt: msgWithAtts.createdAt.toISOString(),
+      parentMessageId: msgWithAtts.parentMessageId ?? null,
+      editedAt: msgWithAtts.editedAt ? msgWithAtts.editedAt.toISOString() : null,
+      deletedAt: msgWithAtts.deletedAt ? msgWithAtts.deletedAt.toISOString() : null,
+      attachments: (msgWithAtts._attachments ?? []).map((a) => ({
+        id: a.id,
+        fileUrl: a.fileUrl,
+        fileName: a.fileName,
+        fileType: a.fileType,
+        fileSize: a.fileSize,
+      })),
+      reactions,
+    };
+  });
 
   return successResponse({
     messages: mapped,

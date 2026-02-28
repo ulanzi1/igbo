@@ -23,8 +23,11 @@ function getS3Client(): S3Client {
       accessKeyId: env.HETZNER_S3_ACCESS_KEY_ID,
       secretAccessKey: env.HETZNER_S3_SECRET_ACCESS_KEY,
     },
-    // Hetzner uses path-style URLs
+    // Hetzner/MinIO use path-style URLs
     forcePathStyle: true,
+    // Disable automatic CRC32 checksums — not supported by MinIO or Hetzner Object Storage
+    requestChecksumCalculation: "WHEN_REQUIRED",
+    responseChecksumValidation: "WHEN_REQUIRED",
   });
 }
 

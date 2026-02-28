@@ -132,6 +132,8 @@ async function importUploadObject() {
       secretAccessKey: env.HETZNER_S3_SECRET_ACCESS_KEY,
     },
     forcePathStyle: true,
+    requestChecksumCalculation: "WHEN_REQUIRED",
+    responseChecksumValidation: "WHEN_REQUIRED",
   });
 
   return {

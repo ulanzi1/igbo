@@ -27,6 +27,9 @@ export const RATE_LIMIT_PRESETS = {
   CONVERSATION_READ: { maxRequests: 120, windowMs: 60_000 }, // 120/min per userId
   CONVERSATION_MARK_READ: { maxRequests: 120, windowMs: 60_000 }, // 120/min per userId
   CONVERSATION_MEMBER_MANAGE: { maxRequests: 20, windowMs: 60_000 }, // 20/min per userId (add/leave group)
+  MESSAGE_REACTION: { maxRequests: 60, windowMs: 60_000 }, // 60/min per userId (reaction spam prevention)
+  MESSAGE_EDIT: { maxRequests: 20, windowMs: 60_000 }, // 20/min per userId
+  MESSAGE_DELETE: { maxRequests: 10, windowMs: 60_000 }, // 10/min per userId
   // Tier-based API quotas (per hour)
   TIER_BASIC: { maxRequests: 200, windowMs: 3_600_000 },
   TIER_PROFESSIONAL: { maxRequests: 1000, windowMs: 3_600_000 },

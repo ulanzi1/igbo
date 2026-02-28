@@ -47,6 +47,44 @@ export interface MessageSentEvent extends BaseEvent {
   content: string;
   contentType: string;
   createdAt: string; // ISO 8601
+  /** For threading — bridge includes in message:new so clients can show reply context without a DB round-trip */
+  parentMessageId?: string | null;
+  /** Populated by sendMessageWithAttachments — bridge includes in message:new without extra DB query */
+  attachments?: Array<{
+    id: string;
+    fileUrl: string;
+    fileName: string;
+    fileType: string | null;
+    fileSize: number | null;
+  }>;
+}
+
+export interface MessageEditedEvent extends BaseEvent {
+  messageId: string;
+  conversationId: string;
+  senderId: string;
+  content: string;
+  editedAt: string; // ISO 8601
+}
+
+export interface MessageDeletedEvent extends BaseEvent {
+  messageId: string;
+  conversationId: string;
+  senderId: string;
+}
+
+export interface ReactionAddedEvent extends BaseEvent {
+  messageId: string;
+  conversationId: string;
+  userId: string;
+  emoji: string;
+}
+
+export interface ReactionRemovedEvent extends BaseEvent {
+  messageId: string;
+  conversationId: string;
+  userId: string;
+  emoji: string;
 }
 
 export interface ConversationCreatedEvent extends BaseEvent {
@@ -69,9 +107,12 @@ export interface ConversationMemberLeftEvent extends BaseEvent {
 
 export interface MessageMentionedEvent extends BaseEvent {
   messageId: string;
-  mentionedUserId: string;
-  senderId: string;
   conversationId: string;
+  senderId: string;
+  /** All mentioned user IDs (no self-mentions) */
+  mentionedUserIds: string[];
+  /** First 100 chars of message content — used by Epic 9 for notification body */
+  contentPreview: string;
 }
 
 // --- Points Events ---
@@ -295,6 +336,8 @@ export type EventName =
   | "post.reacted"
   | "post.commented"
   | "message.sent"
+  | "message.edited"
+  | "message.deleted"
   | "message.mentioned"
   | "points.awarded"
   | "member.banned"
@@ -334,7 +377,9 @@ export type EventName =
   | "notification.read"
   | "conversation.created"
   | "conversation.member_added"
-  | "conversation.member_left";
+  | "conversation.member_left"
+  | "reaction.added"
+  | "reaction.removed";
 
 // --- Event Map ---
 
@@ -346,6 +391,8 @@ export interface EventMap {
   "post.reacted": PostReactedEvent;
   "post.commented": PostCommentedEvent;
   "message.sent": MessageSentEvent;
+  "message.edited": MessageEditedEvent;
+  "message.deleted": MessageDeletedEvent;
   "message.mentioned": MessageMentionedEvent;
   "points.awarded": PointsAwardedEvent;
   "member.banned": MemberBannedEvent;
@@ -386,4 +433,6 @@ export interface EventMap {
   "conversation.created": ConversationCreatedEvent;
   "conversation.member_added": ConversationMemberAddedEvent;
   "conversation.member_left": ConversationMemberLeftEvent;
+  "reaction.added": ReactionAddedEvent;
+  "reaction.removed": ReactionRemovedEvent;
 }

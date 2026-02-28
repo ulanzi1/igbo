@@ -4,6 +4,8 @@ import { ApiError } from "@/lib/api-error";
 import { requireAuthenticatedSession } from "@/services/permissions";
 import { confirmUpload } from "@/services/file-upload-service";
 import { z } from "zod/v4";
+// Side-effect: registers the file-processing job so runJob("file-processing") works
+import "@/server/jobs/file-processing";
 
 const confirmSchema = z.object({
   objectKey: z.string().min(1),

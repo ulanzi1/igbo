@@ -738,6 +738,66 @@
       "connected": "Connected",
       "disconnected": "Disconnected",
       "reconnecting": "Reconnecting..."
+    },
+    "richText": {
+      "bold": "Bold",
+      "italic": "Italic",
+      "strikethrough": "Strikethrough",
+      "code": "Code",
+      "link": "Link",
+      "toggleToolbar": "Toggle formatting toolbar",
+      "boldPlaceholder": "bold text",
+      "italicPlaceholder": "italic text",
+      "strikethroughPlaceholder": "strikethrough text",
+      "codePlaceholder": "code",
+      "linkPlaceholder": "link text"
+    },
+    "attachments": {
+      "attach": "Attach file",
+      "uploading": "Uploading",
+      "uploadFailed": "Upload failed",
+      "fileTooLarge": "File is too large",
+      "unsupportedType": "File type not supported",
+      "download": "Download file",
+      "imagePreview": "Image preview",
+      "attachmentCount": "{count} attachments",
+      "closeLightbox": "Close image preview",
+      "removeFile": "Remove {name}"
+    },
+    "reactions": {
+      "react": "Add reaction",
+      "removeReaction": "Remove reaction",
+      "reactionCount": "{count} reactions",
+      "reactedBy": "Reacted by {names}"
+    },
+    "actions": {
+      "edit": "Edit",
+      "delete": "Delete",
+      "reply": "Reply",
+      "cancel": "Cancel"
+    },
+    "editMessage": {
+      "save": "Save",
+      "cancel": "Cancel",
+      "characterCount": "{count}/4000",
+      "editFailed": "Failed to save. Please try again."
+    },
+    "deleteMessage": {
+      "confirmTitle": "Delete message?",
+      "confirm": "This will be permanently deleted for everyone and cannot be undone.",
+      "confirmButton": "Delete",
+      "cancelButton": "Cancel",
+      "deleteFailed": "Failed to delete. Please try again."
+    },
+    "reply": {
+      "replyingTo": "Replying to {name}",
+      "inReplyTo": "In reply to {name}",
+      "deletedParent": "[deleted message]",
+      "originalMessage": "Original message",
+      "dismissReply": "Dismiss reply"
+    },
+    "mentions": {
+      "noResults": "No members found"
     }
   }
 }
