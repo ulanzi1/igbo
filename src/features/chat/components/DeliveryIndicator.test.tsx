@@ -32,4 +32,11 @@ describe("DeliveryIndicator", () => {
     render(<DeliveryIndicator status="error" />);
     expect(screen.getByLabelText("failedToSend")).toBeInTheDocument();
   });
+
+  it("renders double tick in text-blue-500 class for read status", () => {
+    const { container } = render(<DeliveryIndicator status="read" />);
+    expect(screen.getByLabelText("read")).toBeInTheDocument();
+    expect(screen.getByText("✓✓")).toBeInTheDocument();
+    expect(container.querySelector(".text-blue-500")).toBeTruthy();
+  });
 });

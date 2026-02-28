@@ -1,7 +1,23 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, act } from "@testing-library/react";
 import React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
+// Mutable socket context — allows per-test socket injection
+const mockSocketCtx = vi.hoisted(() => ({
+  chatSocket: null as {
+    on: ReturnType<typeof vi.fn>;
+    off: ReturnType<typeof vi.fn>;
+    emit: ReturnType<typeof vi.fn>;
+    connected: boolean;
+  } | null,
+  notificationsSocket: null as {
+    on: ReturnType<typeof vi.fn>;
+    off: ReturnType<typeof vi.fn>;
+    emit: ReturnType<typeof vi.fn>;
+  } | null,
+  isConnected: false as boolean,
+}));
 
 vi.mock("next-intl", () => ({
   useTranslations: () => (key: string) => key,
@@ -12,11 +28,7 @@ vi.mock("next-auth/react", () => ({
 }));
 
 vi.mock("@/providers/SocketProvider", () => ({
-  useSocketContext: () => ({
-    chatSocket: null,
-    notificationsSocket: null,
-    isConnected: false,
-  }),
+  useSocketContext: () => mockSocketCtx,
 }));
 
 const mockEditMessage = vi.fn().mockResolvedValue({ success: true });
@@ -182,6 +194,10 @@ function makeWrapper() {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  // Reset socket context to no-socket defaults
+  mockSocketCtx.chatSocket = null;
+  mockSocketCtx.notificationsSocket = null;
+  mockSocketCtx.isConnected = false;
   // Re-mock scrollIntoView after clearAllMocks
   window.HTMLElement.prototype.scrollIntoView = vi.fn();
   (global.fetch as ReturnType<typeof vi.fn>).mockImplementation(
@@ -296,5 +312,260 @@ describe("ChatWindow", () => {
     await waitFor(() => {
       expect(mockDeleteMessage).toHaveBeenCalledWith("msg-1", "conv-1");
     });
+  });
+});
+
+describe("ChatWindow — socket events (Story 2.6)", () => {
+  function makeLiveChatSocket() {
+    return { on: vi.fn(), off: vi.fn(), emit: vi.fn(), connected: true };
+  }
+
+  function makeLiveNotificationsSocket() {
+    return { on: vi.fn(), off: vi.fn(), emit: vi.fn() };
+  }
+
+  it("emits message:read via chatSocket on mount when socket is connected", async () => {
+    const chatSocket = makeLiveChatSocket();
+    mockSocketCtx.chatSocket = chatSocket;
+    mockSocketCtx.isConnected = true;
+
+    render(<ChatWindow conversationId="conv-1" />, { wrapper: makeWrapper() });
+
+    await waitFor(() => {
+      expect(chatSocket.emit).toHaveBeenCalledWith("message:read", { conversationId: "conv-1" });
+    });
+  });
+
+  it("does NOT emit message:read via socket on mount when socket is disconnected", async () => {
+    const chatSocket = { on: vi.fn(), off: vi.fn(), emit: vi.fn(), connected: false };
+    mockSocketCtx.chatSocket = chatSocket;
+
+    render(<ChatWindow conversationId="conv-1" />, { wrapper: makeWrapper() });
+
+    // Wait for REST PATCH to fire (proves mount effect ran)
+    await waitFor(() => {
+      const calls = (global.fetch as ReturnType<typeof vi.fn>).mock.calls;
+      expect(calls.some((c: unknown[]) => String(c[0]).includes("/conversations/conv-1"))).toBe(
+        true,
+      );
+    });
+
+    const emitCalls = chatSocket.emit.mock.calls as unknown[][];
+    expect(emitCalls.some((c) => c[0] === "message:read")).toBe(false);
+  });
+
+  it("emits message:delivered when message:new arrives from another user", async () => {
+    const chatSocket = makeLiveChatSocket();
+    mockSocketCtx.chatSocket = chatSocket;
+
+    render(<ChatWindow conversationId="conv-1" />, { wrapper: makeWrapper() });
+
+    // Find the message:new handler registered by ChatWindow
+    await waitFor(() => {
+      expect(chatSocket.on).toHaveBeenCalledWith("message:new", expect.any(Function));
+    });
+
+    const newHandler = (chatSocket.on.mock.calls as unknown[][]).find(
+      (c) => c[0] === "message:new",
+    )![1] as (msg: unknown) => void;
+
+    act(() => {
+      newHandler({
+        messageId: "incoming-msg",
+        conversationId: "conv-1",
+        senderId: "user-2", // not the current user (user-1)
+        content: "Hey!",
+        contentType: "text",
+        createdAt: new Date().toISOString(),
+        attachments: [],
+        reactions: [],
+      });
+    });
+
+    expect(chatSocket.emit).toHaveBeenCalledWith("message:delivered", {
+      messageId: "incoming-msg",
+      conversationId: "conv-1",
+    });
+  });
+
+  it("does NOT emit message:delivered for message:new from the current user", async () => {
+    const chatSocket = makeLiveChatSocket();
+    mockSocketCtx.chatSocket = chatSocket;
+
+    render(<ChatWindow conversationId="conv-1" />, { wrapper: makeWrapper() });
+
+    await waitFor(() => {
+      expect(chatSocket.on).toHaveBeenCalledWith("message:new", expect.any(Function));
+    });
+
+    const newHandler = (chatSocket.on.mock.calls as unknown[][]).find(
+      (c) => c[0] === "message:new",
+    )![1] as (msg: unknown) => void;
+
+    act(() => {
+      newHandler({
+        messageId: "own-msg",
+        conversationId: "conv-1",
+        senderId: "user-1", // current user
+        content: "My own message echo",
+        contentType: "text",
+        createdAt: new Date().toISOString(),
+        attachments: [],
+        reactions: [],
+      });
+    });
+
+    expect(chatSocket.emit).not.toHaveBeenCalledWith(
+      "message:delivered",
+      expect.objectContaining({ messageId: "own-msg" }),
+    );
+  });
+
+  it("emits presence:subscribe with other member IDs after conversation data loads", async () => {
+    const notificationsSocket = makeLiveNotificationsSocket();
+    mockSocketCtx.notificationsSocket = notificationsSocket;
+
+    render(<ChatWindow conversationId="conv-1" />, { wrapper: makeWrapper() });
+
+    await waitFor(() => {
+      expect(notificationsSocket.emit).toHaveBeenCalledWith("presence:subscribe", {
+        userIds: ["user-2"],
+      });
+    });
+  });
+
+  it("emits presence:unsubscribe on unmount", async () => {
+    const notificationsSocket = makeLiveNotificationsSocket();
+    mockSocketCtx.notificationsSocket = notificationsSocket;
+
+    const { unmount } = render(<ChatWindow conversationId="conv-1" />, {
+      wrapper: makeWrapper(),
+    });
+
+    // Wait for presence:subscribe to have been called first
+    await waitFor(() => {
+      expect(notificationsSocket.emit).toHaveBeenCalledWith(
+        "presence:subscribe",
+        expect.any(Object),
+      );
+    });
+
+    unmount();
+
+    expect(notificationsSocket.emit).toHaveBeenCalledWith("presence:unsubscribe", {
+      userIds: ["user-2"],
+    });
+  });
+
+  it("message:delivered socket event updates state (handler does not throw)", async () => {
+    const chatSocket = makeLiveChatSocket();
+    mockSocketCtx.chatSocket = chatSocket;
+
+    render(<ChatWindow conversationId="conv-1" />, { wrapper: makeWrapper() });
+
+    await waitFor(() => {
+      expect(chatSocket.on).toHaveBeenCalledWith("message:delivered", expect.any(Function));
+    });
+
+    const deliveredHandler = (chatSocket.on.mock.calls as unknown[][]).find(
+      (c) => c[0] === "message:delivered",
+    )![1] as (payload: unknown) => void;
+
+    // Should not throw when called with valid payload
+    expect(() => {
+      act(() => {
+        deliveredHandler({
+          messageId: "msg-1",
+          conversationId: "conv-1",
+          deliveredBy: "user-2",
+        });
+      });
+    }).not.toThrow();
+
+    // Verify handler was registered and ignores events for other conversations
+    expect(() => {
+      act(() => {
+        deliveredHandler({
+          messageId: "msg-other",
+          conversationId: "conv-other",
+          deliveredBy: "user-3",
+        });
+      });
+    }).not.toThrow();
+  });
+
+  it("message:read socket event updates state and invalidates conversations query", async () => {
+    const chatSocket = makeLiveChatSocket();
+    mockSocketCtx.chatSocket = chatSocket;
+
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
+
+    function Wrapper({ children }: { children: React.ReactNode }) {
+      return React.createElement(QueryClientProvider, { client: queryClient }, children);
+    }
+
+    render(<ChatWindow conversationId="conv-1" />, { wrapper: Wrapper });
+
+    await waitFor(() => {
+      expect(chatSocket.on).toHaveBeenCalledWith("message:read", expect.any(Function));
+    });
+
+    const readHandler = (chatSocket.on.mock.calls as unknown[][]).find(
+      (c) => c[0] === "message:read",
+    )![1] as (payload: unknown) => void;
+
+    act(() => {
+      readHandler({
+        conversationId: "conv-1",
+        readerId: "user-2",
+        lastReadAt: new Date().toISOString(),
+      });
+    });
+
+    // Verify conversations query was invalidated (for unread count update in sidebar)
+    await waitFor(() => {
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["conversations"] });
+    });
+
+    invalidateSpy.mockRestore();
+  });
+
+  it("message:read handler ignores events for other conversations", async () => {
+    const chatSocket = makeLiveChatSocket();
+    mockSocketCtx.chatSocket = chatSocket;
+
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
+
+    function Wrapper({ children }: { children: React.ReactNode }) {
+      return React.createElement(QueryClientProvider, { client: queryClient }, children);
+    }
+
+    render(<ChatWindow conversationId="conv-1" />, { wrapper: Wrapper });
+
+    await waitFor(() => {
+      expect(chatSocket.on).toHaveBeenCalledWith("message:read", expect.any(Function));
+    });
+
+    const readHandler = (chatSocket.on.mock.calls as unknown[][]).find(
+      (c) => c[0] === "message:read",
+    )![1] as (payload: unknown) => void;
+
+    // Clear calls from mount effects (mark-as-read PATCH) before testing handler isolation
+    invalidateSpy.mockClear();
+
+    act(() => {
+      readHandler({
+        conversationId: "conv-other", // different conversation
+        readerId: "user-2",
+        lastReadAt: new Date().toISOString(),
+      });
+    });
+
+    // Should NOT invalidate for a different conversation
+    expect(invalidateSpy).not.toHaveBeenCalledWith({ queryKey: ["conversations"] });
+
+    invalidateSpy.mockRestore();
   });
 });

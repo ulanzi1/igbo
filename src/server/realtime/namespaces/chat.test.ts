@@ -6,6 +6,8 @@ vi.mock("@/config/realtime", () => ({
   ROOM_USER: (id: string) => `user:${id}`,
   ROOM_CONVERSATION: (id: string) => `conversation:${id}`,
   CHAT_REPLAY_WINDOW_MS: 86_400_000, // 24h
+  REDIS_TYPING_KEY: (convId: string, userId: string) => `typing:${convId}:${userId}`,
+  TYPING_EXPIRE_SECONDS: 5,
 }));
 
 // ── DB query mocks ──────────────────────────────────────────────────────────
@@ -17,10 +19,13 @@ const mockGetUsersWhoBlocked = vi.hoisted(() => vi.fn());
 const mockGetAttachmentsForMessages = vi.hoisted(() => vi.fn());
 const mockGetReactionsForMessages = vi.hoisted(() => vi.fn());
 
+const mockMarkConversationRead = vi.hoisted(() => vi.fn());
+
 vi.mock("@/db/queries/chat-conversations", () => ({
   getUserConversationIds: (...args: unknown[]) => mockGetUserConversationIds(...args),
   isConversationMember: (...args: unknown[]) => mockIsConversationMember(...args),
   getConversationMembers: (...args: unknown[]) => mockGetConversationMembers(...args),
+  markConversationRead: (...args: unknown[]) => mockMarkConversationRead(...args),
 }));
 
 vi.mock("@/db/queries/chat-messages", () => ({
@@ -60,10 +65,18 @@ vi.mock("@/db/queries/file-uploads", () => ({
 
 import { setupChatNamespace } from "./chat";
 import type { Namespace, Socket } from "socket.io";
+import type Redis from "ioredis";
 
 const USER_ID = "00000000-0000-4000-8000-000000000001";
 const CONV_ID = "00000000-0000-4000-8000-000000000002";
 const MSG_ID = "00000000-0000-4000-8000-000000000003";
+
+// Mock Redis passed to setupChatNamespace
+const mockRedis = {
+  set: vi.fn().mockResolvedValue("OK"),
+  del: vi.fn().mockResolvedValue(1),
+  exists: vi.fn().mockResolvedValue(0),
+} as unknown as Redis;
 
 const mockMessage = {
   id: MSG_ID,
@@ -139,13 +152,16 @@ beforeEach(() => {
   mockGetMessagesSince.mockResolvedValue([]);
   mockGetAttachmentsForMessages.mockResolvedValue([]);
   mockGetReactionsForMessages.mockResolvedValue([]);
+  mockMarkConversationRead.mockResolvedValue(undefined);
+  (mockRedis.set as ReturnType<typeof vi.fn>).mockResolvedValue("OK");
+  (mockRedis.del as ReturnType<typeof vi.fn>).mockResolvedValue(1);
 });
 
 describe("setupChatNamespace", () => {
   it("registers a connection handler", () => {
     const { socket } = makeSocket();
     const { ns, connectionCallbacks } = makeNamespace(socket);
-    setupChatNamespace(ns);
+    setupChatNamespace(ns, mockRedis);
     expect(ns.on).toHaveBeenCalledWith("connection", expect.any(Function));
     expect(connectionCallbacks).toHaveLength(1);
   });
@@ -153,7 +169,7 @@ describe("setupChatNamespace", () => {
   it("auto-joins conversation rooms on connect", async () => {
     const { socket } = makeSocket();
     const { ns, connectionCallbacks } = makeNamespace(socket);
-    setupChatNamespace(ns);
+    setupChatNamespace(ns, mockRedis);
     await connectionCallbacks[0]!(socket);
 
     await vi.waitFor(() => {
@@ -164,7 +180,7 @@ describe("setupChatNamespace", () => {
   it("emits conversation:joined after auto-join", async () => {
     const { socket } = makeSocket();
     const { ns, connectionCallbacks } = makeNamespace(socket);
-    setupChatNamespace(ns);
+    setupChatNamespace(ns, mockRedis);
     await connectionCallbacks[0]!(socket);
 
     await vi.waitFor(() => {
@@ -175,10 +191,10 @@ describe("setupChatNamespace", () => {
     });
   });
 
-  it("registers message:send, message:delivered, sync:request, message:edit, message:delete handlers", async () => {
+  it("registers message:send, message:delivered, sync:request, message:edit, message:delete, typing:start, typing:stop, message:read handlers", async () => {
     const { socket, events } = makeSocket();
     const { ns, connectionCallbacks } = makeNamespace(socket);
-    setupChatNamespace(ns);
+    setupChatNamespace(ns, mockRedis);
     await connectionCallbacks[0]!(socket);
 
     expect(events["message:send"]).toBeDefined();
@@ -186,6 +202,9 @@ describe("setupChatNamespace", () => {
     expect(events["sync:request"]).toBeDefined();
     expect(events["message:edit"]).toBeDefined();
     expect(events["message:delete"]).toBeDefined();
+    expect(events["typing:start"]).toBeDefined();
+    expect(events["typing:stop"]).toBeDefined();
+    expect(events["message:read"]).toBeDefined();
   });
 });
 
@@ -193,7 +212,7 @@ describe("message:send handler", () => {
   async function triggerConnect(userId = USER_ID) {
     const { socket, events } = makeSocket(userId);
     const { ns, connectionCallbacks } = makeNamespace(socket);
-    setupChatNamespace(ns);
+    setupChatNamespace(ns, mockRedis);
     await connectionCallbacks[0]!(socket);
     return { socket, events, ns };
   }
@@ -370,24 +389,11 @@ describe("message:send handler", () => {
   });
 });
 
-describe("message:delivered handler", () => {
-  it("acknowledges delivery (Phase 1 no-op)", async () => {
-    const { socket, events } = makeSocket();
-    const { ns, connectionCallbacks } = makeNamespace(socket);
-    setupChatNamespace(ns);
-    await connectionCallbacks[0]!(socket);
-
-    const ack = vi.fn();
-    await events["message:delivered"]![0]!({ messageId: MSG_ID }, ack);
-    expect(ack).toHaveBeenCalledWith({ ok: true });
-  });
-});
-
 describe("sync:request handler", () => {
   it("emits sync:full_refresh when no lastReceivedAt", async () => {
     const { socket, events } = makeSocket();
     const { ns, connectionCallbacks } = makeNamespace(socket);
-    setupChatNamespace(ns);
+    setupChatNamespace(ns, mockRedis);
     await connectionCallbacks[0]!(socket);
 
     await events["sync:request"]![0]!({});
@@ -400,7 +406,7 @@ describe("sync:request handler", () => {
   it("emits sync:full_refresh when gap exceeds 24h", async () => {
     const { socket, events } = makeSocket();
     const { ns, connectionCallbacks } = makeNamespace(socket);
-    setupChatNamespace(ns);
+    setupChatNamespace(ns, mockRedis);
     await connectionCallbacks[0]!(socket);
 
     const oldTs = new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString();
@@ -418,7 +424,7 @@ describe("sync:request handler", () => {
 
     const { socket, events } = makeSocket();
     const { ns, connectionCallbacks } = makeNamespace(socket);
-    setupChatNamespace(ns);
+    setupChatNamespace(ns, mockRedis);
     await connectionCallbacks[0]!(socket);
 
     await events["sync:request"]![0]!({ lastReceivedAt: recentTs.toISOString() });
@@ -460,7 +466,7 @@ describe("sync:request handler", () => {
 
     const { socket, events } = makeSocket();
     const { ns, connectionCallbacks } = makeNamespace(socket);
-    setupChatNamespace(ns);
+    setupChatNamespace(ns, mockRedis);
     await connectionCallbacks[0]!(socket);
 
     await events["sync:request"]![0]!({ lastReceivedAt: recentTs.toISOString() });
@@ -490,7 +496,7 @@ describe("sync:request handler", () => {
   it("emits sync:full_refresh when invalid timestamp provided", async () => {
     const { socket, events } = makeSocket();
     const { ns, connectionCallbacks } = makeNamespace(socket);
-    setupChatNamespace(ns);
+    setupChatNamespace(ns, mockRedis);
     await connectionCallbacks[0]!(socket);
 
     await events["sync:request"]![0]!({ lastReceivedAt: "not-a-date" });
@@ -506,7 +512,7 @@ describe("sync:request handler", () => {
 
     const { socket, events } = makeSocket();
     const { ns, connectionCallbacks } = makeNamespace(socket);
-    setupChatNamespace(ns);
+    setupChatNamespace(ns, mockRedis);
     await connectionCallbacks[0]!(socket);
 
     await events["sync:request"]![0]!({ lastReceivedAt: recentTs });
@@ -521,7 +527,7 @@ describe("message:edit handler", () => {
   async function triggerConnect(userId = USER_ID) {
     const { socket, events } = makeSocket(userId);
     const { ns, connectionCallbacks } = makeNamespace(socket);
-    setupChatNamespace(ns);
+    setupChatNamespace(ns, mockRedis);
     await connectionCallbacks[0]!(socket);
     return { socket, events, ns };
   }
@@ -649,7 +655,7 @@ describe("message:delete handler", () => {
   async function triggerConnect(userId = USER_ID) {
     const { socket, events } = makeSocket(userId);
     const { ns, connectionCallbacks } = makeNamespace(socket);
-    setupChatNamespace(ns);
+    setupChatNamespace(ns, mockRedis);
     await connectionCallbacks[0]!(socket);
     return { socket, events, ns };
   }
@@ -729,5 +735,245 @@ describe("message:delete handler", () => {
     await events["message:delete"]![0]!({ conversationId: CONV_ID, messageId: MSG_ID }, ack);
 
     expect(ack).toHaveBeenCalledWith(expect.objectContaining({ error: expect.any(String) }));
+  });
+});
+
+describe("typing:start handler", () => {
+  function makeSocketWithTo(userId: string = USER_ID) {
+    const events: Record<string, ((...args: unknown[]) => void)[]> = {};
+    const toEmit = vi.fn();
+    const toChain = { emit: toEmit };
+    const socket = {
+      data: { userId },
+      join: vi.fn().mockResolvedValue(undefined),
+      emit: vi.fn(),
+      to: vi.fn().mockReturnValue(toChain),
+      on: vi.fn((event: string, cb: (...args: unknown[]) => void) => {
+        events[event] = events[event] ?? [];
+        events[event]!.push(cb);
+      }),
+    } as unknown as Socket;
+    return { socket, events, toEmit };
+  }
+
+  async function triggerConnect(userId = USER_ID) {
+    const { socket, events, toEmit } = makeSocketWithTo(userId);
+    const { ns, connectionCallbacks } = makeNamespace(socket);
+    setupChatNamespace(ns, mockRedis);
+    await connectionCallbacks[0]!(socket);
+    return { socket, events, ns, toEmit };
+  }
+
+  it("stores typing state in Redis and broadcasts to room", async () => {
+    const { events, toEmit } = await triggerConnect();
+    const ack = vi.fn();
+
+    await events["typing:start"]![0]!({ conversationId: CONV_ID }, ack);
+
+    expect(mockRedis.set).toHaveBeenCalledWith(`typing:${CONV_ID}:${USER_ID}`, "1", "EX", 5);
+    expect(toEmit).toHaveBeenCalledWith(
+      "typing:start",
+      expect.objectContaining({ userId: USER_ID, conversationId: CONV_ID }),
+    );
+    expect(ack).toHaveBeenCalledWith({ ok: true });
+  });
+
+  it("returns error for invalid conversationId", async () => {
+    const { events } = await triggerConnect();
+    const ack = vi.fn();
+
+    await events["typing:start"]![0]!({ conversationId: "" }, ack);
+
+    expect(ack).toHaveBeenCalledWith(expect.objectContaining({ error: expect.any(String) }));
+    expect(mockRedis.set).not.toHaveBeenCalledWith(
+      expect.stringContaining("typing:"),
+      "1",
+      "EX",
+      5,
+    );
+  });
+
+  it("returns error when user is not a member", async () => {
+    mockIsConversationMember.mockResolvedValue(false);
+    const { events } = await triggerConnect();
+    const ack = vi.fn();
+
+    await events["typing:start"]![0]!({ conversationId: CONV_ID }, ack);
+
+    expect(ack).toHaveBeenCalledWith(expect.objectContaining({ error: "Not a member" }));
+  });
+});
+
+describe("typing:stop handler", () => {
+  function makeSocketWithTo(userId: string = USER_ID) {
+    const events: Record<string, ((...args: unknown[]) => void)[]> = {};
+    const toEmit = vi.fn();
+    const toChain = { emit: toEmit };
+    const socket = {
+      data: { userId },
+      join: vi.fn().mockResolvedValue(undefined),
+      emit: vi.fn(),
+      to: vi.fn().mockReturnValue(toChain),
+      on: vi.fn((event: string, cb: (...args: unknown[]) => void) => {
+        events[event] = events[event] ?? [];
+        events[event]!.push(cb);
+      }),
+    } as unknown as Socket;
+    return { socket, events, toEmit };
+  }
+
+  async function triggerConnect(userId = USER_ID) {
+    const { socket, events, toEmit } = makeSocketWithTo(userId);
+    const { ns, connectionCallbacks } = makeNamespace(socket);
+    setupChatNamespace(ns, mockRedis);
+    await connectionCallbacks[0]!(socket);
+    return { socket, events, ns, toEmit };
+  }
+
+  it("deletes Redis key and broadcasts to room", async () => {
+    const { events, toEmit } = await triggerConnect();
+
+    await events["typing:stop"]![0]!({ conversationId: CONV_ID });
+
+    expect(mockRedis.del).toHaveBeenCalledWith(`typing:${CONV_ID}:${USER_ID}`);
+    expect(toEmit).toHaveBeenCalledWith(
+      "typing:stop",
+      expect.objectContaining({ userId: USER_ID, conversationId: CONV_ID }),
+    );
+  });
+
+  it("ignores invalid conversationId", async () => {
+    const { events } = await triggerConnect();
+
+    // Should not throw
+    await events["typing:stop"]![0]!({ conversationId: "" });
+
+    expect(mockRedis.del).not.toHaveBeenCalledWith(expect.stringContaining("typing:"));
+  });
+
+  it("rejects non-member (does not delete Redis key or broadcast)", async () => {
+    mockIsConversationMember.mockResolvedValueOnce(false);
+    const { events, toEmit } = await triggerConnect();
+
+    await events["typing:stop"]![0]!({ conversationId: CONV_ID });
+
+    expect(mockRedis.del).not.toHaveBeenCalled();
+    expect(toEmit).not.toHaveBeenCalled();
+  });
+});
+
+describe("message:delivered handler (Story 2.6 — real implementation)", () => {
+  function makeSocketWithTo(userId: string = USER_ID) {
+    const events: Record<string, ((...args: unknown[]) => void)[]> = {};
+    const toEmit = vi.fn();
+    const toChain = { emit: toEmit };
+    const socket = {
+      data: { userId },
+      join: vi.fn().mockResolvedValue(undefined),
+      emit: vi.fn(),
+      to: vi.fn().mockReturnValue(toChain),
+      on: vi.fn((event: string, cb: (...args: unknown[]) => void) => {
+        events[event] = events[event] ?? [];
+        events[event]!.push(cb);
+      }),
+    } as unknown as Socket;
+    return { socket, events, toEmit };
+  }
+
+  async function triggerConnect(userId = USER_ID) {
+    const { socket, events, toEmit } = makeSocketWithTo(userId);
+    const { ns, connectionCallbacks } = makeNamespace(socket);
+    setupChatNamespace(ns, mockRedis);
+    await connectionCallbacks[0]!(socket);
+    return { socket, events, ns, toEmit };
+  }
+
+  it("stores delivery in Redis and broadcasts to room", async () => {
+    const { events, toEmit } = await triggerConnect();
+    const ack = vi.fn();
+
+    await events["message:delivered"]![0]!({ messageId: MSG_ID, conversationId: CONV_ID }, ack);
+
+    expect(mockRedis.set).toHaveBeenCalledWith(`delivered:${MSG_ID}:${USER_ID}`, "1", "EX", 86_400);
+    expect(toEmit).toHaveBeenCalledWith(
+      "message:delivered",
+      expect.objectContaining({ messageId: MSG_ID, deliveredBy: USER_ID }),
+    );
+    expect(ack).toHaveBeenCalledWith({ ok: true });
+  });
+
+  it("returns error for missing payload fields", async () => {
+    const { events } = await triggerConnect();
+    const ack = vi.fn();
+
+    await events["message:delivered"]![0]!({ messageId: "", conversationId: "" }, ack);
+
+    expect(ack).toHaveBeenCalledWith(expect.objectContaining({ error: expect.any(String) }));
+  });
+
+  it("returns error for non-string messageId or conversationId", async () => {
+    const { events } = await triggerConnect();
+    const ack = vi.fn();
+
+    await events["message:delivered"]![0]!({ messageId: 123, conversationId: CONV_ID }, ack);
+
+    expect(ack).toHaveBeenCalledWith(expect.objectContaining({ error: "Invalid payload" }));
+    expect(mockRedis.set).not.toHaveBeenCalled();
+  });
+
+  it("returns error when user is not a member", async () => {
+    mockIsConversationMember.mockResolvedValue(false);
+    const { events } = await triggerConnect();
+    const ack = vi.fn();
+
+    await events["message:delivered"]![0]!({ messageId: MSG_ID, conversationId: CONV_ID }, ack);
+
+    expect(ack).toHaveBeenCalledWith(expect.objectContaining({ error: "Not a member" }));
+  });
+});
+
+describe("message:read handler", () => {
+  async function triggerConnect(userId = USER_ID) {
+    const { socket, events } = makeSocket(userId);
+    const { ns, connectionCallbacks } = makeNamespace(socket);
+    setupChatNamespace(ns, mockRedis);
+    await connectionCallbacks[0]!(socket);
+    return { socket, events, ns };
+  }
+
+  it("calls markConversationRead and broadcasts to room", async () => {
+    const { events, ns } = await triggerConnect();
+    const ack = vi.fn();
+
+    await events["message:read"]![0]!({ conversationId: CONV_ID }, ack);
+
+    expect(mockMarkConversationRead).toHaveBeenCalledWith(CONV_ID, USER_ID);
+    const nsMock = ns as unknown as { emit: ReturnType<typeof vi.fn> };
+    expect(nsMock.emit).toHaveBeenCalledWith(
+      "message:read",
+      expect.objectContaining({ conversationId: CONV_ID, readerId: USER_ID }),
+    );
+    expect(ack).toHaveBeenCalledWith({ ok: true });
+  });
+
+  it("returns error for invalid conversationId", async () => {
+    const { events } = await triggerConnect();
+    const ack = vi.fn();
+
+    await events["message:read"]![0]!({ conversationId: "" }, ack);
+
+    expect(ack).toHaveBeenCalledWith(expect.objectContaining({ error: expect.any(String) }));
+    expect(mockMarkConversationRead).not.toHaveBeenCalled();
+  });
+
+  it("returns error when user is not a member", async () => {
+    mockIsConversationMember.mockResolvedValue(false);
+    const { events } = await triggerConnect();
+    const ack = vi.fn();
+
+    await events["message:read"]![0]!({ conversationId: CONV_ID }, ack);
+
+    expect(ack).toHaveBeenCalledWith(expect.objectContaining({ error: "Not a member" }));
+    expect(mockMarkConversationRead).not.toHaveBeenCalled();
   });
 });

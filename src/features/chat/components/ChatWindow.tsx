@@ -6,11 +6,14 @@ import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-quer
 import { ArrowLeftIcon, InfoIcon } from "lucide-react";
 import { useChat } from "@/features/chat/hooks/use-chat";
 import { useNotificationSound } from "@/features/chat/hooks/use-notification-sound";
+import { useTypingIndicator } from "@/features/chat/hooks/use-typing-indicator";
+import { usePresence } from "@/hooks/use-presence";
 import { useSocketContext } from "@/providers/SocketProvider";
 import { useRouter } from "@/i18n/navigation";
 import { MessageBubble } from "./MessageBubble";
 import { ChatWindowSkeleton } from "./ChatWindowSkeleton";
 import { MessageInput } from "./MessageInput";
+import { TypingIndicator } from "./TypingIndicator";
 import { GroupAvatarStack } from "./GroupAvatarStack";
 import { GroupInfoPanel } from "./GroupInfoPanel";
 import {
@@ -25,6 +28,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import type { ChatMessage, LocalChatMessage } from "@/features/chat/types";
+import type { DeliveryStatus } from "./DeliveryIndicator";
 import { useSession } from "next-auth/react";
 
 interface MessagesPage {
@@ -45,6 +49,8 @@ interface ConversationData {
     otherMember?: ConversationMember;
     members?: ConversationMember[];
     memberCount?: number;
+    /** userId → ISO timestamp — populated from DB on load so read status survives refresh */
+    memberLastReadAt?: Record<string, string>;
   };
 }
 
@@ -92,13 +98,19 @@ export function ChatWindow({ conversationId }: ChatWindowProps) {
   const tDeleteMessage = useTranslations("Chat.deleteMessage");
   const tEditMessage = useTranslations("Chat.editMessage");
   const queryClient = useQueryClient();
-  const { chatSocket, isConnected } = useSocketContext();
+  const { chatSocket, notificationsSocket, isConnected } = useSocketContext();
   const { data: session } = useSession();
   const currentUserId = session?.user?.id;
   const { playChime } = useNotificationSound();
+  const { isOnline } = usePresence();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [localMessages, setLocalMessages] = useState<LocalChatMessage[]>([]);
+  const [memberReadAt, setMemberReadAt] = useState<Record<string, string>>({});
+  const [deliveredMessageIds, setDeliveredMessageIds] = useState<Set<string>>(new Set());
   const router = useRouter();
+
+  // Typing indicator
+  const { typingUserIds } = useTypingIndicator(conversationId);
 
   // Edit / delete / reply state (owned by ChatWindow per story architecture)
   const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
@@ -123,6 +135,23 @@ export function ChatWindow({ conversationId }: ChatWindowProps) {
   const otherMember = conversationData?.otherMember;
   const groupMembers = conversationData?.members ?? [];
   const memberCount = conversationData?.memberCount ?? groupMembers.length;
+
+  // Seed memberReadAt from API data so read receipts survive page refresh
+  useEffect(() => {
+    const apiReadAt = conversationData?.memberLastReadAt;
+    if (!apiReadAt || Object.keys(apiReadAt).length === 0) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMemberReadAt((prev) => {
+      const merged: Record<string, string> = { ...prev };
+      for (const [uid, readAt] of Object.entries(apiReadAt)) {
+        const existing = merged[uid];
+        if (!existing || new Date(readAt) > new Date(existing)) {
+          merged[uid] = readAt;
+        }
+      }
+      return merged;
+    });
+  }, [conversationData?.memberLastReadAt]);
 
   // Build a memberDisplayNameMap from conversation data
   const memberDisplayNameMap: Record<string, string> = {};
@@ -210,7 +239,29 @@ export function ChatWindow({ conversationId }: ChatWindowProps) {
 
       if (msg.senderId !== currentUserId) {
         playChime();
+        // Emit delivered receipt to sender
+        chatSocket?.emit("message:delivered", { messageId: msg.messageId, conversationId });
       }
+    }
+
+    function handleMessageDelivered(payload: {
+      messageId: string;
+      conversationId: string;
+      deliveredBy: string;
+    }) {
+      if (payload.conversationId !== conversationId) return;
+      setDeliveredMessageIds((prev) => new Set(prev).add(payload.messageId));
+    }
+
+    function handleMessageRead(payload: {
+      conversationId: string;
+      readerId: string;
+      lastReadAt: string;
+    }) {
+      if (payload.conversationId !== conversationId) return;
+      setMemberReadAt((prev) => ({ ...prev, [payload.readerId]: payload.lastReadAt }));
+      // Invalidate conversations list so unread count updates in sidebar
+      void queryClient.invalidateQueries({ queryKey: ["conversations"] });
     }
 
     function handleMessageEdited(payload: {
@@ -255,11 +306,15 @@ export function ChatWindow({ conversationId }: ChatWindowProps) {
     chatSocket.on("message:edited", handleMessageEdited);
     chatSocket.on("message:deleted", handleMessageDeleted);
     chatSocket.on("sync:full_refresh", handleSyncFullRefresh);
+    chatSocket.on("message:delivered", handleMessageDelivered);
+    chatSocket.on("message:read", handleMessageRead);
     return () => {
       chatSocket.off("message:new", handleMessageNew);
       chatSocket.off("message:edited", handleMessageEdited);
       chatSocket.off("message:deleted", handleMessageDeleted);
       chatSocket.off("sync:full_refresh", handleSyncFullRefresh);
+      chatSocket.off("message:delivered", handleMessageDelivered);
+      chatSocket.off("message:read", handleMessageRead);
     };
   }, [chatSocket, conversationId, queryClient, currentUserId, playChime]);
 
@@ -268,13 +323,88 @@ export function ChatWindow({ conversationId }: ChatWindowProps) {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [allMessages.length]);
 
-  // Mark as read on mount
+  // Mark as read on mount — REST call (immediate, works even if socket disconnected)
   useEffect(() => {
     // eslint-disable-next-line no-restricted-syntax
-    void fetch(`/api/v1/conversations/${conversationId}`, { method: "PATCH" });
-  }, [conversationId]);
+    void fetch(`/api/v1/conversations/${conversationId}`, { method: "PATCH" }).then(() => {
+      // Immediately clear the unread badge in the sidebar after DB is updated
+      void queryClient.invalidateQueries({ queryKey: ["conversations"] });
+    });
+    // Also emit via socket for real-time delivery indicators
+    if (chatSocket?.connected) {
+      chatSocket.emit("message:read", { conversationId });
+    }
+  }, [conversationId, chatSocket, queryClient]);
 
   const { sendMessage, editMessage, deleteMessage } = useChat(conversationId);
+
+  // Typing emit throttle state
+  const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const inactivityTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isTypingRef = useRef(false);
+
+  const handleTypingStop = useCallback(() => {
+    if (!chatSocket || !conversationId) return;
+    if (!isTypingRef.current) return;
+    isTypingRef.current = false;
+    if (typingTimerRef.current) {
+      clearTimeout(typingTimerRef.current);
+      typingTimerRef.current = null;
+    }
+    if (inactivityTimerRef.current) {
+      clearTimeout(inactivityTimerRef.current);
+      inactivityTimerRef.current = null;
+    }
+    chatSocket.emit("typing:stop", { conversationId });
+  }, [chatSocket, conversationId]);
+
+  const handleTypingStart = useCallback(() => {
+    if (!chatSocket || !conversationId) return;
+
+    // Always reset the 3s inactivity timer on every keystroke
+    if (inactivityTimerRef.current) clearTimeout(inactivityTimerRef.current);
+    inactivityTimerRef.current = setTimeout(() => {
+      handleTypingStop();
+    }, 3_000);
+
+    // Throttle socket emit: only emit typing:start once per 2s
+    if (isTypingRef.current) return;
+    isTypingRef.current = true;
+    chatSocket.emit("typing:start", { conversationId });
+    // Reset throttle flag after 2s so next keystroke can re-emit
+    typingTimerRef.current = setTimeout(() => {
+      isTypingRef.current = false;
+    }, 2_000);
+  }, [chatSocket, conversationId, handleTypingStop]);
+
+  // Clean up typing timers on unmount + emit typing:stop if actively typing
+  useEffect(() => {
+    return () => {
+      if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
+      if (inactivityTimerRef.current) clearTimeout(inactivityTimerRef.current);
+      if (isTypingRef.current && chatSocket && conversationId) {
+        chatSocket.emit("typing:stop", { conversationId });
+      }
+    };
+  }, [chatSocket, conversationId]);
+
+  // Subscribe to presence for conversation members
+  useEffect(() => {
+    if (!notificationsSocket || !conversationData) return;
+    const memberIds =
+      conversationData.type === "group"
+        ? (conversationData.members ?? []).map((m) => m.id).filter((id) => id !== currentUserId)
+        : conversationData.otherMember
+          ? [conversationData.otherMember.id]
+          : [];
+
+    if (memberIds.length === 0) return;
+    notificationsSocket.emit("presence:subscribe", { userIds: memberIds });
+
+    return () => {
+      notificationsSocket.emit("presence:unsubscribe", { userIds: memberIds });
+    };
+  }, [notificationsSocket, conversationData, currentUserId]);
 
   // Optimistic edit helper — snapshot BEFORE optimistic update
   const optimisticEditMessage = useCallback(
@@ -396,6 +526,31 @@ export function ChatWindow({ conversationId }: ChatWindowProps) {
     return names.join(", ");
   }
 
+  // Compute delivery status for a message (own messages only)
+  function getDeliveryStatus(
+    message: ChatMessage,
+    memberReadAt: Record<string, string>,
+    deliveredMessageIds: Set<string>,
+  ): DeliveryStatus {
+    const msgTime = new Date(message.createdAt).getTime();
+    // Determine the IDs of all other participants (excludes self)
+    const otherMemberIds = isGroup
+      ? groupMembers.filter((m) => m.id !== currentUserId).map((m) => m.id)
+      : otherMember
+        ? [otherMember.id]
+        : [];
+    // "read" only when ALL other members have lastReadAt >= message.createdAt
+    const readByAll =
+      otherMemberIds.length > 0 &&
+      otherMemberIds.every((uid) => {
+        const readAt = memberReadAt[uid];
+        return readAt && new Date(readAt).getTime() >= msgTime;
+      });
+    if (readByAll) return "read";
+    if (deliveredMessageIds.has(message.messageId)) return "delivered";
+    return "sent";
+  }
+
   if (query.isLoading) return <ChatWindowSkeleton />;
 
   if (query.isError) {
@@ -510,6 +665,11 @@ export function ChatWindow({ conversationId }: ChatWindowProps) {
                 parentMessageCache={parentMessageCache}
                 memberDisplayNameMap={memberDisplayNameMap}
                 editingMessageId={editingMessageId}
+                deliveryStatus={
+                  isOwnMessage && !isLocal
+                    ? getDeliveryStatus(msg as ChatMessage, memberReadAt, deliveredMessageIds)
+                    : undefined
+                }
                 onReply={(m) => {
                   setParentMessageCache((prev) => new Map(prev).set(m.messageId, m));
                   setReplyTo(m);
@@ -539,12 +699,18 @@ export function ChatWindow({ conversationId }: ChatWindowProps) {
 
         {/* Message input */}
         <div className="flex flex-col">
+          <TypingIndicator
+            typingUserIds={typingUserIds}
+            memberDisplayNameMap={memberDisplayNameMap}
+          />
           <MessageInput
             onSend={handleSend}
             replyTo={replyTo}
             onClearReply={() => setReplyTo(null)}
             members={conversationMembers}
             memberDisplayNameMap={memberDisplayNameMap}
+            onTypingStart={handleTypingStart}
+            onTypingStop={handleTypingStop}
           />
         </div>
       </div>
@@ -594,6 +760,7 @@ export function ChatWindow({ conversationId }: ChatWindowProps) {
           memberCount={memberCount}
           onClose={() => setShowGroupInfo(false)}
           onLeave={() => router.push("/chat")}
+          isOnline={isOnline}
         />
       )}
     </div>

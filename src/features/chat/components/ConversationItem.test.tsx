@@ -145,3 +145,30 @@ describe("ConversationItem — group variant", () => {
     expect(screen.getByText(/\+2/)).toBeInTheDocument();
   });
 });
+
+describe("ConversationItem — online presence dot", () => {
+  const conv: ChatConversation = {
+    id: "00000000-0000-4000-8000-000000000001",
+    type: "direct",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    otherMember: { id: "user-2", displayName: "Ada Okonkwo", photoUrl: null },
+    lastMessage: null,
+    unreadCount: 0,
+  };
+
+  it("renders green dot when isOnline=true", () => {
+    render(<ConversationItem conversation={conv} isOnline={true} />);
+    expect(screen.getByRole("img", { name: "conversations.online" })).toBeInTheDocument();
+  });
+
+  it("does not render green dot when isOnline=false", () => {
+    render(<ConversationItem conversation={conv} isOnline={false} />);
+    expect(screen.queryByRole("img", { name: "conversations.online" })).not.toBeInTheDocument();
+  });
+
+  it("does not render green dot when isOnline is omitted", () => {
+    render(<ConversationItem conversation={conv} />);
+    expect(screen.queryByRole("img", { name: "conversations.online" })).not.toBeInTheDocument();
+  });
+});

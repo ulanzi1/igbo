@@ -242,4 +242,34 @@ describe("MessageInput", () => {
       undefined,
     );
   });
+
+  it("calls onTypingStart when non-empty text is typed", () => {
+    const onTypingStart = vi.fn();
+    render(<MessageInput onSend={onSend} onTypingStart={onTypingStart} />);
+    const textarea = screen.getByRole("textbox");
+    fireEvent.change(textarea, { target: { value: "H" } });
+    expect(onTypingStart).toHaveBeenCalled();
+  });
+
+  it("calls onTypingStop when input is cleared", () => {
+    const onTypingStop = vi.fn();
+    render(<MessageInput onSend={onSend} onTypingStop={onTypingStop} />);
+    const textarea = screen.getByRole("textbox");
+    fireEvent.change(textarea, { target: { value: "Hello" } });
+    fireEvent.change(textarea, { target: { value: "" } });
+    expect(onTypingStop).toHaveBeenCalled();
+  });
+
+  it("calls onTypingStop when send button is clicked", async () => {
+    const onTypingStop = vi.fn();
+    render(<MessageInput onSend={onSend} onTypingStop={onTypingStop} />);
+    const textarea = screen.getByRole("textbox");
+    fireEvent.change(textarea, { target: { value: "Sending now" } });
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "sendAriaLabel" }));
+    });
+
+    expect(onTypingStop).toHaveBeenCalled();
+  });
 });

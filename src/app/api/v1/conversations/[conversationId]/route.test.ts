@@ -5,6 +5,7 @@ const mockRequireAuthenticatedSession = vi.fn();
 const mockIsConversationMember = vi.fn();
 const mockGetConversationById = vi.fn();
 const mockMarkConversationRead = vi.fn();
+const mockGetConversationWithMembers = vi.fn();
 
 vi.mock("@/services/permissions", () => ({
   requireAuthenticatedSession: (...args: unknown[]) => mockRequireAuthenticatedSession(...args),
@@ -14,6 +15,7 @@ vi.mock("@/db/queries/chat-conversations", () => ({
   isConversationMember: (...args: unknown[]) => mockIsConversationMember(...args),
   getConversationById: (...args: unknown[]) => mockGetConversationById(...args),
   markConversationRead: (...args: unknown[]) => mockMarkConversationRead(...args),
+  getConversationWithMembers: (...args: unknown[]) => mockGetConversationWithMembers(...args),
 }));
 
 vi.mock("@/lib/request-context", () => ({
@@ -63,6 +65,11 @@ beforeEach(() => {
   mockGetConversationById.mockResolvedValue(mockConversation);
   mockIsConversationMember.mockResolvedValue(true);
   mockMarkConversationRead.mockResolvedValue(undefined);
+  mockGetConversationWithMembers.mockResolvedValue({
+    conversation: mockConversation,
+    members: [],
+    memberCount: 0,
+  });
 });
 
 describe("GET /api/v1/conversations/[conversationId]", () => {

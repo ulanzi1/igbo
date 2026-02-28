@@ -37,7 +37,7 @@ export interface ChatMessage {
  */
 export interface LocalChatMessage extends ChatMessage {
   tempId: string;
-  status: "sending" | "sent" | "delivered" | "error";
+  status: "sending" | "sent" | "delivered" | "read" | "error";
 }
 
 export interface GroupMember {

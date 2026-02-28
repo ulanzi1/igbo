@@ -686,7 +686,8 @@
       "failedToSend": "Failed to send",
       "loadingMessages": "Loading messages",
       "deletedMessage": "This message was deleted",
-      "editedLabel": "(edited)"
+      "editedLabel": "(edited)",
+      "read": "Read"
     },
     "input": {
       "placeholder": "Type a message...",
@@ -798,6 +799,12 @@
     },
     "mentions": {
       "noResults": "No members found"
+    },
+    "typing": {
+      "userTyping": "{name} is typing...",
+      "twoUsersTyping": "{name1} and {name2} are typing...",
+      "manyUsersTyping": "{count} members are typing...",
+      "unknownUser": "Someone"
     }
   }
 }

@@ -26,9 +26,17 @@ export const NAMESPACE_CHAT = "/chat";
 export const ROOM_USER = (userId: string) => `user:${userId}`;
 export const ROOM_EVENT = (eventId: string) => `event:${eventId}`;
 export const ROOM_CONVERSATION = (conversationId: string) => `conversation:${conversationId}`;
+/** Room that other clients join to receive presence updates for a specific user */
+export const ROOM_PRESENCE = (userId: string) => `presence:${userId}`;
 
 // Redis key patterns
 export const REDIS_PRESENCE_KEY = (userId: string) => `user:${userId}:online`;
+/** Ephemeral typing state key — auto-expires after TYPING_EXPIRE_SECONDS */
+export const REDIS_TYPING_KEY = (conversationId: string, userId: string) =>
+  `typing:${conversationId}:${userId}`;
+
+// Typing indicator TTL in seconds — auto-expires if typing:stop is missed
+export const TYPING_EXPIRE_SECONDS = 5;
 
 // Per-connection event rate limits (AC2)
 export const SOCKET_RATE_LIMITS = {

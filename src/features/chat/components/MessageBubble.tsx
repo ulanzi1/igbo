@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 import { DeliveryIndicator } from "./DeliveryIndicator";
+import type { DeliveryStatus } from "./DeliveryIndicator";
 import { RichTextRenderer } from "./RichTextRenderer";
 import { AttachmentGrid } from "./AttachmentGrid";
 import { ReactionPicker } from "./ReactionPicker";
@@ -33,6 +34,8 @@ interface MessageBubbleProps {
   onEditCancel?: () => void;
   onDelete?: (messageId: string) => void;
   onScrollToMessage?: (messageId: string) => void;
+  /** Delivery status for own server messages (sent/delivered/read) — undefined for others' messages */
+  deliveryStatus?: DeliveryStatus;
 }
 
 function formatMessageTime(isoString: string): string {
@@ -60,13 +63,16 @@ export function MessageBubble({
   onEditCancel,
   onDelete,
   onScrollToMessage,
+  deliveryStatus,
 }: MessageBubbleProps) {
   const t = useTranslations("Chat");
   const tReactions = useTranslations("Chat.reactions");
   const tActions = useTranslations("Chat.actions");
   const tEditMessage = useTranslations("Chat.editMessage");
   const isLocal = isLocalMessage(message);
-  const status = isLocal ? message.status : "delivered";
+  const effectiveStatus: DeliveryStatus = isLocal
+    ? (message as LocalChatMessage).status
+    : (deliveryStatus ?? "delivered");
   const [showPicker, setShowPicker] = useState(false);
   const [showActions, setShowActions] = useState(false);
   const [editContent, setEditContent] = useState(message.content);
@@ -423,7 +429,7 @@ export function MessageBubble({
           {message.editedAt && !message.deletedAt && (
             <span className="text-xs text-muted-foreground">{t("messages.editedLabel")}</span>
           )}
-          {isOwnMessage && <DeliveryIndicator status={status} />}
+          {isOwnMessage && !message.deletedAt && <DeliveryIndicator status={effectiveStatus} />}
         </div>
       </div>
     </div>

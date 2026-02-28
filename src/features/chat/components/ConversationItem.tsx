@@ -9,6 +9,7 @@ import { GroupAvatarStack } from "./GroupAvatarStack";
 interface ConversationItemProps {
   conversation: ChatConversation;
   isActive?: boolean;
+  isOnline?: boolean;
 }
 
 function formatGroupNames(
@@ -39,7 +40,11 @@ function formatTime(isoString: string, yesterdayLabel: string): string {
   return date.toLocaleDateString([], { month: "short", day: "numeric" });
 }
 
-export function ConversationItem({ conversation, isActive = false }: ConversationItemProps) {
+export function ConversationItem({
+  conversation,
+  isActive = false,
+  isOnline,
+}: ConversationItemProps) {
   const t = useTranslations("Chat");
   const hasUnread = conversation.unreadCount > 0;
 
@@ -77,7 +82,13 @@ export function ConversationItem({ conversation, isActive = false }: Conversatio
             )}
           </div>
         )}
-        {/* Online dot placeholder — Story 2.6 will populate this via presence events */}
+        {isOnline && (
+          <span
+            className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-background bg-green-500"
+            aria-label={t("conversations.online")}
+            role="img"
+          />
+        )}
       </div>
 
       {/* Content */}

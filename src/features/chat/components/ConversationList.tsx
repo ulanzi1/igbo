@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useTranslations } from "next-intl";
 import { useParams } from "next/navigation";
 import { UsersIcon } from "lucide-react";
 import { useConversations } from "@/features/chat/hooks/use-conversations";
+import { usePresence } from "@/hooks/use-presence";
+import { useSocketContext } from "@/providers/SocketProvider";
 import { ConversationItem } from "./ConversationItem";
 import { ConversationListSkeleton } from "./ConversationListSkeleton";
 import { ChatEmptyState } from "./ChatEmptyState";
@@ -18,6 +20,30 @@ export function ConversationList() {
 
   const { conversations, isLoading, isError, fetchNextPage, hasNextPage, isFetchingNextPage } =
     useConversations();
+  const { isOnline } = usePresence();
+  const { notificationsSocket } = useSocketContext();
+
+  // Memoize direct member IDs to prevent re-subscribing on every React Query refetch
+  // (conversations is a new array reference on each refetch/invalidation)
+  const directMemberIds = useMemo(
+    () =>
+      conversations
+        .filter((c) => c.type === "direct")
+        .map((c) => c.otherMember.id)
+        .filter(Boolean)
+        .sort()
+        .join(","),
+    [conversations],
+  );
+
+  useEffect(() => {
+    if (!notificationsSocket || !directMemberIds) return;
+    const ids = directMemberIds.split(",");
+    notificationsSocket.emit("presence:subscribe", { userIds: ids });
+    return () => {
+      notificationsSocket.emit("presence:unsubscribe", { userIds: ids });
+    };
+  }, [notificationsSocket, directMemberIds]);
 
   if (isLoading) return <ConversationListSkeleton />;
 
@@ -54,6 +80,9 @@ export function ConversationList() {
             key={conversation.id}
             conversation={conversation}
             isActive={conversation.id === activeConversationId}
+            isOnline={
+              conversation.type === "direct" ? isOnline(conversation.otherMember.id) : undefined
+            }
           />
         ))}
 
