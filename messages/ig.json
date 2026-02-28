@@ -738,6 +738,66 @@
       "connected": "Ejikọtara",
       "disconnected": "Kewapụtara",
       "reconnecting": "Na-ejikọtaghachi..."
+    },
+    "richText": {
+      "bold": "Ọkpụkpọ",
+      "italic": "Dọchie",
+      "strikethrough": "Kewapụ",
+      "code": "Koodu",
+      "link": "Njikọ",
+      "toggleToolbar": "Gbanwee baara ngwa ngwa",
+      "boldPlaceholder": "ederede ọkpụkpọ",
+      "italicPlaceholder": "ederede dọchie",
+      "strikethroughPlaceholder": "ederede kewapụ",
+      "codePlaceholder": "koodu",
+      "linkPlaceholder": "ederede njikọ"
+    },
+    "attachments": {
+      "attach": "Tinye faịlụ",
+      "uploading": "Na-ebugo",
+      "uploadFailed": "Ibugo dara ada",
+      "fileTooLarge": "Faịlụ ahụ buru ibu karị",
+      "unsupportedType": "Ụdị faịlụ a akwadoghị",
+      "download": "Budata faịlụ",
+      "imagePreview": "Ihe ọgụgụ foto",
+      "attachmentCount": "Nchekwa {count}",
+      "closeLightbox": "Mechie ihe ọgụgụ foto",
+      "removeFile": "Wepụ {name}"
+    },
+    "reactions": {
+      "react": "Tinye mmetụta",
+      "removeReaction": "Wepụ mmetụta",
+      "reactionCount": "Mmetụta {count}",
+      "reactedBy": "{names} zaghachi"
+    },
+    "actions": {
+      "edit": "Dezie",
+      "delete": "Hichapụ",
+      "reply": "Zaghachi",
+      "cancel": "Kagbuo"
+    },
+    "editMessage": {
+      "save": "Chekwaa",
+      "cancel": "Kagbuo",
+      "characterCount": "{count}/4000",
+      "editFailed": "Ọ dịghị mma ichekwa. Biko nwaa ọzọ."
+    },
+    "deleteMessage": {
+      "confirmTitle": "Hichapụ ozi?",
+      "confirm": "A ga-ehichapụ nke a n'ebe ndị ọzọ niile ma enweghị ike iweghachi ya.",
+      "confirmButton": "Hichapụ",
+      "cancelButton": "Kagbuo",
+      "deleteFailed": "Ọ dịghị mma ihichapụ. Biko nwaa ọzọ."
+    },
+    "reply": {
+      "replyingTo": "Ị na-azaghachi {name}",
+      "inReplyTo": "N'azaghachi {name}",
+      "deletedParent": "[ozi ahichapụrụ]",
+      "originalMessage": "Ozi mbụ",
+      "dismissReply": "Kagbuo ọzaghachi"
+    },
+    "mentions": {
+      "noResults": "Ọ dịghị onye ọ bụla achọtara"
     }
   }
 }

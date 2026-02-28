@@ -1,5 +1,19 @@
 /** Shared chat types used across the chat feature module */
 
+export interface ChatMessageAttachment {
+  id: string;
+  fileUrl: string;
+  fileName: string;
+  fileType: string | null;
+  fileSize: number | null; // bytes
+}
+
+export interface ChatMessageReaction {
+  emoji: string;
+  userId: string;
+  createdAt: string; // ISO 8601
+}
+
 export interface ChatMessage {
   messageId: string;
   conversationId: string;
@@ -7,6 +21,14 @@ export interface ChatMessage {
   content: string;
   contentType: "text" | "rich_text" | "system";
   createdAt: string; // ISO 8601
+  attachments: ChatMessageAttachment[];
+  reactions: ChatMessageReaction[];
+  /** Present when this message is a reply to another message */
+  parentMessageId?: string | null;
+  /** ISO 8601 — set when message has been edited */
+  editedAt?: string | null;
+  /** ISO 8601 — set when message has been soft-deleted; content will be "" */
+  deletedAt?: string | null;
 }
 
 /**

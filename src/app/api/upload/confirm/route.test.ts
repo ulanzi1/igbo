@@ -18,6 +18,9 @@ vi.mock("@/lib/request-context", () => ({
   runWithContext: vi.fn((_ctx: unknown, fn: () => unknown) => fn()),
 }));
 
+// Side-effect import in route — mock to prevent @/env + @/db from loading in tests
+vi.mock("@/server/jobs/file-processing", () => ({}));
+
 import { POST } from "./route";
 
 const USER_ID = "user-abc-123";

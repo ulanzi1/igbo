@@ -68,8 +68,8 @@ development_status:
   2-1-chat-infrastructure-messageservice: done
   2-2-direct-messaging-1-1-conversations: done
   2-3-group-direct-messages: done
-  2-4-rich-messaging-file-attachments: backlog
-  2-5-message-management-threading: backlog
+  2-4-rich-messaging-file-attachments: done
+  2-5-message-management-threading: done
   2-6-typing-indicators-read-receipts-presence: backlog
   2-7-message-search-block-mute-conversation-preferences: backlog
   epic-2-retrospective: optional

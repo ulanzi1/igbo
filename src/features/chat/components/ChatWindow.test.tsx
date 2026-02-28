@@ -19,18 +19,90 @@ vi.mock("@/providers/SocketProvider", () => ({
   }),
 }));
 
+const mockEditMessage = vi.fn().mockResolvedValue({ success: true });
+const mockDeleteMessage = vi.fn().mockResolvedValue({ success: true });
+
 vi.mock("@/features/chat/hooks/use-chat", () => ({
   useChat: () => ({
     messages: [],
     sendMessage: vi.fn().mockResolvedValue({ messageId: "msg-ack" }),
+    editMessage: mockEditMessage,
+    deleteMessage: mockDeleteMessage,
     clearMessages: vi.fn(),
     isConnected: false,
   }),
 }));
 
+vi.mock("sonner", () => ({
+  toast: {
+    success: vi.fn(),
+    error: vi.fn(),
+  },
+}));
+
+vi.mock("@/components/ui/alert-dialog", () => ({
+  AlertDialog: ({ children, open }: { children: React.ReactNode; open?: boolean }) =>
+    open ? React.createElement("div", { "data-testid": "alert-dialog" }, children) : null,
+  AlertDialogContent: ({ children }: { children: React.ReactNode }) =>
+    React.createElement("div", null, children),
+  AlertDialogHeader: ({ children }: { children: React.ReactNode }) =>
+    React.createElement("div", null, children),
+  AlertDialogTitle: ({ children }: { children: React.ReactNode }) =>
+    React.createElement("div", null, children),
+  AlertDialogDescription: ({ children }: { children: React.ReactNode }) =>
+    React.createElement("div", null, children),
+  AlertDialogFooter: ({ children }: { children: React.ReactNode }) =>
+    React.createElement("div", null, children),
+  AlertDialogAction: ({ children, onClick }: { children: React.ReactNode; onClick?: () => void }) =>
+    React.createElement("button", { "data-testid": "confirm-delete", onClick }, children),
+  AlertDialogCancel: ({ children, onClick }: { children: React.ReactNode; onClick?: () => void }) =>
+    React.createElement("button", { "data-testid": "cancel-delete", onClick }, children),
+}));
+
 vi.mock("./MessageBubble", () => ({
-  MessageBubble: ({ message }: { message: { content: string } }) =>
-    React.createElement("div", { "data-testid": "message-bubble" }, message.content),
+  MessageBubble: ({
+    message,
+    onEdit,
+    onDelete,
+    onReply,
+  }: {
+    message: {
+      content: string;
+      messageId: string;
+      senderId: string;
+      conversationId: string;
+      contentType: string;
+      createdAt: string;
+      attachments: unknown[];
+      reactions: unknown[];
+    };
+    onEdit?: (msg: unknown) => void;
+    onDelete?: (id: string) => void;
+    onReply?: (msg: unknown) => void;
+  }) =>
+    React.createElement(
+      "div",
+      { "data-testid": "message-bubble" },
+      message.content,
+      React.createElement(
+        "button",
+        { onClick: () => onEdit?.(message), "data-testid": `edit-${message.messageId}` },
+        "edit",
+      ),
+      React.createElement(
+        "button",
+        {
+          onClick: () => onDelete?.(message.messageId),
+          "data-testid": `delete-${message.messageId}`,
+        },
+        "delete",
+      ),
+      React.createElement(
+        "button",
+        { onClick: () => onReply?.(message), "data-testid": `reply-${message.messageId}` },
+        "reply",
+      ),
+    ),
 }));
 
 vi.mock("./MessageInput", () => ({
@@ -198,5 +270,31 @@ describe("ChatWindow", () => {
       expect(screen.getByTestId("reconnecting-indicator")).toBeInTheDocument();
     });
     expect(screen.getByText("status.reconnecting")).toBeInTheDocument();
+  });
+
+  it("delete confirmation dialog is not shown by default", async () => {
+    render(<ChatWindow conversationId="conv-1" />, { wrapper: makeWrapper() });
+    await waitFor(() => screen.getByTestId("message-bubble"));
+    expect(screen.queryByTestId("alert-dialog")).not.toBeInTheDocument();
+  });
+
+  it("shows delete confirmation dialog when delete is triggered for a message", async () => {
+    const { fireEvent: fe } = await import("@testing-library/react");
+    render(<ChatWindow conversationId="conv-1" />, { wrapper: makeWrapper() });
+    await waitFor(() => screen.getByTestId("message-bubble"));
+    fe.click(screen.getByTestId("delete-msg-1"));
+    expect(screen.getByTestId("alert-dialog")).toBeInTheDocument();
+  });
+
+  it("calls deleteMessage and closes dialog when confirm delete is clicked", async () => {
+    const { fireEvent: fe } = await import("@testing-library/react");
+    render(<ChatWindow conversationId="conv-1" />, { wrapper: makeWrapper() });
+    await waitFor(() => screen.getByTestId("message-bubble"));
+    fe.click(screen.getByTestId("delete-msg-1"));
+    expect(screen.getByTestId("alert-dialog")).toBeInTheDocument();
+    fe.click(screen.getByTestId("confirm-delete"));
+    await waitFor(() => {
+      expect(mockDeleteMessage).toHaveBeenCalledWith("msg-1", "conv-1");
+    });
   });
 });

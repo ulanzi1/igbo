@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeftIcon, InfoIcon } from "lucide-react";
 import { useChat } from "@/features/chat/hooks/use-chat";
+import { useNotificationSound } from "@/features/chat/hooks/use-notification-sound";
 import { useSocketContext } from "@/providers/SocketProvider";
 import { useRouter } from "@/i18n/navigation";
 import { MessageBubble } from "./MessageBubble";
@@ -12,6 +13,17 @@ import { ChatWindowSkeleton } from "./ChatWindowSkeleton";
 import { MessageInput } from "./MessageInput";
 import { GroupAvatarStack } from "./GroupAvatarStack";
 import { GroupInfoPanel } from "./GroupInfoPanel";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { toast } from "sonner";
 import type { ChatMessage, LocalChatMessage } from "@/features/chat/types";
 import { useSession } from "next-auth/react";
 
@@ -57,17 +69,48 @@ interface ChatWindowProps {
   conversationId: string;
 }
 
+type InfiniteData = { pages: MessagesPage[]; pageParams: unknown[] };
+
+/** Update a message in the React Query infinite pages cache */
+function updateMessageInCache(
+  old: InfiniteData | undefined,
+  messageId: string,
+  updater: (msg: ChatMessage) => ChatMessage,
+): InfiniteData | undefined {
+  if (!old) return old;
+  return {
+    ...old,
+    pages: old.pages.map((page) => ({
+      ...page,
+      messages: page.messages.map((m) => (m.messageId === messageId ? updater(m) : m)),
+    })),
+  };
+}
+
 export function ChatWindow({ conversationId }: ChatWindowProps) {
   const t = useTranslations("Chat");
+  const tDeleteMessage = useTranslations("Chat.deleteMessage");
+  const tEditMessage = useTranslations("Chat.editMessage");
   const queryClient = useQueryClient();
   const { chatSocket, isConnected } = useSocketContext();
   const { data: session } = useSession();
   const currentUserId = session?.user?.id;
+  const { playChime } = useNotificationSound();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [localMessages, setLocalMessages] = useState<LocalChatMessage[]>([]);
   const router = useRouter();
 
-  // Fetch conversation details for header (other member's name/avatar)
+  // Edit / delete / reply state (owned by ChatWindow per story architecture)
+  const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [deleteConfirmMessageId, setDeleteConfirmMessageId] = useState<string | null>(null);
+
+  // Cache parent messages for reply context — ensures parent content is always available
+  // even during React Query cache transitions (race condition between socket event and re-render).
+  // Uses state (not ref) because the value is read during render and must trigger re-renders.
+  const [parentMessageCache, setParentMessageCache] = useState<Map<string, ChatMessage>>(new Map());
+
+  // Fetch conversation details for header
   const [showGroupInfo, setShowGroupInfo] = useState(false);
 
   const conversationQuery = useQuery({
@@ -80,6 +123,32 @@ export function ChatWindow({ conversationId }: ChatWindowProps) {
   const otherMember = conversationData?.otherMember;
   const groupMembers = conversationData?.members ?? [];
   const memberCount = conversationData?.memberCount ?? groupMembers.length;
+
+  // Build a memberDisplayNameMap from conversation data
+  const memberDisplayNameMap: Record<string, string> = {};
+  if (currentUserId) {
+    memberDisplayNameMap[currentUserId] = t("group.you").replace("(", "").replace(")", "");
+  }
+  if (isGroup) {
+    for (const m of groupMembers) {
+      memberDisplayNameMap[m.id] = m.displayName;
+    }
+  } else if (otherMember) {
+    memberDisplayNameMap[otherMember.id] = otherMember.displayName;
+  }
+
+  // Members for @mention autocomplete
+  const conversationMembers = isGroup
+    ? groupMembers
+    : otherMember
+      ? [
+          {
+            id: otherMember.id,
+            displayName: otherMember.displayName,
+            photoUrl: otherMember.photoUrl,
+          },
+        ]
+      : [];
 
   // Fetch message history with cursor pagination
   const query = useInfiniteQuery({
@@ -107,40 +176,74 @@ export function ChatWindow({ conversationId }: ChatWindowProps) {
   const visibleLocalMessages = localMessages.filter((lm) => !seenMessageIds.has(lm.messageId));
   const allMessages = [...serverMessages, ...visibleLocalMessages];
 
-  // Subscribe to real-time new messages and update cache
+  // Subscribe to real-time events and update cache
   useEffect(() => {
     if (!chatSocket) return;
 
     function handleMessageNew(msg: ChatMessage) {
       if (msg.conversationId !== conversationId) return;
 
-      // Update the messages query cache by appending the new message
-      queryClient.setQueryData(
-        ["messages", conversationId],
-        (old: { pages: MessagesPage[]; pageParams: unknown[] } | undefined) => {
-          if (!old) return old;
-          const lastPage = old.pages[old.pages.length - 1];
-          if (!lastPage) return old;
+      // Cache every incoming message for parent lookups in reply context
+      setParentMessageCache((prev) => new Map(prev).set(msg.messageId, msg));
 
-          // Check if message already in list (dedup ACK vs broadcast race)
-          const alreadyExists = old.pages.some((page) =>
-            page.messages.some((m) => m.messageId === msg.messageId),
-          );
-          if (alreadyExists) return old;
+      queryClient.setQueryData(["messages", conversationId], (old: InfiniteData | undefined) => {
+        if (!old) return old;
+        const lastPage = old.pages[old.pages.length - 1];
+        if (!lastPage) return old;
 
-          const newPages = [
-            ...old.pages.slice(0, -1),
-            {
-              ...lastPage,
-              messages: [...lastPage.messages, msg],
-            },
-          ];
-          return { ...old, pages: newPages };
-        },
-      );
+        const alreadyExists = old.pages.some((page) =>
+          page.messages.some((m) => m.messageId === msg.messageId),
+        );
+        if (alreadyExists) return old;
 
-      // Also remove from local optimistic messages if it matches a pending message
+        const newPages = [
+          ...old.pages.slice(0, -1),
+          {
+            ...lastPage,
+            messages: [...lastPage.messages, msg],
+          },
+        ];
+        return { ...old, pages: newPages };
+      });
+
       setLocalMessages((prev) => prev.filter((lm) => lm.messageId !== msg.messageId));
+
+      if (msg.senderId !== currentUserId) {
+        playChime();
+      }
+    }
+
+    function handleMessageEdited(payload: {
+      messageId: string;
+      conversationId: string;
+      content: string;
+      editedAt: string;
+    }) {
+      if (payload.conversationId !== conversationId) return;
+
+      queryClient.setQueryData(["messages", conversationId], (old: InfiniteData | undefined) =>
+        updateMessageInCache(old, payload.messageId, (m) => ({
+          ...m,
+          content: payload.content,
+          editedAt: payload.editedAt,
+        })),
+      );
+    }
+
+    function handleMessageDeleted(payload: {
+      messageId: string;
+      conversationId: string;
+      timestamp: string;
+    }) {
+      if (payload.conversationId !== conversationId) return;
+
+      queryClient.setQueryData(["messages", conversationId], (old: InfiniteData | undefined) =>
+        updateMessageInCache(old, payload.messageId, (m) => ({
+          ...m,
+          content: "",
+          deletedAt: payload.timestamp,
+        })),
+      );
     }
 
     function handleSyncFullRefresh() {
@@ -149,61 +252,122 @@ export function ChatWindow({ conversationId }: ChatWindowProps) {
     }
 
     chatSocket.on("message:new", handleMessageNew);
+    chatSocket.on("message:edited", handleMessageEdited);
+    chatSocket.on("message:deleted", handleMessageDeleted);
     chatSocket.on("sync:full_refresh", handleSyncFullRefresh);
     return () => {
       chatSocket.off("message:new", handleMessageNew);
+      chatSocket.off("message:edited", handleMessageEdited);
+      chatSocket.off("message:deleted", handleMessageDeleted);
       chatSocket.off("sync:full_refresh", handleSyncFullRefresh);
     };
-  }, [chatSocket, conversationId, queryClient]);
+  }, [chatSocket, conversationId, queryClient, currentUserId, playChime]);
 
   // Auto-scroll to newest message on open and on new messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [allMessages.length]);
 
-  // Mark as read on mount — fire-and-forget side effect (not data fetching)
+  // Mark as read on mount
   useEffect(() => {
     // eslint-disable-next-line no-restricted-syntax
     void fetch(`/api/v1/conversations/${conversationId}`, { method: "PATCH" });
   }, [conversationId]);
 
-  const { sendMessage } = useChat(conversationId);
+  const { sendMessage, editMessage, deleteMessage } = useChat(conversationId);
+
+  // Optimistic edit helper — snapshot BEFORE optimistic update
+  const optimisticEditMessage = useCallback(
+    (messageId: string, newContent: string) => {
+      const snapshot = queryClient.getQueryData<InfiniteData>(["messages", conversationId]);
+      queryClient.setQueryData(["messages", conversationId], (old: InfiniteData | undefined) =>
+        updateMessageInCache(old, messageId, (m) => ({
+          ...m,
+          content: newContent,
+          editedAt: new Date().toISOString(),
+        })),
+      );
+      return snapshot;
+    },
+    [queryClient, conversationId],
+  );
+
+  // Optimistic delete helper — snapshot BEFORE optimistic update
+  const optimisticDeleteMessage = useCallback(
+    (messageId: string) => {
+      const snapshot = queryClient.getQueryData<InfiniteData>(["messages", conversationId]);
+      queryClient.setQueryData(["messages", conversationId], (old: InfiniteData | undefined) =>
+        updateMessageInCache(old, messageId, (m) => ({
+          ...m,
+          content: "",
+          deletedAt: new Date().toISOString(),
+        })),
+      );
+      return snapshot;
+    },
+    [queryClient, conversationId],
+  );
 
   const handleSend = useCallback(
-    async (content: string) => {
+    async (
+      content: string,
+      attachmentFileUploadIds: string[],
+      contentType: "text" | "rich_text",
+      parentMessageId?: string,
+    ) => {
       const tempId = crypto.randomUUID();
       const optimisticMsg: LocalChatMessage = {
-        messageId: tempId, // temporary — will be replaced on ACK
+        messageId: tempId,
         tempId,
         conversationId,
         senderId: currentUserId ?? "",
         content,
-        contentType: "text",
+        contentType,
         createdAt: new Date().toISOString(),
         status: "sending",
+        attachments: [],
+        reactions: [],
+        parentMessageId: parentMessageId ?? null,
       };
 
-      // Add optimistic message
       setLocalMessages((prev) => [...prev, optimisticMsg]);
 
-      const result = await sendMessage({ conversationId, content });
+      const result = await sendMessage({
+        conversationId,
+        content,
+        contentType,
+        attachmentFileUploadIds:
+          attachmentFileUploadIds.length > 0 ? attachmentFileUploadIds : undefined,
+        parentMessageId,
+      });
 
       if ("error" in result) {
-        // Mark as error
         setLocalMessages((prev) =>
           prev.map((m) => (m.tempId === tempId ? { ...m, status: "error" } : m)),
         );
       } else {
-        // Update tempId with real messageId and mark as sent
         setLocalMessages((prev) =>
           prev.map((m) =>
             m.tempId === tempId ? { ...m, messageId: result.messageId, status: "sent" } : m,
           ),
         );
       }
+
+      // Clear reply state on successful send
+      if (!("error" in result)) {
+        setReplyTo(null);
+      }
     },
     [conversationId, currentUserId, sendMessage],
   );
+
+  const handleScrollToMessage = useCallback((messageId: string) => {
+    const el = document.querySelector(`[data-message-id="${CSS.escape(messageId)}"]`);
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    el.classList.add("bg-accent/30");
+    setTimeout(() => el.classList.remove("bg-accent/30"), 2000);
+  }, []);
 
   // Determine whether to show avatar for consecutive messages from same sender within 5 min
   function shouldShowAvatar(index: number): boolean {
@@ -214,7 +378,7 @@ export function ChatWindow({ conversationId }: ChatWindowProps) {
     if (prev.senderId !== curr.senderId) return true;
     const prevTime = new Date(prev.createdAt).getTime();
     const currTime = new Date(curr.createdAt).getTime();
-    return currTime - prevTime > 5 * 60 * 1000; // 5 minutes
+    return currTime - prevTime > 5 * 60 * 1000;
   }
 
   // For group conversations, look up sender's profile from group members
@@ -245,12 +409,11 @@ export function ChatWindow({ conversationId }: ChatWindowProps) {
   return (
     <div className="flex flex-1 overflow-hidden">
       <div className="flex flex-1 flex-col overflow-hidden">
-        {/* Header — other member's name/avatar + mobile back button */}
+        {/* Header */}
         <div
           data-testid="chat-header"
           className="flex items-center gap-3 px-3 py-2 border-b border-border bg-background flex-shrink-0"
         >
-          {/* Mobile back button */}
           <button
             type="button"
             onClick={() => router.push("/chat")}
@@ -260,7 +423,6 @@ export function ChatWindow({ conversationId }: ChatWindowProps) {
             <ArrowLeftIcon className="h-5 w-5" aria-hidden="true" />
           </button>
 
-          {/* Avatar — group stack or single */}
           {isGroup ? (
             <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center">
               <GroupAvatarStack members={groupMembers} size="md" />
@@ -282,7 +444,6 @@ export function ChatWindow({ conversationId }: ChatWindowProps) {
             </div>
           )}
 
-          {/* Name + member count (group) or connection status */}
           <div className="flex flex-1 flex-col min-w-0">
             <span className="truncate text-sm font-semibold text-foreground">
               {isGroup ? formatGroupHeaderNames() : (otherMember?.displayName ?? "…")}
@@ -299,7 +460,6 @@ export function ChatWindow({ conversationId }: ChatWindowProps) {
             )}
           </div>
 
-          {/* Group info button */}
           {isGroup && (
             <button
               type="button"
@@ -332,7 +492,6 @@ export function ChatWindow({ conversationId }: ChatWindowProps) {
           {allMessages.map((msg, index) => {
             const isLocal = "tempId" in msg;
             const isOwnMessage = msg.senderId === currentUserId;
-            // For group: always show avatar+name for other members' messages
             const senderInfo = isGroup ? getSenderInfo(msg.senderId) : {};
             return (
               <MessageBubble
@@ -346,6 +505,32 @@ export function ChatWindow({ conversationId }: ChatWindowProps) {
                 senderPhotoUrl={
                   !isOwnMessage ? (senderInfo.photoUrl ?? otherMember?.photoUrl) : undefined
                 }
+                currentUserId={currentUserId}
+                allMessages={allMessages as ChatMessage[]}
+                parentMessageCache={parentMessageCache}
+                memberDisplayNameMap={memberDisplayNameMap}
+                editingMessageId={editingMessageId}
+                onReply={(m) => {
+                  setParentMessageCache((prev) => new Map(prev).set(m.messageId, m));
+                  setReplyTo(m);
+                }}
+                onEdit={(m) => setEditingMessageId(m.messageId)}
+                onEditSave={async (id, content) => {
+                  const snapshot = optimisticEditMessage(id, content);
+                  const r = await editMessage(id, conversationId, content);
+                  if (r.success) {
+                    setEditingMessageId(null);
+                  } else {
+                    // Rollback
+                    if (snapshot) {
+                      queryClient.setQueryData(["messages", conversationId], snapshot);
+                    }
+                    toast.error(r.error ?? tEditMessage("editFailed"));
+                  }
+                }}
+                onEditCancel={() => setEditingMessageId(null)}
+                onDelete={(id) => setDeleteConfirmMessageId(id)}
+                onScrollToMessage={handleScrollToMessage}
               />
             );
           })}
@@ -354,11 +539,54 @@ export function ChatWindow({ conversationId }: ChatWindowProps) {
 
         {/* Message input */}
         <div className="flex flex-col">
-          <MessageInput onSend={handleSend} />
+          <MessageInput
+            onSend={handleSend}
+            replyTo={replyTo}
+            onClearReply={() => setReplyTo(null)}
+            members={conversationMembers}
+            memberDisplayNameMap={memberDisplayNameMap}
+          />
         </div>
       </div>
 
-      {/* Group info panel — slide-out sidebar */}
+      {/* Delete confirmation dialog */}
+      <AlertDialog
+        open={deleteConfirmMessageId !== null}
+        onOpenChange={(open) => {
+          if (!open) setDeleteConfirmMessageId(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{tDeleteMessage("confirmTitle")}</AlertDialogTitle>
+            <AlertDialogDescription>{tDeleteMessage("confirm")}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDeleteConfirmMessageId(null)}>
+              {tDeleteMessage("cancelButton")}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                const msgId = deleteConfirmMessageId;
+                if (!msgId) return;
+                setDeleteConfirmMessageId(null);
+                const snapshot = optimisticDeleteMessage(msgId);
+                const r = await deleteMessage(msgId, conversationId);
+                if (!r.success) {
+                  if (snapshot) {
+                    queryClient.setQueryData(["messages", conversationId], snapshot);
+                  }
+                  toast.error(r.error ?? tDeleteMessage("deleteFailed"));
+                }
+              }}
+            >
+              {tDeleteMessage("confirmButton")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Group info panel */}
       {isGroup && showGroupInfo && (
         <GroupInfoPanel
           conversationId={conversationId}

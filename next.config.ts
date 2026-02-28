@@ -20,6 +20,16 @@ const withSerwist = withSerwistInit({
 const realtimeUrl = process.env.NEXT_PUBLIC_REALTIME_URL ?? "";
 // Derive ws:// or wss:// variant for WebSocket connections
 const realtimeWsUrl = realtimeUrl.replace(/^https:/, "wss:").replace(/^http:/, "ws:");
+// Hetzner S3 endpoint for direct browser uploads (presigned PUT)
+const s3Endpoint = process.env.HETZNER_S3_ENDPOINT ?? "";
+// Public URL origin for CSP img-src (strip path, keep scheme://host:port)
+const s3PublicOrigin = (() => {
+  try {
+    return new URL(process.env.HETZNER_S3_PUBLIC_URL ?? "").origin;
+  } catch {
+    return "";
+  }
+})();
 
 const cspDirectives = [
   "default-src 'self'",
@@ -27,9 +37,9 @@ const cspDirectives = [
     ? "script-src 'self' 'unsafe-inline' 'unsafe-eval'"
     : "script-src 'self' 'unsafe-inline'",
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' blob: data:",
+  `img-src 'self' blob: data:${s3PublicOrigin ? ` ${s3PublicOrigin}` : ""}`,
   "font-src 'self'",
-  `connect-src 'self'${realtimeUrl ? ` ${realtimeUrl} ${realtimeWsUrl}` : ""}`,
+  `connect-src 'self'${realtimeUrl ? ` ${realtimeUrl} ${realtimeWsUrl}` : ""}${s3Endpoint ? ` ${s3Endpoint}` : ""}`,
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",

@@ -105,10 +105,16 @@ export function withApiHandler(handler: RouteHandler, options?: ApiHandlerOption
 
       const response = await runWithContext({ traceId }, () => handler(request));
 
+      const headers = enrichHeaders(response.headers);
+      // Prevent browser/SW caching of API responses — data must always be fresh
+      if (!headers.has("Cache-Control")) {
+        headers.set("Cache-Control", "no-store");
+      }
+
       return new Response(response.body, {
         status: response.status,
         statusText: response.statusText,
-        headers: enrichHeaders(response.headers),
+        headers,
       });
     } catch (error) {
       if (error instanceof ApiError) {
