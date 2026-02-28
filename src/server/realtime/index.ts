@@ -67,7 +67,7 @@ async function main(): Promise<void> {
   const chatNs = io.of(NAMESPACE_CHAT);
   chatNs.use(authMiddleware);
   chatNs.use(createRateLimiterMiddleware());
-  setupChatNamespace(chatNs);
+  setupChatNamespace(chatNs, redisPresence);
 
   // Start EventBus bridge
   await startEventBusBridge(io, bridgeSubscriber);

@@ -34,19 +34,30 @@ const getHandler = async (request: Request) => {
     });
   }
 
-  // For group conversations, enrich response with member profiles
+  const withMembers = await getConversationWithMembers(conversationId);
+
+  // Build a userId → ISO-timestamp map of each member's last read position
+  const memberLastReadAt: Record<string, string> = {};
+  for (const m of withMembers?.members ?? []) {
+    if (m.lastReadAt) {
+      memberLastReadAt[m.id] =
+        m.lastReadAt instanceof Date ? m.lastReadAt.toISOString() : String(m.lastReadAt);
+    }
+  }
+
+  // For group conversations, also include member profiles in the response
   if (conversation.type === "group") {
-    const withMembers = await getConversationWithMembers(conversationId);
     return successResponse({
       conversation: {
         ...conversation,
         members: withMembers?.members ?? [],
         memberCount: withMembers?.memberCount ?? 0,
+        memberLastReadAt,
       },
     });
   }
 
-  return successResponse({ conversation });
+  return successResponse({ conversation: { ...conversation, memberLastReadAt } });
 };
 
 export const GET = withApiHandler(getHandler, {

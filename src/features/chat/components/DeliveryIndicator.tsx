@@ -3,7 +3,7 @@
 import { cn } from "@/lib/utils";
 import { useTranslations } from "next-intl";
 
-type DeliveryStatus = "sending" | "sent" | "delivered" | "error";
+export type DeliveryStatus = "sending" | "sent" | "delivered" | "read" | "error";
 
 interface DeliveryIndicatorProps {
   status: DeliveryStatus;
@@ -36,6 +36,14 @@ export function DeliveryIndicator({ status, className }: DeliveryIndicatorProps)
     return (
       <span className={cn("text-xs text-muted-foreground", className)} aria-label={t("sent")}>
         ✓
+      </span>
+    );
+  }
+
+  if (status === "read") {
+    return (
+      <span className={cn("text-xs text-blue-500", className)} aria-label={t("read")}>
+        ✓✓
       </span>
     );
   }

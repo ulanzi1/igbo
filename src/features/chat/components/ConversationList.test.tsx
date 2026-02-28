@@ -26,6 +26,25 @@ vi.mock("@/i18n/navigation", () => ({
 
 vi.mock("@/lib/utils", () => ({ cn: (...args: unknown[]) => args.filter(Boolean).join(" ") }));
 
+const mockNotificationsSocket = {
+  on: vi.fn(),
+  off: vi.fn(),
+  emit: vi.fn(),
+};
+
+vi.mock("@/providers/SocketProvider", () => ({
+  useSocketContext: () => ({
+    chatSocket: null,
+    notificationsSocket: mockNotificationsSocket,
+    isConnected: false,
+  }),
+}));
+
+const mockIsOnline = vi.fn().mockReturnValue(false);
+vi.mock("@/hooks/use-presence", () => ({
+  usePresence: () => ({ presence: {}, isOnline: mockIsOnline }),
+}));
+
 const mockUseConversations = vi.fn();
 vi.mock("@/features/chat/hooks/use-conversations", () => ({
   useConversations: () => mockUseConversations(),
@@ -56,6 +75,7 @@ function makeWrapper() {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mockIsOnline.mockReturnValue(false);
   mockUseConversations.mockReturnValue({
     conversations: [],
     isLoading: false,
@@ -114,5 +134,57 @@ describe("ConversationList", () => {
 
     render(<ConversationList />, { wrapper: makeWrapper() });
     expect(screen.getByText("errors.fetchFailed")).toBeInTheDocument();
+  });
+
+  it("emits presence:subscribe with direct member IDs on mount", () => {
+    mockUseConversations.mockReturnValue({
+      conversations: [mockConv],
+      isLoading: false,
+      isError: false,
+      fetchNextPage: vi.fn(),
+      hasNextPage: false,
+      isFetchingNextPage: false,
+    });
+
+    render(<ConversationList />, { wrapper: makeWrapper() });
+
+    expect(mockNotificationsSocket.emit).toHaveBeenCalledWith("presence:subscribe", {
+      userIds: ["user-2"],
+    });
+  });
+
+  it("emits presence:unsubscribe on unmount", () => {
+    mockUseConversations.mockReturnValue({
+      conversations: [mockConv],
+      isLoading: false,
+      isError: false,
+      fetchNextPage: vi.fn(),
+      hasNextPage: false,
+      isFetchingNextPage: false,
+    });
+
+    const { unmount } = render(<ConversationList />, { wrapper: makeWrapper() });
+    unmount();
+
+    expect(mockNotificationsSocket.emit).toHaveBeenCalledWith("presence:unsubscribe", {
+      userIds: ["user-2"],
+    });
+  });
+
+  it("passes isOnline to ConversationItem for direct conversations", () => {
+    mockIsOnline.mockReturnValue(true);
+    mockUseConversations.mockReturnValue({
+      conversations: [mockConv],
+      isLoading: false,
+      isError: false,
+      fetchNextPage: vi.fn(),
+      hasNextPage: false,
+      isFetchingNextPage: false,
+    });
+
+    render(<ConversationList />, { wrapper: makeWrapper() });
+
+    // isOnline should have been called with the other member's ID
+    expect(mockIsOnline).toHaveBeenCalledWith("user-2");
   });
 });

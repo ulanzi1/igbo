@@ -24,6 +24,8 @@ interface MessageInputProps {
   onClearReply?: () => void;
   members?: GroupMember[];
   memberDisplayNameMap?: Record<string, string>;
+  onTypingStart?: () => void;
+  onTypingStop?: () => void;
 }
 
 /** Detect mention token: text -> @query before cursor */
@@ -80,6 +82,8 @@ export function MessageInput({
   onClearReply,
   members = [],
   memberDisplayNameMap,
+  onTypingStart,
+  onTypingStop,
 }: MessageInputProps) {
   const tInput = useTranslations("Chat.input");
   const tRichText = useTranslations("Chat.richText");
@@ -203,6 +207,7 @@ export function MessageInput({
 
     setIsSending(true);
     setHasError(false);
+    onTypingStop?.();
 
     try {
       const uploadIds = pendingUploads
@@ -314,6 +319,13 @@ export function MessageInput({
         RICH_TEXT_PATTERN.test(value) || hasMentions(mentionMapRef.current) ? "rich_text" : "text",
       );
 
+      // Notify parent about typing state — parent throttles actual socket emit
+      if (value.trim().length > 0) {
+        onTypingStart?.();
+      } else {
+        onTypingStop?.();
+      }
+
       // Detect @mention query
       const cursor = el.selectionStart;
       const query = detectMentionQuery(value, cursor);
@@ -324,7 +336,7 @@ export function MessageInput({
         closeMentionDropdown();
       }
     },
-    [members.length, closeMentionDropdown],
+    [members.length, closeMentionDropdown, onTypingStart, onTypingStop],
   );
 
   const handleSelect = useCallback(

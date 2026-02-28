@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("@/config/realtime", () => ({
   ROOM_USER: (id: string) => `user:${id}`,
+  ROOM_PRESENCE: (id: string) => `presence:${id}`,
   REDIS_PRESENCE_KEY: (id: string) => `user:${id}:online`,
   PRESENCE_TTL_SECONDS: 30,
   REPLAY_WINDOW_MS: 3_600_000,
@@ -52,10 +53,14 @@ function makeNamespace(_socket: Socket): {
   return { ns, connectionCallbacks };
 }
 
-function makeRedis(): Redis {
+function makeRedis(onlineUserIds: string[] = []): Redis {
   return {
     set: vi.fn().mockResolvedValue("OK"),
     del: vi.fn().mockResolvedValue(1),
+    exists: vi.fn((key: string) => {
+      const online = onlineUserIds.some((id) => key === `user:${id}:online`);
+      return Promise.resolve(online ? 1 : 0);
+    }),
   } as unknown as Redis;
 }
 
@@ -236,5 +241,111 @@ describe("setupNotificationsNamespace", () => {
       "sync:full_refresh",
       expect.objectContaining({ timestamp: expect.any(String) }),
     );
+  });
+
+  it("emits presence:update to ROOM_PRESENCE on connection", async () => {
+    const { socket } = makeSocket();
+    const { ns, connectionCallbacks } = makeNamespace(socket);
+    const redis = makeRedis();
+
+    setupNotificationsNamespace(ns, redis);
+    await connectionCallbacks[0]!(socket);
+
+    const nsMock = ns as unknown as {
+      to: ReturnType<typeof vi.fn>;
+      emit: ReturnType<typeof vi.fn>;
+    };
+    const toCallArgs = nsMock.to.mock.calls.map((c) => c[0]);
+    expect(toCallArgs).toContain(`presence:${USER_ID}`);
+  });
+
+  it("emits presence:update { online: false } to ROOM_PRESENCE on disconnect", async () => {
+    const { socket, events } = makeSocket();
+    const { ns, connectionCallbacks } = makeNamespace(socket);
+    const redis = makeRedis();
+
+    setupNotificationsNamespace(ns, redis);
+    await connectionCallbacks[0]!(socket);
+
+    await events["disconnect"]![0]!();
+
+    const nsMock = ns as unknown as {
+      to: ReturnType<typeof vi.fn>;
+      emit: ReturnType<typeof vi.fn>;
+    };
+    const presenceEmitCalls = nsMock.emit.mock.calls.filter(
+      (c) => c[0] === "presence:update" && c[1].online === false,
+    );
+    // Should have emitted to both ROOM_USER and ROOM_PRESENCE
+    const toCallArgs = nsMock.to.mock.calls
+      .slice(nsMock.to.mock.calls.findIndex((c) => c[0] === `presence:${USER_ID}`))
+      .map((c) => c[0]);
+    expect(toCallArgs).toContain(`presence:${USER_ID}`);
+    expect(presenceEmitCalls.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("presence:subscribe joins socket to presence rooms and emits current state", async () => {
+    const OTHER_ID = "00000000-0000-4000-8000-000000000099";
+    const { socket, events } = makeSocket();
+    const { ns, connectionCallbacks } = makeNamespace(socket);
+    const redis = makeRedis([OTHER_ID]); // OTHER_ID is online
+
+    setupNotificationsNamespace(ns, redis);
+    await connectionCallbacks[0]!(socket);
+
+    await events["presence:subscribe"]![0]!({ userIds: [OTHER_ID] });
+
+    expect(socket.join).toHaveBeenCalledWith(`presence:${OTHER_ID}`);
+    expect(socket.emit as ReturnType<typeof vi.fn>).toHaveBeenCalledWith(
+      "presence:update",
+      expect.objectContaining({ userId: OTHER_ID, online: true }),
+    );
+  });
+
+  it("presence:subscribe emits online=false when user is offline", async () => {
+    const OTHER_ID = "00000000-0000-4000-8000-000000000099";
+    const { socket, events } = makeSocket();
+    const { ns, connectionCallbacks } = makeNamespace(socket);
+    const redis = makeRedis([]); // nobody online
+
+    setupNotificationsNamespace(ns, redis);
+    await connectionCallbacks[0]!(socket);
+
+    await events["presence:subscribe"]![0]!({ userIds: [OTHER_ID] });
+
+    expect(socket.emit as ReturnType<typeof vi.fn>).toHaveBeenCalledWith(
+      "presence:update",
+      expect.objectContaining({ userId: OTHER_ID, online: false }),
+    );
+  });
+
+  it("presence:subscribe ignores invalid payload", async () => {
+    const { socket, events } = makeSocket();
+    const { ns, connectionCallbacks } = makeNamespace(socket);
+    const redis = makeRedis();
+
+    setupNotificationsNamespace(ns, redis);
+    await connectionCallbacks[0]!(socket);
+
+    // Should not throw for invalid payload
+    await events["presence:subscribe"]![0]!({ userIds: "not-an-array" });
+    expect(socket.join).not.toHaveBeenCalledWith(expect.stringContaining("presence:"));
+  });
+
+  it("presence:unsubscribe leaves presence rooms", async () => {
+    const OTHER_ID = "00000000-0000-4000-8000-000000000099";
+    const { socket, events } = makeSocket();
+    const { ns, connectionCallbacks } = makeNamespace(socket);
+    const redis = makeRedis();
+
+    const mockLeave = vi.fn().mockResolvedValue(undefined);
+    (socket as unknown as { leave: typeof mockLeave }).leave = mockLeave;
+
+    setupNotificationsNamespace(ns, redis);
+    await connectionCallbacks[0]!(socket);
+
+    await events["presence:unsubscribe"]![0]!({ userIds: [OTHER_ID] });
+
+    expect(mockLeave).toHaveBeenCalledWith(`presence:${OTHER_ID}`);
   });
 });

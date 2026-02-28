@@ -18,6 +18,7 @@ interface GroupInfoPanelProps {
   memberCount: number;
   onClose: () => void;
   onLeave: () => void;
+  isOnline?: (userId: string) => boolean;
 }
 
 /**
@@ -31,6 +32,7 @@ export function GroupInfoPanel({
   memberCount,
   onClose,
   onLeave,
+  isOnline,
 }: GroupInfoPanelProps) {
   const t = useTranslations("Chat");
   const { data: session } = useSession();
@@ -143,8 +145,18 @@ export function GroupInfoPanel({
                 <span className="ml-1 text-xs text-muted-foreground">{t("group.you")}</span>
               )}
             </span>
-            {/* Presence placeholder — Story 2.6 */}
-            <span className="h-2 w-2 rounded-full bg-muted-foreground/30" aria-hidden="true" />
+            {isOnline?.(member.id) ? (
+              <span
+                className="h-2.5 w-2.5 flex-shrink-0 rounded-full bg-green-500"
+                aria-label={t("conversations.online")}
+                role="img"
+              />
+            ) : (
+              <span
+                className="h-2 w-2 flex-shrink-0 rounded-full bg-muted-foreground/30"
+                aria-hidden="true"
+              />
+            )}
           </div>
         ))}
       </div>

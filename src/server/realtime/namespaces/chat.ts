@@ -1,7 +1,18 @@
 // NOTE: No "server-only" import — this runs as standalone Node.js, not inside Next.js
 import type { Namespace, Socket } from "socket.io";
-import { ROOM_USER, ROOM_CONVERSATION, CHAT_REPLAY_WINDOW_MS } from "@/config/realtime";
-import { getUserConversationIds, isConversationMember } from "@/db/queries/chat-conversations";
+import Redis from "ioredis";
+import {
+  ROOM_USER,
+  ROOM_CONVERSATION,
+  CHAT_REPLAY_WINDOW_MS,
+  REDIS_TYPING_KEY,
+  TYPING_EXPIRE_SECONDS,
+} from "@/config/realtime";
+import {
+  getUserConversationIds,
+  isConversationMember,
+  markConversationRead,
+} from "@/db/queries/chat-conversations";
 import { getMessagesSince } from "@/db/queries/chat-messages";
 import { getAttachmentsForMessages } from "@/db/queries/chat-message-attachments";
 import { getReactionsForMessages } from "@/db/queries/chat-message-reactions";
@@ -32,7 +43,7 @@ interface SyncRequestPayload {
  * Block enforcement: import raw DB queries directly (no @/services/block-service)
  * — established realtime container pattern (same as notifications.ts).
  */
-export function setupChatNamespace(ns: Namespace): void {
+export function setupChatNamespace(ns: Namespace, redis: Redis): void {
   ns.on("connection", (socket: Socket) => {
     const userId = socket.data.userId as string;
 
@@ -249,10 +260,104 @@ export function setupChatNamespace(ns: Namespace): void {
       },
     );
 
-    // message:delivered — Phase 1 no-op: ACK only, no DB write (delivery tracking in Story 2.6)
+    // typing:start — store in Redis and broadcast to room (excluding sender)
+    socket.on(
+      "typing:start",
+      async (payload: { conversationId: string }, ack?: (r: unknown) => void) => {
+        const { conversationId } = payload ?? {};
+        if (!conversationId || typeof conversationId !== "string") {
+          if (typeof ack === "function") ack({ error: "Invalid conversationId" });
+          return;
+        }
+        const isMember = await isConversationMember(conversationId, userId);
+        if (!isMember) {
+          if (typeof ack === "function") ack({ error: "Not a member" });
+          return;
+        }
+        // Store typing state in Redis with auto-expire (idempotent SET EX)
+        await redis.set(REDIS_TYPING_KEY(conversationId, userId), "1", "EX", TYPING_EXPIRE_SECONDS);
+        // Broadcast to room EXCLUDING sender
+        socket.to(ROOM_CONVERSATION(conversationId)).emit("typing:start", {
+          userId,
+          conversationId,
+          timestamp: new Date().toISOString(),
+        });
+        if (typeof ack === "function") ack({ ok: true });
+      },
+    );
+
+    // typing:stop — delete Redis key and broadcast to room
+    socket.on("typing:stop", async (payload: { conversationId: string }) => {
+      const { conversationId } = payload ?? {};
+      if (!conversationId || typeof conversationId !== "string") return;
+      const isMember = await isConversationMember(conversationId, userId);
+      if (!isMember) return;
+      await redis.del(REDIS_TYPING_KEY(conversationId, userId));
+      socket.to(ROOM_CONVERSATION(conversationId)).emit("typing:stop", {
+        userId,
+        conversationId,
+        timestamp: new Date().toISOString(),
+      });
+    });
+
+    // message:delivered — track in Redis and broadcast to room so sender sees delivery status
     socket.on(
       "message:delivered",
-      (_payload: { messageId: string }, ack?: (resp: unknown) => void) => {
+      async (
+        payload: { messageId: string; conversationId: string },
+        ack?: (resp: unknown) => void,
+      ) => {
+        const { messageId, conversationId } = payload ?? {};
+        if (
+          !messageId ||
+          typeof messageId !== "string" ||
+          !conversationId ||
+          typeof conversationId !== "string"
+        ) {
+          if (typeof ack === "function") ack({ error: "Invalid payload" });
+          return;
+        }
+        const isMember = await isConversationMember(conversationId, userId);
+        if (!isMember) {
+          if (typeof ack === "function") ack({ error: "Not a member" });
+          return;
+        }
+        // Track delivery in Redis (volatile; not critical to persist)
+        await redis.set(`delivered:${messageId}:${userId}`, "1", "EX", 86_400); // 24h TTL
+        // Broadcast to conversation room so sender sees the update
+        socket.to(ROOM_CONVERSATION(conversationId)).emit("message:delivered", {
+          messageId,
+          conversationId,
+          deliveredBy: userId,
+          timestamp: new Date().toISOString(),
+        });
+        if (typeof ack === "function") ack({ ok: true });
+      },
+    );
+
+    // message:read — update last_read_at in DB and broadcast to all room members
+    socket.on(
+      "message:read",
+      async (payload: { conversationId: string }, ack?: (r: unknown) => void) => {
+        const { conversationId } = payload ?? {};
+        if (!conversationId || typeof conversationId !== "string") {
+          if (typeof ack === "function") ack({ error: "Invalid conversationId" });
+          return;
+        }
+        const isMember = await isConversationMember(conversationId, userId);
+        if (!isMember) {
+          if (typeof ack === "function") ack({ error: "Not a member" });
+          return;
+        }
+        const now = new Date();
+        await markConversationRead(conversationId, userId);
+        // Broadcast to ALL members in the room (including sender, so unread count updates)
+        ns.to(ROOM_CONVERSATION(conversationId)).emit("message:read", {
+          conversationId,
+          readerId: userId,
+          lastReadAt: now.toISOString(),
+          timestamp: now.toISOString(),
+        });
         if (typeof ack === "function") ack({ ok: true });
       },
     );

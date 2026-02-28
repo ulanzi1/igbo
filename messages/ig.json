@@ -686,7 +686,8 @@
       "failedToSend": "Enweghị ike iziga",
       "loadingMessages": "Na-ebopụta ozi",
       "deletedMessage": "Ehichapụrụ ozi a",
-      "editedLabel": "(editeere)"
+      "editedLabel": "(editeere)",
+      "read": "Agụọla"
     },
     "input": {
       "placeholder": "Pịnye ozi...",
@@ -798,6 +799,12 @@
     },
     "mentions": {
       "noResults": "Ọ dịghị onye ọ bụla achọtara"
+    },
+    "typing": {
+      "userTyping": "{name} na-ede...",
+      "twoUsersTyping": "{name1} na {name2} na-ede...",
+      "manyUsersTyping": "Ndị otu {count} na-ede...",
+      "unknownUser": "Mmadụ"
     }
   }
 }

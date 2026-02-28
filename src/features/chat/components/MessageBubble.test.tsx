@@ -349,6 +349,36 @@ describe("MessageBubble", () => {
     });
   });
 
+  describe("deliveryStatus prop (server messages)", () => {
+    const serverOwnMessage: ChatMessage = {
+      messageId: "server-msg-read",
+      conversationId: CONV_ID,
+      senderId: USER_ID,
+      content: "Read by recipient",
+      contentType: "text",
+      createdAt: BASE_TIME,
+      attachments: [],
+      reactions: [],
+    };
+
+    it("renders deliveryStatus prop when provided for a server message", () => {
+      render(
+        <MessageBubble
+          message={serverOwnMessage}
+          isOwnMessage={true}
+          showAvatar={false}
+          deliveryStatus="read"
+        />,
+      );
+      expect(screen.getByTestId("delivery")).toHaveTextContent("read");
+    });
+
+    it("defaults to 'delivered' when deliveryStatus is not provided for a server message", () => {
+      render(<MessageBubble message={serverOwnMessage} isOwnMessage={true} showAvatar={false} />);
+      expect(screen.getByTestId("delivery")).toHaveTextContent("delivered");
+    });
+  });
+
   describe("inline edit mode", () => {
     let onEditSave: ReturnType<typeof vi.fn>;
     let onEditCancel: ReturnType<typeof vi.fn>;

@@ -318,7 +318,12 @@ export async function markConversationRead(conversationId: string, userId: strin
 
 export type ConversationWithMembers = {
   conversation: ChatConversation;
-  members: Array<{ id: string; displayName: string; photoUrl: string | null }>;
+  members: Array<{
+    id: string;
+    displayName: string;
+    photoUrl: string | null;
+    lastReadAt: Date | null;
+  }>;
   memberCount: number;
 };
 
@@ -379,7 +384,8 @@ export async function getConversationWithMembers(
     SELECT
       ccm.user_id::text as id,
       COALESCE(cp.display_name, 'Unknown') as "displayName",
-      cp.photo_url as "photoUrl"
+      cp.photo_url as "photoUrl",
+      ccm.last_read_at as "lastReadAt"
     FROM chat_conversation_members ccm
     LEFT JOIN community_profiles cp
       ON cp.user_id = ccm.user_id AND cp.deleted_at IS NULL
@@ -391,6 +397,7 @@ export async function getConversationWithMembers(
     id: string;
     displayName: string;
     photoUrl: string | null;
+    lastReadAt: Date | null;
   }>;
 
   return { conversation, members, memberCount: members.length };

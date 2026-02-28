@@ -3,6 +3,7 @@ import type { Namespace, Socket } from "socket.io";
 import Redis from "ioredis";
 import {
   ROOM_USER,
+  ROOM_PRESENCE,
   REDIS_PRESENCE_KEY,
   PRESENCE_TTL_SECONDS,
   REPLAY_WINDOW_MS,
@@ -36,11 +37,46 @@ export function setupNotificationsNamespace(ns: Namespace, redis: Redis): void {
       void setPresence(redis, userId);
     }, HEARTBEAT_INTERVAL_MS);
 
-    // Notify room of presence update
+    // Notify user room and presence room of online status
     ns.to(ROOM_USER(userId)).emit("presence:update", {
       userId,
       online: true,
       timestamp: new Date().toISOString(),
+    });
+    ns.to(ROOM_PRESENCE(userId)).emit("presence:update", {
+      userId,
+      online: true,
+      timestamp: new Date().toISOString(),
+    });
+
+    // Handle presence subscription requests from other clients
+    socket.on("presence:subscribe", async (payload: { userIds: string[] }) => {
+      if (!Array.isArray(payload?.userIds)) return;
+      const valid = payload.userIds
+        .filter((id) => typeof id === "string" && id.length > 0)
+        .slice(0, 100);
+      for (const uid of valid) {
+        await socket.join(ROOM_PRESENCE(uid));
+      }
+      // Immediately emit current presence state for each subscribed userId
+      for (const uid of valid) {
+        const online = await redis.exists(REDIS_PRESENCE_KEY(uid));
+        socket.emit("presence:update", {
+          userId: uid,
+          online: Boolean(online),
+          timestamp: new Date().toISOString(),
+        });
+      }
+    });
+
+    socket.on("presence:unsubscribe", async (payload: { userIds: string[] }) => {
+      if (!Array.isArray(payload?.userIds)) return;
+      const valid = payload.userIds
+        .filter((id) => typeof id === "string" && id.length > 0)
+        .slice(0, 100);
+      for (const uid of valid) {
+        await socket.leave(ROOM_PRESENCE(uid));
+      }
     });
 
     // Handle reconnection gap sync
@@ -85,6 +121,11 @@ export function setupNotificationsNamespace(ns: Namespace, redis: Redis): void {
       clearInterval(heartbeat);
       void clearPresence(redis, userId);
       ns.to(ROOM_USER(userId)).emit("presence:update", {
+        userId,
+        online: false,
+        timestamp: new Date().toISOString(),
+      });
+      ns.to(ROOM_PRESENCE(userId)).emit("presence:update", {
         userId,
         online: false,
         timestamp: new Date().toISOString(),
