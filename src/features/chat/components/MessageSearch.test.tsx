@@ -87,7 +87,7 @@ describe("MessageSearch", () => {
     render(<MessageSearch isOpen={true} onNavigate={vi.fn()} onClose={vi.fn()} />, {
       wrapper: makeWrapper(),
     });
-    expect(screen.getByRole("searchbox")).toBeInTheDocument();
+    expect(screen.getByRole("textbox")).toBeInTheDocument();
   });
 
   it("does not render dialog when isOpen is false", () => {
@@ -166,7 +166,7 @@ describe("MessageSearch", () => {
     render(<MessageSearch isOpen={true} onNavigate={vi.fn()} onClose={vi.fn()} />, {
       wrapper: makeWrapper(),
     });
-    const input = screen.getByRole("searchbox");
+    const input = screen.getByRole("textbox");
     fireEvent.change(input, { target: { value: "igbo" } });
     expect(mockUpdateQuery).toHaveBeenCalledWith("igbo");
   });
