@@ -6,24 +6,38 @@ import { Link } from "@/i18n/navigation";
 import { useFeed } from "../hooks/use-feed";
 import { FeedItem } from "./FeedItem";
 import { FeedItemSkeleton } from "./FeedItemSkeleton";
+import { PostComposer } from "./PostComposer";
 import { Button } from "@/components/ui/button";
 import type { FeedSortMode, FeedFilter } from "@/config/feed";
 
 interface FeedListProps {
   initialSort?: FeedSortMode;
   initialFilter?: FeedFilter;
+  canCreatePost?: boolean;
+  userName?: string;
+  userPhotoUrl?: string | null;
 }
 
-export function FeedList({ initialSort = "chronological", initialFilter = "all" }: FeedListProps) {
+export function FeedList({
+  initialSort = "chronological",
+  initialFilter = "all",
+  canCreatePost = false,
+  userName = "",
+  userPhotoUrl = null,
+}: FeedListProps) {
   const t = useTranslations("Feed");
 
-  // Sort preference persisted in sessionStorage
-  const [sort, setSort] = useState<FeedSortMode>(() => {
-    if (typeof window === "undefined") return initialSort;
-    return (sessionStorage.getItem("feed-sort") as FeedSortMode | null) ?? initialSort;
-  });
-
+  // Sort preference persisted in sessionStorage — restore after hydration to avoid mismatch
+  const [sort, setSort] = useState<FeedSortMode>(initialSort);
   const [filter, setFilter] = useState<FeedFilter>(initialFilter);
+
+  useEffect(() => {
+    const stored = sessionStorage.getItem("feed-sort") as FeedSortMode | null;
+    if (stored && stored !== sort) {
+      setSort(stored);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleSortChange = (newSort: FeedSortMode) => {
     setSort(newSort);
@@ -63,6 +77,13 @@ export function FeedList({ initialSort = "chronological", initialFilter = "all" 
   if (isLoading) {
     return (
       <div className="space-y-4">
+        <PostComposer
+          userName={userName}
+          canCreatePost={canCreatePost}
+          photoUrl={userPhotoUrl}
+          sort={sort}
+          filter={filter}
+        />
         <FeedControls
           sort={sort}
           filter={filter}
@@ -86,6 +107,13 @@ export function FeedList({ initialSort = "chronological", initialFilter = "all" 
 
   return (
     <div className="space-y-4">
+      <PostComposer
+        userName={userName}
+        canCreatePost={canCreatePost}
+        photoUrl={userPhotoUrl}
+        sort={sort}
+        filter={filter}
+      />
       <FeedControls
         sort={sort}
         filter={filter}

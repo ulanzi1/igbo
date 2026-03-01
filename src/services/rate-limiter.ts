@@ -47,6 +47,8 @@ export const RATE_LIMIT_PRESETS = {
   FOLLOW_STATUS_BATCH: { maxRequests: 120, windowMs: 60_000 }, // 120/min per userId (replaces N per-card GETs)
   // Story 4.1 additions
   FEED_READ: { maxRequests: 60, windowMs: 60_000 }, // 60/min per userId
+  // Story 4.2 additions
+  POST_CREATE: { maxRequests: 5, windowMs: 60_000 }, // 5 per minute per userId (abuse guard)
   // Tier-based API quotas (per hour)
   TIER_BASIC: { maxRequests: 200, windowMs: 3_600_000 },
   TIER_PROFESSIONAL: { maxRequests: 1000, windowMs: 3_600_000 },

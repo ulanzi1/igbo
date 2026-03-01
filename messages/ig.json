@@ -939,9 +939,35 @@
     "soundOn": "Ụda na-abịa",
     "announcementBadge": "Mkpọsa",
     "playVideo": "Kọọ vidiyo",
+    "playAudio": "Kọọ ọdịyo",
     "postByAuthor": "Ozi site n'aka {name}",
     "feedPostsList": "Ndepụta ozi",
     "feedSortGroup": "Nhazi ozi",
-    "loadError": "Ihe adaghị mma na nbudata ozi"
+    "loadError": "Ihe adaghị mma na nbudata ozi",
+    "composer": {
+      "placeholder": "Gịnị dị n'obi gị, {name}?",
+      "placeholderCollapsed": "Kesaa ihe ọhụrụ n'ọha gị…",
+      "richTextToggle": "Ederede nke ọma",
+      "addPhoto": "Tinye foto",
+      "addVideo": "Tinye vidiyo",
+      "removeMedia": "Wepụ ihe etinyere",
+      "categoryLabel": "Ụdị",
+      "categoryDiscussion": "Mkparịta ụka",
+      "categoryEvent": "Mmemme",
+      "categoryAnnouncement": "Mkpọsa",
+      "submit": "Zipu",
+      "submitting": "Na-ezipu…",
+      "cancel": "Kagbuo",
+      "tierBlocked": "Ozi nke ọha dị naanị maka ndị otu Professional na Top-tier. Ị nwere ike izo ya na ìgwè ụlọ.",
+      "limitReached": "Ị eruo oke ozi gị n'izu a. Oke gị ga-atọghị aka na {resetDate}.",
+      "errorGeneric": "Ihe ọjọọ mere. Nwaa ọzọ.",
+      "mediaPreviewAlt": "Nlele ihe etinyere",
+      "mediaCount": "{count, plural, =1 {1 faịlụ} other {# faịlụ}} etinyere",
+      "modalTitle": "Mepụta ozi",
+      "bold": "Ọnụ ike",
+      "italic": "Dị elu",
+      "link": "Tinye njikọ",
+      "characterCount": "{count}/10,000"
+    }
   }
 }

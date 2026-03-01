@@ -23,6 +23,7 @@ export interface PostPublishedEvent extends BaseEvent {
   postId: string;
   authorId: string;
   groupId?: string;
+  category?: string; // "discussion" | "event" | "announcement"
 }
 
 export interface PostReactedEvent extends BaseEvent {
