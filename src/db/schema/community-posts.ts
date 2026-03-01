@@ -25,6 +25,12 @@ export const postVisibilityEnum = pgEnum("community_post_visibility", [
   "members_only",
 ]);
 
+export const postCategoryEnum = pgEnum("community_post_category", [
+  "discussion",
+  "event",
+  "announcement",
+]);
+
 export const communityPosts = pgTable(
   "community_posts",
   {
@@ -35,6 +41,7 @@ export const communityPosts = pgTable(
     content: text("content").notNull(),
     contentType: postContentTypeEnum("content_type").notNull().default("text"),
     visibility: postVisibilityEnum("visibility").notNull().default("members_only"),
+    category: postCategoryEnum("category").notNull().default("discussion"),
     groupId: uuid("group_id"), // FK to community_groups added in Story 5.1
     isPinned: boolean("is_pinned").notNull().default(false),
     likeCount: integer("like_count").notNull().default(0),
@@ -73,3 +80,4 @@ export type CommunityPost = typeof communityPosts.$inferSelect;
 export type NewCommunityPost = typeof communityPosts.$inferInsert;
 export type CommunityPostMedia = typeof communityPostMedia.$inferSelect;
 export type NewCommunityPostMedia = typeof communityPostMedia.$inferInsert;
+export type PostCategory = "discussion" | "event" | "announcement";

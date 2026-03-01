@@ -1,6 +1,6 @@
 import "server-only";
 import { findUserById } from "@/db/queries/auth-queries";
-import { getUserMembershipTier } from "@/db/queries/auth-permissions";
+import { getUserMembershipTier, type MembershipTier } from "@/db/queries/auth-permissions";
 import { auth } from "@/server/auth/config";
 import { eventBus } from "@/services/event-bus";
 
@@ -18,6 +18,8 @@ const PERMISSION_MATRIX = {
     canAssignGroupLeaders: false,
     maxArticlesPerWeek: 0,
     articleVisibility: [] as string[],
+    canCreateFeedPost: false,
+    maxFeedPostsPerWeek: 0,
   },
   PROFESSIONAL: {
     canChat: true,
@@ -30,6 +32,8 @@ const PERMISSION_MATRIX = {
     canAssignGroupLeaders: false,
     maxArticlesPerWeek: 1,
     articleVisibility: ["MEMBERS_ONLY"],
+    canCreateFeedPost: true,
+    maxFeedPostsPerWeek: 1, // FR51: Professional 1/week
   },
   TOP_TIER: {
     canChat: true,
@@ -42,6 +46,8 @@ const PERMISSION_MATRIX = {
     canAssignGroupLeaders: true,
     maxArticlesPerWeek: 2,
     articleVisibility: ["MEMBERS_ONLY", "PUBLIC"],
+    canCreateFeedPost: true,
+    maxFeedPostsPerWeek: 999, // FR51: Top-tier — effectively unlimited for dev/testing
   },
 } as const;
 
@@ -91,6 +97,24 @@ export async function canPublishArticle(userId: string): Promise<PermissionResul
   return { allowed: true };
 }
 
+export async function canCreateFeedPost(userId: string): Promise<PermissionResult> {
+  const tier = await getUserMembershipTier(userId);
+  if (!PERMISSION_MATRIX[tier].canCreateFeedPost) {
+    const result: PermissionResult = {
+      allowed: false,
+      reason: getTierUpgradeMessage("createFeedPost", "PROFESSIONAL"),
+      tierRequired: "PROFESSIONAL",
+    };
+    await emitPermissionDenied(userId, "createFeedPost", result.reason!);
+    return result;
+  }
+  return { allowed: true };
+}
+
+export function getMaxFeedPostsPerWeek(tier: MembershipTier): number {
+  return PERMISSION_MATRIX[tier].maxFeedPostsPerWeek;
+}
+
 export async function canAssignGroupLeaders(userId: string): Promise<PermissionResult> {
   const tier = await getUserMembershipTier(userId);
   if (PERMISSION_MATRIX[tier].canAssignGroupLeaders) {
@@ -137,6 +161,7 @@ const UPGRADE_MESSAGE_KEYS: Record<string, string> = {
   createGroup: "Permissions.groupCreationRequired",
   publishArticle: "Permissions.articlePublishRequired",
   assignGroupLeaders: "Permissions.groupLeaderRequired",
+  createFeedPost: "Permissions.feedPostRequired",
 };
 
 export function getTierUpgradeMessage(action: string, requiredTier: string): string {

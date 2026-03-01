@@ -939,9 +939,35 @@
     "soundOn": "Sound on",
     "announcementBadge": "Announcement",
     "playVideo": "Play video",
+    "playAudio": "Play audio",
     "postByAuthor": "Post by {name}",
     "feedPostsList": "Feed posts",
     "feedSortGroup": "Feed sort",
-    "loadError": "Something went wrong loading the feed"
+    "loadError": "Something went wrong loading the feed",
+    "composer": {
+      "placeholder": "What's on your mind, {name}?",
+      "placeholderCollapsed": "Share an update with your community…",
+      "richTextToggle": "Rich text",
+      "addPhoto": "Add photo",
+      "addVideo": "Add video",
+      "removeMedia": "Remove attachment",
+      "categoryLabel": "Category",
+      "categoryDiscussion": "Discussion",
+      "categoryEvent": "Event",
+      "categoryAnnouncement": "Announcement",
+      "submit": "Post",
+      "submitting": "Posting…",
+      "cancel": "Cancel",
+      "tierBlocked": "General feed posts are available to Professional and Top-tier members. You can still post in group feeds.",
+      "limitReached": "You've reached your weekly posting limit. Your limit resets on {resetDate}.",
+      "errorGeneric": "Something went wrong. Please try again.",
+      "mediaPreviewAlt": "Attachment preview",
+      "mediaCount": "{count, plural, =1 {1 file} other {# files}} attached",
+      "modalTitle": "Create post",
+      "bold": "Bold",
+      "italic": "Italic",
+      "link": "Add link",
+      "characterCount": "{count}/10,000"
+    }
   }
 }

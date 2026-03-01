@@ -95,9 +95,9 @@ describe("FileUpload", () => {
     expect(input).toBeInTheDocument();
   });
 
-  it("shows drag-and-drop hint text initially", () => {
+  it("shows select file text initially", () => {
     render(<FileUpload category="image" onUploadComplete={vi.fn()} />);
-    expect(screen.getByText("Drag and drop a file here, or click to select")).toBeInTheDocument();
+    expect(screen.getByText("Select file")).toBeInTheDocument();
   });
 
   it("is disabled when disabled prop is true", () => {
@@ -135,6 +135,7 @@ describe("FileUpload", () => {
       expect(onUploadComplete).toHaveBeenCalledWith(
         "upload-record-id",
         "uploads/user-123/photo.jpg",
+        "https://presigned.example.com/upload",
       ),
     );
 

@@ -5,10 +5,9 @@ import { render, screen } from "@testing-library/react";
 import { FeedItem } from "./FeedItem";
 import type { FeedPost } from "@/features/feed/types";
 
-vi.mock("next/image", () => ({
-  default: (props: Record<string, unknown>) => (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img src={props["src"] as string} alt={props["alt"] as string} data-testid="feed-image" />
+vi.mock("./PostRichTextRenderer", () => ({
+  PostRichTextRenderer: ({ content }: { content: string }) => (
+    <div data-testid="rich-text-renderer">{content}</div>
   ),
 }));
 
@@ -61,6 +60,7 @@ function makePost(overrides: Partial<FeedPost> = {}): FeedPost {
     likeCount: 5,
     commentCount: 2,
     shareCount: 1,
+    category: "discussion",
     media: [],
     createdAt: new Date(Date.now() - 3_600_000 * 2).toISOString(), // 2 hours ago
     updatedAt: new Date(Date.now() - 3_600_000 * 2).toISOString(),
@@ -107,12 +107,18 @@ describe("FeedItem", () => {
       ],
     });
     render(<FeedItem post={post} />);
-    expect(screen.getByTestId("feed-image")).toBeInTheDocument();
+    const img = screen.getByAltText("Alt text");
+    expect(img).toBeInTheDocument();
+    expect(img.tagName).toBe("IMG");
+    expect(img).toHaveAttribute("src", "https://example.com/img.jpg");
   });
 
   it("does NOT render image grid when media is empty", () => {
     render(<FeedItem post={makePost({ media: [] })} />);
-    expect(screen.queryByTestId("feed-image")).not.toBeInTheDocument();
+    // No media images — only avatar images should exist (not media grid images)
+    const images = screen.queryAllByRole("img");
+    const mediaSrcs = images.filter((img) => img.getAttribute("src")?.includes("example.com"));
+    expect(mediaSrcs).toHaveLength(0);
   });
 
   it("renders video element with muted attribute for video posts", () => {
@@ -149,7 +155,43 @@ describe("FeedItem", () => {
 
   it("renders Badge for announcement content type", () => {
     render(<FeedItem post={makePost({ contentType: "announcement" })} />);
-    expect(screen.getByTestId("badge")).toBeInTheDocument();
-    expect(screen.getByTestId("badge")).toHaveTextContent("Feed.announcementBadge");
+    const badges = screen.getAllByTestId("badge");
+    const announceBadge = badges.find((b) => b.textContent === "Feed.announcementBadge");
+    expect(announceBadge).toBeTruthy();
+  });
+
+  it("renders PostRichTextRenderer for rich_text contentType", () => {
+    render(<FeedItem post={makePost({ contentType: "rich_text", content: '{"type":"doc"}' })} />);
+    expect(screen.getByTestId("rich-text-renderer")).toBeInTheDocument();
+  });
+
+  it("renders plain text div for text contentType (not rich_text)", () => {
+    render(<FeedItem post={makePost({ contentType: "text", content: "Plain text" })} />);
+    expect(screen.queryByTestId("rich-text-renderer")).not.toBeInTheDocument();
+    expect(screen.getByText("Plain text")).toBeInTheDocument();
+  });
+
+  it("shows 'Event' category badge for posts with category = 'event'", () => {
+    render(<FeedItem post={makePost({ category: "event" })} />);
+    const badges = screen.getAllByTestId("badge");
+    const eventBadge = badges.find((b) => b.textContent === "Feed.composer.categoryEvent");
+    expect(eventBadge).toBeTruthy();
+  });
+
+  it("does NOT show category badge for category = 'discussion'", () => {
+    render(<FeedItem post={makePost({ category: "discussion" })} />);
+    // discussion is the default — no badge shown
+    const badges = screen.queryAllByTestId("badge");
+    const discussionBadge = badges.find(
+      (b) => b.textContent === "Feed.composer.categoryDiscussion",
+    );
+    expect(discussionBadge).toBeUndefined();
+  });
+
+  it("shows 'Announcement' category badge for posts with category = 'announcement'", () => {
+    render(<FeedItem post={makePost({ category: "announcement" })} />);
+    const badges = screen.getAllByTestId("badge");
+    const annBadge = badges.find((b) => b.textContent === "Feed.composer.categoryAnnouncement");
+    expect(annBadge).toBeTruthy();
   });
 });

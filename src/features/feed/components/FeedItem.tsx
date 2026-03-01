@@ -1,11 +1,11 @@
 "use client";
 
-import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { useState, useRef } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "@/i18n/navigation";
+import { PostRichTextRenderer } from "./PostRichTextRenderer";
 import type { FeedPost } from "@/features/feed/types";
 
 interface FeedItemProps {
@@ -28,6 +28,7 @@ export function FeedItem({ post }: FeedItemProps) {
   const relativeTime = formatRelativeTime(new Date(post.createdAt), t);
   const images = post.media.filter((m) => m.mediaType === "image");
   const videos = post.media.filter((m) => m.mediaType === "video");
+  const audios = post.media.filter((m) => m.mediaType === "audio");
 
   const handleVideoClick = () => {
     if (!videoRef.current) return;
@@ -77,24 +78,38 @@ export function FeedItem({ post }: FeedItemProps) {
         {post.contentType === "announcement" && (
           <Badge variant="secondary">{t("announcementBadge")}</Badge>
         )}
+        {post.category !== "discussion" && (
+          <Badge variant="outline" className="text-xs">
+            {post.category === "event"
+              ? t("composer.categoryEvent")
+              : t("composer.categoryAnnouncement")}
+          </Badge>
+        )}
       </div>
 
       {/* Content */}
-      <div className="text-sm leading-relaxed whitespace-pre-wrap break-words">{post.content}</div>
+      <div className="text-sm leading-relaxed whitespace-pre-wrap break-words">
+        {post.contentType === "rich_text" ? (
+          <PostRichTextRenderer content={post.content} />
+        ) : (
+          post.content
+        )}
+      </div>
 
-      {/* Images — LQIP pattern via Next.js Image */}
+      {/* Images — user-uploaded content from S3 */}
       {images.length > 0 && (
         <div className={`grid gap-2 ${images.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}>
           {images.slice(0, 4).map((img) => (
-            <div key={img.id} className="relative aspect-video overflow-hidden rounded-md bg-muted">
-              <Image
+            <div
+              key={img.id}
+              className="flex items-center justify-center overflow-hidden rounded-md bg-muted max-h-[500px]"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
                 src={img.mediaUrl}
                 alt={img.altText ?? ""}
-                fill
-                sizes="(max-width: 768px) 100vw, 50vw"
-                className="object-cover"
-                placeholder="blur"
-                blurDataURL="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Crect width='40' height='40' fill='%23e5e7eb'/%3E%3C/svg%3E"
+                className="max-h-[500px] max-w-full object-contain"
+                loading="lazy"
               />
             </div>
           ))}
@@ -134,6 +149,22 @@ export function FeedItem({ post }: FeedItemProps) {
           >
             {isMuted ? "🔇" : "🔊"}
           </button>
+        </div>
+      )}
+
+      {/* Audio */}
+      {audios.length > 0 && (
+        <div className="space-y-2">
+          {audios.map((a) => (
+            <audio
+              key={a.id}
+              src={a.mediaUrl}
+              controls
+              preload="metadata"
+              className="w-full"
+              aria-label={a.altText ?? t("playAudio")}
+            />
+          ))}
         </div>
       )}
 

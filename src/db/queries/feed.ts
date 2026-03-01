@@ -27,6 +27,7 @@ export interface FeedPost {
   likeCount: number;
   commentCount: number;
   shareCount: number;
+  category: "discussion" | "event" | "announcement";
   media: FeedPostMedia[];
   createdAt: string; // ISO 8601
   updatedAt: string; // ISO 8601
@@ -120,12 +121,13 @@ export async function getFeedPosts(
       sql`${communityPosts.createdAt} >= ${windowStart.toISOString()}`,
     );
   } else {
-    // Normal feed: followed member posts + announcements
+    // Normal feed: own posts + followed member posts + announcements
+    const feedAuthorIds = [viewerId, ...followedIds];
     eligibilityCondition = and(
       sql`${communityPosts.deletedAt} IS NULL`,
       or(
         and(
-          inArray(communityPosts.authorId, followedIds),
+          inArray(communityPosts.authorId, feedAuthorIds),
           sql`${communityPosts.groupId} IS NULL`, // Group posts deferred to Epic 5
         ),
         announcementCondition,
@@ -165,6 +167,7 @@ async function _getChronologicalFeedPage(
       likeCount: communityPosts.likeCount,
       commentCount: communityPosts.commentCount,
       shareCount: communityPosts.shareCount,
+      category: communityPosts.category,
       createdAt: communityPosts.createdAt,
       updatedAt: communityPosts.updatedAt,
     })
@@ -219,6 +222,7 @@ async function _getChronologicalFeedPage(
     likeCount: r.likeCount,
     commentCount: r.commentCount,
     shareCount: r.shareCount,
+    category: r.category as FeedPost["category"],
     media: (mediaByPostId.get(r.id) ?? []).map((m) => ({
       id: m.id,
       mediaUrl: m.mediaUrl,
@@ -279,6 +283,7 @@ async function _getAlgorithmicFeedPage(
       likeCount: communityPosts.likeCount,
       commentCount: communityPosts.commentCount,
       shareCount: communityPosts.shareCount,
+      category: communityPosts.category,
       createdAt: communityPosts.createdAt,
       updatedAt: communityPosts.updatedAt,
     })
@@ -359,6 +364,7 @@ async function _getAlgorithmicFeedPage(
     likeCount: r.likeCount,
     commentCount: r.commentCount,
     shareCount: r.shareCount,
+    category: r.category as FeedPost["category"],
     media: (mediaByPostId.get(r.id) ?? []).map((m) => ({
       id: m.id,
       mediaUrl: m.mediaUrl,

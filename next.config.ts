@@ -38,6 +38,7 @@ const cspDirectives = [
     : "script-src 'self' 'unsafe-inline'",
   "style-src 'self' 'unsafe-inline'",
   `img-src 'self' blob: data:${s3PublicOrigin ? ` ${s3PublicOrigin}` : ""}`,
+  `media-src 'self'${s3PublicOrigin ? ` ${s3PublicOrigin}` : ""}`,
   "font-src 'self'",
   `connect-src 'self'${realtimeUrl ? ` ${realtimeUrl} ${realtimeWsUrl}` : ""}${s3Endpoint ? ` ${s3Endpoint}` : ""}`,
   "object-src 'none'",
@@ -76,9 +77,36 @@ const securityHeaders = [
   },
 ];
 
+// Derive hostname + port from S3 public URL for next/image remotePatterns
+const s3ImagePattern = (() => {
+  try {
+    const url = new URL(process.env.HETZNER_S3_PUBLIC_URL ?? "");
+    return {
+      protocol: url.protocol.replace(":", "") as "http" | "https",
+      hostname: url.hostname,
+      port: url.port || undefined,
+    };
+  } catch {
+    return null;
+  }
+})();
+
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  images: {
+    remotePatterns: [
+      ...(s3ImagePattern
+        ? [
+            {
+              protocol: s3ImagePattern.protocol,
+              hostname: s3ImagePattern.hostname,
+              port: s3ImagePattern.port ?? "",
+            },
+          ]
+        : []),
+    ],
+  },
   async headers() {
     return [
       {

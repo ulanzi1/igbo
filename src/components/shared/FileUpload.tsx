@@ -7,7 +7,7 @@ import { UPLOAD_CATEGORY_MIME_TYPES, UPLOAD_SIZE_LIMITS } from "@/config/upload"
 
 interface FileUploadProps {
   category: UploadCategory;
-  onUploadComplete: (fileUploadId: string, objectKey: string) => void;
+  onUploadComplete: (fileUploadId: string, objectKey: string, publicUrl: string) => void;
   onError?: (error: string) => void;
   accept?: string; // e.g. "image/*" — fallback to UPLOAD_CATEGORY_MIME_TYPES[category]
   disabled?: boolean;
@@ -117,7 +117,9 @@ export function FileUpload({
       }
 
       setStatus("done");
-      onUploadComplete(fileUploadId, objectKey);
+      // Derive public URL by stripping presigned query params from uploadUrl
+      const publicUrl = uploadUrl.split("?")[0]!;
+      onUploadComplete(fileUploadId, objectKey, publicUrl);
     } catch {
       setStatus("error");
       onError?.(t("errorUploadFailed"));
@@ -131,38 +133,59 @@ export function FileUpload({
 
   const maxSizeMb = Math.round(UPLOAD_SIZE_LIMITS[category] / (1024 * 1024));
 
+  const isUploading = status === "uploading" || status === "processing";
+
   return (
-    <div>
-      <label style={{ cursor: disabled ? "not-allowed" : "pointer" }} aria-label={t("selectFile")}>
+    <div className="space-y-2">
+      <label
+        className={`inline-flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm font-medium transition-colors min-h-[36px] ${
+          disabled || isUploading
+            ? "cursor-not-allowed opacity-50 bg-muted"
+            : "cursor-pointer bg-background hover:bg-accent"
+        }`}
+        aria-label={t("selectFile")}
+      >
         <span>
           {status === "uploading"
             ? t("uploading")
             : status === "processing"
               ? t("processing")
-              : t("dragAndDrop")}
+              : t("selectFile")}
         </span>
         <input
           ref={inputRef}
           type="file"
           accept={acceptTypes}
-          disabled={disabled || status === "uploading" || status === "processing"}
+          disabled={disabled || isUploading}
           onChange={handleFileChange}
-          style={{ display: "none" }}
+          className="hidden"
           aria-label={t("selectFile")}
         />
       </label>
 
       {status === "uploading" && progress !== null && (
         <div role="progressbar" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100}>
-          <span>{progress}%</span>
+          <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+            <div
+              className="h-full bg-primary transition-all duration-200"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+          <span className="text-xs text-muted-foreground">{progress}%</span>
         </div>
       )}
 
-      {status === "done" && <p>{t("uploadComplete")}</p>}
+      {status === "done" && <p className="text-xs text-muted-foreground">{t("uploadComplete")}</p>}
 
-      {status === "error" && <p role="alert">{t("errorUploadFailed")}</p>}
+      {status === "error" && (
+        <p className="text-xs text-destructive" role="alert">
+          {t("errorUploadFailed")}
+        </p>
+      )}
 
-      <p>{t("maxSizeHint", { maxSize: `${maxSizeMb}MB` })}</p>
+      <p className="text-xs text-muted-foreground">
+        {t("maxSizeHint", { maxSize: `${maxSizeMb}MB` })}
+      </p>
     </div>
   );
 }

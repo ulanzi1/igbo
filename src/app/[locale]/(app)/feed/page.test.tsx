@@ -6,21 +6,33 @@ import { render, screen } from "@testing-library/react";
 vi.mock("@/server/auth/config", () => ({ auth: vi.fn() }));
 vi.mock("next/navigation", () => ({ redirect: vi.fn() }));
 vi.mock("@/features/feed", () => ({
-  FeedList: () => <div data-testid="feed-list" />,
+  FeedList: ({ canCreatePost, userName }: { canCreatePost?: boolean; userName?: string }) => (
+    <div
+      data-testid="feed-list"
+      data-can-create={String(canCreatePost)}
+      data-user-name={userName}
+    />
+  ),
 }));
 vi.mock("next-intl/server", () => ({
   getTranslations: vi.fn().mockResolvedValue((key: string) => key),
 }));
+vi.mock("@/services/permissions", () => ({
+  canCreateFeedPost: vi.fn(),
+}));
 
 import { auth } from "@/server/auth/config";
 import { redirect } from "next/navigation";
+import { canCreateFeedPost } from "@/services/permissions";
 import FeedPage from "./page";
 
 const mockAuth = vi.mocked(auth);
 const mockRedirect = vi.mocked(redirect);
+const mockCanCreateFeedPost = vi.mocked(canCreateFeedPost);
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mockCanCreateFeedPost.mockResolvedValue({ allowed: true });
 });
 
 describe("FeedPage", () => {
@@ -49,5 +61,44 @@ describe("FeedPage", () => {
   it("page has export const dynamic = 'force-dynamic'", async () => {
     const mod = await import("./page");
     expect(mod.dynamic).toBe("force-dynamic");
+  });
+
+  it("passes canCreatePost={true} to FeedList when canCreateFeedPost returns { allowed: true }", async () => {
+    mockAuth.mockResolvedValue({
+      user: { id: "user-1", name: "Test User", image: null },
+    } as Awaited<ReturnType<typeof auth>>);
+    mockCanCreateFeedPost.mockResolvedValue({ allowed: true });
+
+    const Page = await FeedPage();
+    render(Page as React.ReactElement);
+
+    expect(screen.getByTestId("feed-list")).toHaveAttribute("data-can-create", "true");
+  });
+
+  it("passes canCreatePost={false} to FeedList when canCreateFeedPost returns { allowed: false }", async () => {
+    mockAuth.mockResolvedValue({
+      user: { id: "user-1", name: "Test User", image: null },
+    } as Awaited<ReturnType<typeof auth>>);
+    mockCanCreateFeedPost.mockResolvedValue({
+      allowed: false,
+      reason: "Permissions.feedPostRequired",
+      tierRequired: "PROFESSIONAL",
+    });
+
+    const Page = await FeedPage();
+    render(Page as React.ReactElement);
+
+    expect(screen.getByTestId("feed-list")).toHaveAttribute("data-can-create", "false");
+  });
+
+  it("passes userName from session.user.name to FeedList", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "user-1", name: "Jane Doe", image: null } } as Awaited<
+      ReturnType<typeof auth>
+    >);
+
+    const Page = await FeedPage();
+    render(Page as React.ReactElement);
+
+    expect(screen.getByTestId("feed-list")).toHaveAttribute("data-user-name", "Jane Doe");
   });
 });

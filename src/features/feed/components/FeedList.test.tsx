@@ -24,6 +24,11 @@ global.IntersectionObserver = class {
 // ── Mocks ──────────────────────────────────────────────────────────────────────
 
 vi.mock("../hooks/use-feed");
+vi.mock("./PostComposer", () => ({
+  PostComposer: ({ canCreatePost }: { canCreatePost: boolean }) => (
+    <div data-testid="post-composer" data-can-create={String(canCreatePost)} />
+  ),
+}));
 vi.mock("./FeedItem", () => ({
   FeedItem: ({ post }: { post: { id: string; authorDisplayName: string } }) => (
     <div data-testid={`feed-item-${post.id}`}>{post.authorDisplayName}</div>
@@ -80,6 +85,7 @@ function makePost(id: string): FeedPost {
     likeCount: 0,
     commentCount: 0,
     shareCount: 0,
+    category: "discussion",
     media: [],
     createdAt: "2026-03-01T10:00:00.000Z",
     updatedAt: "2026-03-01T10:00:00.000Z",
@@ -217,5 +223,17 @@ describe("FeedList", () => {
     mockUseFeed.mockReturnValue(makeUseFeedResult({ data: makeDataWithPosts([], false) }));
     render(<FeedList />);
     expect(screen.getByText("Feed.noPostsYet")).toBeInTheDocument();
+  });
+
+  it("renders PostComposer with canCreatePost=true when prop is true", () => {
+    mockUseFeed.mockReturnValue(makeUseFeedResult({ data: makeDataWithPosts([]) }));
+    render(<FeedList canCreatePost={true} userName="Jane" />);
+    expect(screen.getByTestId("post-composer")).toHaveAttribute("data-can-create", "true");
+  });
+
+  it("renders PostComposer with canCreatePost=false when prop is false", () => {
+    mockUseFeed.mockReturnValue(makeUseFeedResult({ data: makeDataWithPosts([]) }));
+    render(<FeedList canCreatePost={false} userName="Jane" />);
+    expect(screen.getByTestId("post-composer")).toHaveAttribute("data-can-create", "false");
   });
 });

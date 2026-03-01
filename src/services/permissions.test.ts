@@ -31,12 +31,18 @@ import {
   canCreateGroup,
   canPublishArticle,
   canAssignGroupLeaders,
+  canCreateFeedPost,
+  getMaxFeedPostsPerWeek,
   checkPermission,
   getTierUpgradeMessage,
 } from "./permissions";
 
 beforeEach(() => {
-  vi.clearAllMocks();
+  mockGetUserMembershipTier.mockReset();
+  mockEventBusEmit.mockReset();
+  mockFindUserById.mockReset();
+  mockAuth.mockReset();
+  // Re-establish default: EventBus emit resolves (non-critical path)
   mockEventBusEmit.mockResolvedValue(undefined);
 });
 
@@ -210,6 +216,72 @@ describe("getTierUpgradeMessage", () => {
   });
 });
 
+describe("canCreateFeedPost", () => {
+  it("returns { allowed: false } for BASIC tier", async () => {
+    mockGetUserMembershipTier.mockResolvedValue("BASIC");
+    const result = await canCreateFeedPost("user-1");
+    expect(result.allowed).toBe(false);
+  });
+
+  it("returns { allowed: true } for PROFESSIONAL tier", async () => {
+    mockGetUserMembershipTier.mockResolvedValue("PROFESSIONAL");
+    const result = await canCreateFeedPost("user-1");
+    expect(result.allowed).toBe(true);
+  });
+
+  it("returns { allowed: true } for TOP_TIER tier", async () => {
+    mockGetUserMembershipTier.mockResolvedValue("TOP_TIER");
+    const result = await canCreateFeedPost("user-1");
+    expect(result.allowed).toBe(true);
+  });
+
+  it("emits member.permission_denied for BASIC tier", async () => {
+    mockGetUserMembershipTier.mockResolvedValue("BASIC");
+    await canCreateFeedPost("user-1");
+    expect(mockEventBusEmit).toHaveBeenCalledWith(
+      "member.permission_denied",
+      expect.objectContaining({ userId: "user-1", action: "createFeedPost" }),
+    );
+  });
+});
+
+describe("getMaxFeedPostsPerWeek", () => {
+  it("returns 0 for BASIC", () => {
+    expect(getMaxFeedPostsPerWeek("BASIC")).toBe(0);
+  });
+
+  it("returns 1 for PROFESSIONAL", () => {
+    expect(getMaxFeedPostsPerWeek("PROFESSIONAL")).toBe(1);
+  });
+
+  it("returns 999 for TOP_TIER", () => {
+    expect(getMaxFeedPostsPerWeek("TOP_TIER")).toBe(999);
+  });
+});
+
+describe("PERMISSION_MATRIX feed post fields", () => {
+  it("BASIC has maxFeedPostsPerWeek: 0", async () => {
+    mockGetUserMembershipTier.mockResolvedValue("BASIC");
+    const perms = await getPermissions("user-1");
+    expect(perms.maxFeedPostsPerWeek).toBe(0);
+    expect(perms.canCreateFeedPost).toBe(false);
+  });
+
+  it("PROFESSIONAL has maxFeedPostsPerWeek: 1", async () => {
+    mockGetUserMembershipTier.mockResolvedValue("PROFESSIONAL");
+    const perms = await getPermissions("user-1");
+    expect(perms.maxFeedPostsPerWeek).toBe(1);
+    expect(perms.canCreateFeedPost).toBe(true);
+  });
+
+  it("TOP_TIER has maxFeedPostsPerWeek: 999", async () => {
+    mockGetUserMembershipTier.mockResolvedValue("TOP_TIER");
+    const perms = await getPermissions("user-1");
+    expect(perms.maxFeedPostsPerWeek).toBe(999);
+    expect(perms.canCreateFeedPost).toBe(true);
+  });
+});
+
 describe("Permission matrix completeness", () => {
   const tiers = ["BASIC", "PROFESSIONAL", "TOP_TIER"] as const;
   const permissions = [
@@ -223,6 +295,8 @@ describe("Permission matrix completeness", () => {
     "canAssignGroupLeaders",
     "maxArticlesPerWeek",
     "articleVisibility",
+    "canCreateFeedPost",
+    "maxFeedPostsPerWeek",
   ] as const;
 
   it.each(tiers)("tier %s has all permission keys defined", async (tier) => {

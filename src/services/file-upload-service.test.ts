@@ -119,7 +119,7 @@ describe("generatePresignedUploadUrl", () => {
     const { ApiError } = await import("@/lib/api-error");
     const oversizedParams = {
       ...VALID_PARAMS,
-      sizeBytes: 11 * 1024 * 1024, // 11MB > 10MB limit for images
+      sizeBytes: 51 * 1024 * 1024, // 51MB > 50MB limit for images
     };
 
     await expect(generatePresignedUploadUrl(oversizedParams)).rejects.toThrow(ApiError);
