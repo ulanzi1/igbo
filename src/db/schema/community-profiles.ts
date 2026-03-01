@@ -5,6 +5,7 @@ import {
   varchar,
   text,
   numeric,
+  integer,
   timestamp,
   boolean,
   index,
@@ -62,6 +63,10 @@ export const communityProfiles = pgTable(
       .notNull()
       .default("PUBLIC_TO_MEMBERS"),
     locationVisible: boolean("location_visible").notNull().default(true),
+
+    // Follow counts (denormalized, updated atomically in DB transactions)
+    followerCount: integer("follower_count").notNull().default(0),
+    followingCount: integer("following_count").notNull().default(0),
 
     // GDPR soft-delete
     deletedAt: timestamp("deleted_at", { withTimezone: true }),

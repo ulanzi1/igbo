@@ -5,12 +5,15 @@ import { useTransition } from "react";
 import { useRouter } from "@/i18n/navigation";
 import { createOrFindDirectConversation } from "@/features/chat/actions/create-conversation";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { FollowButton } from "@/features/profiles/components/FollowButton";
 import type { MemberCardData } from "../types";
 
 interface MemberCardProps {
   member: MemberCardData;
   viewerInterests: string[];
   onMessage?: (userId: string) => void; // Optional override; default uses createOrFindDirectConversation
+  showFollowButton?: boolean; // default true
+  viewerUserId?: string; // When provided, hides FollowButton on viewer's own card
 }
 
 function buildLocation(city: string | null, country: string | null): string | null {
@@ -18,7 +21,13 @@ function buildLocation(city: string | null, country: string | null): string | nu
   return city ?? country ?? null;
 }
 
-export function MemberCard({ member, viewerInterests, onMessage }: MemberCardProps) {
+export function MemberCard({
+  member,
+  viewerInterests,
+  onMessage,
+  showFollowButton = true,
+  viewerUserId,
+}: MemberCardProps) {
   const t = useTranslations("Discover");
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -85,6 +94,11 @@ export function MemberCard({ member, viewerInterests, onMessage }: MemberCardPro
       <p className="text-xs text-indigo-600">{t("sharedInterests", { count: sharedCount })}</p>
 
       {/* TODO(Epic 8): BadgeDisplay */}
+
+      {/* Follow button */}
+      {showFollowButton !== false && member.userId !== viewerUserId && (
+        <FollowButton targetUserId={member.userId} targetName={member.displayName} size="sm" />
+      )}
 
       {/* Message button — minimum 44px tap target */}
       <button

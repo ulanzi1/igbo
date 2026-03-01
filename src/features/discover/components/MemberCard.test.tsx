@@ -5,6 +5,10 @@ import { render, screen, fireEvent } from "@/test/test-utils";
 import { MemberCard } from "./MemberCard";
 import type { MemberCardData } from "../types";
 
+vi.mock("@/features/profiles/components/FollowButton", () => ({
+  FollowButton: () => <button data-testid="follow-button">Follow</button>,
+}));
+
 const mockPush = vi.fn();
 const mockCreateOrFind = vi.fn();
 
@@ -122,5 +126,22 @@ describe("MemberCard", () => {
 
     const truncated = screen.getByText(`${"A".repeat(80)}...`);
     expect(truncated).toBeInTheDocument();
+  });
+
+  it("renders FollowButton by default", () => {
+    render(<MemberCard member={baseMember} viewerInterests={[]} />);
+    expect(screen.getByTestId("follow-button")).toBeInTheDocument();
+  });
+
+  it("does not render FollowButton when showFollowButton={false}", () => {
+    render(<MemberCard member={baseMember} viewerInterests={[]} showFollowButton={false} />);
+    expect(screen.queryByTestId("follow-button")).not.toBeInTheDocument();
+  });
+
+  it("does not render FollowButton when viewerUserId matches member", () => {
+    render(
+      <MemberCard member={baseMember} viewerInterests={[]} viewerUserId={baseMember.userId} />,
+    );
+    expect(screen.queryByTestId("follow-button")).not.toBeInTheDocument();
   });
 });
