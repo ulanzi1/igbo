@@ -638,6 +638,22 @@
     },
     "widget": {
       "error": "Something went wrong loading this section"
+    },
+    "peopleNear": {
+      "title": "People near you",
+      "seeAll": "See all",
+      "membersNearby": "{count, plural, =1 {1 member nearby} other {# members nearby}}",
+      "noSuggestions": "No suggestions available yet. Check back soon!",
+      "reasonCity": "Also in {location}",
+      "reasonState": "Also in {location}",
+      "reasonCountry": "Also from {location}",
+      "reasonInterest": "Shares your interest in {interest}",
+      "reasonCommunity": "In your community",
+      "messageCta": "Message",
+      "dismiss": "Dismiss",
+      "dismissAriaLabel": "Dismiss {name}",
+      "loadingAriaLabel": "Loading member suggestions",
+      "viewProfile": "View {name}'s profile"
     }
   },
   "SEO": {

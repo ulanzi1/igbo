@@ -32,6 +32,10 @@ vi.mock("@/hooks/use-notifications", () => ({
   useNotifications: () => ({ notifications: [], unreadCount: 0, isLoading: false, error: null }),
 }));
 
+vi.mock("./PeopleNearYouWidget", () => ({
+  PeopleNearYouWidget: () => <div data-testid="people-near-you-widget" />,
+}));
+
 import { DashboardShell } from "./DashboardShell";
 
 describe("DashboardShell", () => {
@@ -52,9 +56,10 @@ describe("DashboardShell", () => {
     expect(main).toBeInTheDocument();
   });
 
-  it("does not render a sidebar aside element (Epic 1: no widgets enabled)", () => {
+  it("renders a sidebar with the people-near-you widget", () => {
     const { container } = render(<DashboardShell displayName="Chidi" />);
-    expect(container.querySelector("aside")).not.toBeInTheDocument();
+    expect(container.querySelector("aside")).toBeInTheDocument();
+    expect(screen.getByTestId("people-near-you-widget")).toBeInTheDocument();
   });
 
   it("renders GettingStartedWidget in the primary content area", () => {

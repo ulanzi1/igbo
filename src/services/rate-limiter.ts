@@ -37,6 +37,9 @@ export const RATE_LIMIT_PRESETS = {
   DND_TOGGLE: { maxRequests: 10, windowMs: 60_000 }, // 10/min per userId
   // Story 3.1 additions
   MEMBER_SEARCH: { maxRequests: 60, windowMs: 60_000 }, // 60/min per userId
+  // Story 3.3 additions
+  MEMBER_SUGGESTIONS: { maxRequests: 30, windowMs: 60_000 }, // 30/min per userId
+  SUGGESTION_DISMISS: { maxRequests: 20, windowMs: 60_000 }, // 20/min per userId
   // Tier-based API quotas (per hour)
   TIER_BASIC: { maxRequests: 200, windowMs: 3_600_000 },
   TIER_PROFESSIONAL: { maxRequests: 1000, windowMs: 3_600_000 },
