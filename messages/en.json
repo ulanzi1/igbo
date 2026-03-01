@@ -718,6 +718,7 @@
       "loadingMessages": "Loading messages",
       "deletedMessage": "This message was deleted",
       "editedLabel": "(edited)",
+      "sharedPost": "Shared a post",
       "read": "Read"
     },
     "input": {
@@ -968,6 +969,53 @@
       "italic": "Italic",
       "link": "Add link",
       "characterCount": "{count}/10,000"
+    },
+    "reactions": {
+      "react": "React",
+      "like": "Like",
+      "love": "Love",
+      "celebrate": "Celebrate",
+      "insightful": "Insightful",
+      "funny": "Funny",
+      "reactionCount": "{count, plural, =0 {0 reactions} =1 {1 reaction} other {# reactions}}",
+      "pickerLabel": "Choose a reaction",
+      "removeReaction": "Remove reaction",
+      "reactAriaLabel": "React to post"
+    },
+    "comments": {
+      "comment": "Comment",
+      "addComment": "Add a comment…",
+      "reply": "Reply",
+      "replyTo": "Replying to {name}",
+      "submit": "Post",
+      "submitting": "Posting…",
+      "cancel": "Cancel",
+      "delete": "Delete",
+      "deleteConfirm": "Delete this comment?",
+      "deleted": "[Comment deleted]",
+      "viewReplies": "{count, plural, =1 {View 1 reply} other {View {count} replies}}",
+      "hideReplies": "Hide replies",
+      "noComments": "No comments yet. Be the first!",
+      "loadMore": "Load more comments",
+      "errorGeneric": "Something went wrong. Please try again.",
+      "errorParentNotFound": "This comment or reply no longer exists."
+    },
+    "share": {
+      "share": "Share",
+      "repost": "Repost",
+      "repostWithComment": "Repost with your thoughts…",
+      "repostSubmit": "Repost",
+      "repostSuccess": "Reposted!",
+      "shareToConversation": "Share to conversation",
+      "shareToConversationHint": "Select a conversation",
+      "shareToGroup": "Share to group",
+      "shareToGroupComingSoon": "Coming soon — requires groups (Epic 5)",
+      "copyLink": "Copy link",
+      "linkCopied": "Link copied!",
+      "shareCount": "{count, plural, =0 {0 shares} =1 {1 share} other {# shares}}",
+      "errorGeneric": "Could not share. Please try again.",
+      "originalPostBy": "Originally posted by {name}",
+      "repostLabel": "Repost"
     }
   }
 }

@@ -62,7 +62,12 @@ const mockConv: ChatConversation = {
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
   otherMember: { id: "user-2", displayName: "Ada Okonkwo", photoUrl: null },
-  lastMessage: { content: "Hello!", senderId: "user-2", createdAt: new Date().toISOString() },
+  lastMessage: {
+    content: "Hello!",
+    contentType: "text",
+    senderId: "user-2",
+    createdAt: new Date().toISOString(),
+  },
   unreadCount: 0,
 };
 

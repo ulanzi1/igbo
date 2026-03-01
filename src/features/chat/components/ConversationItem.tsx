@@ -112,9 +112,15 @@ export function ConversationItem({
         </div>
         <div className="flex items-center justify-between gap-1">
           <p className="truncate text-xs text-muted-foreground">
-            {conversation.type === "group" && conversation.lastMessage?.senderDisplayName
-              ? `${conversation.lastMessage.senderDisplayName}: ${conversation.lastMessage.content}`
-              : (conversation.lastMessage?.content ?? "")}
+            {(() => {
+              const lm = conversation.lastMessage;
+              if (!lm) return "";
+              const preview =
+                lm.contentType === "shared_post" ? t("messages.sharedPost") : lm.content;
+              return conversation.type === "group" && lm.senderDisplayName
+                ? `${lm.senderDisplayName}: ${preview}`
+                : preview;
+            })()}
           </p>
           {hasUnread && (
             <span
