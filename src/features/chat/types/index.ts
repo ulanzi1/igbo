@@ -1,5 +1,20 @@
 /** Shared chat types used across the chat feature module */
 
+/** JSON payload stored in content when contentType === "shared_post" */
+export interface SharedPostPayload {
+  postId: string;
+  postUrl: string;
+  authorName: string;
+  authorPhotoUrl: string | null;
+  text: string; // original post text content (may be empty for media-only posts)
+  postContentType: string; // "text" | "rich_text" | "media" | "announcement"
+  media: Array<{
+    mediaUrl: string;
+    mediaType: string; // "image" | "video" | "audio"
+    altText: string | null;
+  }>;
+}
+
 export interface ChatMessageAttachment {
   id: string;
   fileUrl: string;
@@ -19,7 +34,7 @@ export interface ChatMessage {
   conversationId: string;
   senderId: string;
   content: string;
-  contentType: "text" | "rich_text" | "system";
+  contentType: "text" | "rich_text" | "system" | "shared_post";
   createdAt: string; // ISO 8601
   attachments: ChatMessageAttachment[];
   reactions: ChatMessageReaction[];
@@ -61,6 +76,7 @@ export interface ChatConversation {
   memberCount?: number;
   lastMessage: {
     content: string;
+    contentType: string;
     senderId: string;
     senderDisplayName?: string;
     createdAt: string;

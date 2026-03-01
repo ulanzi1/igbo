@@ -718,6 +718,7 @@
       "loadingMessages": "Na-ebopụta ozi",
       "deletedMessage": "Ehichapụrụ ozi a",
       "editedLabel": "(editeere)",
+      "sharedPost": "Ekesara post",
       "read": "Agụọla"
     },
     "input": {
@@ -968,6 +969,53 @@
       "italic": "Dị elu",
       "link": "Tinye njikọ",
       "characterCount": "{count}/10,000"
+    },
+    "reactions": {
+      "react": "Mee ihe",
+      "like": "Á masị m",
+      "love": "Ọ masị m nke ọma",
+      "celebrate": "Emesị",
+      "insightful": "Ọ na-enye ọmụmụ",
+      "funny": "Ọ na-atọ ọchị",
+      "reactionCount": "{count, plural, =0 {Ọ dịghị mmegharị} =1 {Mmegharị 1} other {Mmegharị #}}",
+      "pickerLabel": "Họrọ mmegharị",
+      "removeReaction": "Wepụ mmegharị",
+      "reactAriaLabel": "Mee ihe na post"
+    },
+    "comments": {
+      "comment": "Okwu",
+      "addComment": "Tinye okwu…",
+      "reply": "Zaghachi",
+      "replyTo": "Na-azaghachi {name}",
+      "submit": "Zipu",
+      "submitting": "Na-ezipu…",
+      "cancel": "Kagbuo",
+      "delete": "Hichapụ",
+      "deleteConfirm": "Hichapụ okwu a?",
+      "deleted": "[Okwu hichapụrụ]",
+      "viewReplies": "{count, plural, =1 {Hụ nzaghachi 1} other {Hụ nzaghachi {count}}}",
+      "hideReplies": "Zobe nzaghachi",
+      "noComments": "Ọ dịghị okwu. Bụrụ onye mbụ!",
+      "loadMore": "Bulite okwu ndị ọzọ",
+      "errorGeneric": "Ihe ọjọọ mere. Nwaa ọzọ.",
+      "errorParentNotFound": "Okwu a adịghị ọzọ."
+    },
+    "share": {
+      "share": "Kesaa",
+      "repost": "Kesaa ọzọ",
+      "repostWithComment": "Kesaa na echiche gị…",
+      "repostSubmit": "Kesaa ọzọ",
+      "repostSuccess": "Ekesarịla!",
+      "shareToConversation": "Kesaa na mkparịta ụka",
+      "shareToConversationHint": "Họrọ mkparịta ụka",
+      "shareToGroup": "Kesaa na ìgwè",
+      "shareToGroupComingSoon": "Na-abịa — chefuo ìgwè (Epic 5)",
+      "copyLink": "Detuo njikọ",
+      "linkCopied": "Edetụola njikọ!",
+      "shareCount": "{count, plural, =0 {Ọ dịghị nkesa} =1 {Nkesa 1} other {Nkesa #}}",
+      "errorGeneric": "Enweghị ike ịkesa. Nwaa ọzọ.",
+      "originalPostBy": "Onye mbụ de ya bụ {name}",
+      "repostLabel": "Nkesa"
     }
   }
 }

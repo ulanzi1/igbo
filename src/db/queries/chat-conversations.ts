@@ -80,6 +80,7 @@ export type EnrichedUserConversation = {
   memberCount?: number;
   lastMessage: {
     content: string;
+    contentType: string;
     senderId: string;
     senderDisplayName?: string;
     createdAt: Date;
@@ -113,6 +114,7 @@ export async function getUserConversations(
       lm.sender_id::text as last_message_sender_id,
       lm.sender_display_name as last_message_sender_display_name,
       lm.created_at as last_message_created_at,
+      lm.content_type::text as last_message_content_type,
       COALESCE((
         SELECT COUNT(*)::int
         FROM chat_messages um
@@ -151,7 +153,7 @@ export async function getUserConversations(
     LEFT JOIN community_profiles cp
       ON cp.user_id = ccm_other.user_id AND cp.deleted_at IS NULL
     LEFT JOIN LATERAL (
-      SELECT cm.content, cm.sender_id, cp2.display_name as sender_display_name, cm.created_at
+      SELECT cm.content, cm.sender_id, cp2.display_name as sender_display_name, cm.created_at, cm.content_type
       FROM chat_messages cm
       LEFT JOIN community_profiles cp2
         ON cp2.user_id = cm.sender_id AND cp2.deleted_at IS NULL
@@ -183,6 +185,7 @@ export async function getUserConversations(
     other_member_display_name: string;
     other_member_photo_url: string | null;
     last_message_content: string | null;
+    last_message_content_type: string | null;
     last_message_sender_id: string | null;
     last_message_sender_display_name: string | null;
     last_message_created_at: Date | null;
@@ -209,6 +212,7 @@ export async function getUserConversations(
       row.last_message_content && row.last_message_sender_id && row.last_message_created_at
         ? {
             content: row.last_message_content.slice(0, 100), // truncate to 100 chars
+            contentType: row.last_message_content_type ?? "text",
             senderId: row.last_message_sender_id,
             ...(row.last_message_sender_display_name && {
               senderDisplayName: row.last_message_sender_display_name,

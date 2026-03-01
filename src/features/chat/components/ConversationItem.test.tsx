@@ -43,7 +43,12 @@ const mockConversation: ChatConversation = {
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
   otherMember: { id: "user-2", displayName: "Ada Okonkwo", photoUrl: null },
-  lastMessage: { content: "Hello!", senderId: "user-2", createdAt: new Date().toISOString() },
+  lastMessage: {
+    content: "Hello!",
+    contentType: "text",
+    senderId: "user-2",
+    createdAt: new Date().toISOString(),
+  },
   unreadCount: 0,
 };
 
@@ -56,6 +61,21 @@ describe("ConversationItem", () => {
   it("renders last message preview", () => {
     render(<ConversationItem conversation={mockConversation} />);
     expect(screen.getByText("Hello!")).toBeInTheDocument();
+  });
+
+  it("renders friendly label instead of JSON for shared_post messages", () => {
+    const conv: ChatConversation = {
+      ...mockConversation,
+      lastMessage: {
+        content: '{"postId":"de27a7b2-a098-4da0-9abc-def123456789"}',
+        contentType: "shared_post",
+        senderId: "user-2",
+        createdAt: new Date().toISOString(),
+      },
+    };
+    render(<ConversationItem conversation={conv} />);
+    expect(screen.getByText("messages.sharedPost")).toBeInTheDocument();
+    expect(screen.queryByText(/postId/)).not.toBeInTheDocument();
   });
 
   it("links to the conversation page", () => {
@@ -108,6 +128,7 @@ describe("ConversationItem — group variant", () => {
     memberCount: 3,
     lastMessage: {
       content: "Hey all!",
+      contentType: "text",
       senderId: "user-2",
       senderDisplayName: "Ada",
       createdAt: new Date().toISOString(),
