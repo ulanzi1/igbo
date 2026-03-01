@@ -638,6 +638,22 @@
     },
     "widget": {
       "error": "Ihe adaghị nke ọma n'ibugo akụkụ a"
+    },
+    "peopleNear": {
+      "title": "Ndị nọ n'ógbè gị",
+      "seeAll": "Lee ha nile",
+      "membersNearby": "{count, plural, =1 {Otu onye otu nọ nso} other {# ndị otu nọ nso}}",
+      "noSuggestions": "Enweghị ndị a tụrụ aro ugbu a. Lọghachi n'oge ọzọ!",
+      "reasonCity": "Ọ bụkwa na {location}",
+      "reasonState": "Ọ bụkwa na {location}",
+      "reasonCountry": "Ọ bụkwa si {location}",
+      "reasonInterest": "Nwere mmasị gị na {interest}",
+      "reasonCommunity": "Na obodo anyị",
+      "messageCta": "Zite ozi",
+      "dismiss": "Hapụ",
+      "dismissAriaLabel": "Hapụ {name}",
+      "loadingAriaLabel": "Na-ebugo ndị otu atụrụ aro",
+      "viewProfile": "Hụ profaịlụ {name}"
     }
   },
   "SEO": {

@@ -1,19 +1,22 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { DashboardGreeting } from "./DashboardGreeting";
 import { GettingStartedWidget } from "./GettingStartedWidget";
 import { WidgetSlot } from "./WidgetSlot";
+import { PeopleNearYouWidget } from "./PeopleNearYouWidget";
 
 interface DashboardShellProps {
   displayName: string;
   avatarUrl?: string | null;
 }
 
-// For Epic 1: no sidebar widgets are enabled yet.
-// As later epics ship, flip the relevant `enabled` prop to true.
-const hasEnabledWidgets = false;
+// Story 3.3: People near you widget is now enabled.
+const hasEnabledWidgets = true; // WAS: false
 
 export function DashboardShell({ displayName, avatarUrl }: DashboardShellProps) {
+  const t = useTranslations("Dashboard");
+
   return (
     <div className="container mx-auto px-4 py-6">
       <DashboardGreeting displayName={displayName} avatarUrl={avatarUrl} />
@@ -25,9 +28,8 @@ export function DashboardShell({ displayName, avatarUrl }: DashboardShellProps) 
         {/* Sidebar — only render when at least one widget is enabled */}
         {hasEnabledWidgets && (
           <aside className="lg:w-[35%] flex flex-col gap-4">
-            {/* Future widget slots go here as epics ship */}
-            <WidgetSlot enabled={false} title="">
-              {null}
+            <WidgetSlot enabled={true} title={t("peopleNear.title")}>
+              <PeopleNearYouWidget />
             </WidgetSlot>
           </aside>
         )}
