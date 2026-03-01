@@ -832,5 +832,31 @@
       "dndDescription": "Gbochie ọkwa mkparịta ụka nile",
       "close": "Mechie"
     }
+  },
+  "Discover": {
+    "pageTitle": "Chọpụta Ndị Otu",
+    "searchPlaceholder": "Chọọ site n'aha, akụkọ, ma ọ bụ ebe...",
+    "locationPlaceholder": "Obodo",
+    "countryLabel": "Mba",
+    "countryPlaceholder": "Mba",
+    "filtersLabel": "Nhọpụta",
+    "interestsLabel": "Ihe ọ masịrị",
+    "languageLabel": "Asụsụ",
+    "tierLabel": "Ọkwa otu",
+    "tierAll": "Ọkwa nile",
+    "tierBasic": "Ọkwa izizi",
+    "tierProfessional": "Ọkwa onye ọrụ",
+    "tierTopTier": "Ọkwa elu",
+    "allLanguages": "Asụsụ nile",
+    "clearFilters": "Hichapụ nhọpụta",
+    "noResults": "Ahụghị onye otu. Gbalịa ịgbanwe nhọpụta gị.",
+    "loadingError": "Ọ dịghị mma ịbata ndị otu. Biko nwalee ọzọ.",
+    "retry": "Nwalee ọzọ",
+    "loadingMore": "Na-ebu ọzọ...",
+    "sharedInterests": "{count, plural, =0 {Enweghị ihe ọ masịrị ọnụ} =1 {Otu ihe ọ masịrị ọnụ} other {# ihe ọ masịrị ọnụ}}",
+    "messageButton": "Zitere ọ̀bá",
+    "viewProfile": "Lee profaịl nke {name}",
+    "location": "{city}, {country}",
+    "memberCount": "{count, plural, =0 {Enweghị onye} =1 {Otu onye} other {# ndị otu}} achọtara"
   }
 }
