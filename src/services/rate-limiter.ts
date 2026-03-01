@@ -43,6 +43,10 @@ export const RATE_LIMIT_PRESETS = {
   // Story 3.4 additions
   MEMBER_FOLLOW: { maxRequests: 30, windowMs: 60_000 }, // 30/min per userId
   FOLLOW_LIST: { maxRequests: 60, windowMs: 60_000 }, // 60/min per userId
+  // Epic 3 retro AI-5 addition
+  FOLLOW_STATUS_BATCH: { maxRequests: 120, windowMs: 60_000 }, // 120/min per userId (replaces N per-card GETs)
+  // Story 4.1 additions
+  FEED_READ: { maxRequests: 60, windowMs: 60_000 }, // 60/min per userId
   // Tier-based API quotas (per hour)
   TIER_BASIC: { maxRequests: 200, windowMs: 3_600_000 },
   TIER_PROFESSIONAL: { maxRequests: 1000, windowMs: 3_600_000 },

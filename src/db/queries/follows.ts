@@ -1,5 +1,5 @@
 // NOTE: No "server-only" — follows query patterns may be used by realtime server
-import { eq, and, desc, lt, sql } from "drizzle-orm";
+import { eq, and, desc, lt, sql, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import { communityMemberFollows } from "@/db/schema/community-connections";
 import { communityProfiles } from "@/db/schema/community-profiles";
@@ -63,6 +63,31 @@ export async function unfollowMember(followerId: string, followingId: string): P
       .set({ followerCount: sql`GREATEST(${communityProfiles.followerCount} - 1, 0)` })
       .where(eq(communityProfiles.userId, followingId));
   });
+}
+
+/**
+ * Batch check which of the given userIds the followerId is following.
+ * Returns a map of { userId → boolean }.
+ * Unknown userIds and unrecognised UUIDs return false (no error).
+ */
+export async function batchIsFollowing(
+  followerId: string,
+  followingIds: string[],
+): Promise<Record<string, boolean>> {
+  if (followingIds.length === 0) return {};
+
+  const rows = await db
+    .select({ followingId: communityMemberFollows.followingId })
+    .from(communityMemberFollows)
+    .where(
+      and(
+        eq(communityMemberFollows.followerId, followerId),
+        inArray(communityMemberFollows.followingId, followingIds),
+      ),
+    );
+
+  const followed = new Set(rows.map((r) => r.followingId));
+  return Object.fromEntries(followingIds.map((id) => [id, followed.has(id)]));
 }
 
 /** Check if follower is currently following following. */

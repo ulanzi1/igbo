@@ -8,11 +8,21 @@ interface FollowButtonProps {
   targetUserId: string;
   targetName: string; // For aria-label
   size?: "sm" | "default";
+  /** Pre-fetched from useFollowBatch — skips the individual GET on mount when provided. */
+  initialIsFollowing?: boolean;
 }
 
-export function FollowButton({ targetUserId, targetName, size = "default" }: FollowButtonProps) {
+export function FollowButton({
+  targetUserId,
+  targetName,
+  size = "default",
+  initialIsFollowing,
+}: FollowButtonProps) {
   const t = useTranslations("Profile");
-  const { isFollowing, isLoading, follow, unfollow, isPending } = useFollow(targetUserId);
+  const { isFollowing, isLoading, follow, unfollow, isPending } = useFollow(
+    targetUserId,
+    initialIsFollowing,
+  );
 
   if (isLoading) {
     return (

@@ -1,9 +1,15 @@
 "use client";
 
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
-export function useFollow(targetUserId: string) {
+export function useFollow(targetUserId: string, initialIsFollowing?: boolean) {
   const queryClient = useQueryClient();
+
+  // Capture timestamp outside useQuery to satisfy react-hooks/purity (Date.now is impure)
+  const [initialTimestamp] = useState(() =>
+    initialIsFollowing !== undefined ? Date.now() : undefined,
+  );
 
   const statusQuery = useQuery<{ isFollowing: boolean }>({
     queryKey: ["follow-status", targetUserId],
@@ -14,6 +20,9 @@ export function useFollow(targetUserId: string) {
       return json.data;
     },
     staleTime: 60_000, // 1 min — status can be slightly stale
+    // When the grid-level batch has already resolved the status, skip the initial fetch.
+    initialData: initialIsFollowing !== undefined ? { isFollowing: initialIsFollowing } : undefined,
+    initialDataUpdatedAt: initialTimestamp,
   });
 
   const followMutation = useMutation({
