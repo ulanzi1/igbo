@@ -75,16 +75,17 @@ development_status:
   epic-2-retrospective: done
 
   # Epic 3: Member Discovery & Directory
-  epic-3: in-progress
+  epic-3: done
   3-1-member-directory-search: done
   3-2-geographic-fallback-discovery: done
   3-3-member-suggestions-dashboard-widget: done
   3-4-member-following: done
-  epic-3-retrospective: optional
+  epic-3-retrospective: done
+  epic-3-retro-action-items: done # AI-1 through AI-6 all completed 2026-03-01
 
   # Epic 4: News Feed & Social Engagement
-  epic-4: backlog
-  4-1-news-feed-post-display: backlog
+  epic-4: in-progress
+  4-1-news-feed-post-display: done
   4-2-post-creation-rich-media: backlog
   4-3-reactions-comments-sharing: backlog
   4-4-bookmarks-pinned-announcements: backlog

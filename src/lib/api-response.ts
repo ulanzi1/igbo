@@ -1,16 +1,43 @@
 import type { ProblemDetails } from "./api-error";
 
+/**
+ * ## Error Handling Patterns
+ *
+ * `errorResponse` takes a SINGLE ProblemDetails object — it does NOT accept
+ * positional (status, title, detail) arguments. This is a common source of bugs.
+ *
+ * For route handlers, always throw `ApiError` instead of calling `errorResponse`
+ * directly. `withApiHandler` catches `ApiError` and converts it to an RFC 7807
+ * response automatically, preserving the status code.
+ *
+ * ✅ CORRECT — throw ApiError from route handlers:
+ * ```ts
+ * import { ApiError } from "@/lib/api-error";
+ *
+ * throw new ApiError({ title: "Not Found", status: 404, detail: "Member not found" });
+ * throw new ApiError({ title: "Forbidden", status: 403 });
+ * ```
+ *
+ * ✅ CORRECT — call errorResponse directly only when outside withApiHandler:
+ * ```ts
+ * return errorResponse({ type: "about:blank", title: "Bad Request", status: 400 });
+ * ```
+ *
+ * ❌ WRONG — errorResponse does NOT accept positional arguments:
+ * ```ts
+ * return errorResponse(400, "Bad Request", "Invalid user ID"); // TypeError at runtime
+ * ```
+ *
+ * Non-ApiError exceptions thrown inside withApiHandler become HTTP 500.
+ */
+
 interface PaginationMeta {
   page: number;
   pageSize: number;
   total: number;
 }
 
-export function successResponse<T>(
-  data: T,
-  meta?: PaginationMeta,
-  status: number = 200,
-): Response {
+export function successResponse<T>(data: T, meta?: PaginationMeta, status: number = 200): Response {
   const body: { data: T; meta?: PaginationMeta } = { data };
   if (meta) {
     body.meta = meta;
@@ -47,9 +74,7 @@ export function errorResponse(problem: ProblemDetails): Response {
   });
 }
 
-export function validationErrorResponse(
-  fieldErrors: Record<string, string[]>,
-): Response {
+export function validationErrorResponse(fieldErrors: Record<string, string[]>): Response {
   return errorResponse({
     type: "about:blank",
     title: "Validation Error",

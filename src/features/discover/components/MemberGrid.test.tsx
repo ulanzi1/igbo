@@ -19,6 +19,11 @@ vi.mock("@/features/profiles/components/FollowButton", () => ({
   FollowButton: () => React.createElement("button", { "data-testid": "follow-button" }, "Follow"),
 }));
 
+const mockUseFollowBatch = vi.fn();
+vi.mock("@/features/profiles/hooks/use-follow-batch", () => ({
+  useFollowBatch: () => mockUseFollowBatch(),
+}));
+
 const mockUseDiscover = vi.fn();
 vi.mock("../hooks/use-discover", () => ({
   useDiscover: () => mockUseDiscover(),
@@ -73,6 +78,7 @@ beforeEach(() => {
   mockObserve.mockClear();
   mockDisconnect.mockClear();
   mockUseDiscover.mockReturnValue(defaultDiscoverState);
+  mockUseFollowBatch.mockReturnValue({ getIsFollowing: () => false, isLoading: false });
 });
 
 describe("MemberGrid", () => {

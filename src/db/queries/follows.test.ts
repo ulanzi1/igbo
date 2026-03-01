@@ -38,6 +38,7 @@ import {
   followMember,
   unfollowMember,
   isFollowing,
+  batchIsFollowing,
   getFollowersPage,
   getFollowingPage,
 } from "./follows";
@@ -177,6 +178,49 @@ describe("isFollowing", () => {
     const result = await isFollowing(USER_A, USER_B);
 
     expect(result).toBe(false);
+  });
+});
+
+// ─── batchIsFollowing ─────────────────────────────────────────────────────────
+
+describe("batchIsFollowing", () => {
+  const USER_C = "00000000-0000-4000-8000-000000000003";
+
+  it("returns empty object when followingIds is empty", async () => {
+    const result = await batchIsFollowing(USER_A, []);
+    expect(result).toEqual({});
+    expect(mockDb.select).not.toHaveBeenCalled();
+  });
+
+  it("returns true for followed users and false for others", async () => {
+    // Simulate: USER_A follows USER_B, not USER_C
+    const mockWhere = vi.fn().mockResolvedValue([{ followingId: USER_B }]);
+    const mockFrom = vi.fn().mockReturnValue({ where: mockWhere });
+    mockDb.select.mockReturnValue({ from: mockFrom });
+
+    const result = await batchIsFollowing(USER_A, [USER_B, USER_C]);
+
+    expect(result).toEqual({ [USER_B]: true, [USER_C]: false });
+  });
+
+  it("returns all false when viewer follows none", async () => {
+    const mockWhere = vi.fn().mockResolvedValue([]);
+    const mockFrom = vi.fn().mockReturnValue({ where: mockWhere });
+    mockDb.select.mockReturnValue({ from: mockFrom });
+
+    const result = await batchIsFollowing(USER_A, [USER_B, USER_C]);
+
+    expect(result).toEqual({ [USER_B]: false, [USER_C]: false });
+  });
+
+  it("returns all true when viewer follows everyone in the batch", async () => {
+    const mockWhere = vi.fn().mockResolvedValue([{ followingId: USER_B }, { followingId: USER_C }]);
+    const mockFrom = vi.fn().mockReturnValue({ where: mockWhere });
+    mockDb.select.mockReturnValue({ from: mockFrom });
+
+    const result = await batchIsFollowing(USER_A, [USER_B, USER_C]);
+
+    expect(result).toEqual({ [USER_B]: true, [USER_C]: true });
   });
 });
 

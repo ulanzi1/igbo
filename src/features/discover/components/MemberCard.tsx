@@ -14,6 +14,8 @@ interface MemberCardProps {
   onMessage?: (userId: string) => void; // Optional override; default uses createOrFindDirectConversation
   showFollowButton?: boolean; // default true
   viewerUserId?: string; // When provided, hides FollowButton on viewer's own card
+  /** Pre-fetched follow status from grid-level useFollowBatch — skips per-card GET when provided. */
+  initialIsFollowing?: boolean;
 }
 
 function buildLocation(city: string | null, country: string | null): string | null {
@@ -27,6 +29,7 @@ export function MemberCard({
   onMessage,
   showFollowButton = true,
   viewerUserId,
+  initialIsFollowing,
 }: MemberCardProps) {
   const t = useTranslations("Discover");
   const router = useRouter();
@@ -97,7 +100,12 @@ export function MemberCard({
 
       {/* Follow button */}
       {showFollowButton !== false && member.userId !== viewerUserId && (
-        <FollowButton targetUserId={member.userId} targetName={member.displayName} size="sm" />
+        <FollowButton
+          targetUserId={member.userId}
+          targetName={member.displayName}
+          size="sm"
+          initialIsFollowing={initialIsFollowing}
+        />
       )}
 
       {/* Message button — minimum 44px tap target */}

@@ -18,6 +18,7 @@ import * as chatMessagesSchema from "./schema/chat-messages";
 import * as chatMessageAttachmentsSchema from "./schema/chat-message-attachments";
 import * as chatMessageReactionsSchema from "./schema/chat-message-reactions";
 import * as communityConnectionsSchema from "./schema/community-connections";
+import * as communityPostsSchema from "./schema/community-posts";
 
 const client = postgres(env.DATABASE_URL, {
   max: env.DATABASE_POOL_SIZE,
@@ -42,6 +43,7 @@ export const db = drizzle(client, {
     ...chatMessageAttachmentsSchema,
     ...chatMessageReactionsSchema,
     ...communityConnectionsSchema,
+    ...communityPostsSchema,
   },
 });
 

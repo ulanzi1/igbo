@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { useTranslations } from "next-intl";
 import { useDiscover } from "../hooks/use-discover";
+import { useFollowBatch } from "@/features/profiles/hooks/use-follow-batch";
 import { MemberCard } from "./MemberCard";
 import { MemberCardSkeleton } from "./MemberCardSkeleton";
 import type { DiscoverFilters } from "../types";
@@ -20,6 +21,9 @@ export function MemberGrid({ filters, viewerInterests }: MemberGridProps) {
     useDiscover(filters);
 
   const members = data?.pages.flatMap((p) => p.members) ?? [];
+
+  // Single batch request for all visible member follow statuses (replaces N per-card GETs)
+  const { getIsFollowing } = useFollowBatch(members.map((m) => m.userId));
 
   // IntersectionObserver for infinite scroll
   useEffect(() => {
@@ -77,7 +81,12 @@ export function MemberGrid({ filters, viewerInterests }: MemberGridProps) {
     <div>
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
         {members.map((member) => (
-          <MemberCard key={member.userId} member={member} viewerInterests={viewerInterests} />
+          <MemberCard
+            key={member.userId}
+            member={member}
+            viewerInterests={viewerInterests}
+            initialIsFollowing={getIsFollowing(member.userId)}
+          />
         ))}
       </div>
 

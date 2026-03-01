@@ -60,6 +60,40 @@ export function makeHandlerRegistry() {
 }
 
 /**
+ * ⚠️ CRITICAL: Use mockReset() — NOT clearAllMocks() — when your beforeEach contains
+ * mockResolvedValueOnce / mockRejectedValueOnce sequences.
+ *
+ * Root cause: `vi.clearAllMocks()` clears call history and spy implementations BUT
+ * does NOT clear the `Once` return queue. Leftover Once values from a test that
+ * returns early bleed into subsequent tests with NO warning — they silently return
+ * the wrong value, producing inexplicable assertion failures.
+ *
+ * `vi.resetAllMocks()` / `mockFn.mockReset()` clears BOTH call history AND the Once queue.
+ *
+ * Rule: If you queue Once values in beforeEach (or at describe scope), use mockReset().
+ * If you only set up Once values inside individual test cases, clearAllMocks() is safe.
+ *
+ * Usage:
+ * ```ts
+ * const mockFetchUser = vi.fn();
+ *
+ * // ✅ CORRECT — mockReset clears the Once queue so each test starts clean
+ * beforeEach(() => {
+ *   mockFetchUser.mockReset();
+ *   mockFetchUser.mockResolvedValueOnce({ id: "1", name: "Ada" }); // set up fresh
+ * });
+ *
+ * // ❌ WRONG — clearAllMocks() leaves leftover Once values if an early test returns
+ * beforeEach(() => {
+ *   vi.clearAllMocks();
+ *   mockFetchUser.mockResolvedValueOnce({ id: "1", name: "Ada" }); // may bleed!
+ * });
+ * ```
+ *
+ * This bug caused test failures in both Story 3.2 and Story 3.3. Do not repeat.
+ */
+
+/**
  * Call at the start of any test that uses React Query data + `waitFor`.
  *
  * Root cause: RTL's `waitFor` polls via `setInterval`. With `vi.useFakeTimers()` active,

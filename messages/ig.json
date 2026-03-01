@@ -911,5 +911,37 @@
       "title": "Onye ọhụrụ na-eso gị",
       "body": "{name} bidoro iso gị"
     }
+  },
+  "Feed": {
+    "title": "Nkọwa",
+    "sortChronological": "Ọhụrụ",
+    "sortAlgorithmic": "Kacha mma",
+    "filterAll": "Ozi niile",
+    "filterAnnouncements": "Mkọwa",
+    "announcementsOnlyBadge": "Mkọwa naanị",
+    "showAllPosts": "Gosi ozi niile",
+    "pinnedLabel": "Tụbere",
+    "noPostsYet": "Enweghị ozi ka ugbu a",
+    "noPostsInMode": "Enweghị ozi dabara na nhọrọ a",
+    "coldStartHeading": "Nnabata na nkọwa!",
+    "coldStartPrompt": "Soro ndị otu wee sonye na ìgwè ka i mezuo nkọwa gị",
+    "coldStartCta": "Chọta ndị otu",
+    "loadMore": "Bulite ndị ọzọ",
+    "loading": "Na-ebugo ozi…",
+    "justNow": "Ugbu a",
+    "minutesAgo": "{count, plural, =1 {Otu nkeji gara aga} other {# nkeji gara aga}}",
+    "hoursAgo": "{count, plural, =1 {Otu awa gara aga} other {# awa gara aga}}",
+    "daysAgo": "{count, plural, =1 {Otu ụbọchị gara aga} other {# ụbọchị gara aga}}",
+    "likeCount": "{count, plural, =0 {0 enyemaka} =1 {1 enyemaka} other {# enyemaka}}",
+    "commentCount": "{count, plural, =0 {0 nkọwa} =1 {1 nkọwa} other {# nkọwa}}",
+    "shareCount": "{count, plural, =0 {0 nkesa} =1 {1 nkesa} other {# nkesa}}",
+    "soundOff": "Ụda anọghị",
+    "soundOn": "Ụda na-abịa",
+    "announcementBadge": "Mkpọsa",
+    "playVideo": "Kọọ vidiyo",
+    "postByAuthor": "Ozi site n'aka {name}",
+    "feedPostsList": "Ndepụta ozi",
+    "feedSortGroup": "Nhazi ozi",
+    "loadError": "Ihe adaghị mma na nbudata ozi"
   }
 }
