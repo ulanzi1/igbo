@@ -6,11 +6,20 @@ import { render, screen } from "@testing-library/react";
 vi.mock("@/server/auth/config", () => ({ auth: vi.fn() }));
 vi.mock("next/navigation", () => ({ redirect: vi.fn() }));
 vi.mock("@/features/feed", () => ({
-  FeedList: ({ canCreatePost, userName }: { canCreatePost?: boolean; userName?: string }) => (
+  FeedList: ({
+    canCreatePost,
+    userName,
+    currentUserId,
+  }: {
+    canCreatePost?: boolean;
+    userName?: string;
+    currentUserId?: string;
+  }) => (
     <div
       data-testid="feed-list"
       data-can-create={String(canCreatePost)}
       data-user-name={userName}
+      data-current-user-id={currentUserId}
     />
   ),
 }));
@@ -100,5 +109,16 @@ describe("FeedPage", () => {
     render(Page as React.ReactElement);
 
     expect(screen.getByTestId("feed-list")).toHaveAttribute("data-user-name", "Jane Doe");
+  });
+
+  it("passes currentUserId from session.user.id to FeedList", async () => {
+    mockAuth.mockResolvedValue({
+      user: { id: "user-abc", name: "Test", image: null },
+    } as Awaited<ReturnType<typeof auth>>);
+
+    const Page = await FeedPage();
+    render(Page as React.ReactElement);
+
+    expect(screen.getByTestId("feed-list")).toHaveAttribute("data-current-user-id", "user-abc");
   });
 });

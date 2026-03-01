@@ -11,7 +11,7 @@ import { ReactionPicker } from "./ReactionPicker";
 import { ReactionBadges } from "./ReactionBadges";
 import { useReactions } from "@/features/chat/hooks/use-reactions";
 import { useLongPress } from "@/features/chat/hooks/use-long-press";
-import type { LocalChatMessage, ChatMessage } from "@/features/chat/types";
+import type { LocalChatMessage, ChatMessage, SharedPostPayload } from "@/features/chat/types";
 
 interface MessageBubbleProps {
   message: LocalChatMessage | ChatMessage;
@@ -278,14 +278,20 @@ export function MessageBubble({
                   : "bg-muted text-foreground rounded-bl-sm",
               )}
             >
-              {message.content &&
-                (message.contentType === "rich_text" ? (
-                  <RichTextRenderer content={message.content} className="break-words" />
-                ) : (
-                  <p className="break-words whitespace-pre-wrap">{message.content}</p>
-                ))}
-              {(message.attachments ?? []).length > 0 && (
-                <AttachmentGrid attachments={message.attachments ?? []} />
+              {message.contentType === "shared_post" ? (
+                <SharedPostCard content={message.content} isOwnMessage={isOwnMessage} />
+              ) : (
+                <>
+                  {message.content &&
+                    (message.contentType === "rich_text" ? (
+                      <RichTextRenderer content={message.content} className="break-words" />
+                    ) : (
+                      <p className="break-words whitespace-pre-wrap">{message.content}</p>
+                    ))}
+                  {(message.attachments ?? []).length > 0 && (
+                    <AttachmentGrid attachments={message.attachments ?? []} />
+                  )}
+                </>
               )}
             </div>
           )}
@@ -431,6 +437,113 @@ export function MessageBubble({
           )}
           {isOwnMessage && !message.deletedAt && <DeliveryIndicator status={effectiveStatus} />}
         </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Inline card for shared_post messages — renders an embedded preview of the original post
+ * with author info, text content, images, video, and audio.
+ */
+function SharedPostCard({ content, isOwnMessage }: { content: string; isOwnMessage: boolean }) {
+  let payload: SharedPostPayload | null = null;
+  try {
+    payload = JSON.parse(content) as SharedPostPayload;
+  } catch {
+    // Malformed JSON — fall back to plain text
+    return <p className="break-words whitespace-pre-wrap">{content}</p>;
+  }
+
+  const images = payload.media.filter((m) => m.mediaType === "image");
+  const videos = payload.media.filter((m) => m.mediaType === "video");
+  const audios = payload.media.filter((m) => m.mediaType === "audio");
+
+  return (
+    <div className="space-y-2 min-w-[200px]">
+      <span className="text-xs opacity-70">Shared a post</span>
+      <div
+        className={cn(
+          "rounded-md border p-2.5 space-y-2",
+          isOwnMessage
+            ? "border-primary-foreground/20 bg-primary/80"
+            : "border-border bg-background/60",
+        )}
+      >
+        {/* Author */}
+        <div className="flex items-center gap-2">
+          <div className="flex h-5 w-5 items-center justify-center overflow-hidden rounded-full bg-muted">
+            {payload.authorPhotoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={payload.authorPhotoUrl}
+                alt={payload.authorName}
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <span className="text-[10px] font-semibold text-muted-foreground">
+                {payload.authorName.charAt(0).toUpperCase()}
+              </span>
+            )}
+          </div>
+          <span className="text-xs font-medium">{payload.authorName}</span>
+        </div>
+
+        {/* Text content */}
+        {payload.text && (
+          <p className="text-sm break-words whitespace-pre-wrap line-clamp-4">{payload.text}</p>
+        )}
+
+        {/* Images */}
+        {images.length > 0 && (
+          <div className={`grid gap-1 ${images.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}>
+            {images.slice(0, 4).map((img, i) => (
+              <div
+                key={i}
+                className="overflow-hidden rounded bg-muted max-h-[200px] flex items-center justify-center"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={img.mediaUrl}
+                  alt={img.altText ?? ""}
+                  className="max-h-[200px] max-w-full object-contain"
+                  loading="lazy"
+                />
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Video */}
+        {videos.length > 0 && videos[0] && (
+          <div className="overflow-hidden rounded bg-black aspect-video">
+            <video
+              src={videos[0].mediaUrl}
+              className="h-full w-full object-contain"
+              controls
+              muted
+              playsInline
+              preload="metadata"
+            />
+          </div>
+        )}
+
+        {/* Audio */}
+        {audios.length > 0 && (
+          <div className="space-y-1">
+            {audios.map((a, i) => (
+              <audio key={i} src={a.mediaUrl} controls preload="metadata" className="w-full h-8" />
+            ))}
+          </div>
+        )}
+
+        {/* Link to original */}
+        <a
+          href={payload.postUrl}
+          className="block text-xs underline opacity-70 hover:opacity-100 transition-opacity"
+        >
+          View original post
+        </a>
       </div>
     </div>
   );

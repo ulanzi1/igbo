@@ -32,6 +32,7 @@ vi.mock("@/db/schema/community-posts", () => ({
     contentType: "contentType",
     visibility: "visibility",
     category: "category",
+    originalPostId: "originalPostId",
   },
   communityPostMedia: {
     postId: "postId",
@@ -161,6 +162,25 @@ describe("insertPost", () => {
     });
 
     expect(result).toEqual(fakePost);
+  });
+
+  it("passes originalPostId when provided", async () => {
+    const fakePost = { id: "repost-1", originalPostId: "orig-123" };
+    const chain = buildInsertChain([fakePost]);
+
+    const result = await insertPost({
+      authorId: "u",
+      content: "",
+      contentType: "text",
+      visibility: "members_only",
+      category: "discussion",
+      originalPostId: "orig-123",
+    });
+
+    expect(result).toEqual(fakePost);
+    expect(chain.values).toHaveBeenCalledWith(
+      expect.objectContaining({ originalPostId: "orig-123" }),
+    );
   });
 });
 

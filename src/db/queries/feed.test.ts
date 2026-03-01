@@ -24,6 +24,8 @@ vi.mock("@/db/schema/community-posts", () => ({
     deletedAt: "deleted_at",
     createdAt: "created_at",
     updatedAt: "updated_at",
+    category: "category",
+    originalPostId: "original_post_id",
   },
   communityPostMedia: {
     id: "id",
@@ -104,6 +106,8 @@ function makePost(
     deletedAt: Date | null;
     createdAt: Date;
     updatedAt: Date;
+    category: string;
+    originalPostId: string | null;
   }> = {},
 ) {
   return {
@@ -122,6 +126,8 @@ function makePost(
     deletedAt: null,
     createdAt: new Date("2026-03-01T10:00:00Z"),
     updatedAt: new Date("2026-03-01T10:00:00Z"),
+    category: "discussion",
+    originalPostId: null,
     ...overrides,
   };
 }

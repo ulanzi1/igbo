@@ -8,6 +8,7 @@ export const messageContentTypeEnum = pgEnum("message_content_type", [
   "text",
   "rich_text",
   "system",
+  "shared_post",
 ]);
 
 export const chatMessages = pgTable("chat_messages", {

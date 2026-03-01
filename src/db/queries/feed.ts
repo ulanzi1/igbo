@@ -14,6 +14,15 @@ export interface FeedPostMedia {
   sortOrder: number;
 }
 
+export interface FeedPostOriginal {
+  id: string;
+  content: string;
+  contentType: "text" | "rich_text" | "media" | "announcement";
+  authorDisplayName: string;
+  authorPhotoUrl: string | null;
+  media: FeedPostMedia[];
+}
+
 export interface FeedPost {
   id: string;
   authorId: string;
@@ -28,6 +37,8 @@ export interface FeedPost {
   commentCount: number;
   shareCount: number;
   category: "discussion" | "event" | "announcement";
+  originalPostId: string | null;
+  originalPost: FeedPostOriginal | null;
   media: FeedPostMedia[];
   createdAt: string; // ISO 8601
   updatedAt: string; // ISO 8601
@@ -142,6 +153,76 @@ export async function getFeedPosts(
   }
 }
 
+/**
+ * Load original post embeds for repost items.
+ * Batch-fetches original posts + their media in two queries.
+ */
+async function _loadOriginalPostEmbeds(
+  posts: Array<{ originalPostId: string | null }>,
+): Promise<Map<string, FeedPostOriginal>> {
+  const originalIds = [
+    ...new Set(posts.map((p) => p.originalPostId).filter((id): id is string => id != null)),
+  ];
+  if (originalIds.length === 0) return new Map();
+
+  const origRows = await db
+    .select({
+      id: communityPosts.id,
+      content: communityPosts.content,
+      contentType: communityPosts.contentType,
+      authorDisplayName: communityProfiles.displayName,
+      authorPhotoUrl: communityProfiles.photoUrl,
+    })
+    .from(communityPosts)
+    .innerJoin(
+      communityProfiles,
+      and(
+        eq(communityProfiles.userId, communityPosts.authorId),
+        sql`${communityProfiles.deletedAt} IS NULL`,
+      ),
+    )
+    .where(and(inArray(communityPosts.id, originalIds), sql`${communityPosts.deletedAt} IS NULL`));
+
+  const origMediaRows =
+    origRows.length > 0
+      ? await db
+          .select()
+          .from(communityPostMedia)
+          .where(
+            inArray(
+              communityPostMedia.postId,
+              origRows.map((r) => r.id),
+            ),
+          )
+          .orderBy(communityPostMedia.sortOrder)
+      : [];
+
+  const origMediaByPostId = new Map<string, typeof origMediaRows>();
+  for (const m of origMediaRows) {
+    if (!origMediaByPostId.has(m.postId)) origMediaByPostId.set(m.postId, []);
+    origMediaByPostId.get(m.postId)!.push(m);
+  }
+
+  const result = new Map<string, FeedPostOriginal>();
+  for (const r of origRows) {
+    result.set(r.id, {
+      id: r.id,
+      content: r.content,
+      contentType: r.contentType as FeedPostOriginal["contentType"],
+      authorDisplayName: r.authorDisplayName,
+      authorPhotoUrl: r.authorPhotoUrl,
+      media: (origMediaByPostId.get(r.id) ?? []).map((m) => ({
+        id: m.id,
+        mediaUrl: m.mediaUrl,
+        mediaType: m.mediaType,
+        altText: m.altText,
+        sortOrder: m.sortOrder,
+      })),
+    });
+  }
+  return result;
+}
+
 async function _getChronologicalFeedPage(
   eligibilityCondition: SQL | undefined, // and() returns SQL | undefined; always defined here
   isColdStart: boolean,
@@ -168,6 +249,7 @@ async function _getChronologicalFeedPage(
       commentCount: communityPosts.commentCount,
       shareCount: communityPosts.shareCount,
       category: communityPosts.category,
+      originalPostId: communityPosts.originalPostId,
       createdAt: communityPosts.createdAt,
       updatedAt: communityPosts.updatedAt,
     })
@@ -192,16 +274,18 @@ async function _getChronologicalFeedPage(
   const nextCursor =
     hasMore && pageRows.length > 0 ? pageRows[pageRows.length - 1]!.createdAt.toISOString() : null;
 
-  // Load media for returned posts
+  // Load media for returned posts + original post embeds for reposts
   const postIds = pageRows.map((r) => r.id);
-  const mediaRows =
+  const [mediaRows, originalEmbeds] = await Promise.all([
     postIds.length > 0
-      ? await db
+      ? db
           .select()
           .from(communityPostMedia)
           .where(inArray(communityPostMedia.postId, postIds))
           .orderBy(communityPostMedia.sortOrder)
-      : [];
+      : Promise.resolve([]),
+    _loadOriginalPostEmbeds(pageRows),
+  ]);
 
   const mediaByPostId = new Map<string, typeof mediaRows>();
   for (const m of mediaRows) {
@@ -223,6 +307,8 @@ async function _getChronologicalFeedPage(
     commentCount: r.commentCount,
     shareCount: r.shareCount,
     category: r.category as FeedPost["category"],
+    originalPostId: r.originalPostId,
+    originalPost: r.originalPostId ? (originalEmbeds.get(r.originalPostId) ?? null) : null,
     media: (mediaByPostId.get(r.id) ?? []).map((m) => ({
       id: m.id,
       mediaUrl: m.mediaUrl,
@@ -284,6 +370,7 @@ async function _getAlgorithmicFeedPage(
       commentCount: communityPosts.commentCount,
       shareCount: communityPosts.shareCount,
       category: communityPosts.category,
+      originalPostId: communityPosts.originalPostId,
       createdAt: communityPosts.createdAt,
       updatedAt: communityPosts.updatedAt,
     })
@@ -336,14 +423,16 @@ async function _getAlgorithmicFeedPage(
 
   const allPageRows = [...prefix, ...pageRows];
   const postIds = allPageRows.map((r) => r.id);
-  const mediaRows =
+  const [mediaRows, originalEmbeds] = await Promise.all([
     postIds.length > 0
-      ? await db
+      ? db
           .select()
           .from(communityPostMedia)
           .where(inArray(communityPostMedia.postId, postIds))
           .orderBy(communityPostMedia.sortOrder)
-      : [];
+      : Promise.resolve([]),
+    _loadOriginalPostEmbeds(allPageRows),
+  ]);
 
   const mediaByPostId = new Map<string, typeof mediaRows>();
   for (const m of mediaRows) {
@@ -365,6 +454,8 @@ async function _getAlgorithmicFeedPage(
     commentCount: r.commentCount,
     shareCount: r.shareCount,
     category: r.category as FeedPost["category"],
+    originalPostId: r.originalPostId,
+    originalPost: r.originalPostId ? (originalEmbeds.get(r.originalPostId) ?? null) : null,
     media: (mediaByPostId.get(r.id) ?? []).map((m) => ({
       id: m.id,
       mediaUrl: m.mediaUrl,

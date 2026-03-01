@@ -30,8 +30,16 @@ vi.mock("./PostComposer", () => ({
   ),
 }));
 vi.mock("./FeedItem", () => ({
-  FeedItem: ({ post }: { post: { id: string; authorDisplayName: string } }) => (
-    <div data-testid={`feed-item-${post.id}`}>{post.authorDisplayName}</div>
+  FeedItem: ({
+    post,
+    currentUserId,
+  }: {
+    post: { id: string; authorDisplayName: string };
+    currentUserId?: string;
+  }) => (
+    <div data-testid={`feed-item-${post.id}`} data-current-user={currentUserId}>
+      {post.authorDisplayName}
+    </div>
   ),
 }));
 vi.mock("./FeedItemSkeleton", () => ({
@@ -86,6 +94,7 @@ function makePost(id: string): FeedPost {
     commentCount: 0,
     shareCount: 0,
     category: "discussion",
+    originalPostId: null,
     media: [],
     createdAt: "2026-03-01T10:00:00.000Z",
     updatedAt: "2026-03-01T10:00:00.000Z",
@@ -235,5 +244,13 @@ describe("FeedList", () => {
     mockUseFeed.mockReturnValue(makeUseFeedResult({ data: makeDataWithPosts([]) }));
     render(<FeedList canCreatePost={false} userName="Jane" />);
     expect(screen.getByTestId("post-composer")).toHaveAttribute("data-can-create", "false");
+  });
+
+  it("passes currentUserId prop down to each FeedItem", () => {
+    const posts = [makePost("1"), makePost("2")];
+    mockUseFeed.mockReturnValue(makeUseFeedResult({ data: makeDataWithPosts(posts) }));
+    render(<FeedList currentUserId="user-42" />);
+    expect(screen.getByTestId("feed-item-1")).toHaveAttribute("data-current-user", "user-42");
+    expect(screen.getByTestId("feed-item-2")).toHaveAttribute("data-current-user", "user-42");
   });
 });
