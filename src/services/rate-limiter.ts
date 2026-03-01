@@ -49,6 +49,15 @@ export const RATE_LIMIT_PRESETS = {
   FEED_READ: { maxRequests: 60, windowMs: 60_000 }, // 60/min per userId
   // Story 4.2 additions
   POST_CREATE: { maxRequests: 5, windowMs: 60_000 }, // 5 per minute per userId (abuse guard)
+  // Story 4.3 additions
+  // Used by REST API routes (Tasks 8.1–8.3):
+  POST_COMMENTS_READ: { maxRequests: 120, windowMs: 60_000 }, // 120/min per userId
+  POST_COMMENT_DELETE: { maxRequests: 10, windowMs: 60_000 }, // 10/min per userId
+  POST_REACTIONS_READ: { maxRequests: 120, windowMs: 60_000 }, // 120/min per userId
+  // Reserved for future REST API routes or manual rate-limit checks in Server Actions:
+  POST_REACT: { maxRequests: 60, windowMs: 60_000 }, // 60/min per userId (reaction spam guard)
+  POST_COMMENT: { maxRequests: 20, windowMs: 60_000 }, // 20/min per userId (comment spam guard)
+  POST_SHARE: { maxRequests: 10, windowMs: 60_000 }, // 10/min per userId
   // Tier-based API quotas (per hour)
   TIER_BASIC: { maxRequests: 200, windowMs: 3_600_000 },
   TIER_PROFESSIONAL: { maxRequests: 1000, windowMs: 3_600_000 },

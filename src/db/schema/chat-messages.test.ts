@@ -17,7 +17,12 @@ describe("chat-messages schema", () => {
   });
 
   it("messageContentTypeEnum has correct values", () => {
-    expect(messageContentTypeEnum.enumValues).toEqual(["text", "rich_text", "system"]);
+    expect(messageContentTypeEnum.enumValues).toEqual([
+      "text",
+      "rich_text",
+      "system",
+      "shared_post",
+    ]);
   });
 
   it("chatMessages primary key is id column", () => {

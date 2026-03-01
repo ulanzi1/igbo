@@ -47,6 +47,7 @@ export const communityPosts = pgTable(
     likeCount: integer("like_count").notNull().default(0),
     commentCount: integer("comment_count").notNull().default(0),
     shareCount: integer("share_count").notNull().default(0),
+    originalPostId: uuid("original_post_id"), // FK to self: enforced in migration, lazy ref to avoid circular
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),

@@ -12,6 +12,7 @@ export interface CreatePostData {
   contentType: "text" | "rich_text" | "media" | "announcement";
   visibility: "public" | "group" | "members_only";
   category: "discussion" | "event" | "announcement";
+  originalPostId?: string | null; // NEW — for reposts
 }
 
 export interface CreatePostMediaData {
@@ -62,6 +63,7 @@ export async function insertPost(data: CreatePostData) {
       contentType: data.contentType,
       visibility: data.visibility,
       category: data.category,
+      originalPostId: data.originalPostId ?? null, // NEW
     })
     .returning();
   return post!;

@@ -25,6 +25,7 @@ export default async function FeedPage() {
         canCreatePost={canPost.allowed}
         userName={session.user.name ?? ""}
         userPhotoUrl={session.user.image ?? null}
+        currentUserId={userId}
       />
     </main>
   );
