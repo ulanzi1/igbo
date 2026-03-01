@@ -15,6 +15,10 @@ vi.mock("@/features/chat/actions/create-conversation", () => ({
   createOrFindDirectConversation: vi.fn(),
 }));
 
+vi.mock("@/features/profiles/components/FollowButton", () => ({
+  FollowButton: () => React.createElement("button", { "data-testid": "follow-button" }, "Follow"),
+}));
+
 const mockUseDiscover = vi.fn();
 vi.mock("../hooks/use-discover", () => ({
   useDiscover: () => mockUseDiscover(),
@@ -37,7 +41,6 @@ global.IntersectionObserver = vi.fn().mockImplementation(function (
 }) as unknown as typeof IntersectionObserver;
 
 import { MemberGrid } from "./MemberGrid";
-import type { DiscoverFilters } from "../types";
 import { DEFAULT_FILTERS } from "../types";
 import type { MemberCardData } from "../types";
 

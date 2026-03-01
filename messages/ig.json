@@ -536,7 +536,22 @@
     "interests": "Mmasị",
     "culturalConnections": "Njikọ omenala",
     "languages": "Asụsụ",
-    "verificationBadge": "Akara nkwenye"
+    "verificationBadge": "Akara nkwenye",
+    "follow": "Soro ya",
+    "following": "Na-esozo",
+    "unfollow": "Kwụsị iso ya",
+    "followerCount": "{count, plural, =0 {0 ndị na-eso} =1 {Otu onye na-eso} other {# ndị na-eso}}",
+    "followingCount": "{count, plural, =0 {0 na-esozo} =1 {1 na-esozo} other {# na-esozo}}",
+    "followersTab": "Ndị na-eso",
+    "followingTab": "Na-esozo",
+    "aboutTab": "Maka",
+    "followAriaLabel": "Soro {name}",
+    "unfollowAriaLabel": "Kwụsị iso {name}",
+    "followingAriaLabel": "{name} — Na-esozo. Pịa ka i kwụsị iso.",
+    "noFollowers": "Enweghị onye na-eso ya ka ugbu a.",
+    "noFollowing": "Asoghị onye ọ bụla ka ugbu a.",
+    "followListLoadMore": "Bulite ndị ọzọ",
+    "followListLoading": "Na-ebunye..."
   },
   "cookieConsent": {
     "title": "Nhọrọ Cookie",
@@ -889,6 +904,12 @@
       "levelState": "steeti",
       "levelCountry": "mba",
       "levelGlobal": "obodo anyị"
+    }
+  },
+  "notifications": {
+    "new_follower": {
+      "title": "Onye ọhụrụ na-eso gị",
+      "body": "{name} bidoro iso gị"
     }
   }
 }

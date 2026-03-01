@@ -536,7 +536,22 @@
     "interests": "Interests",
     "culturalConnections": "Cultural Connections",
     "languages": "Languages",
-    "verificationBadge": "Verification badge"
+    "verificationBadge": "Verification badge",
+    "follow": "Follow",
+    "following": "Following",
+    "unfollow": "Unfollow",
+    "followerCount": "{count, plural, =0 {0 followers} =1 {1 follower} other {# followers}}",
+    "followingCount": "{count, plural, =0 {0 following} =1 {1 following} other {# following}}",
+    "followersTab": "Followers",
+    "followingTab": "Following",
+    "aboutTab": "About",
+    "followAriaLabel": "Follow {name}",
+    "unfollowAriaLabel": "Unfollow {name}",
+    "followingAriaLabel": "{name} — Following. Click to unfollow.",
+    "noFollowers": "No followers yet.",
+    "noFollowing": "Not following anyone yet.",
+    "followListLoadMore": "Load more",
+    "followListLoading": "Loading..."
   },
   "cookieConsent": {
     "title": "Cookie Preferences",
@@ -889,6 +904,12 @@
       "levelState": "state",
       "levelCountry": "country",
       "levelGlobal": "community"
+    }
+  },
+  "notifications": {
+    "new_follower": {
+      "title": "New follower",
+      "body": "{name} started following you"
     }
   }
 }
