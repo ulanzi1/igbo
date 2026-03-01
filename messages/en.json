@@ -832,5 +832,31 @@
       "dndDescription": "Suppress all chat notifications",
       "close": "Close"
     }
+  },
+  "Discover": {
+    "pageTitle": "Discover Members",
+    "searchPlaceholder": "Search by name, bio, or location...",
+    "locationPlaceholder": "City",
+    "countryLabel": "Country",
+    "countryPlaceholder": "Country",
+    "filtersLabel": "Filters",
+    "interestsLabel": "Interests",
+    "languageLabel": "Language",
+    "tierLabel": "Membership tier",
+    "tierAll": "All tiers",
+    "tierBasic": "Basic",
+    "tierProfessional": "Professional",
+    "tierTopTier": "Top-tier",
+    "allLanguages": "All languages",
+    "clearFilters": "Clear filters",
+    "noResults": "No members found. Try adjusting your filters.",
+    "loadingError": "Failed to load members. Please try again.",
+    "retry": "Retry",
+    "loadingMore": "Loading more...",
+    "sharedInterests": "{count, plural, =0 {No shared interests} =1 {1 shared interest} other {# shared interests}}",
+    "messageButton": "Message",
+    "viewProfile": "View profile of {name}",
+    "location": "{city}, {country}",
+    "memberCount": "{count, plural, =0 {No members} =1 {1 member} other {# members}} found"
   }
 }
