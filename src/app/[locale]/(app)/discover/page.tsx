@@ -25,6 +25,7 @@ export default async function DiscoverPage({ params }: { params: Promise<{ local
   const viewerProfile = profile
     ? {
         locationCity: profile.locationCity ?? null,
+        locationState: profile.locationState ?? null,
         locationCountry: profile.locationCountry ?? null,
         interests: (profile.interests as string[]) ?? [],
       }

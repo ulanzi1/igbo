@@ -77,7 +77,7 @@ development_status:
   # Epic 3: Member Discovery & Directory
   epic-3: in-progress
   3-1-member-directory-search: done
-  3-2-geographic-fallback-discovery: backlog
+  3-2-geographic-fallback-discovery: done
   3-3-member-suggestions-dashboard-widget: backlog
   3-4-member-following: backlog
   epic-3-retrospective: optional

@@ -1,6 +1,6 @@
-import type { MemberCardData } from "@/services/geo-search";
+import type { MemberCardData, GeoFallbackLevel } from "@/services/geo-search";
 
-export type { MemberCardData };
+export type { MemberCardData, GeoFallbackLevel };
 
 export interface DiscoverFilters {
   query: string;

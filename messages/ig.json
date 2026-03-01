@@ -857,6 +857,22 @@
     "messageButton": "Zitere ọ̀bá",
     "viewProfile": "Lee profaịl nke {name}",
     "location": "{city}, {country}",
-    "memberCount": "{count, plural, =0 {Enweghị onye} =1 {Otu onye} other {# ndị otu}} achọtara"
+    "memberCount": "{count, plural, =0 {Enweghị onye} =1 {Otu onye} other {# ndị otu}} achọtara",
+    "fallback": {
+      "cityCount": "{count, plural, =1 {Otu onye otu na {location}} other {# ndị otu na {location}}}",
+      "stateCount": "{count, plural, =1 {Otu onye na {location}} other {# ndị na {location}}}",
+      "countryCount": "{count, plural, =1 {Otu onye na {location}} other {# ndị na {location}}}",
+      "globalCount": "{count, plural, =1 {Otu onye otu n'ụwa nile} other {# ndị otu n'ụwa nile}}",
+      "cityGrowing": "Obodo gị na-eto eto! Lee ndị otu gị nọ nso...",
+      "nextLevelHint": "{count, plural, =1 {Otu onye} other {# ndị}} na {location}",
+      "tooltip": "Anyị na-egosi gị ndị na {level} gị n'ihi na obodo gị na-eto eto. Ka ndị otu na-abara, ndị obodo gị ga-apụta.",
+      "tooltipDismiss": "Aghọtara m",
+      "ringLabel": "Gosi {count, plural, =1 {otu onye} other {# ndị}} na {location}",
+      "globalRingLabel": "Gosi ndị otu nile {count, plural, =1 {otu onye} other {# ndị}}",
+      "levelCity": "obodo",
+      "levelState": "steeti",
+      "levelCountry": "mba",
+      "levelGlobal": "obodo anyị"
+    }
   }
 }

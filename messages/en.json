@@ -857,6 +857,22 @@
     "messageButton": "Message",
     "viewProfile": "View profile of {name}",
     "location": "{city}, {country}",
-    "memberCount": "{count, plural, =0 {No members} =1 {1 member} other {# members}} found"
+    "memberCount": "{count, plural, =0 {No members} =1 {1 member} other {# members}} found",
+    "fallback": {
+      "cityCount": "{count, plural, =1 {1 community member in {location}} other {# community members in {location}}}",
+      "stateCount": "{count, plural, =1 {1 member in {location}} other {# members in {location}}}",
+      "countryCount": "{count, plural, =1 {1 member in {location}} other {# members in {location}}}",
+      "globalCount": "{count, plural, =1 {1 community member worldwide} other {# community members worldwide}}",
+      "cityGrowing": "Your city is still growing! Here's your community nearby...",
+      "nextLevelHint": "{count, plural, =1 {1 member} other {# members}} across {location}",
+      "tooltip": "We're showing members in your {level} since your city is still growing. As more members join, your local community will appear.",
+      "tooltipDismiss": "Got it",
+      "ringLabel": "Show {count, plural, =1 {1 member} other {# members}} in {location}",
+      "globalRingLabel": "Show all {count, plural, =1 {1 member} other {# members}}",
+      "levelCity": "city",
+      "levelState": "state",
+      "levelCountry": "country",
+      "levelGlobal": "community"
+    }
   }
 }
