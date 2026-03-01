@@ -28,6 +28,7 @@ vi.mock("@/features/discover/components/DiscoverContent", () => ({
   }: {
     viewerProfile: {
       locationCity: string | null;
+      locationState: string | null;
       locationCountry: string | null;
       interests: string[];
     } | null;
@@ -40,6 +41,7 @@ const MOCK_PROFILE = {
   userId: "user-1",
   displayName: "Chidi",
   locationCity: "Lagos",
+  locationState: "Lagos State",
   locationCountry: "Nigeria",
   interests: ["music"],
   locationVisible: true,

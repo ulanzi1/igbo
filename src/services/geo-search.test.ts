@@ -15,7 +15,11 @@ vi.mock("@/db/queries/block-mute", () => ({
   getUsersWhoBlocked: (...args: unknown[]) => mockGetUsersWhoBlocked(...args),
 }));
 
-import { searchMembersInDirectory } from "./geo-search";
+import {
+  searchMembersInDirectory,
+  searchMembersWithGeoFallback,
+  GEO_FALLBACK_THRESHOLD,
+} from "./geo-search";
 
 const VIEWER_ID = "00000000-0000-4000-8000-000000000001";
 const USER_B = "00000000-0000-4000-8000-000000000002";
@@ -221,5 +225,175 @@ describe("searchMembersInDirectory", () => {
 
     // Should not throw; cursor is silently ignored
     expect(result.members).toHaveLength(1);
+  });
+});
+
+describe("searchMembersWithGeoFallback", () => {
+  // Reset the db mock's Once-queue between tests so leftover calls don't contaminate later tests
+  beforeEach(() => {
+    mockDbExecute.mockReset();
+  });
+
+  function makeCountRow(count: number) {
+    return { count: String(count) };
+  }
+
+  it("returns activeLevel: 'city' when city count >= GEO_FALLBACK_THRESHOLD", async () => {
+    // Calls: [city count, state count, country count, global count, member page query]
+    mockDbExecute
+      .mockResolvedValueOnce([makeCountRow(GEO_FALLBACK_THRESHOLD)]) // city
+      .mockResolvedValueOnce([makeCountRow(10)]) // state
+      .mockResolvedValueOnce([makeCountRow(20)]) // country
+      .mockResolvedValueOnce([makeCountRow(100)]) // global
+      .mockResolvedValueOnce([makeRow()]); // page query
+
+    const result = await searchMembersWithGeoFallback({
+      viewerUserId: VIEWER_ID,
+      locationCity: "Houston",
+      locationState: "Texas",
+      locationCountry: "United States",
+    });
+
+    expect(result.activeLevel).toBe("city");
+    expect(result.activeLocationLabel).toBe("Houston");
+    expect(result.levelCounts.city).toBe(GEO_FALLBACK_THRESHOLD);
+  });
+
+  it("returns activeLevel: 'state' when city count < threshold but state count >= threshold", async () => {
+    mockDbExecute
+      .mockResolvedValueOnce([makeCountRow(2)]) // city (below threshold)
+      .mockResolvedValueOnce([makeCountRow(GEO_FALLBACK_THRESHOLD)]) // state (at threshold)
+      .mockResolvedValueOnce([makeCountRow(20)]) // country
+      .mockResolvedValueOnce([makeCountRow(100)]) // global
+      .mockResolvedValueOnce([]); // page query
+
+    const result = await searchMembersWithGeoFallback({
+      viewerUserId: VIEWER_ID,
+      locationCity: "SmallTown",
+      locationState: "Texas",
+      locationCountry: "United States",
+    });
+
+    expect(result.activeLevel).toBe("state");
+    expect(result.activeLocationLabel).toBe("Texas");
+    expect(result.levelCounts.city).toBe(2);
+    expect(result.levelCounts.state).toBe(GEO_FALLBACK_THRESHOLD);
+  });
+
+  it("returns activeLevel: 'country' when city + state counts both < threshold", async () => {
+    mockDbExecute
+      .mockResolvedValueOnce([makeCountRow(1)]) // city
+      .mockResolvedValueOnce([makeCountRow(3)]) // state
+      .mockResolvedValueOnce([makeCountRow(GEO_FALLBACK_THRESHOLD)]) // country
+      .mockResolvedValueOnce([makeCountRow(50)]) // global
+      .mockResolvedValueOnce([]); // page query
+
+    const result = await searchMembersWithGeoFallback({
+      viewerUserId: VIEWER_ID,
+      locationCity: "TinyCity",
+      locationState: "SmallState",
+      locationCountry: "Nigeria",
+    });
+
+    expect(result.activeLevel).toBe("country");
+    expect(result.activeLocationLabel).toBe("Nigeria");
+  });
+
+  it("returns activeLevel: 'global' when all levels < threshold", async () => {
+    mockDbExecute
+      .mockResolvedValueOnce([makeCountRow(0)]) // city
+      .mockResolvedValueOnce([makeCountRow(0)]) // state
+      .mockResolvedValueOnce([makeCountRow(2)]) // country
+      .mockResolvedValueOnce([makeCountRow(50)]) // global
+      .mockResolvedValueOnce([makeRow()]); // page query
+
+    const result = await searchMembersWithGeoFallback({
+      viewerUserId: VIEWER_ID,
+      locationCity: "Ghost",
+      locationState: "Quiet",
+      locationCountry: "Smallonia",
+    });
+
+    expect(result.activeLevel).toBe("global");
+    expect(result.activeLocationLabel).toBe("the community");
+  });
+
+  it("levelCounts.city is null when no city param provided", async () => {
+    // No city param → only state, country, global count queries run
+    mockDbExecute
+      .mockResolvedValueOnce([makeCountRow(10)]) // state
+      .mockResolvedValueOnce([makeCountRow(20)]) // country
+      .mockResolvedValueOnce([makeCountRow(100)]) // global
+      .mockResolvedValueOnce([]); // page query
+
+    const result = await searchMembersWithGeoFallback({
+      viewerUserId: VIEWER_ID,
+      locationState: "Texas",
+      locationCountry: "United States",
+    });
+
+    expect(result.levelCounts.city).toBeNull();
+    expect(result.levelCounts.state).toBe(10);
+  });
+
+  it("applies block exclusion to count queries (viewer + blocked excluded)", async () => {
+    mockGetBlockedUserIds.mockResolvedValue([USER_B]);
+    mockGetUsersWhoBlocked.mockResolvedValue([USER_C]);
+
+    mockDbExecute
+      .mockResolvedValueOnce([makeCountRow(10)]) // city
+      .mockResolvedValueOnce([makeCountRow(20)]) // state
+      .mockResolvedValueOnce([makeCountRow(30)]) // country
+      .mockResolvedValueOnce([makeCountRow(100)]) // global
+      .mockResolvedValueOnce([]); // page query
+
+    await searchMembersWithGeoFallback({
+      viewerUserId: VIEWER_ID,
+      locationCity: "Lagos",
+      locationState: "Lagos State",
+      locationCountry: "Nigeria",
+    });
+
+    expect(mockGetBlockedUserIds).toHaveBeenCalledWith(VIEWER_ID);
+    expect(mockGetUsersWhoBlocked).toHaveBeenCalledWith(VIEWER_ID);
+  });
+
+  it("cursor pagination works: returns hasMore and nextCursor", async () => {
+    const rows = [
+      makeRow({ user_id: USER_B, created_at: new Date("2024-01-03T00:00:00Z") }),
+      makeRow({ user_id: USER_C, created_at: new Date("2024-01-02T00:00:00Z") }),
+      makeRow({ user_id: USER_D, created_at: new Date("2024-01-01T00:00:00Z") }), // extra
+    ];
+    // Only locationCity provided → 2 count calls (city + global), then page query
+    mockDbExecute
+      .mockResolvedValueOnce([makeCountRow(GEO_FALLBACK_THRESHOLD)]) // city count
+      .mockResolvedValueOnce([makeCountRow(100)]) // global count
+      .mockResolvedValueOnce(rows); // page query returns 3 for limit=2
+
+    const result = await searchMembersWithGeoFallback({
+      viewerUserId: VIEWER_ID,
+      locationCity: "Houston",
+      limit: 2,
+    });
+
+    expect(result.hasMore).toBe(true);
+    expect(result.nextCursor).not.toBeNull();
+    expect(result.members).toHaveLength(2);
+  });
+
+  it("globalCount is always populated", async () => {
+    // Even with no geo params, global count is fetched
+    mockDbExecute
+      .mockResolvedValueOnce([makeCountRow(42)]) // global (only query)
+      .mockResolvedValueOnce([]); // page query
+
+    const result = await searchMembersWithGeoFallback({
+      viewerUserId: VIEWER_ID,
+    });
+
+    expect(result.levelCounts.global).toBe(42);
+    expect(result.levelCounts.city).toBeNull();
+    expect(result.levelCounts.state).toBeNull();
+    expect(result.levelCounts.country).toBeNull();
   });
 });
