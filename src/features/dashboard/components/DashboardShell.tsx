@@ -1,6 +1,8 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
+import { NewspaperIcon } from "lucide-react";
 import { DashboardGreeting } from "./DashboardGreeting";
 import { GettingStartedWidget } from "./GettingStartedWidget";
 import { WidgetSlot } from "./WidgetSlot";
@@ -20,6 +22,15 @@ export function DashboardShell({ displayName, avatarUrl }: DashboardShellProps) 
   return (
     <div className="container mx-auto px-4 py-6">
       <DashboardGreeting displayName={displayName} avatarUrl={avatarUrl} />
+      <div className="mt-4">
+        <Link
+          href="/feed"
+          className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+        >
+          <NewspaperIcon className="size-4" aria-hidden="true" />
+          {t("goToFeed")}
+        </Link>
+      </div>
       <div className="mt-6 flex flex-col lg:flex-row gap-6">
         {/* Primary content — full width when no sidebar widgets enabled */}
         <main className={hasEnabledWidgets ? "lg:w-[65%]" : "w-full"}>

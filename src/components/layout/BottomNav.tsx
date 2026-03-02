@@ -1,6 +1,6 @@
 "use client";
 
-import { HouseIcon, MessageCircleIcon, SearchIcon, CalendarIcon, UserIcon } from "lucide-react";
+import { HouseIcon, MessageCircleIcon, SearchIcon, NewspaperIcon, UserIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { usePathname, Link } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
@@ -9,8 +9,8 @@ import { useUnreadCount } from "@/features/chat/hooks/use-unread-count";
 const tabs = [
   { key: "home" as const, icon: HouseIcon, href: "/" },
   { key: "chat" as const, icon: MessageCircleIcon, href: "/chat" },
+  { key: "feed" as const, icon: NewspaperIcon, href: "/feed" },
   { key: "discover" as const, icon: SearchIcon, href: "/discover" },
-  { key: "events" as const, icon: CalendarIcon, href: "/events" },
   { key: "profile" as const, icon: UserIcon, href: "/profile" },
 ];
 

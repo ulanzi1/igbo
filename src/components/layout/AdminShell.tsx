@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { Link, usePathname } from "@/i18n/navigation";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { signOut } from "next-auth/react";
+import { LogOutIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const NAV_LINKS = [
@@ -51,6 +53,16 @@ function AdminSidebar() {
           })}
         </ul>
       </nav>
+      <div className="px-3 pb-4 border-t border-zinc-700 pt-3">
+        <button
+          type="button"
+          onClick={() => void signOut()}
+          className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-zinc-400 hover:bg-zinc-800 hover:text-white transition-colors"
+        >
+          <LogOutIcon className="size-4" aria-hidden="true" />
+          {t("signOut")}
+        </button>
+      </div>
     </aside>
   );
 }

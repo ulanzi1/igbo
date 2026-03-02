@@ -27,7 +27,11 @@
     "blog": "Blog",
     "login": "Members Login",
     "search": "Search",
-    "chatUnread": "{count} unread messages"
+    "chatUnread": "{count} unread messages",
+    "feed": "Feed",
+    "saved": "Saved",
+    "viewProfile": "View Profile",
+    "logout": "Log out"
   },
   "Shell": {
     "appName": "Igbo Community Platform",
@@ -215,6 +219,7 @@
       "columnStatus": "Status",
       "columnActions": "Actions"
     },
+    "signOut": "Sign out",
     "sidebar": {
       "dashboard": "Dashboard",
       "approvals": "Approvals",
@@ -633,6 +638,7 @@
   },
   "Dashboard": {
     "pageTitle": "Home",
+    "goToFeed": "Go to Feed",
     "greeting": {
       "welcome": "Welcome home, {name}",
       "subtitle": "Here's what's happening in your community"

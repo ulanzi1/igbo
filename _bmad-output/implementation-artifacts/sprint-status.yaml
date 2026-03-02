@@ -89,7 +89,8 @@ development_status:
   4-2-post-creation-rich-media: done
   4-3-reactions-comments-sharing: done
   4-4-bookmarks-pinned-announcements: done
-  epic-4-retrospective: optional
+  epic-4-retrospective: done
+  epic-4-retro-action-items: done # AI-1 through AI-6 all completed 2026-03-02
 
   # Epic 5: Groups & Community Structure
   epic-5: backlog
