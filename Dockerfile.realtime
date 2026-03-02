@@ -6,7 +6,7 @@ WORKDIR /app
 
 # Copy package files and install all dependencies (including devDependencies for tsx)
 COPY package*.json ./
-RUN npm ci --prefer-offline
+RUN npm install
 
 # Copy source code
 COPY tsconfig.json ./
