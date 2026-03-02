@@ -1,36 +1,26 @@
 # Multi-stage Dockerfile for the standalone Socket.IO realtime server
 # Stage 1: Builder — transpile TypeScript with esbuild
-FROM node:20-alpine AS builder
+FROM node:22-alpine AS builder
 
 WORKDIR /app
 
-# Copy package files and install all dependencies (including devDependencies for tsx)
 COPY package*.json ./
-RUN npm install
+RUN npm install --prefer-offline
 
-# Copy source code
+# Copy full source so esbuild can resolve all @/* path aliases
 COPY tsconfig.json ./
-COPY src/config/ ./src/config/
-COPY src/server/realtime/ ./src/server/realtime/
-COPY src/server/auth/redis-session-cache.ts ./src/server/auth/redis-session-cache.ts
-COPY src/lib/redis.ts ./src/lib/redis.ts
-COPY src/db/ ./src/db/
-COPY src/services/event-bus.ts ./src/services/event-bus.ts
-COPY src/types/ ./src/types/
+COPY src/ ./src/
 
-# Transpile entry point with esbuild
+# --tsconfig resolves @/* aliases from tsconfig paths
+# --packages=external marks ALL node_modules as external — never breaks as deps grow
 RUN npx esbuild src/server/realtime/index.ts \
   --bundle \
   --platform=node \
-  --target=node20 \
+  --target=node22 \
   --format=cjs \
   --outfile=dist/realtime.js \
-  --external:ioredis \
-  --external:@socket.io/redis-adapter \
-  --external:socket.io \
-  --external:drizzle-orm \
-  --external:postgres \
-  --external:server-only \
+  --tsconfig=tsconfig.json \
+  --packages=external \
   --define:process.env.NODE_ENV='"production"'
 
 # Stage 2: Production runner
@@ -38,7 +28,7 @@ FROM node:22-alpine AS runner
 
 WORKDIR /app
 
-# Reuse node_modules from builder and prune devDependencies — avoids a second npm install
+# Reuse builder node_modules and prune devDeps — no second npm install, no lockfile issues
 COPY --from=builder /app/node_modules ./node_modules
 COPY package*.json ./
 RUN npm prune --omit=dev
