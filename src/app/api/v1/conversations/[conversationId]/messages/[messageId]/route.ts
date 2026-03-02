@@ -79,7 +79,7 @@ const patchHandler = async (request: Request) => {
       userId,
       parsed.data.content,
     );
-    return successResponse(updatedMessage, 200);
+    return successResponse(updatedMessage);
   } catch (err) {
     const mapped = mapServiceError(err);
     if (mapped) {
