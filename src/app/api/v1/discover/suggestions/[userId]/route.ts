@@ -16,7 +16,7 @@ const deleteHandler = async (request: Request) => {
     throw new ApiError({
       title: "Bad Request",
       status: 400,
-      detail: parsed.error.issues[0].message,
+      detail: parsed.error.issues[0]?.message ?? "Invalid request",
     });
   }
   await dismissSuggestion(viewerUserId, parsed.data);
