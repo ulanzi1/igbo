@@ -86,6 +86,107 @@ export async function getFollowedUserIds(viewerId: string): Promise<string[]> {
 }
 
 /**
+ * Shared select columns for feed queries.
+ * Add new FeedPost fields here — both chronological and algorithmic modes pick them up automatically.
+ */
+const FEED_SELECT_COLUMNS = {
+  id: communityPosts.id,
+  authorId: communityPosts.authorId,
+  authorDisplayName: communityProfiles.displayName,
+  authorPhotoUrl: communityProfiles.photoUrl,
+  content: communityPosts.content,
+  contentType: communityPosts.contentType,
+  visibility: communityPosts.visibility,
+  groupId: communityPosts.groupId,
+  isPinned: communityPosts.isPinned,
+  pinnedAt: communityPosts.pinnedAt,
+  likeCount: communityPosts.likeCount,
+  commentCount: communityPosts.commentCount,
+  shareCount: communityPosts.shareCount,
+  category: communityPosts.category,
+  originalPostId: communityPosts.originalPostId,
+  createdAt: communityPosts.createdAt,
+  updatedAt: communityPosts.updatedAt,
+  isBookmarked: sql<boolean>`${communityPostBookmarks.userId} IS NOT NULL`,
+} as const;
+
+type FeedSelectRow = {
+  id: string;
+  authorId: string;
+  authorDisplayName: string;
+  authorPhotoUrl: string | null;
+  content: string;
+  contentType: string;
+  visibility: string;
+  groupId: string | null;
+  isPinned: boolean;
+  pinnedAt: Date | null;
+  likeCount: number;
+  commentCount: number;
+  shareCount: number;
+  category: string;
+  originalPostId: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  isBookmarked: boolean;
+  score?: number;
+};
+
+/**
+ * Load media + original embeds for a page of rows, then map to FeedPost[].
+ * Shared by both chronological and algorithmic modes — update mapping here once.
+ */
+async function _assemblePostPage(rows: FeedSelectRow[]): Promise<FeedPost[]> {
+  const postIds = rows.map((r) => r.id);
+  const [mediaRows, originalEmbeds] = await Promise.all([
+    postIds.length > 0
+      ? db
+          .select()
+          .from(communityPostMedia)
+          .where(inArray(communityPostMedia.postId, postIds))
+          .orderBy(communityPostMedia.sortOrder)
+      : Promise.resolve([]),
+    _loadOriginalPostEmbeds(rows),
+  ]);
+
+  const mediaByPostId = new Map<string, typeof mediaRows>();
+  for (const m of mediaRows) {
+    if (!mediaByPostId.has(m.postId)) mediaByPostId.set(m.postId, []);
+    mediaByPostId.get(m.postId)!.push(m);
+  }
+
+  return rows.map((r) => ({
+    id: r.id,
+    authorId: r.authorId,
+    authorDisplayName: r.authorDisplayName,
+    authorPhotoUrl: r.authorPhotoUrl,
+    content: r.content,
+    contentType: r.contentType as FeedPost["contentType"],
+    visibility: r.visibility as FeedPost["visibility"],
+    groupId: r.groupId,
+    isPinned: r.isPinned,
+    pinnedAt: r.pinnedAt?.toISOString() ?? null,
+    likeCount: r.likeCount,
+    commentCount: r.commentCount,
+    shareCount: r.shareCount,
+    category: r.category as FeedPost["category"],
+    originalPostId: r.originalPostId,
+    originalPost: r.originalPostId ? (originalEmbeds.get(r.originalPostId) ?? null) : null,
+    media: (mediaByPostId.get(r.id) ?? []).map((m) => ({
+      id: m.id,
+      mediaUrl: m.mediaUrl,
+      mediaType: m.mediaType,
+      altText: m.altText,
+      sortOrder: m.sortOrder,
+    })),
+    isBookmarked: r.isBookmarked,
+    createdAt: r.createdAt.toISOString(),
+    updatedAt: r.updatedAt.toISOString(),
+    ...(r.score !== undefined ? { score: r.score } : {}),
+  }));
+}
+
+/**
  * Fetch feed posts with cursor-based pagination.
  *
  * Personalization scope (Story 4.1):
@@ -239,26 +340,7 @@ async function _getChronologicalFeedPage(
   const cursorDate = parsedDate && !isNaN(parsedDate.getTime()) ? parsedDate : undefined;
 
   const rows = await db
-    .select({
-      id: communityPosts.id,
-      authorId: communityPosts.authorId,
-      authorDisplayName: communityProfiles.displayName,
-      authorPhotoUrl: communityProfiles.photoUrl,
-      content: communityPosts.content,
-      contentType: communityPosts.contentType,
-      visibility: communityPosts.visibility,
-      groupId: communityPosts.groupId,
-      isPinned: communityPosts.isPinned,
-      pinnedAt: communityPosts.pinnedAt,
-      likeCount: communityPosts.likeCount,
-      commentCount: communityPosts.commentCount,
-      shareCount: communityPosts.shareCount,
-      category: communityPosts.category,
-      originalPostId: communityPosts.originalPostId,
-      createdAt: communityPosts.createdAt,
-      updatedAt: communityPosts.updatedAt,
-      isBookmarked: sql<boolean>`${communityPostBookmarks.userId} IS NOT NULL`,
-    })
+    .select(FEED_SELECT_COLUMNS)
     .from(communityPosts)
     .innerJoin(
       communityProfiles,
@@ -291,54 +373,7 @@ async function _getChronologicalFeedPage(
   const nextCursor =
     hasMore && pageRows.length > 0 ? pageRows[pageRows.length - 1]!.createdAt.toISOString() : null;
 
-  // Load media for returned posts + original post embeds for reposts
-  const postIds = pageRows.map((r) => r.id);
-  const [mediaRows, originalEmbeds] = await Promise.all([
-    postIds.length > 0
-      ? db
-          .select()
-          .from(communityPostMedia)
-          .where(inArray(communityPostMedia.postId, postIds))
-          .orderBy(communityPostMedia.sortOrder)
-      : Promise.resolve([]),
-    _loadOriginalPostEmbeds(pageRows),
-  ]);
-
-  const mediaByPostId = new Map<string, typeof mediaRows>();
-  for (const m of mediaRows) {
-    if (!mediaByPostId.has(m.postId)) mediaByPostId.set(m.postId, []);
-    mediaByPostId.get(m.postId)!.push(m);
-  }
-
-  const posts: FeedPost[] = pageRows.map((r) => ({
-    id: r.id,
-    authorId: r.authorId,
-    authorDisplayName: r.authorDisplayName,
-    authorPhotoUrl: r.authorPhotoUrl,
-    content: r.content,
-    contentType: r.contentType as FeedPost["contentType"],
-    visibility: r.visibility as FeedPost["visibility"],
-    groupId: r.groupId,
-    isPinned: r.isPinned,
-    pinnedAt: r.pinnedAt?.toISOString() ?? null,
-    likeCount: r.likeCount,
-    commentCount: r.commentCount,
-    shareCount: r.shareCount,
-    category: r.category as FeedPost["category"],
-    originalPostId: r.originalPostId,
-    originalPost: r.originalPostId ? (originalEmbeds.get(r.originalPostId) ?? null) : null,
-    media: (mediaByPostId.get(r.id) ?? []).map((m) => ({
-      id: m.id,
-      mediaUrl: m.mediaUrl,
-      mediaType: m.mediaType,
-      altText: m.altText,
-      sortOrder: m.sortOrder,
-    })),
-    isBookmarked: r.isBookmarked,
-    createdAt: r.createdAt.toISOString(),
-    updatedAt: r.updatedAt.toISOString(),
-  }));
-
+  const posts = await _assemblePostPage(pageRows);
   return { posts, nextCursor, isColdStart };
 }
 
@@ -376,26 +411,7 @@ async function _getAlgorithmicFeedPage(
 
   // Fetch all candidate posts within the engagement window using standard Drizzle select
   const allRows = await db
-    .select({
-      id: communityPosts.id,
-      authorId: communityPosts.authorId,
-      authorDisplayName: communityProfiles.displayName,
-      authorPhotoUrl: communityProfiles.photoUrl,
-      content: communityPosts.content,
-      contentType: communityPosts.contentType,
-      visibility: communityPosts.visibility,
-      groupId: communityPosts.groupId,
-      isPinned: communityPosts.isPinned,
-      pinnedAt: communityPosts.pinnedAt,
-      likeCount: communityPosts.likeCount,
-      commentCount: communityPosts.commentCount,
-      shareCount: communityPosts.shareCount,
-      category: communityPosts.category,
-      originalPostId: communityPosts.originalPostId,
-      createdAt: communityPosts.createdAt,
-      updatedAt: communityPosts.updatedAt,
-      isBookmarked: sql<boolean>`${communityPostBookmarks.userId} IS NOT NULL`,
-    })
+    .select(FEED_SELECT_COLUMNS)
     .from(communityPosts)
     .innerJoin(
       communityProfiles,
@@ -455,53 +471,6 @@ async function _getAlgorithmicFeedPage(
     : null;
 
   const allPageRows = [...prefix, ...pageRows];
-  const postIds = allPageRows.map((r) => r.id);
-  const [mediaRows, originalEmbeds] = await Promise.all([
-    postIds.length > 0
-      ? db
-          .select()
-          .from(communityPostMedia)
-          .where(inArray(communityPostMedia.postId, postIds))
-          .orderBy(communityPostMedia.sortOrder)
-      : Promise.resolve([]),
-    _loadOriginalPostEmbeds(allPageRows),
-  ]);
-
-  const mediaByPostId = new Map<string, typeof mediaRows>();
-  for (const m of mediaRows) {
-    if (!mediaByPostId.has(m.postId)) mediaByPostId.set(m.postId, []);
-    mediaByPostId.get(m.postId)!.push(m);
-  }
-
-  const posts: FeedPost[] = allPageRows.map((r) => ({
-    id: r.id,
-    authorId: r.authorId,
-    authorDisplayName: r.authorDisplayName,
-    authorPhotoUrl: r.authorPhotoUrl,
-    content: r.content,
-    contentType: r.contentType as FeedPost["contentType"],
-    visibility: r.visibility as FeedPost["visibility"],
-    groupId: r.groupId,
-    isPinned: r.isPinned,
-    pinnedAt: r.pinnedAt?.toISOString() ?? null,
-    likeCount: r.likeCount,
-    commentCount: r.commentCount,
-    shareCount: r.shareCount,
-    category: r.category as FeedPost["category"],
-    originalPostId: r.originalPostId,
-    originalPost: r.originalPostId ? (originalEmbeds.get(r.originalPostId) ?? null) : null,
-    media: (mediaByPostId.get(r.id) ?? []).map((m) => ({
-      id: m.id,
-      mediaUrl: m.mediaUrl,
-      mediaType: m.mediaType,
-      altText: m.altText,
-      sortOrder: m.sortOrder,
-    })),
-    isBookmarked: r.isBookmarked,
-    createdAt: r.createdAt.toISOString(),
-    updatedAt: r.updatedAt.toISOString(),
-    score: r.score,
-  }));
-
+  const posts = await _assemblePostPage(allPageRows);
   return { posts, nextCursor, isColdStart };
 }

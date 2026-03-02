@@ -73,9 +73,16 @@ describe("BottomNav", () => {
     render(<BottomNav />);
     expect(screen.getByText("Navigation.home")).toBeInTheDocument();
     expect(screen.getByText("Navigation.chat")).toBeInTheDocument();
+    expect(screen.getByText("Navigation.feed")).toBeInTheDocument();
     expect(screen.getByText("Navigation.discover")).toBeInTheDocument();
-    expect(screen.getByText("Navigation.events")).toBeInTheDocument();
     expect(screen.getByText("Navigation.profile")).toBeInTheDocument();
+  });
+
+  it("includes a Feed tab linking to /feed", () => {
+    render(<BottomNav />);
+    const feedTab = screen.getByRole("tab", { name: /Navigation\.feed/i });
+    expect(feedTab).toBeInTheDocument();
+    expect(feedTab).toHaveAttribute("href", "/feed");
   });
 
   it("marks the home tab as selected when on root path", () => {

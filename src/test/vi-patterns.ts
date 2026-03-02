@@ -118,3 +118,93 @@ export function useRealTimersForReactQuery() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (globalThis as any).vi?.useRealTimers();
 }
+
+/**
+ * ⚠️ Dialog mock-to-null pattern for jsdom tests.
+ *
+ * Root cause: CSS media queries (e.g., `md:hidden`) do NOT apply in jsdom. When a component
+ * renders both a desktop inline form AND a mobile Dialog, both are present in the DOM
+ * simultaneously, causing duplicate `data-testid` or duplicate element errors.
+ *
+ * Fix: Mock Dialog (and its sub-components) to return null in test files for components
+ * that use responsive desktop/mobile rendering patterns.
+ *
+ * Usage (in the test file for the component):
+ * ```ts
+ * vi.mock("@/components/ui/dialog", () => ({
+ *   Dialog: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+ *   DialogContent: () => null,
+ *   DialogHeader: () => null,
+ *   DialogTitle: () => null,
+ *   DialogDescription: () => null,
+ *   DialogFooter: () => null,
+ *   DialogTrigger: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+ * }));
+ * ```
+ *
+ * This was rediscovered in Stories 4.2, 4.3, and 4.4. Do NOT mock Dialog as a passthrough
+ * — mock DialogContent (and other content components) to return null so only one rendering
+ * path is active in jsdom.
+ */
+
+/**
+ * ✅ Route test mock pattern — NEVER mock withApiHandler as passthrough.
+ *
+ * Root cause: `vi.mock("@/server/api/middleware", () => ({ withApiHandler: handler => handler }))`
+ * strips the try/catch that converts `ApiError` to HTTP responses. Tests expecting 4xx status
+ * codes instead receive 200 because the ApiError thrown in the handler propagates unhandled.
+ *
+ * Correct pattern — mock the DEPENDENCIES that withApiHandler checks, not withApiHandler itself:
+ * ```ts
+ * vi.mock("@/lib/rate-limiter", () => ({
+ *   checkRateLimit: vi.fn().mockResolvedValue({ allowed: true, remaining: 99, resetAt: 0 }),
+ *   buildRateLimitHeaders: vi.fn().mockReturnValue({}),
+ * }));
+ * vi.mock("@/lib/request-context", () => ({
+ *   runWithContext: vi.fn((_ctx: unknown, fn: () => unknown) => fn()),
+ * }));
+ * ```
+ *
+ * The real `withApiHandler` then catches `ApiError` thrown inside the route and returns the
+ * correct HTTP status code. This pattern was established in Story 4.3.
+ *
+ * ❌ WRONG (strips error handling):
+ * ```ts
+ * vi.mock("@/server/api/middleware", () => ({
+ *   withApiHandler: (handler: unknown) => handler,
+ * }));
+ * ```
+ */
+
+/**
+ * ✅ vi.hoisted() for DB mock objects — avoid temporal dead zone (TDZ) errors.
+ *
+ * Root cause: `vi.mock()` is hoisted to the top of the file by Vitest. If the factory
+ * function references a `const` declared AFTER the `vi.mock()` call, you get a TDZ
+ * ReferenceError at runtime because the variable is not yet initialised when the
+ * factory executes.
+ *
+ * Fix: Declare DB mock objects (and any mock functions they reference) inside `vi.hoisted()`.
+ * `vi.hoisted()` runs BEFORE `vi.mock()` factories, so the objects are available.
+ *
+ * Usage:
+ * ```ts
+ * const mockDb = vi.hoisted(() => ({
+ *   select: vi.fn(),
+ *   insert: vi.fn(),
+ *   update: vi.fn(),
+ *   delete: vi.fn(),
+ *   transaction: vi.fn(),
+ * }));
+ *
+ * vi.mock("@/db", () => ({ db: mockDb })); // ✅ safe — mockDb is already initialised
+ * ```
+ *
+ * ❌ WRONG — TDZ error when factory runs before const is initialised:
+ * ```ts
+ * vi.mock("@/db", () => ({ db: mockDb })); // ❌ mockDb not yet defined
+ * const mockDb = { select: vi.fn() };
+ * ```
+ *
+ * This pattern was required in Story 4.4 for `communityPostBookmarks` mock objects.
+ */

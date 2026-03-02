@@ -1,9 +1,14 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@/test/test-utils";
+import { render, screen, fireEvent } from "@/test/test-utils";
 
 vi.mock("next-intl", () => ({
   useTranslations: (ns?: string) => (key: string) => `${ns}.${key}`,
+}));
+
+const mockSignOut = vi.fn();
+vi.mock("next-auth/react", () => ({
+  signOut: (...args: unknown[]) => mockSignOut(...args),
 }));
 
 vi.mock("@/i18n/navigation", () => ({
@@ -83,5 +88,24 @@ describe("AdminShell", () => {
     );
 
     expect(screen.getByRole("navigation", { name: "Admin navigation" })).toBeInTheDocument();
+  });
+
+  it("renders sign-out button in sidebar", () => {
+    render(
+      <AdminShell>
+        <div>Content</div>
+      </AdminShell>,
+    );
+    expect(screen.getByText("Admin.signOut")).toBeInTheDocument();
+  });
+
+  it("sign-out button calls signOut", () => {
+    render(
+      <AdminShell>
+        <div>Content</div>
+      </AdminShell>,
+    );
+    fireEvent.click(screen.getByText("Admin.signOut"));
+    expect(mockSignOut).toHaveBeenCalled();
   });
 });

@@ -27,7 +27,11 @@
     "blog": "Blọgụ",
     "login": "Ndeere ndị otu",
     "search": "Chọọ",
-    "chatUnread": "Ozi {count} a gụghị"
+    "chatUnread": "Ozi {count} a gụghị",
+    "feed": "Akụkọ",
+    "saved": "Echekwaa",
+    "viewProfile": "Hụ profaịlụ gị",
+    "logout": "Pụọ"
   },
   "Shell": {
     "appName": "Ụlọ Ọha Igbo",
@@ -215,6 +219,7 @@
       "columnStatus": "Status",
       "columnActions": "Actions"
     },
+    "signOut": "Pụọ n'ọrụ",
     "sidebar": {
       "dashboard": "Dashboard",
       "approvals": "Approvals",
@@ -633,6 +638,7 @@
   },
   "Dashboard": {
     "pageTitle": "Ụlọ",
+    "goToFeed": "Gaa n'Akụkọ",
     "greeting": {
       "welcome": "Nnọ, {name}",
       "subtitle": "Ihe na-eme n'obodo gị"

@@ -28,6 +28,10 @@ vi.mock("@/i18n/navigation", () => ({
   redirect: vi.fn(),
 }));
 
+vi.mock("lucide-react", () => ({
+  NewspaperIcon: () => <span data-testid="newspaper-icon" />,
+}));
+
 vi.mock("@/hooks/use-notifications", () => ({
   useNotifications: () => ({ notifications: [], unreadCount: 0, isLoading: false, error: null }),
 }));
@@ -73,5 +77,12 @@ describe("DashboardShell", () => {
     expect(() =>
       render(<DashboardShell displayName="Chidi" avatarUrl="https://example.com/pic.jpg" />),
     ).not.toThrow();
+  });
+
+  it("renders a Go to Feed link pointing to /feed", () => {
+    render(<DashboardShell displayName="Chidi" />);
+    const feedLink = screen.getByText("goToFeed");
+    expect(feedLink).toBeInTheDocument();
+    expect(feedLink.closest("a")).toHaveAttribute("href", "/feed");
   });
 });

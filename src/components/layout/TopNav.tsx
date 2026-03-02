@@ -1,15 +1,26 @@
 "use client";
 
-import { UserCircleIcon, SearchIcon } from "lucide-react";
+import { UserCircleIcon, SearchIcon, LogOutIcon, UserIcon, SettingsIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { useSession, signOut } from "next-auth/react";
 import { Link } from "@/i18n/navigation";
 import { ContrastToggle } from "@/components/shared/ContrastToggle";
 import { LanguageToggle } from "@/components/shared/LanguageToggle";
 import { NotificationBell } from "@/features/notifications";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 
 const navLinks = [
   { key: "home" as const, href: "/" },
+  { key: "feed" as const, href: "/feed" },
+  { key: "saved" as const, href: "/saved" },
   { key: "chat" as const, href: "/chat" },
   { key: "discover" as const, href: "/discover" },
   { key: "events" as const, href: "/events" },
@@ -18,6 +29,8 @@ const navLinks = [
 function TopNav({ className }: { className?: string }) {
   const t = useTranslations("Navigation");
   const tShell = useTranslations("Shell");
+  const { data: session } = useSession();
+  const displayName = session?.user?.name ?? "";
 
   return (
     <header
@@ -71,14 +84,52 @@ function TopNav({ className }: { className?: string }) {
         <ContrastToggle />
         <LanguageToggle />
 
-        {/* Profile avatar placeholder */}
-        <button
-          type="button"
-          aria-label={t("profile")}
-          className="flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-border bg-muted text-muted-foreground hover:bg-accent transition-colors"
-        >
-          <UserCircleIcon className="size-6" aria-hidden="true" />
-        </button>
+        {/* Profile dropdown */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              aria-label={t("profile")}
+              className="flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-border bg-muted text-muted-foreground hover:bg-accent transition-colors"
+            >
+              <UserCircleIcon className="size-6" aria-hidden="true" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            {displayName && (
+              <>
+                <DropdownMenuLabel className="font-normal">
+                  <span className="block text-sm font-medium">{displayName}</span>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+              </>
+            )}
+            <DropdownMenuItem asChild>
+              <Link href="/profile" className="flex items-center gap-2 cursor-pointer">
+                <UserIcon className="size-4" aria-hidden="true" />
+                {t("viewProfile")}
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/settings" className="flex items-center gap-2 cursor-pointer">
+                <SettingsIcon className="size-4" aria-hidden="true" />
+                {t("settings")}
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <div className="px-2 py-1.5">
+              <LanguageToggle />
+            </div>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={() => void signOut()}
+              className="flex items-center gap-2 text-destructive focus:text-destructive cursor-pointer"
+            >
+              <LogOutIcon className="size-4" aria-hidden="true" />
+              {t("logout")}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </header>
   );
