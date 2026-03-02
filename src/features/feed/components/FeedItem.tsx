@@ -63,7 +63,10 @@ export function FeedItem({ post, currentUserId, currentUserRole, sort, filter }:
     .toUpperCase()
     .slice(0, 2);
 
-  const relativeTime = formatRelativeTime(new Date(post.createdAt), t);
+  const relativeTime = formatRelativeTime(
+    new Date(post.createdAt),
+    t as (key: string, values?: Record<string, unknown>) => string,
+  );
   const images = post.media.filter((m) => m.mediaType === "image");
   const videos = post.media.filter((m) => m.mediaType === "video");
   const audios = post.media.filter((m) => m.mediaType === "audio");

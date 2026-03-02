@@ -13,7 +13,7 @@ declare const self: ServiceWorkerGlobalScope;
 // Exclude /api/ routes from SW caching — API responses must always be fresh
 // to avoid stale data (e.g. deleted messages reappearing after refresh).
 const runtimeCaching: RuntimeCaching[] = defaultCache.filter((entry) => {
-  const pattern = entry.urlPattern;
+  const pattern = entry.matcher;
   if (pattern instanceof RegExp) {
     return !pattern.test("/api/test");
   }

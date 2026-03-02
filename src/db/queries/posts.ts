@@ -90,7 +90,7 @@ export async function resolveFileUploadUrls(
   const result = new Map<string, { mediaUrl: string; fileType: string }>();
   for (const row of rows) {
     const mediaUrl = row.processedUrl ?? `${env.HETZNER_S3_PUBLIC_URL}/${row.objectKey}`;
-    result.set(row.id, { mediaUrl, fileType: row.fileType });
+    result.set(row.id, { mediaUrl, fileType: row.fileType ?? "" });
   }
   return result;
 }

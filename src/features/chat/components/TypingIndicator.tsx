@@ -16,9 +16,9 @@ export function TypingIndicator({ typingUserIds, memberDisplayNameMap }: TypingI
 
   let label: string;
   if (names.length === 1) {
-    label = t("userTyping", { name: names[0] });
+    label = t("userTyping", { name: names[0] ?? "" });
   } else if (names.length === 2) {
-    label = t("twoUsersTyping", { name1: names[0], name2: names[1] });
+    label = t("twoUsersTyping", { name1: names[0] ?? "", name2: names[1] ?? "" });
   } else {
     label = t("manyUsersTyping", { count: names.length });
   }

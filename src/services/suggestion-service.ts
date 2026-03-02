@@ -34,7 +34,7 @@ async function getAlreadyMessagedUserIds(viewerUserId: string): Promise<string[]
       AND c.type = 'direct'
       AND c.deleted_at IS NULL
   `);
-  return rows.rows.map((r) => r.user_id as string);
+  return (rows as unknown as Array<{ user_id: string }>).map((r) => r.user_id);
 }
 
 async function getBidirectionalBlockIds(viewerUserId: string): Promise<string[]> {
@@ -43,7 +43,7 @@ async function getBidirectionalBlockIds(viewerUserId: string): Promise<string[]>
     UNION
     SELECT blocked_user_id::text AS id FROM platform_blocked_users WHERE blocker_user_id = ${viewerUserId}::uuid
   `);
-  return rows.rows.map((r) => r.id as string);
+  return (rows as unknown as Array<{ id: string }>).map((r) => r.id);
 }
 
 async function getDismissedUserIds(viewerUserId: string, redis: Redis): Promise<string[]> {
@@ -91,7 +91,7 @@ async function getCandidates(excludedIds: string[], limit: number): Promise<Cand
     ORDER BY cp.profile_completed_at DESC, cp.user_id ASC
     LIMIT ${limit}
   `);
-  return rows.rows as CandidateRow[];
+  return Array.from(rows) as unknown as CandidateRow[];
 }
 
 interface ViewerProfile {
@@ -156,7 +156,7 @@ function scoreCandidates(
       reasonValue = viewer.location_country!;
     } else if (sharedInterests.length > 0) {
       reasonType = "interest";
-      reasonValue = sharedInterests[0];
+      reasonValue = sharedInterests[0] ?? "";
     } else {
       reasonType = "community";
       reasonValue = "";
@@ -196,11 +196,12 @@ export async function getMemberSuggestions(
     LIMIT 1
   `);
 
-  if (profileRows.rows.length === 0) {
+  const profileArr = Array.from(profileRows) as unknown as ViewerProfile[];
+  if (profileArr.length === 0) {
     return [];
   }
 
-  const viewer = profileRows.rows[0] as ViewerProfile;
+  const viewer = profileArr[0]!;
 
   // 3. Collect all excluded IDs in parallel
   const [messagedIds, blockedIds, dismissedIds] = await Promise.all([
