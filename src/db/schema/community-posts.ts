@@ -44,6 +44,7 @@ export const communityPosts = pgTable(
     category: postCategoryEnum("category").notNull().default("discussion"),
     groupId: uuid("group_id"), // FK to community_groups added in Story 5.1
     isPinned: boolean("is_pinned").notNull().default(false),
+    pinnedAt: timestamp("pinned_at", { withTimezone: true }), // Set when admin pins; null = not pinned
     likeCount: integer("like_count").notNull().default(0),
     commentCount: integer("comment_count").notNull().default(0),
     shareCount: integer("share_count").notNull().default(0),

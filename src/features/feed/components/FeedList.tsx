@@ -17,6 +17,7 @@ interface FeedListProps {
   userName?: string;
   userPhotoUrl?: string | null;
   currentUserId?: string;
+  currentUserRole?: string;
 }
 
 export function FeedList({
@@ -26,6 +27,7 @@ export function FeedList({
   userName = "",
   userPhotoUrl = null,
   currentUserId = "",
+  currentUserRole = "MEMBER",
 }: FeedListProps) {
   const t = useTranslations("Feed");
 
@@ -162,7 +164,13 @@ export function FeedList({
           <ul className="space-y-4" aria-label={t("feedPostsList")}>
             {allPosts.map((post) => (
               <li key={post.id}>
-                <FeedItem post={post} currentUserId={currentUserId} sort={sort} filter={filter} />
+                <FeedItem
+                  post={post}
+                  currentUserId={currentUserId}
+                  currentUserRole={currentUserRole}
+                  sort={sort}
+                  filter={filter}
+                />
               </li>
             ))}
           </ul>

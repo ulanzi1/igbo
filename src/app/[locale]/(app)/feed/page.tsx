@@ -18,6 +18,7 @@ export default async function FeedPage() {
 
   const userId = session.user.id!;
   const canPost = await canCreateFeedPost(userId);
+  const currentUserRole = session.user.role ?? "MEMBER";
 
   return (
     <main className="mx-auto max-w-2xl px-4 py-8">
@@ -26,6 +27,7 @@ export default async function FeedPage() {
         userName={session.user.name ?? ""}
         userPhotoUrl={session.user.image ?? null}
         currentUserId={userId}
+        currentUserRole={currentUserRole}
       />
     </main>
   );

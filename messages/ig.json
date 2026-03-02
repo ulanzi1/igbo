@@ -1016,6 +1016,28 @@
       "errorGeneric": "Enweghị ike ịkesa. Nwaa ọzọ.",
       "originalPostBy": "Onye mbụ de ya bụ {name}",
       "repostLabel": "Nkesa"
+    },
+    "bookmarks": {
+      "bookmark": "Chekwaa",
+      "unbookmark": "Wepu nchekwa",
+      "bookmarkAriaLabel": "Chekwaa post a",
+      "bookmarkedAriaLabel": "Wepu nchekwa",
+      "bookmarkSuccess": "Post echekwala",
+      "unbookmarkSuccess": "Ewepụla nchekwa",
+      "savedPageTitle": "Post ndị Echekwala",
+      "savedPageEmpty": "Ichekwaghị post ọ bụla.",
+      "savedPageEmptyHint": "Pị akara nchekwa n'ime post ọ bụla i chekwa ya maka oge ọzọ.",
+      "loadMore": "Nweta ọzọ",
+      "loading": "Na-ebugo…",
+      "errorGeneric": "Enweghị ike ịmelite nchekwa. Nwaa ọzọ."
+    },
+    "admin": {
+      "pinPost": "Mee ka o nọdụ n'elu",
+      "unpinPost": "Wepu n'elu",
+      "pinSuccess": "Post emeela ka o nọdụ n'elu",
+      "unpinSuccess": "Ewepụla post n'elu",
+      "pinAriaLabel": "Mee ka post a nọdụ n'elu feed",
+      "unpinAriaLabel": "Wepu post a n'elu feed"
     }
   }
 }

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import React from "react";
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { FeedItem } from "./FeedItem";
 import type { FeedPost } from "@/features/feed/types";
@@ -28,6 +28,22 @@ vi.mock("./ShareDialog", () => ({
     isOpen ? <div data-testid="share-dialog" /> : null,
 }));
 
+vi.mock("./BookmarkButton", () => ({
+  BookmarkButton: ({
+    postId,
+    initialIsBookmarked,
+  }: {
+    postId: string;
+    initialIsBookmarked: boolean;
+  }) => (
+    <button
+      data-testid="bookmark-button"
+      data-post-id={postId}
+      data-is-bookmarked={String(initialIsBookmarked)}
+    />
+  ),
+}));
+
 vi.mock("@/i18n/navigation", () => ({
   Link: ({ href, children, ...props }: { href: string; children: React.ReactNode }) => (
     <a href={href} {...props}>
@@ -48,6 +64,7 @@ vi.mock("@/components/ui/avatar", () => ({
     <div className={className}>{children}</div>
   ),
   AvatarImage: ({ src, alt }: { src?: string; alt?: string }) => (
+    // eslint-disable-next-line @next/next/no-img-element
     <img src={src} alt={alt} data-testid="avatar-image" />
   ),
   AvatarFallback: ({ children }: { children: React.ReactNode }) => (
@@ -74,23 +91,26 @@ function makePost(overrides: Partial<FeedPost> = {}): FeedPost {
     visibility: "members_only",
     groupId: null,
     isPinned: false,
+    pinnedAt: null,
     likeCount: 5,
     commentCount: 2,
     shareCount: 1,
     category: "discussion",
     originalPostId: null,
     media: [],
+    isBookmarked: false,
     createdAt: new Date(Date.now() - 3_600_000 * 2).toISOString(), // 2 hours ago
     updatedAt: new Date(Date.now() - 3_600_000 * 2).toISOString(),
     ...overrides,
   };
 }
 
-function renderPost(overrides: Partial<FeedPost> = {}) {
+function renderPost(overrides: Partial<FeedPost> = {}, role = "MEMBER") {
   return render(
     <FeedItem
       post={makePost(overrides)}
       currentUserId="user-1"
+      currentUserRole={role}
       sort="chronological"
       filter="all"
     />,
@@ -135,7 +155,15 @@ describe("FeedItem", () => {
         },
       ],
     });
-    render(<FeedItem post={post} currentUserId="user-1" sort="chronological" filter="all" />);
+    render(
+      <FeedItem
+        post={post}
+        currentUserId="user-1"
+        currentUserRole="MEMBER"
+        sort="chronological"
+        filter="all"
+      />,
+    );
     const img = screen.getByAltText("Alt text");
     expect(img).toBeInTheDocument();
     expect(img.tagName).toBe("IMG");
@@ -161,7 +189,15 @@ describe("FeedItem", () => {
         },
       ],
     });
-    render(<FeedItem post={post} currentUserId="user-1" sort="chronological" filter="all" />);
+    render(
+      <FeedItem
+        post={post}
+        currentUserId="user-1"
+        currentUserRole="MEMBER"
+        sort="chronological"
+        filter="all"
+      />,
+    );
     const video = document.querySelector("video");
     expect(video).not.toBeNull();
     expect(video!.muted).toBe(true);
@@ -272,5 +308,38 @@ describe("FeedItem", () => {
     const badges = screen.getAllByTestId("badge");
     const annBadge = badges.find((b) => b.textContent === "Feed.composer.categoryAnnouncement");
     expect(annBadge).toBeTruthy();
+  });
+
+  it("renders BookmarkButton with initialIsBookmarked from post", () => {
+    renderPost({ isBookmarked: true });
+    const btn = screen.getByTestId("bookmark-button");
+    expect(btn).toBeInTheDocument();
+    expect(btn).toHaveAttribute("data-is-bookmarked", "true");
+    expect(btn).toHaveAttribute("data-post-id", "post-1");
+  });
+
+  it("renders BookmarkButton with initialIsBookmarked=false when post.isBookmarked is false", () => {
+    renderPost({ isBookmarked: false });
+    const btn = screen.getByTestId("bookmark-button");
+    expect(btn).toHaveAttribute("data-is-bookmarked", "false");
+  });
+
+  it("admin sees pin button when currentUserRole='ADMIN'", () => {
+    renderPost({}, "ADMIN");
+    // Admin pin button should render with aria-label for pinning
+    const pinBtn = screen.getByRole("button", { name: /Feed.admin.pinAriaLabel/i });
+    expect(pinBtn).toBeInTheDocument();
+  });
+
+  it("non-admin does NOT see pin button when currentUserRole='MEMBER'", () => {
+    renderPost({}, "MEMBER");
+    const pinBtn = screen.queryByRole("button", { name: /Feed.admin.pinAriaLabel/i });
+    expect(pinBtn).not.toBeInTheDocument();
+  });
+
+  it("admin sees unpin button when post is already pinned", () => {
+    renderPost({ isPinned: true }, "ADMIN");
+    const unpinBtn = screen.getByRole("button", { name: /Feed.admin.unpinAriaLabel/i });
+    expect(unpinBtn).toBeInTheDocument();
   });
 });

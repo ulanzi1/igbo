@@ -155,6 +155,13 @@
       "when": 1708000021000,
       "tag": "0021_shared_post_content_type",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1708000022000,
+      "tag": "0022_post_bookmarks",
+      "breakpoints": true
     }
   ]
 }

@@ -9,6 +9,14 @@ const mockDb = vi.hoisted(() => ({
 
 vi.mock("@/db", () => ({ db: mockDb }));
 
+vi.mock("@/db/schema/bookmarks", () => ({
+  communityPostBookmarks: {
+    userId: "user_id",
+    postId: "post_id",
+    createdAt: "created_at",
+  },
+}));
+
 vi.mock("@/db/schema/community-posts", () => ({
   communityPosts: {
     id: "id",
@@ -18,6 +26,7 @@ vi.mock("@/db/schema/community-posts", () => ({
     visibility: "visibility",
     groupId: "group_id",
     isPinned: "is_pinned",
+    pinnedAt: "pinned_at",
     likeCount: "like_count",
     commentCount: "comment_count",
     shareCount: "share_count",
@@ -82,7 +91,7 @@ function chainable(returnValue: unknown) {
     catch: resolved.catch.bind(resolved),
     finally: resolved.finally.bind(resolved),
   };
-  ["from", "innerJoin", "where", "orderBy"].forEach((k) => {
+  ["from", "innerJoin", "leftJoin", "where", "orderBy"].forEach((k) => {
     chain[k] = vi.fn().mockReturnValue(chain);
   });
   chain["limit"] = vi.fn().mockResolvedValue(returnValue);
@@ -100,6 +109,7 @@ function makePost(
     visibility: string;
     groupId: string | null;
     isPinned: boolean;
+    pinnedAt: Date | null;
     likeCount: number;
     commentCount: number;
     shareCount: number;
@@ -108,6 +118,7 @@ function makePost(
     updatedAt: Date;
     category: string;
     originalPostId: string | null;
+    isBookmarked: boolean;
   }> = {},
 ) {
   return {
@@ -120,6 +131,7 @@ function makePost(
     visibility: "members_only",
     groupId: null,
     isPinned: false,
+    pinnedAt: null,
     likeCount: 0,
     commentCount: 0,
     shareCount: 0,
@@ -128,6 +140,7 @@ function makePost(
     updatedAt: new Date("2026-03-01T10:00:00Z"),
     category: "discussion",
     originalPostId: null,
+    isBookmarked: false,
     ...overrides,
   };
 }
