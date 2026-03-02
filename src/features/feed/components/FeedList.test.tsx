@@ -18,7 +18,8 @@ global.IntersectionObserver = class {
   readonly root: Element | null = null;
   readonly rootMargin = "";
   readonly thresholds: number[] = [];
-  constructor(_cb: IntersectionObserverCallback, _opts?: IntersectionObserverInit) {}
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  constructor(cb: IntersectionObserverCallback, opts?: IntersectionObserverInit) {}
 } as unknown as typeof IntersectionObserver;
 
 // ── Mocks ──────────────────────────────────────────────────────────────────────
@@ -33,11 +34,17 @@ vi.mock("./FeedItem", () => ({
   FeedItem: ({
     post,
     currentUserId,
+    currentUserRole,
   }: {
     post: { id: string; authorDisplayName: string };
     currentUserId?: string;
+    currentUserRole?: string;
   }) => (
-    <div data-testid={`feed-item-${post.id}`} data-current-user={currentUserId}>
+    <div
+      data-testid={`feed-item-${post.id}`}
+      data-current-user={currentUserId}
+      data-current-role={currentUserRole}
+    >
       {post.authorDisplayName}
     </div>
   ),
@@ -51,7 +58,8 @@ vi.mock("@/i18n/navigation", () => ({
   ),
 }));
 vi.mock("next-intl", () => ({
-  useTranslations: (namespace?: string) => (key: string, _params?: Record<string, unknown>) =>
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  useTranslations: (namespace?: string) => (key: string, params?: Record<string, unknown>) =>
     `${namespace}.${key}`,
 }));
 vi.mock("@/components/ui/button", () => ({
@@ -90,12 +98,14 @@ function makePost(id: string): FeedPost {
     visibility: "members_only",
     groupId: null,
     isPinned: false,
+    pinnedAt: null,
     likeCount: 0,
     commentCount: 0,
     shareCount: 0,
     category: "discussion",
     originalPostId: null,
     media: [],
+    isBookmarked: false,
     createdAt: "2026-03-01T10:00:00.000Z",
     updatedAt: "2026-03-01T10:00:00.000Z",
   };
@@ -252,5 +262,13 @@ describe("FeedList", () => {
     render(<FeedList currentUserId="user-42" />);
     expect(screen.getByTestId("feed-item-1")).toHaveAttribute("data-current-user", "user-42");
     expect(screen.getByTestId("feed-item-2")).toHaveAttribute("data-current-user", "user-42");
+  });
+
+  it("passes currentUserRole prop down to each FeedItem", () => {
+    const posts = [makePost("1"), makePost("2")];
+    mockUseFeed.mockReturnValue(makeUseFeedResult({ data: makeDataWithPosts(posts) }));
+    render(<FeedList currentUserRole="ADMIN" />);
+    expect(screen.getByTestId("feed-item-1")).toHaveAttribute("data-current-role", "ADMIN");
+    expect(screen.getByTestId("feed-item-2")).toHaveAttribute("data-current-role", "ADMIN");
   });
 });

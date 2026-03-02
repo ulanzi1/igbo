@@ -9,17 +9,19 @@ import { PostRichTextRenderer } from "./PostRichTextRenderer";
 import { ReactionBar } from "./ReactionBar";
 import { CommentSection } from "./CommentSection";
 import { ShareDialog } from "./ShareDialog";
+import { BookmarkButton } from "./BookmarkButton";
 import type { FeedPost, FeedPostOriginal } from "@/features/feed/types";
 import type { FeedSortMode, FeedFilter } from "@/config/feed";
 
 interface FeedItemProps {
   post: FeedPost;
-  currentUserId: string; // NEW
-  sort: FeedSortMode; // NEW
-  filter: FeedFilter; // NEW
+  currentUserId: string;
+  currentUserRole: string; // e.g. "MEMBER" | "ADMIN" | "MODERATOR"
+  sort: FeedSortMode;
+  filter: FeedFilter;
 }
 
-export function FeedItem({ post, currentUserId, sort, filter }: FeedItemProps) {
+export function FeedItem({ post, currentUserId, currentUserRole, sort, filter }: FeedItemProps) {
   const t = useTranslations("Feed");
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isMuted, setIsMuted] = useState(true);
@@ -28,6 +30,31 @@ export function FeedItem({ post, currentUserId, sort, filter }: FeedItemProps) {
   const [showShare, setShowShare] = useState(false);
   const [localCommentCount, setLocalCommentCount] = useState(post.commentCount);
   const [localShareCount, setLocalShareCount] = useState(post.shareCount);
+  const [isPinned, setIsPinned] = useState(post.isPinned);
+  const [isPinPending, setIsPinPending] = useState(false);
+
+  const isAdmin = currentUserRole === "ADMIN";
+
+  const handlePinToggle = async () => {
+    if (isPinPending) return;
+    setIsPinPending(true);
+    const newState = !isPinned;
+    setIsPinned(newState); // Optimistic update
+    try {
+      const res = await fetch(`/api/v1/posts/${post.id}/pin`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isPinned: newState }),
+      });
+      if (!res.ok) {
+        setIsPinned(!newState); // Rollback
+      }
+    } catch {
+      setIsPinned(!newState); // Rollback
+    } finally {
+      setIsPinPending(false);
+    }
+  };
 
   const initials = post.authorDisplayName
     .split(" ")
@@ -64,8 +91,8 @@ export function FeedItem({ post, currentUserId, sort, filter }: FeedItemProps) {
       className="rounded-lg border border-border bg-card p-4 space-y-3"
       aria-label={t("postByAuthor", { name: post.authorDisplayName })}
     >
-      {/* Pinned indicator */}
-      {post.isPinned && (
+      {/* Pinned indicator — uses local state so optimistic pin updates show immediately */}
+      {isPinned && (
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <span aria-hidden="true">📌</span>
           <span>{t("pinnedLabel")}</span>
@@ -106,6 +133,18 @@ export function FeedItem({ post, currentUserId, sort, filter }: FeedItemProps) {
               ? t("composer.categoryEvent")
               : t("composer.categoryAnnouncement")}
           </Badge>
+        )}
+        {isAdmin && (
+          <button
+            type="button"
+            onClick={() => void handlePinToggle()}
+            disabled={isPinPending}
+            aria-label={isPinned ? t("admin.unpinAriaLabel") : t("admin.pinAriaLabel")}
+            aria-pressed={isPinned}
+            className="ml-1 rounded px-2 py-1 text-xs text-muted-foreground hover:bg-accent transition-colors min-h-[36px]"
+          >
+            {isPinned ? t("admin.unpinPost") : t("admin.pinPost")}
+          </button>
         )}
       </div>
 
@@ -214,6 +253,10 @@ export function FeedItem({ post, currentUserId, sort, filter }: FeedItemProps) {
             {t("share.share")} ({localShareCount})
           </span>
         </button>
+        {/* Bookmark button — right-aligned in engagement bar */}
+        <div className="ml-auto">
+          <BookmarkButton postId={post.id} initialIsBookmarked={post.isBookmarked} />
+        </div>
       </div>
 
       {/* Comments section (expandable) */}

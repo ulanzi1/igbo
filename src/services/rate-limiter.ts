@@ -58,6 +58,10 @@ export const RATE_LIMIT_PRESETS = {
   POST_REACT: { maxRequests: 60, windowMs: 60_000 }, // 60/min per userId (reaction spam guard)
   POST_COMMENT: { maxRequests: 20, windowMs: 60_000 }, // 20/min per userId (comment spam guard)
   POST_SHARE: { maxRequests: 10, windowMs: 60_000 }, // 10/min per userId
+  // Story 4.4 additions
+  POST_BOOKMARK: { maxRequests: 30, windowMs: 60_000 }, // 30/min per userId (bookmark spam guard)
+  BOOKMARK_LIST: { maxRequests: 60, windowMs: 60_000 }, // 60/min per userId
+  PIN_POST: { maxRequests: 10, windowMs: 60_000 }, // 10/min per adminId (admin only)
   // Tier-based API quotas (per hour)
   TIER_BASIC: { maxRequests: 200, windowMs: 3_600_000 },
   TIER_PROFESSIONAL: { maxRequests: 1000, windowMs: 3_600_000 },

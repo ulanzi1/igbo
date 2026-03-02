@@ -1016,6 +1016,28 @@
       "errorGeneric": "Could not share. Please try again.",
       "originalPostBy": "Originally posted by {name}",
       "repostLabel": "Repost"
+    },
+    "bookmarks": {
+      "bookmark": "Bookmark",
+      "unbookmark": "Remove bookmark",
+      "bookmarkAriaLabel": "Bookmark this post",
+      "bookmarkedAriaLabel": "Remove bookmark",
+      "bookmarkSuccess": "Post saved",
+      "unbookmarkSuccess": "Bookmark removed",
+      "savedPageTitle": "Saved Posts",
+      "savedPageEmpty": "You haven't saved any posts yet.",
+      "savedPageEmptyHint": "Tap the bookmark icon on any post to save it for later.",
+      "loadMore": "Load more",
+      "loading": "Loading…",
+      "errorGeneric": "Could not update bookmark. Please try again."
+    },
+    "admin": {
+      "pinPost": "Pin to top",
+      "unpinPost": "Unpin",
+      "pinSuccess": "Post pinned",
+      "unpinSuccess": "Post unpinned",
+      "pinAriaLabel": "Pin post to top of feed",
+      "unpinAriaLabel": "Unpin post from top of feed"
     }
   }
 }

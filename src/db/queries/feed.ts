@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { communityPosts, communityPostMedia } from "@/db/schema/community-posts";
 import { communityProfiles } from "@/db/schema/community-profiles";
 import { communityMemberFollows } from "@/db/schema/community-connections";
+import { communityPostBookmarks } from "@/db/schema/bookmarks";
 import { FEED_CONFIG, type FeedSortMode, type FeedFilter } from "@/config/feed";
 
 export interface FeedPostMedia {
@@ -33,6 +34,7 @@ export interface FeedPost {
   visibility: "public" | "group" | "members_only";
   groupId: string | null;
   isPinned: boolean;
+  pinnedAt: string | null; // ISO string, set when admin pins; null if not pinned
   likeCount: number;
   commentCount: number;
   shareCount: number;
@@ -40,6 +42,7 @@ export interface FeedPost {
   originalPostId: string | null;
   originalPost: FeedPostOriginal | null;
   media: FeedPostMedia[];
+  isBookmarked: boolean; // true if current viewer has bookmarked this post
   createdAt: string; // ISO 8601
   updatedAt: string; // ISO 8601
   score?: number; // Only present in algorithmic mode
@@ -147,9 +150,9 @@ export async function getFeedPosts(
   }
 
   if (effectiveSort === "algorithmic") {
-    return _getAlgorithmicFeedPage(eligibilityCondition, isColdStart, cursor, limit);
+    return _getAlgorithmicFeedPage(viewerId, eligibilityCondition, isColdStart, cursor, limit);
   } else {
-    return _getChronologicalFeedPage(eligibilityCondition, isColdStart, cursor, limit);
+    return _getChronologicalFeedPage(viewerId, eligibilityCondition, isColdStart, cursor, limit);
   }
 }
 
@@ -224,6 +227,7 @@ async function _loadOriginalPostEmbeds(
 }
 
 async function _getChronologicalFeedPage(
+  userId: string,
   eligibilityCondition: SQL | undefined, // and() returns SQL | undefined; always defined here
   isColdStart: boolean,
   cursor: string | undefined,
@@ -245,6 +249,7 @@ async function _getChronologicalFeedPage(
       visibility: communityPosts.visibility,
       groupId: communityPosts.groupId,
       isPinned: communityPosts.isPinned,
+      pinnedAt: communityPosts.pinnedAt,
       likeCount: communityPosts.likeCount,
       commentCount: communityPosts.commentCount,
       shareCount: communityPosts.shareCount,
@@ -252,6 +257,7 @@ async function _getChronologicalFeedPage(
       originalPostId: communityPosts.originalPostId,
       createdAt: communityPosts.createdAt,
       updatedAt: communityPosts.updatedAt,
+      isBookmarked: sql<boolean>`${communityPostBookmarks.userId} IS NOT NULL`,
     })
     .from(communityPosts)
     .innerJoin(
@@ -261,12 +267,23 @@ async function _getChronologicalFeedPage(
         sql`${communityProfiles.deletedAt} IS NULL`,
       ),
     )
+    .leftJoin(
+      communityPostBookmarks,
+      and(
+        eq(communityPostBookmarks.postId, communityPosts.id),
+        eq(communityPostBookmarks.userId, userId),
+      ),
+    )
     .where(
       cursorDate
         ? and(eligibilityCondition, lt(communityPosts.createdAt, cursorDate))
         : eligibilityCondition,
     )
-    .orderBy(desc(communityPosts.isPinned), desc(communityPosts.createdAt))
+    .orderBy(
+      // Pinned first by pinnedAt desc (most recently pinned first), then by createdAt desc
+      sql`CASE WHEN ${communityPosts.isPinned} THEN ${communityPosts.pinnedAt} ELSE NULL END DESC NULLS LAST`,
+      desc(communityPosts.createdAt),
+    )
     .limit(limit + 1); // Fetch one extra to detect next page
 
   const hasMore = rows.length > limit;
@@ -303,6 +320,7 @@ async function _getChronologicalFeedPage(
     visibility: r.visibility as FeedPost["visibility"],
     groupId: r.groupId,
     isPinned: r.isPinned,
+    pinnedAt: r.pinnedAt?.toISOString() ?? null,
     likeCount: r.likeCount,
     commentCount: r.commentCount,
     shareCount: r.shareCount,
@@ -316,6 +334,7 @@ async function _getChronologicalFeedPage(
       altText: m.altText,
       sortOrder: m.sortOrder,
     })),
+    isBookmarked: r.isBookmarked,
     createdAt: r.createdAt.toISOString(),
     updatedAt: r.updatedAt.toISOString(),
   }));
@@ -324,6 +343,7 @@ async function _getChronologicalFeedPage(
 }
 
 async function _getAlgorithmicFeedPage(
+  userId: string,
   eligibilityCondition: SQL | undefined,
   isColdStart: boolean,
   cursor: string | undefined,
@@ -366,6 +386,7 @@ async function _getAlgorithmicFeedPage(
       visibility: communityPosts.visibility,
       groupId: communityPosts.groupId,
       isPinned: communityPosts.isPinned,
+      pinnedAt: communityPosts.pinnedAt,
       likeCount: communityPosts.likeCount,
       commentCount: communityPosts.commentCount,
       shareCount: communityPosts.shareCount,
@@ -373,6 +394,7 @@ async function _getAlgorithmicFeedPage(
       originalPostId: communityPosts.originalPostId,
       createdAt: communityPosts.createdAt,
       updatedAt: communityPosts.updatedAt,
+      isBookmarked: sql<boolean>`${communityPostBookmarks.userId} IS NOT NULL`,
     })
     .from(communityPosts)
     .innerJoin(
@@ -380,6 +402,13 @@ async function _getAlgorithmicFeedPage(
       and(
         eq(communityProfiles.userId, communityPosts.authorId),
         sql`${communityProfiles.deletedAt} IS NULL`,
+      ),
+    )
+    .leftJoin(
+      communityPostBookmarks,
+      and(
+        eq(communityPostBookmarks.postId, communityPosts.id),
+        eq(communityPostBookmarks.userId, userId),
       ),
     )
     .where(
@@ -405,10 +434,14 @@ async function _getAlgorithmicFeedPage(
     return { ...r, score };
   });
 
-  // Pinned posts always first (sorted by date); non-pinned sorted by score then id
+  // Pinned posts always first (sorted by pinnedAt desc — most recently pinned first); non-pinned sorted by score then id
   const pinned = scored
     .filter((r) => r.isPinned)
-    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    .sort((a, b) => {
+      const aPinnedAt = a.pinnedAt ? a.pinnedAt.getTime() : 0;
+      const bPinnedAt = b.pinnedAt ? b.pinnedAt.getTime() : 0;
+      return bPinnedAt - aPinnedAt;
+    });
   const nonPinned = scored
     .filter((r) => !r.isPinned)
     .sort((a, b) => b.score - a.score || b.id.localeCompare(a.id));
@@ -450,6 +483,7 @@ async function _getAlgorithmicFeedPage(
     visibility: r.visibility as FeedPost["visibility"],
     groupId: r.groupId,
     isPinned: r.isPinned,
+    pinnedAt: r.pinnedAt?.toISOString() ?? null,
     likeCount: r.likeCount,
     commentCount: r.commentCount,
     shareCount: r.shareCount,
@@ -463,6 +497,7 @@ async function _getAlgorithmicFeedPage(
       altText: m.altText,
       sortOrder: m.sortOrder,
     })),
+    isBookmarked: r.isBookmarked,
     createdAt: r.createdAt.toISOString(),
     updatedAt: r.updatedAt.toISOString(),
     score: r.score,
