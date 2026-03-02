@@ -38,9 +38,10 @@ FROM node:22-alpine AS runner
 
 WORKDIR /app
 
-# Copy package files and install production dependencies only
+# Reuse node_modules from builder and prune devDependencies — avoids a second npm install
+COPY --from=builder /app/node_modules ./node_modules
 COPY package*.json ./
-RUN npm ci --omit=dev --prefer-offline
+RUN npm prune --omit=dev
 
 # Copy built output
 COPY --from=builder /app/dist/realtime.js ./dist/realtime.js
