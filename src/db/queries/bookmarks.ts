@@ -217,14 +217,16 @@ export async function getUserBookmarks(
           .orderBy(communityPostMedia.sortOrder)
       : [];
 
-  const mediaByPostId = new Map<string, typeof mediaRows>();
+  type MediaRow = (typeof mediaRows)[number];
+  const mediaByPostId = new Map<string, MediaRow[]>();
   for (const m of mediaRows) {
     if (!mediaByPostId.has(m.postId)) mediaByPostId.set(m.postId, []);
     mediaByPostId.get(m.postId)!.push(m);
   }
 
   // Build original post embeds map
-  const origMediaByPostId = new Map<string, typeof origMediaRows>();
+  type OrigMediaRow = (typeof origMediaRows)[number];
+  const origMediaByPostId = new Map<string, OrigMediaRow[]>();
   for (const m of origMediaRows) {
     if (!origMediaByPostId.has(m.postId)) origMediaByPostId.set(m.postId, []);
     origMediaByPostId.get(m.postId)!.push(m);

@@ -149,7 +149,8 @@ async function _assemblePostPage(rows: FeedSelectRow[]): Promise<FeedPost[]> {
     _loadOriginalPostEmbeds(rows),
   ]);
 
-  const mediaByPostId = new Map<string, typeof mediaRows>();
+  type MediaRow = (typeof mediaRows)[number];
+  const mediaByPostId = new Map<string, MediaRow[]>();
   for (const m of mediaRows) {
     if (!mediaByPostId.has(m.postId)) mediaByPostId.set(m.postId, []);
     mediaByPostId.get(m.postId)!.push(m);

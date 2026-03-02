@@ -63,7 +63,7 @@ export function GeoFallbackIndicator({
       {/* Header message */}
       {activeLevel === "city" ? (
         <p className="mb-3 text-sm font-medium text-gray-900">
-          {t("cityCount", { count: levelCounts.city!, location: locationLabels.city })}
+          {t("cityCount", { count: levelCounts.city!, location: locationLabels.city ?? "" })}
         </p>
       ) : (
         <p className="mb-3 text-sm font-medium text-amber-700">{t("cityGrowing")}</p>
