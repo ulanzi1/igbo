@@ -1,0 +1,50 @@
+import { withApiHandler } from "@/server/api/middleware";
+import { successResponse } from "@/lib/api-response";
+import { ApiError } from "@/lib/api-error";
+import { requireAuthenticatedSession } from "@/services/permissions";
+import { proxyUpload } from "@/services/file-upload-service";
+import { RATE_LIMIT_PRESETS } from "@/services/rate-limiter";
+import { z } from "zod/v4";
+// Side-effect: registers the file-processing job so runJob("file-processing") works
+import "@/server/jobs/file-processing";
+
+const categorySchema = z.enum(["image", "video", "document", "audio", "media", "profile_photo"]);
+
+const handler = async (request: Request) => {
+  const { userId } = await requireAuthenticatedSession();
+
+  let formData: FormData;
+  try {
+    formData = await request.formData();
+  } catch {
+    throw new ApiError({ title: "Bad Request", status: 400, detail: "Invalid form data" });
+  }
+
+  const file = formData.get("file");
+  if (!(file instanceof File)) {
+    throw new ApiError({ title: "Bad Request", status: 400, detail: "No file provided" });
+  }
+
+  const parsed = categorySchema.safeParse(formData.get("category"));
+  if (!parsed.success) {
+    throw new ApiError({
+      title: "Bad Request",
+      status: 400,
+      detail: "Invalid or missing category",
+    });
+  }
+
+  const data = await proxyUpload({ uploaderId: userId, file, category: parsed.data });
+
+  return successResponse(data);
+};
+
+export const POST = withApiHandler(handler, {
+  rateLimit: {
+    key: async (req) => {
+      const ip = req.headers.get("x-client-ip") ?? "anonymous";
+      return `file-upload:${ip}`;
+    },
+    ...RATE_LIMIT_PRESETS.FILE_UPLOAD_PRESIGN,
+  },
+});

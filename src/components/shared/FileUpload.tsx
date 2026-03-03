@@ -23,9 +23,7 @@ export function FileUpload({
   const t = useTranslations("fileUpload");
   const inputRef = useRef<HTMLInputElement>(null);
   const [progress, setProgress] = useState<number | null>(null);
-  const [status, setStatus] = useState<"idle" | "uploading" | "processing" | "done" | "error">(
-    "idle",
-  );
+  const [status, setStatus] = useState<"idle" | "uploading" | "done" | "error">("idle");
 
   const acceptTypes = accept ?? UPLOAD_CATEGORY_MIME_TYPES[category].join(",");
 
@@ -33,7 +31,7 @@ export function FileUpload({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Client-side size validation before making presign API call
+    // Client-side size validation
     const sizeLimit = UPLOAD_SIZE_LIMITS[category];
     if (file.size > sizeLimit) {
       const maxSizeMbVal = Math.round(sizeLimit / (1024 * 1024));
@@ -46,41 +44,18 @@ export function FileUpload({
     setProgress(0);
 
     try {
-      // Step 1: Get presigned URL
-      const presignRes = await fetch("/api/upload/presign", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          filename: file.name,
-          mimeType: file.type,
-          sizeBytes: file.size,
-          category,
-        }),
-      });
+      // POST file to Next.js proxy route — server uploads to S3 (no browser CORS needed)
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("category", category);
 
-      if (!presignRes.ok) {
-        const errBody = await presignRes.json().catch(() => ({}));
-        const detail =
-          typeof errBody?.detail === "string"
-            ? errBody.detail
-            : (errBody?.title ?? t("errorUploadFailed"));
-        setStatus("error");
-        onError?.(detail);
-        return;
-      }
-
-      const { data: presignData } = await presignRes.json();
-      const { uploadUrl, objectKey, fileUploadId } = presignData as {
-        uploadUrl: string;
-        objectKey: string;
+      const { fileUploadId, objectKey, publicUrl } = await new Promise<{
         fileUploadId: string;
-      };
-
-      // Step 2: Upload directly to Hetzner via presigned URL (use XHR for progress)
-      await new Promise<void>((resolve, reject) => {
+        objectKey: string;
+        publicUrl: string;
+      }>((resolve, reject) => {
         const xhr = new XMLHttpRequest();
-        xhr.open("PUT", uploadUrl);
-        xhr.setRequestHeader("Content-Type", file.type);
+        xhr.open("POST", "/api/upload/file");
 
         xhr.upload.onprogress = (event) => {
           if (event.lengthComputable) {
@@ -90,39 +65,36 @@ export function FileUpload({
 
         xhr.onload = () => {
           if (xhr.status >= 200 && xhr.status < 300) {
-            resolve();
+            const body = JSON.parse(xhr.responseText) as {
+              data: { fileUploadId: string; objectKey: string; publicUrl: string };
+            };
+            resolve(body.data);
           } else {
-            reject(new Error(`Upload failed with status ${xhr.status}`));
+            let detail = t("errorUploadFailed");
+            try {
+              const errBody = JSON.parse(xhr.responseText) as {
+                detail?: string;
+                title?: string;
+              };
+              if (typeof errBody.detail === "string") detail = errBody.detail;
+              else if (typeof errBody.title === "string") detail = errBody.title;
+            } catch {
+              // ignore
+            }
+            reject(new Error(detail));
           }
         };
 
-        xhr.onerror = () => reject(new Error("Network error during upload"));
-        xhr.send(file);
+        xhr.onerror = () => reject(new Error(t("errorUploadFailed")));
+        xhr.send(formData);
       });
 
       setProgress(100);
-      setStatus("processing");
-
-      // Step 3: Notify API of completion
-      const confirmRes = await fetch("/api/upload/confirm", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ objectKey }),
-      });
-
-      if (!confirmRes.ok) {
-        setStatus("error");
-        onError?.(t("errorUploadFailed"));
-        return;
-      }
-
       setStatus("done");
-      // Derive public URL by stripping presigned query params from uploadUrl
-      const publicUrl = uploadUrl.split("?")[0]!;
       onUploadComplete(fileUploadId, objectKey, publicUrl);
-    } catch {
+    } catch (err) {
       setStatus("error");
-      onError?.(t("errorUploadFailed"));
+      onError?.(err instanceof Error ? err.message : t("errorUploadFailed"));
     } finally {
       // Reset input so same file can be re-selected if needed
       if (inputRef.current) {
@@ -133,7 +105,7 @@ export function FileUpload({
 
   const maxSizeMb = Math.round(UPLOAD_SIZE_LIMITS[category] / (1024 * 1024));
 
-  const isUploading = status === "uploading" || status === "processing";
+  const isUploading = status === "uploading";
 
   return (
     <div className="space-y-2">
@@ -145,13 +117,7 @@ export function FileUpload({
         }`}
         aria-label={t("selectFile")}
       >
-        <span>
-          {status === "uploading"
-            ? t("uploading")
-            : status === "processing"
-              ? t("processing")
-              : t("selectFile")}
-        </span>
+        <span>{status === "uploading" ? t("uploading") : t("selectFile")}</span>
         <input
           ref={inputRef}
           type="file"

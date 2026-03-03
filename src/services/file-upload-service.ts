@@ -98,6 +98,63 @@ export async function generatePresignedUploadUrl(params: {
   return { uploadUrl, objectKey, fileUploadId: record.id };
 }
 
+/**
+ * Proxy upload: browser posts the file to Next.js, which streams it to S3.
+ * Eliminates the need for browser-to-S3 direct uploads (and all CORS issues).
+ */
+export async function proxyUpload(params: {
+  uploaderId: string;
+  file: File;
+  category: UploadCategory;
+}): Promise<{ fileUploadId: string; objectKey: string; publicUrl: string }> {
+  const { uploaderId, file, category } = params;
+
+  const allowedMimes = UPLOAD_CATEGORY_MIME_TYPES[category];
+  if (!allowedMimes.includes(file.type)) {
+    throw new ApiError({
+      title: "Bad Request",
+      status: 400,
+      detail: `File type '${file.type}' is not allowed for category '${category}'`,
+    });
+  }
+
+  const sizeLimit = UPLOAD_SIZE_LIMITS[category];
+  if (file.size > sizeLimit) {
+    throw new ApiError({
+      title: "Bad Request",
+      status: 400,
+      detail: `File size exceeds the maximum allowed size of ${sizeLimit} bytes for category '${category}'`,
+    });
+  }
+
+  const objectKey = `uploads/${uploaderId}/${randomUUID()}-${sanitizeFilename(file.name)}`;
+  const buffer = Buffer.from(await file.arrayBuffer());
+
+  const s3Client = getS3Client();
+  await s3Client.send(
+    new PutObjectCommand({
+      Bucket: env.HETZNER_S3_BUCKET,
+      Key: objectKey,
+      Body: buffer,
+      ContentType: file.type,
+      ContentLength: buffer.byteLength,
+    }),
+  );
+
+  const record = await createFileUpload({
+    uploaderId,
+    objectKey,
+    originalFilename: file.name,
+    fileType: file.type,
+    fileSize: file.size,
+  });
+
+  await runJob("file-processing");
+
+  const publicUrl = `${env.HETZNER_S3_PUBLIC_URL}/${objectKey}`;
+  return { fileUploadId: record.id, objectKey, publicUrl };
+}
+
 export async function confirmUpload(objectKey: string, authenticatedUserId: string): Promise<void> {
   const record = await getFileUploadByKey(objectKey);
   if (!record) {
