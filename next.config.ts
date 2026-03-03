@@ -40,7 +40,7 @@ const cspDirectives = [
   `img-src 'self' blob: data:${s3PublicOrigin ? ` ${s3PublicOrigin}` : ""}`,
   `media-src 'self'${s3PublicOrigin ? ` ${s3PublicOrigin}` : ""}`,
   "font-src 'self'",
-  `connect-src 'self'${realtimeUrl ? ` ${realtimeUrl} ${realtimeWsUrl}` : ""}${s3Endpoint ? ` ${s3Endpoint}` : ""}`,
+  `connect-src 'self'${realtimeUrl ? ` ${realtimeUrl} ${realtimeWsUrl}` : ""}${s3Endpoint ? ` ${s3Endpoint}` : ""}${s3PublicOrigin ? ` ${s3PublicOrigin}` : ""}`,
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",
