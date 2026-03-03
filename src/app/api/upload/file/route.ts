@@ -20,10 +20,13 @@ const handler = async (request: Request) => {
     throw new ApiError({ title: "Bad Request", status: 400, detail: "Invalid form data" });
   }
 
-  const file = formData.get("file");
-  if (!(file instanceof File)) {
+  // Next.js App Router returns File (extends Blob) for multipart uploads.
+  // Checking instanceof Blob is more robust across Node.js versions than instanceof File.
+  const fileField = formData.get("file");
+  if (!(fileField instanceof Blob)) {
     throw new ApiError({ title: "Bad Request", status: 400, detail: "No file provided" });
   }
+  const file = fileField as File;
 
   const parsed = categorySchema.safeParse(formData.get("category"));
   if (!parsed.success) {
