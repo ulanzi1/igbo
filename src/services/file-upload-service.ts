@@ -23,10 +23,10 @@ function getS3Client(): S3Client {
       accessKeyId: env.HETZNER_S3_ACCESS_KEY_ID,
       secretAccessKey: env.HETZNER_S3_SECRET_ACCESS_KEY,
     },
-    // Hetzner uses virtual-hosted style: https://{bucket}.fsn1.your-objectstorage.com
-    // forcePathStyle (path-style) causes CORS preflights to hit the root endpoint which
-    // does not serve CORS headers, resulting in "Status code: (null)" in the browser.
-    forcePathStyle: false,
+    // All S3 operations are now server-side (browser uploads are proxied through Next.js).
+    // Use path-style so the server connects to fsn1.your-objectstorage.com directly,
+    // which is reliably accessible from within the Hetzner Docker environment.
+    forcePathStyle: true,
     // Disable automatic CRC32 checksums — not supported by MinIO or Hetzner Object Storage
     requestChecksumCalculation: "WHEN_REQUIRED",
     responseChecksumValidation: "WHEN_REQUIRED",
