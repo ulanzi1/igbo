@@ -2,6 +2,7 @@ import { createEnv } from "@t3-oss/env-nextjs";
 import { z } from "zod/v4";
 
 export const env = createEnv({
+  skipValidation: !!process.env.SKIP_ENV_VALIDATION,
   server: {
     DATABASE_URL: z.url(),
     DATABASE_POOL_SIZE: z.coerce.number().int().positive().default(20),
