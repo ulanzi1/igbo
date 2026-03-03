@@ -125,7 +125,16 @@ export function withApiHandler(handler: RouteHandler, options?: ApiHandlerOption
         });
       }
 
-      // Unknown error — never expose internals
+      // Unknown error — log server-side, never expose internals to client
+      console.error(
+        JSON.stringify({
+          level: "error",
+          traceId,
+          message: "unhandled_route_error",
+          error: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack : undefined,
+        }),
+      );
       const errResponse = errorResponse({
         type: "about:blank",
         title: "Internal Server Error",
