@@ -33,43 +33,15 @@ function getUploadCategory(mimeType: string): UploadCategory {
   return "document";
 }
 
-function isUploadedFileInfo(u: Upload): u is UploadedFileInfo {
-  return u.status === "done" && "fileUploadId" in u;
-}
-
 /**
- * useFileAttachment — orchestrates the presign → upload → confirm flow
- * using the existing /api/upload/presign and /api/upload/confirm endpoints.
- *
+ * useFileAttachment — uploads files via the /api/upload/file proxy route.
  * Returns pending uploads list, isUploading flag, addFiles, and removeFile helpers.
  */
 export function useFileAttachment() {
   const [pendingUploads, setPendingUploads] = useState<Upload[]>([]);
 
-  const addFiles = useCallback(
-    async (files: File[]) => {
-      // Limit to max 10 total (existing + new)
-      const remaining = MAX_ATTACHMENTS - pendingUploads.length;
-      if (remaining <= 0) return;
-      const filesToUpload = files.slice(0, remaining);
-
-      const newUploads: PendingUpload[] = filesToUpload.map((file) => ({
-        tempId: crypto.randomUUID(),
-        file,
-        fileName: file.name,
-        status: "uploading",
-        progress: 0,
-      }));
-
-      setPendingUploads((prev) => [...prev, ...newUploads]);
-
-      // Process all file uploads concurrently (each updates state independently)
-      void Promise.all(newUploads.map((upload) => processUpload(upload, filesToUpload)));
-    },
-    [pendingUploads.length],
-  );
-
-  const processUpload = useCallback(async (upload: PendingUpload, _allFiles: File[]) => {
+  // processUpload must be declared before addFiles to satisfy the no-use-before-define rule
+  const processUpload = useCallback(async (upload: PendingUpload) => {
     const { tempId, file } = upload;
 
     // Validate file type
@@ -100,53 +72,38 @@ export function useFileAttachment() {
     }
 
     try {
-      // Step 1: Request presigned URL
-      const presignRes = await fetch("/api/upload/presign", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          filename: file.name,
-          mimeType: file.type,
-          sizeBytes: file.size,
-          category,
-        }),
+      // POST file to Next.js proxy route — server uploads to S3 (no browser CORS needed)
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("category", category);
+
+      const fileUploadId = await new Promise<string>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open("POST", "/api/upload/file");
+
+        xhr.upload.onprogress = (event) => {
+          if (event.lengthComputable) {
+            const p = Math.round((event.loaded / event.total) * 100);
+            setPendingUploads((prev) =>
+              prev.map((u) => (u.tempId === tempId ? { ...u, progress: p } : u)),
+            );
+          }
+        };
+
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            const body = JSON.parse(xhr.responseText) as {
+              data: { fileUploadId: string };
+            };
+            resolve(body.data.fileUploadId);
+          } else {
+            reject(new Error("Upload failed"));
+          }
+        };
+
+        xhr.onerror = () => reject(new Error("Network error"));
+        xhr.send(formData);
       });
-
-      if (!presignRes.ok) {
-        throw new Error("Failed to get upload URL");
-      }
-
-      const presignData = (await presignRes.json()) as {
-        data: { uploadUrl: string; fileUploadId: string; objectKey: string };
-      };
-      const { uploadUrl, fileUploadId, objectKey } = presignData.data;
-
-      // Step 2: Upload directly to S3
-      const uploadRes = await fetch(uploadUrl, {
-        method: "PUT",
-        body: file,
-        headers: { "Content-Type": file.type },
-      });
-
-      if (!uploadRes.ok) {
-        throw new Error("Upload failed");
-      }
-
-      // Update progress to 80% after upload
-      setPendingUploads((prev) =>
-        prev.map((u) => (u.tempId === tempId ? { ...u, progress: 80 } : u)),
-      );
-
-      // Step 3: Confirm upload
-      const confirmRes = await fetch("/api/upload/confirm", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ objectKey }),
-      });
-
-      if (!confirmRes.ok) {
-        throw new Error("Failed to confirm upload");
-      }
 
       // Mark as done
       setPendingUploads((prev) =>
@@ -166,6 +123,29 @@ export function useFileAttachment() {
       );
     }
   }, []);
+
+  const addFiles = useCallback(
+    async (files: File[]) => {
+      // Limit to max 10 total (existing + new)
+      const remaining = MAX_ATTACHMENTS - pendingUploads.length;
+      if (remaining <= 0) return;
+      const filesToUpload = files.slice(0, remaining);
+
+      const newUploads: PendingUpload[] = filesToUpload.map((file) => ({
+        tempId: crypto.randomUUID(),
+        file,
+        fileName: file.name,
+        status: "uploading",
+        progress: 0,
+      }));
+
+      setPendingUploads((prev) => [...prev, ...newUploads]);
+
+      // Process all file uploads concurrently (each updates state independently)
+      void Promise.all(newUploads.map((upload) => processUpload(upload)));
+    },
+    [pendingUploads.length, processUpload],
+  );
 
   const removeFile = useCallback((tempId: string) => {
     setPendingUploads((prev) => prev.filter((u) => u.tempId !== tempId));
