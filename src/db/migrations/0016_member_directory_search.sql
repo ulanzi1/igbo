@@ -1,3 +1,14 @@
+-- array_to_string() is STABLE in PostgreSQL, which prevents its use in index
+-- expressions (which require IMMUTABLE). This thin SQL wrapper declares IMMUTABLE
+-- because the result depends only on its inputs (no external state).
+CREATE OR REPLACE FUNCTION immutable_array_to_string(arr text[], sep text)
+  RETURNS text
+  LANGUAGE sql
+  IMMUTABLE STRICT PARALLEL SAFE
+AS $$
+  SELECT array_to_string($1, $2)
+$$;
+
 -- GIN index for member directory full-text search.
 -- Covers: display_name, bio, location fields, interests array, languages array.
 -- Partial index: only active completed profiles (reduces index size and cost).
@@ -11,8 +22,8 @@ CREATE INDEX IF NOT EXISTS idx_community_profiles_fts
       COALESCE(location_city, '') || ' ' ||
       COALESCE(location_state, '') || ' ' ||
       COALESCE(location_country, '') || ' ' ||
-      array_to_string(interests, ' ') || ' ' ||
-      array_to_string(languages, ' ')
+      immutable_array_to_string(interests, ' ') || ' ' ||
+      immutable_array_to_string(languages, ' ')
     )
   )
   WHERE deleted_at IS NULL AND profile_completed_at IS NOT NULL;
