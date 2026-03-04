@@ -96,8 +96,8 @@ development_status:
   epic-5: in-progress
   5-1-group-creation-configuration: done
   5-2-group-discovery-membership: done
-  5-3-group-channels-feed-content: backlog
-  5-4-group-leadership-moderation: backlog
+  5-3-group-channels-feed-content: done
+  5-4-group-leadership-moderation: done
   epic-5-retrospective: optional
 
   # Epic 6: Articles & Cultural Preservation

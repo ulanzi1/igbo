@@ -1,6 +1,7 @@
 import { pgTable, pgEnum, uuid, varchar, timestamp, primaryKey } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { authUsers } from "./auth-users";
+import { communityGroupChannels } from "./community-group-channels";
 
 export const conversationTypeEnum = pgEnum("conversation_type", ["direct", "group", "channel"]);
 export const conversationMemberRoleEnum = pgEnum("conversation_member_role", ["member", "admin"]);
@@ -8,6 +9,9 @@ export const conversationMemberRoleEnum = pgEnum("conversation_member_role", ["m
 export const chatConversations = pgTable("chat_conversations", {
   id: uuid("id").primaryKey().defaultRandom(),
   type: conversationTypeEnum("type").notNull(),
+  channelId: uuid("channel_id").references(() => communityGroupChannels.id, {
+    onDelete: "setNull",
+  }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   deletedAt: timestamp("deleted_at", { withTimezone: true }),
@@ -31,8 +35,12 @@ export const chatConversationMembers = pgTable(
 );
 
 // Relations
-export const chatConversationsRelations = relations(chatConversations, ({ many }) => ({
+export const chatConversationsRelations = relations(chatConversations, ({ many, one }) => ({
   members: many(chatConversationMembers),
+  channel: one(communityGroupChannels, {
+    fields: [chatConversations.channelId],
+    references: [communityGroupChannels.id],
+  }),
 }));
 
 export const chatConversationMembersRelations = relations(chatConversationMembers, ({ one }) => ({

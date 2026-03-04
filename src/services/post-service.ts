@@ -7,6 +7,7 @@ import {
   insertPostMedia,
   resolveFileUploadUrls,
 } from "@/db/queries/posts";
+import { getGroupById, getGroupMemberFull } from "@/db/queries/groups";
 import { eventBus } from "@/services/event-bus";
 
 // Re-export for use in Server Action
@@ -108,6 +109,111 @@ export async function createFeedPost(input: CreateFeedPostInput): Promise<Create
     });
   } catch {
     // Non-critical: EventBus failure must not roll back post creation
+  }
+
+  return { success: true, postId: post.id };
+}
+
+export interface CreateGroupPostInput {
+  authorId: string;
+  groupId: string;
+  content: string;
+  contentType: "text" | "rich_text" | "media";
+  category: "discussion" | "event" | "announcement";
+  fileUploadIds?: string[];
+  mediaTypes?: ("image" | "video" | "audio")[];
+}
+
+/**
+ * Create a post within a specific group.
+ * Verifies: group exists, not archived, caller is active, not muted/banned, postingPermission respected.
+ */
+export async function createGroupPost(
+  input: CreateGroupPostInput,
+): Promise<CreateFeedPostResponse> {
+  const group = await getGroupById(input.groupId);
+  if (!group) {
+    return { success: false, errorCode: "INTERNAL_ERROR", reason: "Group not found" };
+  }
+
+  // Archived check — getGroupById already returns null for deleted groups,
+  // but archiveGroup sets deleted_at, so this is a safety guard for direct calls.
+  if (group.deletedAt) {
+    return { success: false, errorCode: "TIER_BLOCKED", reason: "Groups.archived.postingDenied" };
+  }
+
+  const membership = await getGroupMemberFull(input.groupId, input.authorId);
+  if (!membership || membership.status === "banned") {
+    return {
+      success: false,
+      errorCode: "TIER_BLOCKED",
+      reason: "Groups.moderation.bannedCannotPost",
+    };
+  }
+  if (membership.status !== "active") {
+    return { success: false, errorCode: "TIER_BLOCKED", reason: "Not an active group member" };
+  }
+
+  // Check muted status
+  if (membership.mutedUntil && membership.mutedUntil > new Date()) {
+    return {
+      success: false,
+      errorCode: "TIER_BLOCKED",
+      reason: "Groups.moderation.mutedCannotPost",
+    };
+  }
+
+  // Enforce postingPermission
+  if (
+    group.postingPermission === "leaders_only" &&
+    membership.role !== "creator" &&
+    membership.role !== "leader"
+  ) {
+    return {
+      success: false,
+      errorCode: "TIER_BLOCKED",
+      reason: "Groups.feed.postingPermissionDenied",
+    };
+  }
+
+  // Resolve media
+  const fileUploadIds = input.fileUploadIds ?? [];
+  const urlMap = await resolveFileUploadUrls(fileUploadIds);
+  const media = fileUploadIds
+    .map((id, i) => {
+      const resolved = urlMap.get(id);
+      return {
+        mediaUrl: resolved?.mediaUrl ?? "",
+        mediaType: (input.mediaTypes?.[i] ?? "image") as "image" | "video" | "audio",
+        sortOrder: i,
+      };
+    })
+    .filter((m) => m.mediaUrl !== "");
+
+  const contentType =
+    media.length > 0 && input.contentType === "text" ? "media" : input.contentType;
+
+  const post = await insertPost({
+    authorId: input.authorId,
+    content: input.content,
+    contentType,
+    visibility: "group",
+    category: input.category,
+    groupId: input.groupId,
+  });
+
+  await insertPostMedia(post.id, media);
+
+  try {
+    await eventBus.emit("post.published", {
+      postId: post.id,
+      authorId: input.authorId,
+      groupId: input.groupId,
+      category: input.category,
+      timestamp: new Date().toISOString(),
+    });
+  } catch {
+    // Non-critical
   }
 
   return { success: true, postId: post.id };

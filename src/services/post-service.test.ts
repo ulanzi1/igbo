@@ -25,7 +25,13 @@ vi.mock("@/services/event-bus", () => ({
   eventBus: { emit: vi.fn() },
 }));
 
-import { createFeedPost } from "./post-service";
+vi.mock("@/db/queries/groups", () => ({
+  getGroupById: vi.fn(),
+  getGroupMember: vi.fn(),
+  getGroupMemberFull: vi.fn(),
+}));
+
+import { createFeedPost, createGroupPost } from "./post-service";
 import { canCreateFeedPost, getMaxFeedPostsPerWeek } from "@/services/permissions";
 import { getUserMembershipTier } from "@/db/queries/auth-permissions";
 import {
@@ -35,8 +41,12 @@ import {
   resolveFileUploadUrls,
 } from "@/db/queries/posts";
 import { eventBus } from "@/services/event-bus";
+import { getGroupById, getGroupMember, getGroupMemberFull } from "@/db/queries/groups";
 
 const mockCanCreateFeedPost = vi.mocked(canCreateFeedPost);
+const mockGetGroupById = vi.mocked(getGroupById);
+const mockGetGroupMember = vi.mocked(getGroupMember);
+const mockGetGroupMemberFull = vi.mocked(getGroupMemberFull);
 const mockGetMaxFeedPostsPerWeek = vi.mocked(getMaxFeedPostsPerWeek);
 const mockGetUserMembershipTier = vi.mocked(getUserMembershipTier);
 const mockGetWeeklyFeedPostCount = vi.mocked(getWeeklyFeedPostCount);
@@ -54,6 +64,9 @@ beforeEach(() => {
   mockInsertPostMedia.mockReset();
   mockResolveFileUploadUrls.mockReset();
   mockEventBusEmit.mockReset();
+  mockGetGroupById.mockReset();
+  mockGetGroupMember.mockReset();
+  mockGetGroupMemberFull.mockReset();
 });
 
 const baseInput = {
@@ -253,6 +266,160 @@ describe("createFeedPost", () => {
 
     expect(mockInsertPost).toHaveBeenCalledWith(
       expect.objectContaining({ contentType: "rich_text" }),
+    );
+  });
+});
+
+// ─── createGroupPost ────────────────────────────────────────────────────────
+
+const groupPostInput = {
+  authorId: "user-1",
+  groupId: "group-1",
+  content: "Group post",
+  contentType: "text" as const,
+  category: "discussion" as const,
+};
+
+const makeGroup = (overrides = {}) => ({
+  id: "group-1",
+  name: "Test Group",
+  visibility: "public",
+  joinType: "open",
+  postingPermission: "all_members",
+  memberCount: 5,
+  memberLimit: null,
+  ...overrides,
+});
+
+describe("createGroupPost", () => {
+  it("returns error when group not found", async () => {
+    mockGetGroupById.mockResolvedValue(null);
+
+    const result = await createGroupPost(groupPostInput);
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.errorCode).toBe("INTERNAL_ERROR");
+    }
+  });
+
+  it("returns error when user is not an active member", async () => {
+    mockGetGroupById.mockResolvedValue(makeGroup() as Awaited<ReturnType<typeof getGroupById>>);
+    mockGetGroupMemberFull.mockResolvedValue(null);
+
+    const result = await createGroupPost(groupPostInput);
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.errorCode).toBe("TIER_BLOCKED");
+    }
+  });
+
+  it("returns error when member is muted", async () => {
+    const futureDate = new Date(Date.now() + 60 * 60 * 1000);
+    mockGetGroupById.mockResolvedValue(makeGroup() as Awaited<ReturnType<typeof getGroupById>>);
+    mockGetGroupMemberFull.mockResolvedValue({
+      role: "member",
+      status: "active",
+      mutedUntil: futureDate,
+    });
+
+    const result = await createGroupPost(groupPostInput);
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.errorCode).toBe("TIER_BLOCKED");
+      expect(result.reason).toBe("Groups.moderation.mutedCannotPost");
+    }
+  });
+
+  it("returns error when member is banned", async () => {
+    mockGetGroupById.mockResolvedValue(makeGroup() as Awaited<ReturnType<typeof getGroupById>>);
+    mockGetGroupMemberFull.mockResolvedValue({
+      role: "member",
+      status: "banned",
+      mutedUntil: null,
+    });
+
+    const result = await createGroupPost(groupPostInput);
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.errorCode).toBe("TIER_BLOCKED");
+      expect(result.reason).toBe("Groups.moderation.bannedCannotPost");
+    }
+  });
+
+  it("returns error when posting is leaders_only and user is a member", async () => {
+    mockGetGroupById.mockResolvedValue(
+      makeGroup({ postingPermission: "leaders_only" }) as Awaited<ReturnType<typeof getGroupById>>,
+    );
+    mockGetGroupMemberFull.mockResolvedValue({
+      role: "member",
+      status: "active",
+      mutedUntil: null,
+    });
+
+    const result = await createGroupPost(groupPostInput);
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.errorCode).toBe("TIER_BLOCKED");
+    }
+  });
+
+  it("allows leader to post when posting is leaders_only", async () => {
+    mockGetGroupById.mockResolvedValue(
+      makeGroup({ postingPermission: "leaders_only" }) as Awaited<ReturnType<typeof getGroupById>>,
+    );
+    mockGetGroupMemberFull.mockResolvedValue({
+      role: "leader",
+      status: "active",
+      mutedUntil: null,
+    });
+    mockResolveFileUploadUrls.mockResolvedValue(new Map());
+    mockInsertPost.mockResolvedValue({ id: "post-1" } as Awaited<ReturnType<typeof insertPost>>);
+    mockInsertPostMedia.mockResolvedValue(undefined);
+    mockEventBusEmit.mockResolvedValue(undefined);
+
+    const result = await createGroupPost(groupPostInput);
+    expect(result.success).toBe(true);
+  });
+
+  it("creates a post with visibility 'group' and groupId", async () => {
+    mockGetGroupById.mockResolvedValue(makeGroup() as Awaited<ReturnType<typeof getGroupById>>);
+    mockGetGroupMemberFull.mockResolvedValue({
+      role: "member",
+      status: "active",
+      mutedUntil: null,
+    });
+    mockResolveFileUploadUrls.mockResolvedValue(new Map());
+    mockInsertPost.mockResolvedValue({ id: "post-1" } as Awaited<ReturnType<typeof insertPost>>);
+    mockInsertPostMedia.mockResolvedValue(undefined);
+    mockEventBusEmit.mockResolvedValue(undefined);
+
+    const result = await createGroupPost(groupPostInput);
+    expect(result).toEqual({ success: true, postId: "post-1" });
+    expect(mockInsertPost).toHaveBeenCalledWith(
+      expect.objectContaining({
+        visibility: "group",
+        groupId: "group-1",
+        authorId: "user-1",
+      }),
+    );
+  });
+
+  it("emits post.published with groupId", async () => {
+    mockGetGroupById.mockResolvedValue(makeGroup() as Awaited<ReturnType<typeof getGroupById>>);
+    mockGetGroupMemberFull.mockResolvedValue({
+      role: "member",
+      status: "active",
+      mutedUntil: null,
+    });
+    mockResolveFileUploadUrls.mockResolvedValue(new Map());
+    mockInsertPost.mockResolvedValue({ id: "post-1" } as Awaited<ReturnType<typeof insertPost>>);
+    mockInsertPostMedia.mockResolvedValue(undefined);
+    mockEventBusEmit.mockResolvedValue(undefined);
+
+    await createGroupPost(groupPostInput);
+    expect(mockEventBusEmit).toHaveBeenCalledWith(
+      "post.published",
+      expect.objectContaining({ postId: "post-1", groupId: "group-1" }),
     );
   });
 });

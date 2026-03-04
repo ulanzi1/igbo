@@ -132,7 +132,7 @@ export function GroupCard({ group, viewerMembership, onJoin, onRequestJoin }: Gr
 
           <div className="mt-auto flex items-center justify-between pt-2">
             <span className="text-xs text-muted-foreground">
-              {t("members", { count: group.memberCount })}
+              {t("memberCount", { count: group.memberCount })}
             </span>
             {renderButton()}
           </div>

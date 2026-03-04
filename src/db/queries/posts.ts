@@ -12,7 +12,8 @@ export interface CreatePostData {
   contentType: "text" | "rich_text" | "media" | "announcement";
   visibility: "public" | "group" | "members_only";
   category: "discussion" | "event" | "announcement";
-  originalPostId?: string | null; // NEW — for reposts
+  groupId?: string | null; // Group-scoped posts (Story 5.3)
+  originalPostId?: string | null; // Reposts
 }
 
 export interface CreatePostMediaData {
@@ -63,7 +64,8 @@ export async function insertPost(data: CreatePostData) {
       contentType: data.contentType,
       visibility: data.visibility,
       category: data.category,
-      originalPostId: data.originalPostId ?? null, // NEW
+      groupId: data.groupId ?? null,
+      originalPostId: data.originalPostId ?? null,
     })
     .returning();
   return post!;
@@ -93,6 +95,62 @@ export async function resolveFileUploadUrls(
     result.set(row.id, { mediaUrl, fileType: row.fileType ?? "" });
   }
   return result;
+}
+
+/**
+ * Toggle a post's pin state. Sets isPinned and pinnedAt accordingly.
+ * Returns the updated post or null if not found.
+ */
+export async function togglePostPin(
+  postId: string,
+  isPinned: boolean,
+): Promise<typeof communityPosts.$inferSelect | null> {
+  const [updated] = await db
+    .update(communityPosts)
+    .set({
+      isPinned,
+      pinnedAt: isPinned ? new Date() : null,
+    })
+    .where(eq(communityPosts.id, postId))
+    .returning();
+  return updated ?? null;
+}
+
+/**
+ * Soft-delete a group post by a moderator (leader/creator).
+ * Returns the deleted post row or null if not found or not in the specified group.
+ */
+export async function softDeleteGroupPost(
+  postId: string,
+  groupId: string,
+): Promise<typeof communityPosts.$inferSelect | null> {
+  const [updated] = await db
+    .update(communityPosts)
+    .set({ deletedAt: new Date() })
+    .where(
+      and(
+        eq(communityPosts.id, postId),
+        eq(communityPosts.groupId, groupId),
+        sql`${communityPosts.deletedAt} IS NULL`,
+      ),
+    )
+    .returning();
+  return updated ?? null;
+}
+
+/**
+ * Get a post's groupId (or null for general feed posts).
+ * Returns null if post not found.
+ */
+export async function getPostGroupId(postId: string): Promise<string | null | undefined> {
+  const [row] = await db
+    .select({ groupId: communityPosts.groupId })
+    .from(communityPosts)
+    .where(and(eq(communityPosts.id, postId), sql`${communityPosts.deletedAt} IS NULL`))
+    .limit(1);
+  // undefined means post not found; null means found but no group (general feed)
+  if (!row) return undefined;
+  return row.groupId;
 }
 
 /**

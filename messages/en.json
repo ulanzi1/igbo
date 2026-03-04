@@ -1086,7 +1086,7 @@
     "settingsTitle": "Group Settings",
     "settingsSaved": "Settings saved",
     "settingsSaveButton": "Save Settings",
-    "members": "{count} members",
+    "memberCount": "{count} members",
     "noGroups": "No groups found.",
     "noGroupsHint": "Be the first to create one!",
     "searchPlaceholder": "Search groups...",
@@ -1110,6 +1110,69 @@
     "requestRejected": "Request rejected",
     "creatorCannotLeave": "Group creators cannot leave. Transfer ownership first.",
     "comingSoon": "Group feed and content coming soon.",
+    "tabs": {
+      "feed": "Feed",
+      "channels": "Channels",
+      "members": "Members",
+      "files": "Files"
+    },
+    "channel": {
+      "general": "General",
+      "create": "Add Channel",
+      "namePlaceholder": "Channel name",
+      "descriptionPlaceholder": "Optional description",
+      "delete": "Delete Channel",
+      "confirmDelete": "Delete this channel? All messages will be archived.",
+      "maxChannelsReached": "Groups can have a maximum of 10 channels.",
+      "cannotDeleteGeneral": "The General channel cannot be deleted.",
+      "selectPrompt": "Select a channel to start chatting",
+      "cancelCreate": "Cancel",
+      "creating": "Creating...",
+      "createButton": "Create"
+    },
+    "members": {
+      "role": {
+        "creator": "Creator",
+        "leader": "Leader",
+        "member": "Member"
+      },
+      "noMembers": "No members yet",
+      "joinedDate": "Joined {date}",
+      "promoteLeader": "Make Leader",
+      "mute": "Mute",
+      "unmute": "Unmute",
+      "ban": "Ban"
+    },
+    "moderation": {
+      "mutedCannotPost": "Posting restricted. Please contact the group admin.",
+      "mutedCannotComment": "Commenting restricted. Please contact the group admin.",
+      "bannedCannotPost": "You are banned from this group.",
+      "bannedCannotComment": "You are banned from this group."
+    },
+    "archived": {
+      "banner": "This group has been archived. You can still view past content but no new posts or messages can be added.",
+      "postingDenied": "This group has been archived and no longer accepts new posts."
+    },
+    "files": {
+      "noFiles": "No files shared yet. Share files in channels to see them here.",
+      "download": "Download"
+    },
+    "feed": {
+      "pinned": "Pinned",
+      "pin": "Pin post",
+      "unpin": "Unpin post",
+      "empty": "No posts yet. Be the first to post in this group!",
+      "postingPermissionDenied": "Only group leaders can post in this group.",
+      "loadMore": "Load more",
+      "loading": "Loading..."
+    },
+    "systemMessage": {
+      "joined": "{name} joined the group",
+      "left": "{name} left the group"
+    },
+    "requiresMembership": "Join this group to access channels.",
+    "requiresMembershipFiles": "Join this group to access shared files.",
+    "membershipLimitBlocked": "{name} has reached the maximum of {limit} groups and cannot be added.",
     "errors": {
       "nameTaken": "A group with this name already exists",
       "permissionDenied": "You do not have permission to create groups",
@@ -1128,6 +1191,26 @@
     "group_join_rejected": {
       "title": "Join Request Declined",
       "body": "Your request to join the group was not approved"
+    },
+    "group_leader_assigned": {
+      "title": "You are now a Group Leader",
+      "body": "You have been assigned as a leader of a group"
+    },
+    "group_member_muted": {
+      "title": "You have been muted",
+      "body": "A group moderator has temporarily muted you in a group"
+    },
+    "group_member_banned": {
+      "title": "You have been banned",
+      "body": "A group moderator has banned you from a group"
+    },
+    "group_ownership_transferred": {
+      "title": "You are now the Group Owner",
+      "body": "Group ownership has been transferred to you"
+    },
+    "group_archived": {
+      "title": "Group Archived",
+      "body": "A group you are a member of has been archived"
     }
   }
 }

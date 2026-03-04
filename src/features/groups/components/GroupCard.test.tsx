@@ -49,7 +49,7 @@ describe("GroupCard", () => {
 
   it("renders member count", () => {
     render(<GroupCard group={mockGroup} viewerMembership={null} />);
-    expect(screen.getByText(/members/)).toBeInTheDocument();
+    expect(screen.getByText(/memberCount/)).toBeInTheDocument();
   });
 
   it("renders visibility badge", () => {

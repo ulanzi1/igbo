@@ -90,6 +90,7 @@ export const communityGroupMembers = pgTable(
       .references(() => authUsers.id, { onDelete: "cascade" }),
     role: communityGroupMemberRoleEnum("role").notNull().default("member"),
     status: communityGroupMemberStatusEnum("status").notNull().default("active"),
+    mutedUntil: timestamp("muted_until", { withTimezone: true }),
     joinedAt: timestamp("joined_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (t) => [

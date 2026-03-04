@@ -37,9 +37,17 @@ export default async function GroupSettingsPage({
 
   if (!isCreatorOrLeader) redirect(`/groups/${groupId}`);
 
+  // Serialize Date fields for the server→client component boundary
+  const serializedGroup = {
+    ...group,
+    createdAt: group.createdAt.toISOString(),
+    updatedAt: group.updatedAt.toISOString(),
+    deletedAt: group.deletedAt?.toISOString() ?? null,
+  };
+
   return (
     <main className="mx-auto max-w-2xl px-4 py-8">
-      <GroupSettings group={group} viewerIsCreatorOrLeader={isCreatorOrLeader} />
+      <GroupSettings group={serializedGroup} viewerIsCreatorOrLeader={isCreatorOrLeader} />
     </main>
   );
 }

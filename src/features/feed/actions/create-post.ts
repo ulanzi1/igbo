@@ -3,7 +3,7 @@
 import { z } from "zod/v4";
 import { requireAuthenticatedSession } from "@/services/permissions";
 import { applyRateLimit, RATE_LIMIT_PRESETS } from "@/services/rate-limiter";
-import { createFeedPost } from "@/services/post-service";
+import { createFeedPost, createGroupPost } from "@/services/post-service";
 import type { CreateFeedPostResponse } from "@/services/post-service";
 
 const createPostSchema = z
@@ -16,6 +16,7 @@ const createPostSchema = z
       .array(z.enum(["image", "video", "audio"]))
       .max(4)
       .optional(),
+    groupId: z.string().uuid().optional(),
   })
   .refine(
     (data) => {
@@ -63,7 +64,19 @@ export async function createPost(
     };
   }
 
-  // Delegate to service
+  // Route to group post or general feed post
+  if (parsed.data.groupId) {
+    return createGroupPost({
+      authorId: userId,
+      groupId: parsed.data.groupId,
+      content: parsed.data.content,
+      contentType: parsed.data.contentType,
+      category: parsed.data.category,
+      fileUploadIds: parsed.data.fileUploadIds,
+      mediaTypes: parsed.data.mediaTypes,
+    });
+  }
+
   return createFeedPost({
     authorId: userId,
     content: parsed.data.content,

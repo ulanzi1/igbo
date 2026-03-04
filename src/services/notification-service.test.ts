@@ -51,6 +51,10 @@ vi.mock("@/db/queries/chat-conversations", () => ({
     mockGetConversationNotificationPreference(...args),
 }));
 
+vi.mock("@/db/queries/groups", () => ({
+  listGroupLeaders: vi.fn().mockResolvedValue([]),
+}));
+
 // Import module once — listeners are registered at load time and captured by handlerRef
 import { markNotificationAsRead, markAllNotificationsAsRead } from "./notification-service";
 

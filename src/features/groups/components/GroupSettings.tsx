@@ -4,12 +4,28 @@ import { useState, useEffect, useCallback } from "react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import type {
-  CommunityGroup,
   GroupVisibility,
   GroupJoinType,
   GroupPostingPermission,
   GroupCommentingPermission,
 } from "@/db/schema/community-groups";
+
+interface SerializedGroup {
+  id: string;
+  name: string;
+  description: string | null;
+  bannerUrl: string | null;
+  visibility: GroupVisibility;
+  joinType: GroupJoinType;
+  postingPermission: GroupPostingPermission;
+  commentingPermission: GroupCommentingPermission;
+  memberLimit: number | null;
+  creatorId: string;
+  memberCount: number;
+  deletedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
 
 interface PendingRequest {
   userId: string;
@@ -18,7 +34,7 @@ interface PendingRequest {
 }
 
 interface GroupSettingsProps {
-  group: CommunityGroup;
+  group: SerializedGroup;
   viewerIsCreatorOrLeader: boolean;
 }
 

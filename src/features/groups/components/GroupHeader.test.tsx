@@ -3,7 +3,6 @@ import React from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { GroupHeader } from "./GroupHeader";
-import type { CommunityGroup } from "@/db/schema/community-groups";
 
 const mockPush = vi.fn();
 const mockRefresh = vi.fn();
@@ -48,7 +47,7 @@ beforeEach(() => {
 const GROUP_ID = "00000000-0000-4000-8000-000000000001";
 const CREATOR_ID = "00000000-0000-4000-8000-000000000002";
 
-const mockGroup: CommunityGroup = {
+const mockGroup = {
   id: GROUP_ID,
   name: "London Chapter",
   description: "For Igbo diaspora in London",
@@ -61,8 +60,8 @@ const mockGroup: CommunityGroup = {
   creatorId: CREATOR_ID,
   memberCount: 42,
   deletedAt: null,
-  createdAt: new Date("2026-03-01"),
-  updatedAt: new Date("2026-03-01"),
+  createdAt: "2026-03-01T00:00:00.000Z",
+  updatedAt: "2026-03-01T00:00:00.000Z",
 };
 
 describe("GroupHeader", () => {
@@ -78,7 +77,7 @@ describe("GroupHeader", () => {
 
   it("renders member count", () => {
     render(<GroupHeader group={mockGroup} />);
-    expect(screen.getByText(/members/)).toBeInTheDocument();
+    expect(screen.getByText(/memberCount/)).toBeInTheDocument();
   });
 
   it("does not show settings link to regular viewer", () => {

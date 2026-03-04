@@ -8,6 +8,10 @@ vi.mock("@/config/realtime", () => ({
   NAMESPACE_CHAT: "/chat",
 }));
 
+vi.mock("@/db/queries/group-channels", () => ({
+  listGroupChannels: vi.fn().mockResolvedValue([]),
+}));
+
 import { startEventBusBridge, stopEventBusBridge } from "./eventbus-bridge";
 import type { Server } from "socket.io";
 import type Redis from "ioredis";

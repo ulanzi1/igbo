@@ -72,6 +72,12 @@ export async function requestAccountDeletion(userId: string, password: string): 
     userId,
     timestamp: new Date().toISOString(),
   });
+
+  eventBus.emit("account.status_changed", {
+    userId,
+    newStatus: "PENDING_DELETION",
+    timestamp: new Date().toISOString(),
+  });
 }
 
 export async function cancelAccountDeletion(token: string, userId: string): Promise<void> {
@@ -148,6 +154,12 @@ export async function anonymizeAccount(userId: string): Promise<void> {
 
   eventBus.emit("member.anonymized", {
     userId,
+    timestamp: new Date().toISOString(),
+  });
+
+  eventBus.emit("account.status_changed", {
+    userId,
+    newStatus: "ANONYMIZED",
     timestamp: new Date().toISOString(),
   });
 }

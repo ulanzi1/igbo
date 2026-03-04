@@ -19,6 +19,10 @@ vi.mock("@/db/queries/post-interactions", () => ({
 }));
 vi.mock("@/db/queries/posts", () => ({
   insertPost: vi.fn(),
+  getPostGroupId: vi.fn(),
+}));
+vi.mock("@/db/queries/groups", () => ({
+  getGroupMemberFull: vi.fn(),
 }));
 vi.mock("@/services/event-bus", () => ({
   eventBus: { emit: vi.fn() },
@@ -31,7 +35,8 @@ import {
   incrementShareCount,
   getOriginalPostEmbed,
 } from "@/db/queries/post-interactions";
-import { insertPost } from "@/db/queries/posts";
+import { insertPost, getPostGroupId } from "@/db/queries/posts";
+import { getGroupMemberFull } from "@/db/queries/groups";
 import { eventBus } from "@/services/event-bus";
 
 const mockToggleReaction = vi.mocked(toggleReaction);
@@ -40,6 +45,8 @@ const mockSoftDeleteComment = vi.mocked(softDeleteComment);
 const mockIncrementShareCount = vi.mocked(incrementShareCount);
 const mockGetOriginalPostEmbed = vi.mocked(getOriginalPostEmbed);
 const mockInsertPost = vi.mocked(insertPost);
+const mockGetPostGroupId = vi.mocked(getPostGroupId);
+const mockGetGroupMemberFull = vi.mocked(getGroupMemberFull);
 const mockEventBusEmit = vi.mocked(eventBus.emit);
 
 beforeEach(() => {
@@ -49,7 +56,12 @@ beforeEach(() => {
   mockIncrementShareCount.mockReset();
   mockGetOriginalPostEmbed.mockReset();
   mockInsertPost.mockReset();
+  mockGetPostGroupId.mockReset();
+  mockGetGroupMemberFull.mockReset();
   mockEventBusEmit.mockReset();
+
+  // Default: non-group post (skip muted/banned check)
+  mockGetPostGroupId.mockResolvedValue(null);
 });
 
 // ─── reactToPost ──────────────────────────────────────────────────────────────
@@ -164,6 +176,52 @@ describe("addComment", () => {
     await expect(addComment("post-1", "user-1", "Hello")).resolves.toMatchObject({
       success: true,
     });
+  });
+
+  it("returns GROUP_MODERATION error when commenting on group post while banned", async () => {
+    mockGetPostGroupId.mockResolvedValue("group-1");
+    mockGetGroupMemberFull.mockResolvedValue({
+      role: "member",
+      status: "banned",
+      mutedUntil: null,
+    });
+
+    const result = await addComment("post-1", "user-1", "Hello");
+
+    expect(result).toMatchObject({
+      success: false,
+      errorCode: "GROUP_MODERATION",
+      reason: "Groups.moderation.bannedCannotComment",
+    });
+  });
+
+  it("returns GROUP_MODERATION error when commenting on group post while muted", async () => {
+    const futureDate = new Date(Date.now() + 60 * 60 * 1000);
+    mockGetPostGroupId.mockResolvedValue("group-1");
+    mockGetGroupMemberFull.mockResolvedValue({
+      role: "member",
+      status: "active",
+      mutedUntil: futureDate,
+    });
+
+    const result = await addComment("post-1", "user-1", "Hello");
+
+    expect(result).toMatchObject({
+      success: false,
+      errorCode: "GROUP_MODERATION",
+      reason: "Groups.moderation.mutedCannotComment",
+    });
+  });
+
+  it("allows commenting on non-group posts without membership check", async () => {
+    mockGetPostGroupId.mockResolvedValue(null);
+    mockInsertComment.mockResolvedValue(commentRow);
+    mockEventBusEmit.mockResolvedValue(undefined);
+
+    const result = await addComment("post-1", "user-1", "Hello");
+
+    expect(result).toMatchObject({ success: true });
+    expect(mockGetGroupMemberFull).not.toHaveBeenCalled();
   });
 });
 

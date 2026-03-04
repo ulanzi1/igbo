@@ -17,6 +17,12 @@ import type {
   GroupJoinRequestedEvent,
   GroupJoinApprovedEvent,
   GroupJoinRejectedEvent,
+  GroupLeaderAssignedEvent,
+  GroupMemberMutedEvent,
+  GroupMemberBannedEvent,
+  GroupOwnershipTransferredEvent,
+  GroupArchivedEvent,
+  AccountStatusChangedEvent,
 } from "@/types/events";
 import type { NotificationType } from "@/db/schema/platform-notifications";
 
@@ -177,6 +183,99 @@ eventBus.on("group.join_rejected", async (payload: GroupJoinRejectedEvent) => {
     title: "notifications.group_join_rejected.title",
     body: "notifications.group_join_rejected.body",
   });
+});
+
+// ─── Group Leadership & Moderation Notifications (Story 5.4) ─────────────────
+
+eventBus.on("group.leader_assigned", async (payload: GroupLeaderAssignedEvent) => {
+  await deliverNotification({
+    userId: payload.userId,
+    actorId: payload.assignedBy,
+    type: "group_activity",
+    title: "notifications.group_leader_assigned.title",
+    body: "notifications.group_leader_assigned.body",
+    link: `/groups/${payload.groupId}`,
+  });
+});
+
+eventBus.on("group.member_muted", async (payload: GroupMemberMutedEvent) => {
+  await deliverNotification({
+    userId: payload.userId,
+    actorId: payload.moderatorId,
+    type: "group_activity",
+    title: "notifications.group_member_muted.title",
+    body: "notifications.group_member_muted.body",
+    link: `/groups/${payload.groupId}`,
+  });
+});
+
+eventBus.on("group.member_banned", async (payload: GroupMemberBannedEvent) => {
+  await deliverNotification({
+    userId: payload.userId,
+    actorId: payload.moderatorId,
+    type: "group_activity",
+    title: "notifications.group_member_banned.title",
+    body: "notifications.group_member_banned.body",
+  });
+});
+
+eventBus.on("group.ownership_transferred", async (payload: GroupOwnershipTransferredEvent) => {
+  await deliverNotification({
+    userId: payload.newOwnerId,
+    actorId: payload.previousOwnerId,
+    type: "group_activity",
+    title: "notifications.group_ownership_transferred.title",
+    body: "notifications.group_ownership_transferred.body",
+    link: `/groups/${payload.groupId}`,
+  });
+});
+
+eventBus.on("group.archived", async (payload: GroupArchivedEvent) => {
+  // Look up all active members to notify them
+  const { listActiveGroupMemberIds } = await import("@/db/queries/group-channels");
+  const memberIds = await listActiveGroupMemberIds(payload.groupId);
+  for (const userId of memberIds) {
+    await deliverNotification({
+      userId,
+      actorId: payload.archivedBy,
+      type: "group_activity",
+      title: "notifications.group_archived.title",
+      body: "notifications.group_archived.body",
+      link: `/groups/${payload.groupId}`,
+    });
+  }
+});
+
+// ─── Ownership Transfer on Account Status Change ──────────────────────────────
+
+eventBus.on("account.status_changed", async (payload: AccountStatusChangedEvent) => {
+  const suspendedStatuses = ["SUSPENDED", "PENDING_DELETION", "ANONYMIZED"];
+  if (!suspendedStatuses.includes(payload.newStatus)) return;
+
+  // Find all groups where user is creator and trigger ownership transfer
+  const { db } = await import("@/db");
+  const { communityGroups, communityGroupMembers } = await import("@/db/schema/community-groups");
+  const { and, eq, sql } = await import("drizzle-orm");
+
+  const creatorGroups = await db
+    .select({ groupId: communityGroups.id })
+    .from(communityGroups)
+    .innerJoin(communityGroupMembers, eq(communityGroupMembers.groupId, communityGroups.id))
+    .where(
+      and(
+        eq(communityGroupMembers.userId, payload.userId),
+        eq(communityGroupMembers.role, "creator"),
+        eq(communityGroupMembers.status, "active"),
+        sql`${communityGroups.deletedAt} IS NULL`,
+      ),
+    );
+
+  if (creatorGroups.length > 0) {
+    const { transferGroupOwnership } = await import("@/services/group-service");
+    for (const { groupId } of creatorGroups) {
+      await transferGroupOwnership(groupId, payload.userId);
+    }
+  }
 });
 
 // ─── Service Functions (called by API routes) ─────────────────────────────────

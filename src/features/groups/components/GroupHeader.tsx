@@ -4,10 +4,25 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
-import type { CommunityGroup } from "@/db/schema/community-groups";
+interface SerializedGroup {
+  id: string;
+  name: string;
+  description: string | null;
+  bannerUrl: string | null;
+  visibility: string;
+  joinType: string;
+  postingPermission: string;
+  commentingPermission: string;
+  memberLimit: number | null;
+  creatorId: string;
+  memberCount: number;
+  deletedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
 
 interface GroupHeaderProps {
-  group: CommunityGroup;
+  group: SerializedGroup;
   viewerIsCreatorOrLeader?: boolean;
   viewerMembership?: { role: string; status: string } | null;
 }
@@ -72,7 +87,7 @@ export function GroupHeader({
           <h1 className="text-2xl font-bold">{group.name}</h1>
           {group.description && <p className="text-muted-foreground">{group.description}</p>}
           <p className="text-sm text-muted-foreground">
-            {t("members", { count: group.memberCount })}
+            {t("memberCount", { count: group.memberCount })}
           </p>
           {leaveError && <p className="text-sm text-destructive">{leaveError}</p>}
         </div>
