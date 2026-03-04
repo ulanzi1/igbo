@@ -75,6 +75,8 @@ async function fetchConversation(conversationId: string): Promise<ConversationDa
 
 interface ChatWindowProps {
   conversationId: string;
+  /** When set (e.g. group channels), overrides the header name derived from conversation members. */
+  channelName?: string;
 }
 
 type InfiniteData = { pages: MessagesPage[]; pageParams: unknown[] };
@@ -95,7 +97,7 @@ function updateMessageInCache(
   };
 }
 
-export function ChatWindow({ conversationId }: ChatWindowProps) {
+export function ChatWindow({ conversationId, channelName }: ChatWindowProps) {
   const t = useTranslations("Chat");
   const tDeleteMessage = useTranslations("Chat.deleteMessage");
   const tEditMessage = useTranslations("Chat.editMessage");
@@ -616,7 +618,8 @@ export function ChatWindow({ conversationId }: ChatWindowProps) {
 
           <div className="flex flex-1 flex-col min-w-0">
             <span className="truncate text-sm font-semibold text-foreground">
-              {isGroup ? formatGroupHeaderNames() : (otherMember?.displayName ?? "…")}
+              {channelName ??
+                (isGroup ? formatGroupHeaderNames() : (otherMember?.displayName ?? "…"))}
             </span>
             {isGroup && memberCount > 0 && (
               <span className="text-xs text-muted-foreground">

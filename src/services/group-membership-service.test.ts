@@ -33,6 +33,27 @@ vi.mock("@/services/event-bus", () => ({
   eventBus: { emit: (...args: unknown[]) => mockEmit(...args) },
 }));
 
+const mockGetDefaultChannelConversationId = vi.fn();
+const mockListAllChannelConversationIds = vi.fn();
+const mockAddMembersToConversation = vi.fn();
+vi.mock("@/db/queries/group-channels", () => ({
+  getDefaultChannelConversationId: (...args: unknown[]) =>
+    mockGetDefaultChannelConversationId(...args),
+  listAllChannelConversationIds: (...args: unknown[]) => mockListAllChannelConversationIds(...args),
+  addMembersToConversation: (...args: unknown[]) => mockAddMembersToConversation(...args),
+}));
+
+const mockSendSystemMessage = vi.fn();
+vi.mock("@/services/message-service", () => ({
+  messageService: { sendSystemMessage: (...args: unknown[]) => mockSendSystemMessage(...args) },
+}));
+
+const mockDb = vi.hoisted(() => ({ select: vi.fn() }));
+vi.mock("@/db", () => ({ db: mockDb }));
+vi.mock("@/db/schema/community-profiles", () => ({
+  communityProfiles: { userId: "user_id", displayName: "display_name" },
+}));
+
 import {
   joinOpenGroup,
   requestToJoinGroup,
@@ -72,6 +93,15 @@ beforeEach(() => {
   mockInsertGroupMember.mockResolvedValue(undefined);
   mockUpdateGroupMemberStatus.mockResolvedValue(undefined);
   mockRemoveGroupMember.mockResolvedValue(undefined);
+  mockGetDefaultChannelConversationId.mockReset();
+  mockGetDefaultChannelConversationId.mockResolvedValue(null); // no system message by default
+  mockListAllChannelConversationIds.mockReset();
+  mockListAllChannelConversationIds.mockResolvedValue([]); // no channel convs by default
+  mockAddMembersToConversation.mockReset();
+  mockAddMembersToConversation.mockResolvedValue(undefined);
+  mockSendSystemMessage.mockReset();
+  mockSendSystemMessage.mockResolvedValue(undefined);
+  mockDb.select.mockReset();
 });
 
 // ─── joinOpenGroup ──────────────────────────────────────────────────────────
@@ -318,5 +348,170 @@ describe("leaveGroup", () => {
     mockGetGroupMember.mockResolvedValue({ role: "creator", status: "active" });
 
     await expect(leaveGroup(USER_ID, GROUP_ID)).rejects.toMatchObject({ status: 403 });
+  });
+});
+
+// ─── Channel enrollment assertions ──────────────────────────────────────────
+
+describe("joinOpenGroup — channel enrollment", () => {
+  it("enrolls the new member in all channel conversations", async () => {
+    mockGetGroupById.mockResolvedValue(makeGroup());
+    mockGetGroupMember.mockResolvedValue(null);
+    mockListAllChannelConversationIds.mockResolvedValue(["conv-general", "conv-food"]);
+
+    await joinOpenGroup(USER_ID, GROUP_ID);
+
+    expect(mockListAllChannelConversationIds).toHaveBeenCalledWith(GROUP_ID);
+    expect(mockAddMembersToConversation).toHaveBeenCalledWith("conv-general", [USER_ID]);
+    expect(mockAddMembersToConversation).toHaveBeenCalledWith("conv-food", [USER_ID]);
+  });
+
+  it("skips enrollment when no channel conversations exist", async () => {
+    mockGetGroupById.mockResolvedValue(makeGroup());
+    mockGetGroupMember.mockResolvedValue(null);
+    mockListAllChannelConversationIds.mockResolvedValue([]);
+
+    await joinOpenGroup(USER_ID, GROUP_ID);
+
+    expect(mockAddMembersToConversation).not.toHaveBeenCalled();
+  });
+
+  it("skips enrollment when already an active member (no-op path)", async () => {
+    mockGetGroupById.mockResolvedValue(makeGroup());
+    mockGetGroupMember.mockResolvedValue({ role: "member", status: "active" });
+
+    await joinOpenGroup(USER_ID, GROUP_ID);
+
+    expect(mockListAllChannelConversationIds).not.toHaveBeenCalled();
+    expect(mockAddMembersToConversation).not.toHaveBeenCalled();
+  });
+});
+
+describe("approveJoinRequest — channel enrollment", () => {
+  it("enrolls the approved member in all channel conversations", async () => {
+    mockGetGroupMember
+      .mockResolvedValueOnce({ role: "creator", status: "active" })
+      .mockResolvedValueOnce({ role: "member", status: "pending" });
+    mockListAllChannelConversationIds.mockResolvedValue(["conv-general", "conv-food"]);
+
+    await approveJoinRequest(LEADER_ID, GROUP_ID, USER_ID);
+
+    expect(mockListAllChannelConversationIds).toHaveBeenCalledWith(GROUP_ID);
+    expect(mockAddMembersToConversation).toHaveBeenCalledWith("conv-general", [USER_ID]);
+    expect(mockAddMembersToConversation).toHaveBeenCalledWith("conv-food", [USER_ID]);
+  });
+
+  it("skips enrollment when no channel conversations exist", async () => {
+    mockGetGroupMember
+      .mockResolvedValueOnce({ role: "creator", status: "active" })
+      .mockResolvedValueOnce({ role: "member", status: "pending" });
+    mockListAllChannelConversationIds.mockResolvedValue([]);
+
+    await approveJoinRequest(LEADER_ID, GROUP_ID, USER_ID);
+
+    expect(mockAddMembersToConversation).not.toHaveBeenCalled();
+  });
+});
+
+// ─── System message assertions (Story 5.3) ──────────────────────────────────
+
+function makeDbSelectChain(displayName: string) {
+  return {
+    from: vi.fn().mockReturnThis(),
+    where: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockResolvedValue([{ displayName }]),
+  };
+}
+
+describe("joinOpenGroup — system messages", () => {
+  it("sends system message when General channel exists", async () => {
+    mockGetGroupById.mockResolvedValue(makeGroup());
+    mockGetGroupMember.mockResolvedValue(null);
+    mockGetDefaultChannelConversationId.mockResolvedValue("conv-1");
+    mockDb.select.mockReturnValue(makeDbSelectChain("Alice"));
+
+    await joinOpenGroup(USER_ID, GROUP_ID);
+
+    expect(mockGetDefaultChannelConversationId).toHaveBeenCalledWith(GROUP_ID);
+    expect(mockSendSystemMessage).toHaveBeenCalledWith("conv-1", USER_ID, "Alice joined the group");
+  });
+
+  it("skips system message when no General channel exists", async () => {
+    mockGetGroupById.mockResolvedValue(makeGroup());
+    mockGetGroupMember.mockResolvedValue(null);
+    mockGetDefaultChannelConversationId.mockResolvedValue(null);
+
+    await joinOpenGroup(USER_ID, GROUP_ID);
+
+    expect(mockSendSystemMessage).not.toHaveBeenCalled();
+  });
+
+  it("falls back to 'A member' when display name not found", async () => {
+    mockGetGroupById.mockResolvedValue(makeGroup());
+    mockGetGroupMember.mockResolvedValue(null);
+    mockGetDefaultChannelConversationId.mockResolvedValue("conv-1");
+    mockDb.select.mockReturnValue({
+      from: vi.fn().mockReturnThis(),
+      where: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockResolvedValue([]),
+    });
+
+    await joinOpenGroup(USER_ID, GROUP_ID);
+
+    expect(mockSendSystemMessage).toHaveBeenCalledWith(
+      "conv-1",
+      USER_ID,
+      "A member joined the group",
+    );
+  });
+});
+
+describe("approveJoinRequest — system messages", () => {
+  it("sends system message when General channel exists", async () => {
+    mockGetGroupMember
+      .mockResolvedValueOnce({ role: "creator", status: "active" }) // caller
+      .mockResolvedValueOnce({ role: "member", status: "pending" }); // target
+    mockGetDefaultChannelConversationId.mockResolvedValue("conv-1");
+    mockDb.select.mockReturnValue(makeDbSelectChain("Charlie"));
+
+    await approveJoinRequest(LEADER_ID, GROUP_ID, USER_ID);
+
+    expect(mockSendSystemMessage).toHaveBeenCalledWith(
+      "conv-1",
+      USER_ID,
+      "Charlie joined the group",
+    );
+  });
+
+  it("skips system message when no General channel exists", async () => {
+    mockGetGroupMember
+      .mockResolvedValueOnce({ role: "creator", status: "active" })
+      .mockResolvedValueOnce({ role: "member", status: "pending" });
+    mockGetDefaultChannelConversationId.mockResolvedValue(null);
+
+    await approveJoinRequest(LEADER_ID, GROUP_ID, USER_ID);
+
+    expect(mockSendSystemMessage).not.toHaveBeenCalled();
+  });
+});
+
+describe("leaveGroup — system messages", () => {
+  it("sends system message when General channel exists", async () => {
+    mockGetGroupMember.mockResolvedValue({ role: "member", status: "active" });
+    mockGetDefaultChannelConversationId.mockResolvedValue("conv-1");
+    mockDb.select.mockReturnValue(makeDbSelectChain("Bob"));
+
+    await leaveGroup(USER_ID, GROUP_ID);
+
+    expect(mockSendSystemMessage).toHaveBeenCalledWith("conv-1", USER_ID, "Bob left the group");
+  });
+
+  it("skips system message when no General channel exists", async () => {
+    mockGetGroupMember.mockResolvedValue({ role: "member", status: "active" });
+    mockGetDefaultChannelConversationId.mockResolvedValue(null);
+
+    await leaveGroup(USER_ID, GROUP_ID);
+
+    expect(mockSendSystemMessage).not.toHaveBeenCalled();
   });
 });
