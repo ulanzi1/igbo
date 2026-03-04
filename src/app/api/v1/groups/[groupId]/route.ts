@@ -5,7 +5,7 @@ import { withApiHandler } from "@/server/api/middleware";
 import { successResponse } from "@/lib/api-response";
 import { ApiError } from "@/lib/api-error";
 import { requireAuthenticatedSession } from "@/services/permissions";
-import { getGroupById, getGroupMember } from "@/db/queries/groups";
+import { getGroupById, getGroupMember, listPendingMembers } from "@/db/queries/groups";
 import { updateGroupSettings } from "@/services/group-service";
 import { RATE_LIMIT_PRESETS } from "@/services/rate-limiter";
 
@@ -25,6 +25,11 @@ const getHandler = async (request: Request) => {
   }
 
   const viewerMembership = await getGroupMember(groupId, userId);
+  const isLeaderOrCreator =
+    viewerMembership?.role === "creator" || viewerMembership?.role === "leader";
+
+  // Include pending requests for leaders/creators
+  const pendingRequests = isLeaderOrCreator ? await listPendingMembers(groupId) : [];
 
   return successResponse({
     group: {
@@ -45,6 +50,11 @@ const getHandler = async (request: Request) => {
     viewerMembership: viewerMembership
       ? { role: viewerMembership.role, status: viewerMembership.status }
       : null,
+    pendingRequests: pendingRequests.map((r) => ({
+      userId: r.userId,
+      displayName: r.displayName ?? null,
+      joinedAt: r.joinedAt instanceof Date ? r.joinedAt.toISOString() : r.joinedAt,
+    })),
   });
 };
 

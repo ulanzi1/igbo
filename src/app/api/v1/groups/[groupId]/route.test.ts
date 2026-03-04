@@ -12,9 +12,12 @@ vi.mock("@/services/permissions", () => ({
   requireAuthenticatedSession: (...args: unknown[]) => mockRequireAuthenticatedSession(...args),
 }));
 
+const mockListPendingMembers = vi.fn();
+
 vi.mock("@/db/queries/groups", () => ({
   getGroupById: (...args: unknown[]) => mockGetGroupById(...args),
   getGroupMember: (...args: unknown[]) => mockGetGroupMember(...args),
+  listPendingMembers: (...args: unknown[]) => mockListPendingMembers(...args),
 }));
 
 vi.mock("@/services/group-service", () => ({
@@ -74,11 +77,13 @@ beforeEach(() => {
   mockGetGroupById.mockReset();
   mockGetGroupMember.mockReset();
   mockUpdateGroupSettings.mockReset();
+  mockListPendingMembers.mockReset();
 
   mockRequireAuthenticatedSession.mockResolvedValue({ userId: VIEWER_ID, role: "MEMBER" });
   mockGetGroupById.mockResolvedValue(mockGroup);
   mockGetGroupMember.mockResolvedValue({ role: "creator", status: "active" });
   mockUpdateGroupSettings.mockResolvedValue(mockGroup);
+  mockListPendingMembers.mockResolvedValue([]);
 });
 
 describe("GET /api/v1/groups/[groupId]", () => {

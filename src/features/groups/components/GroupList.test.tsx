@@ -4,7 +4,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { GroupList } from "./GroupList";
-import type { GroupListItem } from "@/db/queries/groups";
+import type { DirectoryGroupItem } from "@/db/queries/groups";
 
 vi.mock("next-intl", () => ({
   useTranslations: () => (key: string, params?: Record<string, unknown>) => {
@@ -35,7 +35,7 @@ vi.mock("@/features/groups/hooks/use-groups", () => ({
 
 // Mock GroupCard to avoid nested dependency issues
 vi.mock("./GroupCard", () => ({
-  GroupCard: ({ group }: { group: GroupListItem }) => (
+  GroupCard: ({ group }: { group: DirectoryGroupItem }) => (
     <div data-testid="group-card">{group.name}</div>
   ),
 }));
@@ -44,7 +44,7 @@ import { useGroups } from "@/features/groups/hooks/use-groups";
 
 const mockUseGroups = vi.mocked(useGroups);
 
-const mockGroups: GroupListItem[] = [
+const mockGroups: DirectoryGroupItem[] = [
   {
     id: "00000000-0000-4000-8000-000000000001",
     name: "London Chapter",
@@ -53,6 +53,7 @@ const mockGroups: GroupListItem[] = [
     visibility: "public",
     joinType: "open",
     memberCount: 10,
+    memberLimit: null,
     creatorId: "00000000-0000-4000-8000-000000000002",
     createdAt: "2026-03-01T10:00:00.000Z",
   },
@@ -64,6 +65,7 @@ const mockGroups: GroupListItem[] = [
     visibility: "public",
     joinType: "open",
     memberCount: 5,
+    memberLimit: null,
     creatorId: "00000000-0000-4000-8000-000000000002",
     createdAt: "2026-03-01T11:00:00.000Z",
   },
@@ -81,7 +83,7 @@ function renderWithClient(ui: React.ReactElement) {
 beforeEach(() => {
   mockUseGroups.mockReset();
   mockUseGroups.mockReturnValue({
-    data: { groups: mockGroups, nextCursor: null, total: 2 },
+    data: { groups: mockGroups, nextCursor: null, total: 2, memberships: {} },
     isLoading: false,
     isError: false,
   } as ReturnType<typeof useGroups>);
@@ -117,7 +119,7 @@ describe("GroupList", () => {
 
   it("renders empty state when no groups", () => {
     mockUseGroups.mockReturnValue({
-      data: { groups: [], nextCursor: null, total: 0 },
+      data: { groups: [], nextCursor: null, total: 0, memberships: {} },
       isLoading: false,
       isError: false,
     } as ReturnType<typeof useGroups>);
@@ -136,5 +138,10 @@ describe("GroupList", () => {
 
     renderWithClient(<GroupList />);
     expect(screen.queryAllByTestId("group-card")).toHaveLength(0);
+  });
+
+  it("passes directory=true to useGroups", () => {
+    renderWithClient(<GroupList />);
+    expect(mockUseGroups).toHaveBeenCalledWith(expect.objectContaining({ directory: true }));
   });
 });

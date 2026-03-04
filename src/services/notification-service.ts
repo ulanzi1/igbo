@@ -8,11 +8,15 @@ import {
 import { filterNotificationRecipients } from "@/services/block-service";
 import { getConversationNotificationPreference } from "@/db/queries/chat-conversations";
 import { getRedisPublisher } from "@/lib/redis";
+import { listGroupLeaders } from "@/db/queries/groups";
 import type {
   MemberApprovedEvent,
   MemberFollowedEvent,
   MessageMentionedEvent,
   NotificationCreatedEvent,
+  GroupJoinRequestedEvent,
+  GroupJoinApprovedEvent,
+  GroupJoinRejectedEvent,
 } from "@/types/events";
 import type { NotificationType } from "@/db/schema/platform-notifications";
 
@@ -136,6 +140,43 @@ eventBus.on("message.mentioned", async (payload: MessageMentionedEvent) => {
       link: `/chat?conversation=${conversationId}`,
     });
   }
+});
+
+// ─── Group Membership Notifications (Story 5.2) ──────────────────────────────
+
+eventBus.on("group.join_requested", async (payload: GroupJoinRequestedEvent) => {
+  const leaders = await listGroupLeaders(payload.groupId);
+  for (const leaderId of leaders) {
+    await deliverNotification({
+      userId: leaderId,
+      actorId: payload.userId,
+      type: "group_activity",
+      title: "notifications.group_join_request.title",
+      body: "notifications.group_join_request.body",
+      link: `/groups/${payload.groupId}`,
+    });
+  }
+});
+
+eventBus.on("group.join_approved", async (payload: GroupJoinApprovedEvent) => {
+  await deliverNotification({
+    userId: payload.userId,
+    actorId: payload.approvedBy,
+    type: "group_activity",
+    title: "notifications.group_join_approved.title",
+    body: "notifications.group_join_approved.body",
+    link: `/groups/${payload.groupId}`,
+  });
+});
+
+eventBus.on("group.join_rejected", async (payload: GroupJoinRejectedEvent) => {
+  await deliverNotification({
+    userId: payload.userId,
+    actorId: payload.rejectedBy,
+    type: "group_activity",
+    title: "notifications.group_join_rejected.title",
+    body: "notifications.group_join_rejected.body",
+  });
 });
 
 // ─── Service Functions (called by API routes) ─────────────────────────────────

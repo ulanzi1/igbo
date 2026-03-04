@@ -9,6 +9,22 @@ vi.mock("next-intl", () => ({
   useTranslations: () => (key: string) => key,
 }));
 
+vi.mock("@/i18n/navigation", () => ({
+  Link: ({
+    href,
+    children,
+    className,
+  }: {
+    href: string;
+    children: React.ReactNode;
+    className?: string;
+  }) => (
+    <a href={href} className={className}>
+      {children}
+    </a>
+  ),
+}));
+
 const GROUP_ID = "00000000-0000-4000-8000-000000000001";
 const CREATOR_ID = "00000000-0000-4000-8000-000000000002";
 
@@ -64,7 +80,7 @@ describe("GroupSettings", () => {
 
     it("calls PATCH API on submit", async () => {
       render(<GroupSettings group={mockGroup} viewerIsCreatorOrLeader />);
-      const form = screen.getByText("form.submit").closest("form");
+      const form = screen.getByText("settingsSaveButton").closest("form");
       fireEvent.submit(form!);
 
       await waitFor(() => {
@@ -77,7 +93,7 @@ describe("GroupSettings", () => {
 
     it("shows success message after successful save", async () => {
       render(<GroupSettings group={mockGroup} viewerIsCreatorOrLeader />);
-      const form = screen.getByText("form.submit").closest("form");
+      const form = screen.getByText("settingsSaveButton").closest("form");
       fireEvent.submit(form!);
 
       await waitFor(() => {
@@ -92,7 +108,7 @@ describe("GroupSettings", () => {
       });
 
       render(<GroupSettings group={mockGroup} viewerIsCreatorOrLeader />);
-      const form = screen.getByText("form.submit").closest("form");
+      const form = screen.getByText("settingsSaveButton").closest("form");
       fireEvent.submit(form!);
 
       await waitFor(() => {
@@ -105,6 +121,80 @@ describe("GroupSettings", () => {
       const nameInput = screen.getByDisplayValue("London Chapter");
       fireEvent.change(nameInput, { target: { value: "Updated Name" } });
       expect(nameInput).toHaveValue("Updated Name");
+    });
+  });
+
+  describe("PendingRequestsSection", () => {
+    const approvalGroup: CommunityGroup = { ...mockGroup, joinType: "approval" };
+    const MEMBER_ID = "00000000-0000-4000-8000-000000000099";
+
+    it("renders pending requests above the settings heading", async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            data: {
+              pendingRequests: [
+                { userId: MEMBER_ID, displayName: "Chidi Okeke", joinedAt: "2026-03-01T00:00:00Z" },
+              ],
+            },
+          }),
+      });
+
+      render(<GroupSettings group={approvalGroup} viewerIsCreatorOrLeader />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId("pending-requests-section")).toBeInTheDocument();
+      });
+
+      // Pending Requests section should appear before the settings heading in the DOM
+      const container = screen.getByTestId("pending-requests-section").closest("div");
+      const heading = screen.getByText("settingsTitle");
+      expect(
+        container!.compareDocumentPosition(heading) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+    });
+
+    it("renders member display name as a profile link", async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            data: {
+              pendingRequests: [
+                { userId: MEMBER_ID, displayName: "Chidi Okeke", joinedAt: "2026-03-01T00:00:00Z" },
+              ],
+            },
+          }),
+      });
+
+      render(<GroupSettings group={approvalGroup} viewerIsCreatorOrLeader />);
+
+      await waitFor(() => {
+        const link = screen.getByRole("link", { name: "Chidi Okeke" });
+        expect(link).toHaveAttribute("href", `/profiles/${MEMBER_ID}`);
+      });
+    });
+
+    it("falls back to userId in link text when displayName is null", async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            data: {
+              pendingRequests: [
+                { userId: MEMBER_ID, displayName: null, joinedAt: "2026-03-01T00:00:00Z" },
+              ],
+            },
+          }),
+      });
+
+      render(<GroupSettings group={approvalGroup} viewerIsCreatorOrLeader />);
+
+      await waitFor(() => {
+        const link = screen.getByRole("link", { name: MEMBER_ID });
+        expect(link).toHaveAttribute("href", `/profiles/${MEMBER_ID}`);
+      });
     });
   });
 });

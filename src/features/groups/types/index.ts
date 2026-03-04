@@ -12,4 +12,4 @@ export type {
   GroupMemberStatus,
 } from "@/db/schema/community-groups";
 
-export type { GroupListItem, GroupDetail } from "@/db/queries/groups";
+export type { GroupListItem, GroupDetail, DirectoryGroupItem } from "@/db/queries/groups";

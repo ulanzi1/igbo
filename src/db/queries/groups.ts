@@ -1,5 +1,5 @@
 // NOTE: No "server-only" — consistent with follows.ts and block-mute.ts pattern
-import { and, eq, ilike, lt, desc, sql } from "drizzle-orm";
+import { and, eq, ilike, inArray, lt, desc, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
   communityGroups,
@@ -12,6 +12,7 @@ import {
   type GroupMemberRole,
   type GroupMemberStatus,
 } from "@/db/schema/community-groups";
+import { communityProfiles } from "@/db/schema/community-profiles";
 
 // ─── Interfaces ────────────────────────────────────────────────────────────────
 
@@ -25,6 +26,10 @@ export interface GroupListItem {
   memberCount: number;
   creatorId: string;
   createdAt: string; // ISO 8601 — used as cursor
+}
+
+export interface DirectoryGroupItem extends GroupListItem {
+  memberLimit: number | null;
 }
 
 export interface GroupDetail extends GroupListItem {
@@ -61,6 +66,10 @@ export interface GroupListParams {
   cursor?: string;
   limit?: number;
   nameFilter?: string;
+}
+
+export interface DirectoryListParams extends GroupListParams {
+  visibilityFilter?: GroupVisibility[];
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -222,4 +231,239 @@ export async function listGroups(params: GroupListParams = {}): Promise<GroupLis
     ...r,
     createdAt: r.createdAt.toISOString(),
   }));
+}
+
+// ─── Story 5.2 Additions ──────────────────────────────────────────────────────
+
+/**
+ * Count how many groups a user is an active member of (excluding soft-deleted groups).
+ */
+export async function countActiveGroupsForUser(userId: string): Promise<number> {
+  const [row] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(communityGroupMembers)
+    .innerJoin(communityGroups, eq(communityGroupMembers.groupId, communityGroups.id))
+    .where(
+      and(
+        eq(communityGroupMembers.userId, userId),
+        eq(communityGroupMembers.status, "active"),
+        sql`${communityGroups.deletedAt} IS NULL`,
+      ),
+    );
+  return row?.count ?? 0;
+}
+
+/**
+ * Insert a group member with explicit status ("active" or "pending").
+ * If status is "active", atomically increments member_count.
+ * Uses onConflictDoNothing for idempotency.
+ */
+export async function insertGroupMember(
+  groupId: string,
+  userId: string,
+  role: GroupMemberRole,
+  status: GroupMemberStatus,
+): Promise<void> {
+  await db.transaction(async (tx) => {
+    const result = await tx
+      .insert(communityGroupMembers)
+      .values({ groupId, userId, role, status })
+      .onConflictDoNothing()
+      .returning();
+
+    if (result.length > 0 && status === "active") {
+      await tx
+        .update(communityGroups)
+        .set({ memberCount: sql`${communityGroups.memberCount} + 1` })
+        .where(eq(communityGroups.id, groupId));
+    }
+  });
+}
+
+/**
+ * Update a group member's status. Adjusts member_count atomically:
+ * - Transitioning TO "active" → increment
+ * - Transitioning FROM "active" → decrement (with GREATEST guard)
+ *
+ * The existing status is read inside the transaction to avoid TOCTOU races.
+ */
+export async function updateGroupMemberStatus(
+  groupId: string,
+  userId: string,
+  newStatus: GroupMemberStatus,
+): Promise<void> {
+  await db.transaction(async (tx) => {
+    const [existing] = await tx
+      .select({ status: communityGroupMembers.status })
+      .from(communityGroupMembers)
+      .where(
+        and(eq(communityGroupMembers.groupId, groupId), eq(communityGroupMembers.userId, userId)),
+      )
+      .limit(1);
+
+    if (!existing) return;
+
+    await tx
+      .update(communityGroupMembers)
+      .set({ status: newStatus })
+      .where(
+        and(eq(communityGroupMembers.groupId, groupId), eq(communityGroupMembers.userId, userId)),
+      );
+
+    if (existing.status !== "active" && newStatus === "active") {
+      await tx
+        .update(communityGroups)
+        .set({ memberCount: sql`${communityGroups.memberCount} + 1` })
+        .where(eq(communityGroups.id, groupId));
+    } else if (existing.status === "active" && newStatus !== "active") {
+      await tx
+        .update(communityGroups)
+        .set({ memberCount: sql`GREATEST(${communityGroups.memberCount} - 1, 0)` })
+        .where(eq(communityGroups.id, groupId));
+    }
+  });
+}
+
+/**
+ * Remove a group member entirely. Decrements member_count with GREATEST guard.
+ *
+ * The existing status is read inside the transaction to avoid TOCTOU races.
+ */
+export async function removeGroupMember(groupId: string, userId: string): Promise<void> {
+  await db.transaction(async (tx) => {
+    const [existing] = await tx
+      .select({ status: communityGroupMembers.status })
+      .from(communityGroupMembers)
+      .where(
+        and(eq(communityGroupMembers.groupId, groupId), eq(communityGroupMembers.userId, userId)),
+      )
+      .limit(1);
+
+    if (!existing) return;
+
+    await tx
+      .delete(communityGroupMembers)
+      .where(
+        and(eq(communityGroupMembers.groupId, groupId), eq(communityGroupMembers.userId, userId)),
+      );
+
+    if (existing.status === "active") {
+      await tx
+        .update(communityGroups)
+        .set({ memberCount: sql`GREATEST(${communityGroups.memberCount} - 1, 0)` })
+        .where(eq(communityGroups.id, groupId));
+    }
+  });
+}
+
+/**
+ * List user IDs of group leaders (role = 'creator' or 'leader', status = 'active').
+ */
+export async function listGroupLeaders(groupId: string): Promise<string[]> {
+  const rows = await db
+    .select({ userId: communityGroupMembers.userId })
+    .from(communityGroupMembers)
+    .where(
+      and(
+        eq(communityGroupMembers.groupId, groupId),
+        inArray(communityGroupMembers.role, ["creator", "leader"]),
+        eq(communityGroupMembers.status, "active"),
+      ),
+    );
+  return rows.map((r) => r.userId);
+}
+
+/**
+ * List groups for the directory (includes public and private, excludes hidden).
+ * Cursor-based pagination, ordered newest-first.
+ */
+export async function listGroupsForDirectory(
+  params: DirectoryListParams = {},
+): Promise<DirectoryGroupItem[]> {
+  const { cursor, limit = 20, nameFilter, visibilityFilter } = params;
+  const cursorDate = cursor ? new Date(cursor) : undefined;
+
+  const visibilities = visibilityFilter ?? ["public", "private"];
+
+  const rows = await db
+    .select({
+      id: communityGroups.id,
+      name: communityGroups.name,
+      description: communityGroups.description,
+      bannerUrl: communityGroups.bannerUrl,
+      visibility: communityGroups.visibility,
+      joinType: communityGroups.joinType,
+      memberCount: communityGroups.memberCount,
+      creatorId: communityGroups.creatorId,
+      createdAt: communityGroups.createdAt,
+      memberLimit: communityGroups.memberLimit,
+    })
+    .from(communityGroups)
+    .where(
+      and(
+        inArray(communityGroups.visibility, visibilities),
+        sql`${communityGroups.deletedAt} IS NULL`,
+        nameFilter ? ilike(communityGroups.name, `%${escapeLikePattern(nameFilter)}%`) : undefined,
+        cursorDate ? lt(communityGroups.createdAt, cursorDate) : undefined,
+      ),
+    )
+    .orderBy(desc(communityGroups.createdAt))
+    .limit(limit);
+
+  return rows.map((r) => ({
+    ...r,
+    createdAt: r.createdAt.toISOString(),
+  }));
+}
+
+/**
+ * Get pending members for a group (for leader approval UI).
+ * Joins community_profiles to include the member's display name.
+ */
+export async function listPendingMembers(
+  groupId: string,
+): Promise<Array<{ userId: string; joinedAt: Date; displayName: string | null }>> {
+  return db
+    .select({
+      userId: communityGroupMembers.userId,
+      joinedAt: communityGroupMembers.joinedAt,
+      displayName: communityProfiles.displayName,
+    })
+    .from(communityGroupMembers)
+    .leftJoin(communityProfiles, eq(communityProfiles.userId, communityGroupMembers.userId))
+    .where(
+      and(eq(communityGroupMembers.groupId, groupId), eq(communityGroupMembers.status, "pending")),
+    )
+    .orderBy(communityGroupMembers.joinedAt);
+}
+
+/**
+ * Batch-fetch viewer's memberships for a list of group IDs.
+ * Returns a map of groupId → { role, status }.
+ */
+export async function batchGetGroupMemberships(
+  userId: string,
+  groupIds: string[],
+): Promise<Record<string, { role: GroupMemberRole; status: GroupMemberStatus }>> {
+  if (groupIds.length === 0) return {};
+
+  const rows = await db
+    .select({
+      groupId: communityGroupMembers.groupId,
+      role: communityGroupMembers.role,
+      status: communityGroupMembers.status,
+    })
+    .from(communityGroupMembers)
+    .where(
+      and(
+        eq(communityGroupMembers.userId, userId),
+        inArray(communityGroupMembers.groupId, groupIds),
+      ),
+    );
+
+  const result: Record<string, { role: GroupMemberRole; status: GroupMemberStatus }> = {};
+  for (const row of rows) {
+    result[row.groupId] = { role: row.role, status: row.status };
+  }
+  return result;
 }

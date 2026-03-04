@@ -1085,16 +1085,49 @@
     "createSuccess": "Group created successfully!",
     "settingsTitle": "Group Settings",
     "settingsSaved": "Settings saved",
+    "settingsSaveButton": "Save Settings",
     "members": "{count} members",
     "noGroups": "No groups found.",
     "noGroupsHint": "Be the first to create one!",
     "searchPlaceholder": "Search groups...",
     "joinButton": "Join",
+    "requestToJoin": "Request to Join",
+    "pendingRequest": "Pending",
+    "joined": "Joined",
+    "leaveGroup": "Leave Group",
+    "leaveGroupConfirm": "Are you sure you want to leave this group?",
+    "groupFull": "Group is full",
+    "membershipLimitReached": "Group membership limit reached",
+    "membershipLimitMessage": "You've reached the maximum of {limit} groups. Leave a group to join a new one.",
+    "approveRequest": "Approve",
+    "rejectRequest": "Reject",
+    "pendingRequests": "Pending Requests",
+    "noRequests": "No pending requests",
+    "joinSuccess": "You have joined the group!",
+    "requestSent": "Your request has been sent",
+    "leaveSuccess": "You have left the group",
+    "requestApproved": "Request approved",
+    "requestRejected": "Request rejected",
+    "creatorCannotLeave": "Group creators cannot leave. Transfer ownership first.",
     "comingSoon": "Group feed and content coming soon.",
     "errors": {
       "nameTaken": "A group with this name already exists",
       "permissionDenied": "You do not have permission to create groups",
       "fetchFailed": "Failed to load groups. Please try again."
+    }
+  },
+  "notifications": {
+    "group_join_request": {
+      "title": "New Join Request",
+      "body": "A member has requested to join your group"
+    },
+    "group_join_approved": {
+      "title": "Join Request Approved",
+      "body": "Your request to join the group has been approved"
+    },
+    "group_join_rejected": {
+      "title": "Join Request Declined",
+      "body": "Your request to join the group was not approved"
     }
   }
 }

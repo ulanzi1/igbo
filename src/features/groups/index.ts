@@ -24,4 +24,5 @@ export type {
   GroupMemberStatus,
   GroupListItem,
   GroupDetail,
+  DirectoryGroupItem,
 } from "./types";
