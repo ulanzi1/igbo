@@ -72,6 +72,9 @@ export const RATE_LIMIT_PRESETS = {
   GROUP_REQUEST: { maxRequests: 10, windowMs: 60_000 }, // 10/min per userId
   GROUP_APPROVE_REJECT: { maxRequests: 20, windowMs: 60_000 }, // 20/min per userId
   GROUP_LEAVE: { maxRequests: 10, windowMs: 60_000 }, // 10/min per userId
+  // Story 5.3 additions
+  GROUP_CHANNEL: { maxRequests: 5, windowMs: 60_000 }, // 5/min per userId (channel create/delete)
+  GROUP_MANAGE: { maxRequests: 20, windowMs: 60_000 }, // 20/min per userId (pin, etc.)
   // Tier-based API quotas (per hour)
   TIER_BASIC: { maxRequests: 200, windowMs: 3_600_000 },
   TIER_PROFESSIONAL: { maxRequests: 1000, windowMs: 3_600_000 },

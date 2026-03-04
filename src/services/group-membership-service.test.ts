@@ -7,20 +7,29 @@ vi.mock("server-only", () => ({}));
 
 const mockGetGroupById = vi.fn();
 const mockGetGroupMember = vi.fn();
+const mockGetGroupMemberFull = vi.fn();
 const mockCountActiveGroupsForUser = vi.fn();
 const mockInsertGroupMember = vi.fn();
 const mockUpdateGroupMemberStatus = vi.fn();
+const mockUpdateGroupMemberMutedUntil = vi.fn();
 const mockRemoveGroupMember = vi.fn();
 const mockListGroupLeaders = vi.fn();
 
 vi.mock("@/db/queries/groups", () => ({
   getGroupById: (...args: unknown[]) => mockGetGroupById(...args),
   getGroupMember: (...args: unknown[]) => mockGetGroupMember(...args),
+  getGroupMemberFull: (...args: unknown[]) => mockGetGroupMemberFull(...args),
   countActiveGroupsForUser: (...args: unknown[]) => mockCountActiveGroupsForUser(...args),
   insertGroupMember: (...args: unknown[]) => mockInsertGroupMember(...args),
   updateGroupMemberStatus: (...args: unknown[]) => mockUpdateGroupMemberStatus(...args),
+  updateGroupMemberMutedUntil: (...args: unknown[]) => mockUpdateGroupMemberMutedUntil(...args),
   removeGroupMember: (...args: unknown[]) => mockRemoveGroupMember(...args),
   listGroupLeaders: (...args: unknown[]) => mockListGroupLeaders(...args),
+}));
+
+const mockLogGroupModerationAction = vi.fn();
+vi.mock("@/services/audit-logger", () => ({
+  logGroupModerationAction: (...args: unknown[]) => mockLogGroupModerationAction(...args),
 }));
 
 const mockGetPlatformSetting = vi.fn();
@@ -60,6 +69,10 @@ import {
   approveJoinRequest,
   rejectJoinRequest,
   leaveGroup,
+  muteGroupMember,
+  unmuteGroupMember,
+  banGroupMember,
+  unbanGroupMember,
 } from "./group-membership-service";
 
 const GROUP_ID = "g-111";
@@ -80,9 +93,11 @@ beforeEach(() => {
   // Use per-mock reset to avoid clearing factory-created vi.fn() instances (project pattern)
   mockGetGroupById.mockReset();
   mockGetGroupMember.mockReset();
+  mockGetGroupMemberFull.mockReset();
   mockCountActiveGroupsForUser.mockReset();
   mockInsertGroupMember.mockReset();
   mockUpdateGroupMemberStatus.mockReset();
+  mockUpdateGroupMemberMutedUntil.mockReset();
   mockRemoveGroupMember.mockReset();
   mockListGroupLeaders.mockReset();
   mockGetPlatformSetting.mockReset();
@@ -92,7 +107,9 @@ beforeEach(() => {
   mockCountActiveGroupsForUser.mockResolvedValue(5);
   mockInsertGroupMember.mockResolvedValue(undefined);
   mockUpdateGroupMemberStatus.mockResolvedValue(undefined);
+  mockUpdateGroupMemberMutedUntil.mockResolvedValue(undefined);
   mockRemoveGroupMember.mockResolvedValue(undefined);
+  mockLogGroupModerationAction.mockResolvedValue(undefined);
   mockGetDefaultChannelConversationId.mockReset();
   mockGetDefaultChannelConversationId.mockResolvedValue(null); // no system message by default
   mockListAllChannelConversationIds.mockReset();
@@ -172,6 +189,15 @@ describe("joinOpenGroup", () => {
 
     await expect(joinOpenGroup(USER_ID, GROUP_ID)).rejects.toMatchObject({ status: 422 });
   });
+
+  it("throws 403 when user is banned from the group", async () => {
+    mockGetGroupById.mockResolvedValue(makeGroup());
+    mockGetGroupMember.mockResolvedValue({ role: "member", status: "banned" });
+
+    await expect(joinOpenGroup(USER_ID, GROUP_ID)).rejects.toMatchObject({ status: 403 });
+    expect(mockInsertGroupMember).not.toHaveBeenCalled();
+    expect(mockEmit).not.toHaveBeenCalled();
+  });
 });
 
 // ─── requestToJoinGroup ─────────────────────────────────────────────────────
@@ -227,6 +253,15 @@ describe("requestToJoinGroup", () => {
     mockGetGroupById.mockResolvedValue(makeGroup({ joinType: "approval", visibility: "hidden" }));
 
     await expect(requestToJoinGroup(USER_ID, GROUP_ID)).rejects.toMatchObject({ status: 404 });
+  });
+
+  it("throws 403 when user is banned from the group", async () => {
+    mockGetGroupById.mockResolvedValue(makeGroup({ joinType: "approval", visibility: "private" }));
+    mockGetGroupMember.mockResolvedValue({ role: "member", status: "banned" });
+
+    await expect(requestToJoinGroup(USER_ID, GROUP_ID)).rejects.toMatchObject({ status: 403 });
+    expect(mockInsertGroupMember).not.toHaveBeenCalled();
+    expect(mockEmit).not.toHaveBeenCalled();
   });
 
   it("throws 422 when group is full", async () => {
@@ -513,5 +548,251 @@ describe("leaveGroup — system messages", () => {
     await leaveGroup(USER_ID, GROUP_ID);
 
     expect(mockSendSystemMessage).not.toHaveBeenCalled();
+  });
+});
+
+// ─── muteGroupMember ─────────────────────────────────────────────────────────
+
+describe("muteGroupMember", () => {
+  const MODERATOR_ID = "u-mod";
+  const TARGET_ID = "u-target";
+  const DURATION_MS = 60 * 60 * 1000; // 1 hour
+
+  it("mutes a member and logs moderation action", async () => {
+    mockGetGroupMember
+      .mockResolvedValueOnce({ role: "leader", status: "active" }) // moderator
+      .mockResolvedValueOnce({ role: "member", status: "active" }); // target
+
+    await muteGroupMember(MODERATOR_ID, GROUP_ID, TARGET_ID, DURATION_MS, "spam");
+
+    expect(mockUpdateGroupMemberMutedUntil).toHaveBeenCalledWith(
+      GROUP_ID,
+      TARGET_ID,
+      expect.any(Date),
+    );
+    expect(mockLogGroupModerationAction).toHaveBeenCalledWith(
+      expect.objectContaining({ groupId: GROUP_ID, moderatorId: MODERATOR_ID, action: "mute" }),
+    );
+    expect(mockEmit).toHaveBeenCalledWith(
+      "group.member_muted",
+      expect.objectContaining({ groupId: GROUP_ID, userId: TARGET_ID, moderatorId: MODERATOR_ID }),
+    );
+  });
+
+  it("throws 403 when caller is not a leader or creator", async () => {
+    mockGetGroupMember.mockResolvedValueOnce({ role: "member", status: "active" });
+
+    await expect(
+      muteGroupMember(MODERATOR_ID, GROUP_ID, TARGET_ID, DURATION_MS),
+    ).rejects.toMatchObject({ status: 403 });
+    expect(mockUpdateGroupMemberMutedUntil).not.toHaveBeenCalled();
+  });
+
+  it("throws 404 when target is not an active member", async () => {
+    mockGetGroupMember
+      .mockResolvedValueOnce({ role: "leader", status: "active" })
+      .mockResolvedValueOnce(null);
+
+    await expect(
+      muteGroupMember(MODERATOR_ID, GROUP_ID, TARGET_ID, DURATION_MS),
+    ).rejects.toMatchObject({ status: 404 });
+  });
+
+  it("throws 403 when target is the group creator", async () => {
+    mockGetGroupMember
+      .mockResolvedValueOnce({ role: "leader", status: "active" })
+      .mockResolvedValueOnce({ role: "creator", status: "active" });
+
+    await expect(
+      muteGroupMember(MODERATOR_ID, GROUP_ID, TARGET_ID, DURATION_MS),
+    ).rejects.toMatchObject({ status: 403 });
+  });
+
+  it("creator can mute a leader", async () => {
+    mockGetGroupMember
+      .mockResolvedValueOnce({ role: "creator", status: "active" })
+      .mockResolvedValueOnce({ role: "leader", status: "active" });
+
+    await muteGroupMember(MODERATOR_ID, GROUP_ID, TARGET_ID, DURATION_MS);
+
+    expect(mockUpdateGroupMemberMutedUntil).toHaveBeenCalled();
+    expect(mockEmit).toHaveBeenCalledWith("group.member_muted", expect.any(Object));
+  });
+});
+
+// ─── unmuteGroupMember ───────────────────────────────────────────────────────
+
+describe("unmuteGroupMember", () => {
+  const MODERATOR_ID = "u-mod";
+  const TARGET_ID = "u-target";
+
+  it("unmutes a member and logs action", async () => {
+    mockGetGroupMember.mockResolvedValueOnce({ role: "leader", status: "active" });
+    mockGetGroupMemberFull.mockResolvedValueOnce({
+      role: "member",
+      status: "active",
+      mutedUntil: new Date(Date.now() + 3_600_000),
+    });
+
+    await unmuteGroupMember(MODERATOR_ID, GROUP_ID, TARGET_ID);
+
+    expect(mockUpdateGroupMemberMutedUntil).toHaveBeenCalledWith(GROUP_ID, TARGET_ID, null);
+    expect(mockLogGroupModerationAction).toHaveBeenCalledWith(
+      expect.objectContaining({ action: "unmute" }),
+    );
+    expect(mockEmit).toHaveBeenCalledWith(
+      "group.member_unmuted",
+      expect.objectContaining({ groupId: GROUP_ID, userId: TARGET_ID }),
+    );
+  });
+
+  it("throws 403 when caller is not a leader or creator", async () => {
+    mockGetGroupMember.mockResolvedValueOnce({ role: "member", status: "active" });
+
+    await expect(unmuteGroupMember(MODERATOR_ID, GROUP_ID, TARGET_ID)).rejects.toMatchObject({
+      status: 403,
+    });
+  });
+
+  it("throws 404 when target is not a member", async () => {
+    mockGetGroupMember.mockResolvedValueOnce({ role: "leader", status: "active" });
+    mockGetGroupMemberFull.mockResolvedValueOnce(null);
+
+    await expect(unmuteGroupMember(MODERATOR_ID, GROUP_ID, TARGET_ID)).rejects.toMatchObject({
+      status: 404,
+    });
+  });
+
+  it("throws 400 when target is not currently muted", async () => {
+    mockGetGroupMember.mockResolvedValueOnce({ role: "leader", status: "active" });
+    mockGetGroupMemberFull.mockResolvedValueOnce({
+      role: "member",
+      status: "active",
+      mutedUntil: null,
+    });
+
+    await expect(unmuteGroupMember(MODERATOR_ID, GROUP_ID, TARGET_ID)).rejects.toMatchObject({
+      status: 400,
+    });
+  });
+
+  it("throws 400 when mute has already expired", async () => {
+    mockGetGroupMember.mockResolvedValueOnce({ role: "leader", status: "active" });
+    mockGetGroupMemberFull.mockResolvedValueOnce({
+      role: "member",
+      status: "active",
+      mutedUntil: new Date(Date.now() - 1_000),
+    });
+
+    await expect(unmuteGroupMember(MODERATOR_ID, GROUP_ID, TARGET_ID)).rejects.toMatchObject({
+      status: 400,
+    });
+  });
+});
+
+// ─── banGroupMember ──────────────────────────────────────────────────────────
+
+describe("banGroupMember", () => {
+  const MODERATOR_ID = "u-mod";
+  const TARGET_ID = "u-target";
+
+  it("bans a member and logs moderation action", async () => {
+    mockGetGroupMember
+      .mockResolvedValueOnce({ role: "leader", status: "active" })
+      .mockResolvedValueOnce({ role: "member", status: "active" });
+
+    await banGroupMember(MODERATOR_ID, GROUP_ID, TARGET_ID, "harassment");
+
+    expect(mockUpdateGroupMemberStatus).toHaveBeenCalledWith(GROUP_ID, TARGET_ID, "banned");
+    expect(mockLogGroupModerationAction).toHaveBeenCalledWith(
+      expect.objectContaining({ groupId: GROUP_ID, moderatorId: MODERATOR_ID, action: "ban" }),
+    );
+    expect(mockEmit).toHaveBeenCalledWith(
+      "group.member_banned",
+      expect.objectContaining({ groupId: GROUP_ID, userId: TARGET_ID }),
+    );
+  });
+
+  it("throws 403 when caller is not a leader or creator", async () => {
+    mockGetGroupMember.mockResolvedValueOnce({ role: "member", status: "active" });
+
+    await expect(banGroupMember(MODERATOR_ID, GROUP_ID, TARGET_ID)).rejects.toMatchObject({
+      status: 403,
+    });
+    expect(mockUpdateGroupMemberStatus).not.toHaveBeenCalled();
+  });
+
+  it("throws 404 when target is not an active member", async () => {
+    mockGetGroupMember
+      .mockResolvedValueOnce({ role: "creator", status: "active" })
+      .mockResolvedValueOnce(null);
+
+    await expect(banGroupMember(MODERATOR_ID, GROUP_ID, TARGET_ID)).rejects.toMatchObject({
+      status: 404,
+    });
+  });
+
+  it("throws 403 when target is the group creator", async () => {
+    mockGetGroupMember
+      .mockResolvedValueOnce({ role: "leader", status: "active" })
+      .mockResolvedValueOnce({ role: "creator", status: "active" });
+
+    await expect(banGroupMember(MODERATOR_ID, GROUP_ID, TARGET_ID)).rejects.toMatchObject({
+      status: 403,
+    });
+    expect(mockUpdateGroupMemberStatus).not.toHaveBeenCalled();
+  });
+});
+
+// ─── unbanGroupMember ────────────────────────────────────────────────────────
+
+describe("unbanGroupMember", () => {
+  const MODERATOR_ID = "u-mod";
+  const TARGET_ID = "u-target";
+
+  it("removes banned member record so they can re-request", async () => {
+    mockGetGroupMember
+      .mockResolvedValueOnce({ role: "creator", status: "active" })
+      .mockResolvedValueOnce({ role: "member", status: "banned" });
+
+    await unbanGroupMember(MODERATOR_ID, GROUP_ID, TARGET_ID);
+
+    expect(mockRemoveGroupMember).toHaveBeenCalledWith(GROUP_ID, TARGET_ID);
+    expect(mockLogGroupModerationAction).toHaveBeenCalledWith(
+      expect.objectContaining({ action: "unban" }),
+    );
+    expect(mockEmit).toHaveBeenCalledWith(
+      "group.member_unbanned",
+      expect.objectContaining({ groupId: GROUP_ID, userId: TARGET_ID }),
+    );
+  });
+
+  it("throws 403 when caller is not a leader or creator", async () => {
+    mockGetGroupMember.mockResolvedValueOnce({ role: "member", status: "active" });
+
+    await expect(unbanGroupMember(MODERATOR_ID, GROUP_ID, TARGET_ID)).rejects.toMatchObject({
+      status: 403,
+    });
+  });
+
+  it("throws 404 when target is not banned", async () => {
+    mockGetGroupMember
+      .mockResolvedValueOnce({ role: "leader", status: "active" })
+      .mockResolvedValueOnce({ role: "member", status: "active" }); // active, not banned
+
+    await expect(unbanGroupMember(MODERATOR_ID, GROUP_ID, TARGET_ID)).rejects.toMatchObject({
+      status: 404,
+    });
+    expect(mockRemoveGroupMember).not.toHaveBeenCalled();
+  });
+
+  it("throws 404 when target not found", async () => {
+    mockGetGroupMember
+      .mockResolvedValueOnce({ role: "leader", status: "active" })
+      .mockResolvedValueOnce(null);
+
+    await expect(unbanGroupMember(MODERATOR_ID, GROUP_ID, TARGET_ID)).rejects.toMatchObject({
+      status: 404,
+    });
   });
 });

@@ -3,12 +3,15 @@ import { ApiError } from "@/lib/api-error";
 import {
   getGroupById,
   getGroupMember,
+  getGroupMemberFull,
   countActiveGroupsForUser,
   insertGroupMember,
   updateGroupMemberStatus,
+  updateGroupMemberMutedUntil,
   removeGroupMember,
   listGroupLeaders,
 } from "@/db/queries/groups";
+import { logGroupModerationAction } from "@/services/audit-logger";
 import {
   getDefaultChannelConversationId,
   listAllChannelConversationIds,
@@ -59,6 +62,13 @@ export async function joinOpenGroup(
   const existing = await getGroupMember(groupId, userId);
   if (existing?.status === "active") {
     return { role: existing.role, status: existing.status };
+  }
+  if (existing?.status === "banned") {
+    throw new ApiError({
+      title: "Forbidden",
+      status: 403,
+      detail: "You have been banned from this group",
+    });
   }
 
   // Check group member limit
@@ -137,6 +147,13 @@ export async function requestToJoinGroup(
   if (existing?.status === "pending") {
     return { status: "pending" };
   }
+  if (existing?.status === "banned") {
+    throw new ApiError({
+      title: "Forbidden",
+      status: 403,
+      detail: "You have been banned from this group",
+    });
+  }
 
   // Check group member limit
   if (group.memberLimit !== null && group.memberCount >= group.memberLimit) {
@@ -213,7 +230,7 @@ export async function approveJoinRequest(
     throw new ApiError({
       title: "Unprocessable Entity",
       status: 422,
-      detail: `User has reached the maximum of ${limit} groups`,
+      detail: `This member has already joined ${limit} groups and cannot be added to another. Ask them to leave a group first.`,
     });
   }
 
@@ -275,6 +292,227 @@ export async function rejectJoinRequest(
     groupId,
     userId: memberId,
     rejectedBy: leaderId,
+    timestamp: new Date().toISOString(),
+  });
+}
+
+/**
+ * Mute a group member (temporary — can still read but cannot post/comment).
+ * Caller must be creator or leader.
+ */
+export async function muteGroupMember(
+  moderatorId: string,
+  groupId: string,
+  targetUserId: string,
+  durationMs: number,
+  reason?: string,
+): Promise<void> {
+  const callerMembership = await getGroupMember(groupId, moderatorId);
+  if (
+    !callerMembership ||
+    (callerMembership.role !== "creator" && callerMembership.role !== "leader")
+  ) {
+    throw new ApiError({
+      title: "Forbidden",
+      status: 403,
+      detail: "Only group creators or leaders can mute members",
+    });
+  }
+
+  const target = await getGroupMember(groupId, targetUserId);
+  if (!target || target.status !== "active") {
+    throw new ApiError({
+      title: "Not Found",
+      status: 404,
+      detail: "User is not an active member of this group",
+    });
+  }
+  if (target.role === "creator") {
+    throw new ApiError({
+      title: "Forbidden",
+      status: 403,
+      detail: "Cannot mute the group creator",
+    });
+  }
+
+  const mutedUntil = new Date(Date.now() + durationMs);
+  await updateGroupMemberMutedUntil(groupId, targetUserId, mutedUntil);
+  await logGroupModerationAction({
+    groupId,
+    moderatorId,
+    targetUserId,
+    targetType: "member",
+    action: "mute",
+    reason: reason ?? null,
+    expiresAt: mutedUntil,
+  });
+
+  eventBus.emit("group.member_muted", {
+    groupId,
+    userId: targetUserId,
+    moderatorId,
+    mutedUntil: mutedUntil.toISOString(),
+    reason,
+    timestamp: new Date().toISOString(),
+  });
+}
+
+/**
+ * Unmute a group member.
+ * Caller must be creator or leader.
+ */
+export async function unmuteGroupMember(
+  moderatorId: string,
+  groupId: string,
+  targetUserId: string,
+): Promise<void> {
+  const callerMembership = await getGroupMember(groupId, moderatorId);
+  if (
+    !callerMembership ||
+    (callerMembership.role !== "creator" && callerMembership.role !== "leader")
+  ) {
+    throw new ApiError({
+      title: "Forbidden",
+      status: 403,
+      detail: "Only group creators or leaders can unmute members",
+    });
+  }
+
+  const target = await getGroupMemberFull(groupId, targetUserId);
+  if (!target) {
+    throw new ApiError({
+      title: "Not Found",
+      status: 404,
+      detail: "User is not a member of this group",
+    });
+  }
+
+  if (!target.mutedUntil || target.mutedUntil <= new Date()) {
+    throw new ApiError({
+      title: "Bad Request",
+      status: 400,
+      detail: "Member is not currently muted",
+    });
+  }
+
+  await updateGroupMemberMutedUntil(groupId, targetUserId, null);
+  await logGroupModerationAction({
+    groupId,
+    moderatorId,
+    targetUserId,
+    targetType: "member",
+    action: "unmute",
+  });
+
+  eventBus.emit("group.member_unmuted", {
+    groupId,
+    userId: targetUserId,
+    moderatorId,
+    timestamp: new Date().toISOString(),
+  });
+}
+
+/**
+ * Ban a group member (removed from group, cannot rejoin without leader approval).
+ * Caller must be creator or leader.
+ */
+export async function banGroupMember(
+  moderatorId: string,
+  groupId: string,
+  targetUserId: string,
+  reason?: string,
+): Promise<void> {
+  const callerMembership = await getGroupMember(groupId, moderatorId);
+  if (
+    !callerMembership ||
+    (callerMembership.role !== "creator" && callerMembership.role !== "leader")
+  ) {
+    throw new ApiError({
+      title: "Forbidden",
+      status: 403,
+      detail: "Only group creators or leaders can ban members",
+    });
+  }
+
+  const target = await getGroupMember(groupId, targetUserId);
+  if (!target || target.status !== "active") {
+    throw new ApiError({
+      title: "Not Found",
+      status: 404,
+      detail: "User is not an active member of this group",
+    });
+  }
+  if (target.role === "creator") {
+    throw new ApiError({
+      title: "Forbidden",
+      status: 403,
+      detail: "Cannot ban the group creator",
+    });
+  }
+
+  await updateGroupMemberStatus(groupId, targetUserId, "banned");
+  await logGroupModerationAction({
+    groupId,
+    moderatorId,
+    targetUserId,
+    targetType: "member",
+    action: "ban",
+    reason: reason ?? null,
+  });
+
+  eventBus.emit("group.member_banned", {
+    groupId,
+    userId: targetUserId,
+    moderatorId,
+    reason,
+    timestamp: new Date().toISOString(),
+  });
+}
+
+/**
+ * Unban a group member. Restores to pending status (still needs approval to re-join).
+ * Caller must be creator or leader.
+ */
+export async function unbanGroupMember(
+  moderatorId: string,
+  groupId: string,
+  targetUserId: string,
+): Promise<void> {
+  const callerMembership = await getGroupMember(groupId, moderatorId);
+  if (
+    !callerMembership ||
+    (callerMembership.role !== "creator" && callerMembership.role !== "leader")
+  ) {
+    throw new ApiError({
+      title: "Forbidden",
+      status: 403,
+      detail: "Only group creators or leaders can unban members",
+    });
+  }
+
+  const target = await getGroupMember(groupId, targetUserId);
+  if (!target || target.status !== "banned") {
+    throw new ApiError({
+      title: "Not Found",
+      status: 404,
+      detail: "No ban found for this user in this group",
+    });
+  }
+
+  // Remove the member record so they can re-request to join
+  await removeGroupMember(groupId, targetUserId);
+  await logGroupModerationAction({
+    groupId,
+    moderatorId,
+    targetUserId,
+    targetType: "member",
+    action: "unban",
+  });
+
+  eventBus.emit("group.member_unbanned", {
+    groupId,
+    userId: targetUserId,
+    moderatorId,
     timestamp: new Date().toISOString(),
   });
 }

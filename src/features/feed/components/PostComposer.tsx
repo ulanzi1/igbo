@@ -23,6 +23,8 @@ interface PostComposerProps {
   /** Current feed sort/filter — used to invalidate the correct query key */
   sort: FeedSortMode;
   filter: FeedFilter;
+  /** When set, post is created in this group instead of the global feed */
+  groupId?: string;
 }
 
 interface PendingMedia {
@@ -38,8 +40,10 @@ export function PostComposer({
   photoUrl,
   sort,
   filter,
+  groupId,
 }: PostComposerProps) {
   const t = useTranslations("Feed");
+  const tGroups = useTranslations("Groups");
   const queryClient = useQueryClient();
 
   const [isExpanded, setIsExpanded] = useState(false);
@@ -93,6 +97,7 @@ export function PostComposer({
         category,
         fileUploadIds: pendingMedia.map((m) => m.fileUploadId),
         mediaTypes: pendingMedia.map((m) => m.mediaType),
+        ...(groupId ? { groupId } : {}),
       });
 
       if (!result.success) {
@@ -108,7 +113,11 @@ export function PostComposer({
       setPendingMedia([]);
       setCategory("discussion");
       setIsExpanded(false);
-      await queryClient.invalidateQueries({ queryKey: ["feed"] });
+      if (groupId) {
+        await queryClient.invalidateQueries({ queryKey: ["group-feed", groupId] });
+      } else {
+        await queryClient.invalidateQueries({ queryKey: ["feed"] });
+      }
     });
   };
 
@@ -290,7 +299,14 @@ export function PostComposer({
               })
             : submitError === "Permissions.feedPostRequired"
               ? t("composer.tierBlocked")
-              : t("composer.errorGeneric")}
+              : submitError === "Groups.moderation.mutedCannotPost" ||
+                  submitError === "Groups.moderation.bannedCannotPost"
+                ? tGroups(
+                    submitError === "Groups.moderation.mutedCannotPost"
+                      ? "moderation.mutedCannotPost"
+                      : "moderation.bannedCannotPost",
+                  )
+                : t("composer.errorGeneric")}
         </p>
       )}
 

@@ -1,6 +1,11 @@
 // Components
 export { GroupCard } from "./components/GroupCard";
 export { GroupCreationForm } from "./components/GroupCreationForm";
+export { GroupDetail } from "./components/GroupDetail";
+export { GroupFeedTab } from "./components/GroupFeedTab";
+export { GroupChannelsTab } from "./components/GroupChannelsTab";
+export { GroupMembersTab } from "./components/GroupMembersTab";
+export { GroupFilesTab } from "./components/GroupFilesTab";
 export { GroupHeader } from "./components/GroupHeader";
 export { GroupList } from "./components/GroupList";
 export { GroupSettings } from "./components/GroupSettings";
@@ -23,6 +28,5 @@ export type {
   GroupMemberRole,
   GroupMemberStatus,
   GroupListItem,
-  GroupDetail,
   DirectoryGroupItem,
 } from "./types";

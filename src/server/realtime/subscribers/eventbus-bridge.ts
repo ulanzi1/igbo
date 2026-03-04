@@ -7,6 +7,7 @@ import {
   NAMESPACE_NOTIFICATIONS,
   NAMESPACE_CHAT,
 } from "@/config/realtime";
+import { listGroupChannels } from "@/db/queries/group-channels";
 import type {
   NotificationCreatedEvent,
   NotificationReadEvent,
@@ -19,6 +20,8 @@ import type {
   ConversationMemberLeftEvent,
   ReactionAddedEvent,
   ReactionRemovedEvent,
+  GroupMemberJoinedEvent,
+  GroupMemberLeftEvent,
 } from "@/types/events";
 
 const CHANNEL_PREFIX = "eventbus:";
@@ -210,6 +213,40 @@ function routeToNamespace(io: Server, eventName: string, payload: unknown): void
       });
       // Make the leaving member's sockets leave the room
       chatNs.in(ROOM_USER(leftPayload.userId)).socketsLeave(room);
+      break;
+    }
+    case "group.member_joined": {
+      const joinPayload = payload as GroupMemberJoinedEvent;
+      if (!joinPayload?.groupId || !joinPayload?.userId) break;
+      // Join member's sockets to all group channel conversation rooms
+      void (async () => {
+        try {
+          const channels = await listGroupChannels(joinPayload.groupId);
+          for (const channel of channels) {
+            const room = ROOM_CONVERSATION(channel.conversationId);
+            chatNs.in(ROOM_USER(joinPayload.userId)).socketsJoin(room);
+          }
+        } catch {
+          // Non-critical — socket room join failure should not throw
+        }
+      })();
+      break;
+    }
+    case "group.member_left": {
+      const leftGroupPayload = payload as GroupMemberLeftEvent;
+      if (!leftGroupPayload?.groupId || !leftGroupPayload?.userId) break;
+      // Remove member's sockets from all group channel conversation rooms
+      void (async () => {
+        try {
+          const channels = await listGroupChannels(leftGroupPayload.groupId);
+          for (const channel of channels) {
+            const room = ROOM_CONVERSATION(channel.conversationId);
+            chatNs.in(ROOM_USER(leftGroupPayload.userId)).socketsLeave(room);
+          }
+        } catch {
+          // Non-critical
+        }
+      })();
       break;
     }
     default:

@@ -378,6 +378,70 @@ async function _getChronologicalFeedPage(
   return { posts, nextCursor, isColdStart };
 }
 
+/**
+ * Get posts for a group feed (member-only, pinned first, then newest).
+ * Reuses FEED_SELECT_COLUMNS and _assemblePostPage to avoid duplication.
+ */
+export async function getGroupFeedPosts(
+  groupId: string,
+  params: { cursor?: string; limit?: number; viewerId?: string },
+): Promise<{ posts: FeedPost[]; nextCursor: string | null }> {
+  const { cursor, limit = 20, viewerId } = params;
+  const parsedDate = cursor ? new Date(cursor) : undefined;
+  const cursorDate = parsedDate && !isNaN(parsedDate.getTime()) ? parsedDate : undefined;
+
+  const baseColumns = {
+    ...FEED_SELECT_COLUMNS,
+    // Override isBookmarked: only meaningful if viewerId provided
+    isBookmarked: viewerId
+      ? sql<boolean>`${communityPostBookmarks.userId} IS NOT NULL`
+      : sql<boolean>`false`,
+  };
+
+  const query = db
+    .select(baseColumns)
+    .from(communityPosts)
+    .innerJoin(
+      communityProfiles,
+      and(
+        eq(communityProfiles.userId, communityPosts.authorId),
+        sql`${communityProfiles.deletedAt} IS NULL`,
+      ),
+    )
+    .leftJoin(
+      communityPostBookmarks,
+      viewerId
+        ? and(
+            eq(communityPostBookmarks.postId, communityPosts.id),
+            eq(communityPostBookmarks.userId, viewerId),
+          )
+        : sql`false`,
+    )
+    .where(
+      cursorDate
+        ? and(
+            eq(communityPosts.groupId, groupId),
+            sql`${communityPosts.deletedAt} IS NULL`,
+            lt(communityPosts.createdAt, cursorDate),
+          )
+        : and(eq(communityPosts.groupId, groupId), sql`${communityPosts.deletedAt} IS NULL`),
+    )
+    .orderBy(
+      sql`CASE WHEN ${communityPosts.isPinned} THEN ${communityPosts.pinnedAt} ELSE NULL END DESC NULLS LAST`,
+      desc(communityPosts.createdAt),
+    )
+    .limit(limit + 1);
+
+  const rows = await query;
+  const hasMore = rows.length > limit;
+  const pageRows = hasMore ? rows.slice(0, limit) : rows;
+  const nextCursor =
+    hasMore && pageRows.length > 0 ? pageRows[pageRows.length - 1]!.createdAt.toISOString() : null;
+
+  const posts = await _assemblePostPage(pageRows);
+  return { posts, nextCursor };
+}
+
 async function _getAlgorithmicFeedPage(
   userId: string,
   eligibilityCondition: SQL | undefined,

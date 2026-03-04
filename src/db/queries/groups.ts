@@ -1,5 +1,5 @@
 // NOTE: No "server-only" — consistent with follows.ts and block-mute.ts pattern
-import { and, eq, ilike, inArray, lt, desc, sql } from "drizzle-orm";
+import { and, eq, ilike, inArray, lt, desc, gt, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
   communityGroups,
@@ -13,6 +13,7 @@ import {
   type GroupMemberStatus,
 } from "@/db/schema/community-groups";
 import { communityProfiles } from "@/db/schema/community-profiles";
+import { authUsers } from "@/db/schema/auth-users";
 
 // ─── Interfaces ────────────────────────────────────────────────────────────────
 
@@ -435,6 +436,191 @@ export async function listPendingMembers(
       and(eq(communityGroupMembers.groupId, groupId), eq(communityGroupMembers.status, "pending")),
     )
     .orderBy(communityGroupMembers.joinedAt);
+}
+
+export interface GroupMemberItem {
+  userId: string;
+  displayName: string;
+  photoUrl: string | null;
+  role: GroupMemberRole;
+  joinedAt: Date;
+  mutedUntil: Date | null;
+}
+
+/**
+ * List active members of a group with profile info. Cursor-paginated by joinedAt.
+ */
+export async function listActiveGroupMembers(
+  groupId: string,
+  cursor?: string,
+  limit = 50,
+): Promise<GroupMemberItem[]> {
+  const cursorDate = cursor ? new Date(cursor) : undefined;
+
+  const rows = await db
+    .select({
+      userId: communityGroupMembers.userId,
+      displayName: communityProfiles.displayName,
+      photoUrl: communityProfiles.photoUrl,
+      role: communityGroupMembers.role,
+      joinedAt: communityGroupMembers.joinedAt,
+      mutedUntil: communityGroupMembers.mutedUntil,
+    })
+    .from(communityGroupMembers)
+    .innerJoin(communityProfiles, eq(communityProfiles.userId, communityGroupMembers.userId))
+    .where(
+      and(
+        eq(communityGroupMembers.groupId, groupId),
+        eq(communityGroupMembers.status, "active"),
+        cursorDate ? gt(communityGroupMembers.joinedAt, cursorDate) : undefined,
+      ),
+    )
+    .orderBy(communityGroupMembers.joinedAt)
+    .limit(limit);
+
+  return rows.map((r) => ({
+    userId: r.userId,
+    displayName: r.displayName,
+    photoUrl: r.photoUrl ?? null,
+    role: r.role,
+    joinedAt: r.joinedAt,
+    mutedUntil: r.mutedUntil ?? null,
+  }));
+}
+
+/**
+ * Get a user's platform role (for admin checks).
+ */
+export async function getUserPlatformRole(userId: string): Promise<string | null> {
+  const [row] = await db
+    .select({ role: authUsers.role })
+    .from(authUsers)
+    .where(eq(authUsers.id, userId))
+    .limit(1);
+  return row?.role ?? null;
+}
+
+/**
+ * Soft-delete a group by setting deleted_at.
+ */
+export async function softDeleteGroup(groupId: string): Promise<void> {
+  await db
+    .update(communityGroups)
+    .set({ deletedAt: new Date() })
+    .where(eq(communityGroups.id, groupId));
+}
+
+/**
+ * Get a group by ID even if soft-deleted (for archival read access).
+ */
+export async function getGroupByIdIncludeArchived(groupId: string): Promise<CommunityGroup | null> {
+  const [group] = await db
+    .select()
+    .from(communityGroups)
+    .where(eq(communityGroups.id, groupId))
+    .limit(1);
+  return group ?? null;
+}
+
+/**
+ * Update a group member's muted_until timestamp.
+ * Set to null to unmute; set to a future date to mute.
+ */
+export async function updateGroupMemberMutedUntil(
+  groupId: string,
+  userId: string,
+  mutedUntil: Date | null,
+): Promise<void> {
+  await db
+    .update(communityGroupMembers)
+    .set({ mutedUntil })
+    .where(
+      and(eq(communityGroupMembers.groupId, groupId), eq(communityGroupMembers.userId, userId)),
+    );
+}
+
+/**
+ * Get a member's full membership row including muted_until.
+ */
+export async function getGroupMemberFull(
+  groupId: string,
+  userId: string,
+): Promise<{ role: GroupMemberRole; status: GroupMemberStatus; mutedUntil: Date | null } | null> {
+  const [row] = await db
+    .select({
+      role: communityGroupMembers.role,
+      status: communityGroupMembers.status,
+      mutedUntil: communityGroupMembers.mutedUntil,
+    })
+    .from(communityGroupMembers)
+    .where(
+      and(eq(communityGroupMembers.groupId, groupId), eq(communityGroupMembers.userId, userId)),
+    )
+    .limit(1);
+  return row ?? null;
+}
+
+/**
+ * Update a group member's role.
+ */
+export async function updateGroupMemberRole(
+  groupId: string,
+  userId: string,
+  newRole: GroupMemberRole,
+): Promise<void> {
+  await db
+    .update(communityGroupMembers)
+    .set({ role: newRole })
+    .where(
+      and(eq(communityGroupMembers.groupId, groupId), eq(communityGroupMembers.userId, userId)),
+    );
+}
+
+/**
+ * Get the earliest active member (by joinedAt) for a group, excluding the current creator.
+ * Used for ownership transfer: first checks leaders, then members.
+ */
+export async function findEarliestActiveLeader(
+  groupId: string,
+  excludeUserId: string,
+): Promise<{ userId: string; joinedAt: Date } | null> {
+  const [row] = await db
+    .select({ userId: communityGroupMembers.userId, joinedAt: communityGroupMembers.joinedAt })
+    .from(communityGroupMembers)
+    .where(
+      and(
+        eq(communityGroupMembers.groupId, groupId),
+        eq(communityGroupMembers.role, "leader"),
+        eq(communityGroupMembers.status, "active"),
+        sql`${communityGroupMembers.userId} != ${excludeUserId}`,
+      ),
+    )
+    .orderBy(communityGroupMembers.joinedAt)
+    .limit(1);
+  return row ?? null;
+}
+
+/**
+ * Get the earliest active member (by joinedAt) for a group, any role, excluding a user.
+ * Used as fallback for ownership transfer when no leaders exist.
+ */
+export async function findEarliestActiveMember(
+  groupId: string,
+  excludeUserId: string,
+): Promise<{ userId: string; joinedAt: Date } | null> {
+  const [row] = await db
+    .select({ userId: communityGroupMembers.userId, joinedAt: communityGroupMembers.joinedAt })
+    .from(communityGroupMembers)
+    .where(
+      and(
+        eq(communityGroupMembers.groupId, groupId),
+        eq(communityGroupMembers.status, "active"),
+        sql`${communityGroupMembers.userId} != ${excludeUserId}`,
+      ),
+    )
+    .orderBy(communityGroupMembers.joinedAt)
+    .limit(1);
+  return row ?? null;
 }
 
 /**

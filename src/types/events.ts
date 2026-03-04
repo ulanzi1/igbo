@@ -225,6 +225,59 @@ export interface ArticleCommentedEvent extends BaseEvent {
   userId: string;
 }
 
+// --- Group Leadership & Moderation Events ---
+
+export interface GroupLeaderAssignedEvent extends BaseEvent {
+  groupId: string;
+  userId: string;
+  assignedBy: string;
+}
+
+export interface GroupLeaderRemovedEvent extends BaseEvent {
+  groupId: string;
+  userId: string;
+  removedBy: string;
+}
+
+export interface GroupMemberMutedEvent extends BaseEvent {
+  groupId: string;
+  userId: string;
+  moderatorId: string;
+  mutedUntil: string; // ISO 8601
+  reason?: string;
+}
+
+export interface GroupMemberUnmutedEvent extends BaseEvent {
+  groupId: string;
+  userId: string;
+  moderatorId: string;
+}
+
+export interface GroupMemberBannedEvent extends BaseEvent {
+  groupId: string;
+  userId: string;
+  moderatorId: string;
+  reason?: string;
+}
+
+export interface GroupMemberUnbannedEvent extends BaseEvent {
+  groupId: string;
+  userId: string;
+  moderatorId: string;
+}
+
+export interface GroupOwnershipTransferredEvent extends BaseEvent {
+  groupId: string;
+  previousOwnerId: string;
+  newOwnerId: string;
+}
+
+export interface AccountStatusChangedEvent extends BaseEvent {
+  userId: string;
+  newStatus: string;
+  previousStatus?: string;
+}
+
 // --- Group Events ---
 
 export interface GroupCreatedEvent extends BaseEvent {
@@ -267,6 +320,18 @@ export interface GroupJoinRejectedEvent extends BaseEvent {
   groupId: string;
   userId: string;
   rejectedBy: string;
+}
+
+export interface GroupChannelCreatedEvent extends BaseEvent {
+  groupId: string;
+  channelId: string;
+  createdBy: string;
+}
+
+export interface GroupChannelDeletedEvent extends BaseEvent {
+  groupId: string;
+  channelId: string;
+  deletedBy: string;
 }
 
 // --- Event (Calendar) Events ---
@@ -399,6 +464,16 @@ export type EventName =
   | "group.join_requested"
   | "group.join_approved"
   | "group.join_rejected"
+  | "group.channel_created"
+  | "group.channel_deleted"
+  | "group.leader_assigned"
+  | "group.leader_removed"
+  | "group.member_muted"
+  | "group.member_unmuted"
+  | "group.member_banned"
+  | "group.member_unbanned"
+  | "group.ownership_transferred"
+  | "account.status_changed"
   | "event.attended"
   | "recording.expired"
   | "job.failed"
@@ -461,6 +536,16 @@ export interface EventMap {
   "group.join_requested": GroupJoinRequestedEvent;
   "group.join_approved": GroupJoinApprovedEvent;
   "group.join_rejected": GroupJoinRejectedEvent;
+  "group.channel_created": GroupChannelCreatedEvent;
+  "group.channel_deleted": GroupChannelDeletedEvent;
+  "group.leader_assigned": GroupLeaderAssignedEvent;
+  "group.leader_removed": GroupLeaderRemovedEvent;
+  "group.member_muted": GroupMemberMutedEvent;
+  "group.member_unmuted": GroupMemberUnmutedEvent;
+  "group.member_banned": GroupMemberBannedEvent;
+  "group.member_unbanned": GroupMemberUnbannedEvent;
+  "group.ownership_transferred": GroupOwnershipTransferredEvent;
+  "account.status_changed": AccountStatusChangedEvent;
   "event.attended": EventAttendedEvent;
   "recording.expired": RecordingExpiredEvent;
   "job.failed": JobFailedEvent;

@@ -19,9 +19,18 @@ interface FeedItemProps {
   currentUserRole: string; // e.g. "MEMBER" | "ADMIN" | "MODERATOR"
   sort: FeedSortMode;
   filter: FeedFilter;
+  /** When provided, clicking pin uses this callback instead of the admin global pin route */
+  onPinToggle?: (postId: string, isPinned: boolean) => void;
 }
 
-export function FeedItem({ post, currentUserId, currentUserRole, sort, filter }: FeedItemProps) {
+export function FeedItem({
+  post,
+  currentUserId,
+  currentUserRole,
+  sort,
+  filter,
+  onPinToggle,
+}: FeedItemProps) {
   const t = useTranslations("Feed");
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isMuted, setIsMuted] = useState(true);
@@ -41,13 +50,19 @@ export function FeedItem({ post, currentUserId, currentUserRole, sort, filter }:
     const newState = !isPinned;
     setIsPinned(newState); // Optimistic update
     try {
-      const res = await fetch(`/api/v1/posts/${post.id}/pin`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ isPinned: newState }),
-      });
-      if (!res.ok) {
-        setIsPinned(!newState); // Rollback
+      if (onPinToggle) {
+        // Group context: delegate to parent handler
+        onPinToggle(post.id, newState);
+      } else {
+        // Global admin pin context
+        const res = await fetch(`/api/v1/posts/${post.id}/pin`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ isPinned: newState }),
+        });
+        if (!res.ok) {
+          setIsPinned(!newState); // Rollback
+        }
       }
     } catch {
       setIsPinned(!newState); // Rollback
@@ -137,7 +152,7 @@ export function FeedItem({ post, currentUserId, currentUserRole, sort, filter }:
               : t("composer.categoryAnnouncement")}
           </Badge>
         )}
-        {isAdmin && (
+        {(isAdmin || onPinToggle) && (
           <button
             type="button"
             onClick={() => void handlePinToggle()}

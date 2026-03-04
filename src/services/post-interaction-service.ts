@@ -9,7 +9,8 @@ import {
   type ToggleReactionResult,
   type PostComment,
 } from "@/db/queries/post-interactions";
-import { insertPost } from "@/db/queries/posts";
+import { insertPost, getPostGroupId } from "@/db/queries/posts";
+import { getGroupMemberFull } from "@/db/queries/groups";
 import { eventBus } from "@/services/event-bus";
 import type { PostReactionType } from "@/db/schema/post-interactions";
 
@@ -62,7 +63,7 @@ export interface AddCommentResult {
 
 export interface AddCommentError {
   success: false;
-  errorCode: "PARENT_NOT_FOUND" | "INTERNAL_ERROR";
+  errorCode: "PARENT_NOT_FOUND" | "GROUP_MODERATION" | "INTERNAL_ERROR";
   reason: string;
 }
 
@@ -72,6 +73,26 @@ export async function addComment(
   content: string,
   parentCommentId?: string | null,
 ): Promise<AddCommentResult | AddCommentError> {
+  // Enforce mute/ban for group posts
+  const groupId = await getPostGroupId(postId);
+  if (groupId) {
+    const membership = await getGroupMemberFull(groupId, authorId);
+    if (!membership || membership.status === "banned") {
+      return {
+        success: false,
+        errorCode: "GROUP_MODERATION",
+        reason: "Groups.moderation.bannedCannotComment",
+      };
+    }
+    if (membership.mutedUntil && membership.mutedUntil > new Date()) {
+      return {
+        success: false,
+        errorCode: "GROUP_MODERATION",
+        reason: "Groups.moderation.mutedCannotComment",
+      };
+    }
+  }
+
   try {
     const comment = await insertComment({ postId, authorId, content, parentCommentId });
 

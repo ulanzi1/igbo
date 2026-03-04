@@ -213,6 +213,26 @@ export async function softDeleteComment(commentId: string, requesterId: string):
 }
 
 /**
+ * Soft-delete a group comment by a moderator (leader/creator).
+ * Bypasses the author check — for moderation use only.
+ * Returns true if deleted, false if not found.
+ */
+export async function softDeleteGroupComment(commentId: string, postId: string): Promise<boolean> {
+  const result = await db
+    .update(communityPostComments)
+    .set({ deletedAt: new Date() })
+    .where(
+      and(
+        eq(communityPostComments.id, commentId),
+        eq(communityPostComments.postId, postId),
+        isNull(communityPostComments.deletedAt),
+      ),
+    )
+    .returning({ id: communityPostComments.id });
+  return result.length > 0;
+}
+
+/**
  * Get top-level comments for a post with their replies embedded.
  * Pagination is on top-level comments only (cursor = last comment's createdAt ISO string).
  * Replies are fetched in a second query (all replies for the page's comment IDs).

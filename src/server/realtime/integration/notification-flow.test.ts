@@ -23,6 +23,11 @@ import { Server } from "socket.io";
 import { io as ioc, type Socket as ClientSocket } from "socket.io-client";
 import type Redis from "ioredis";
 
+// ── Group channels mock (needed because eventbus-bridge now imports listGroupChannels) ──
+vi.mock("@/db/queries/group-channels", () => ({
+  listGroupChannels: vi.fn().mockResolvedValue([]),
+}));
+
 // ── Config mock ────────────────────────────────────────────────────────────────
 vi.mock("@/config/realtime", () => ({
   ROOM_USER: (id: string) => `user:${id}`,
