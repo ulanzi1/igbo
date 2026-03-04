@@ -11,6 +11,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { authUsers } from "./auth-users";
+import { communityGroups } from "./community-groups";
 
 export const postContentTypeEnum = pgEnum("community_post_content_type", [
   "text",
@@ -42,7 +43,7 @@ export const communityPosts = pgTable(
     contentType: postContentTypeEnum("content_type").notNull().default("text"),
     visibility: postVisibilityEnum("visibility").notNull().default("members_only"),
     category: postCategoryEnum("category").notNull().default("discussion"),
-    groupId: uuid("group_id"), // FK to community_groups added in Story 5.1
+    groupId: uuid("group_id").references(() => communityGroups.id, { onDelete: "setNull" }), // FK added Story 5.1
     isPinned: boolean("is_pinned").notNull().default(false),
     pinnedAt: timestamp("pinned_at", { withTimezone: true }), // Set when admin pins; null = not pinned
     likeCount: integer("like_count").notNull().default(0),

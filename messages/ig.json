@@ -1045,5 +1045,56 @@
       "pinAriaLabel": "Mee ka post a nọdụ n'elu feed",
       "unpinAriaLabel": "Wepu post a n'elu feed"
     }
+  },
+  "Groups": {
+    "title": "Otu",
+    "createGroup": "Mepụta Otu",
+    "createGroupCta": "Malite otu maka obodo gị",
+    "form": {
+      "name": "Aha Otu",
+      "description": "Nkọwa",
+      "bannerImage": "Foto Banner",
+      "visibility": "Onye nwere ike ịhụ",
+      "joinType": "Ụzọ Ịbanye",
+      "postingPermission": "Onye nwere ike ịde",
+      "commentingPermission": "Onye nwere ike ịkọmentụ",
+      "memberLimit": "Ọnụọgụ ndị otu",
+      "submit": "Mepụta Otu",
+      "cancel": "Kagbuo"
+    },
+    "visibilityOptions": {
+      "public": "Ọha",
+      "private": "Nzuzo",
+      "hidden": "Ezoro ezo"
+    },
+    "joinTypeOptions": {
+      "open": "Mepere emepe",
+      "approval": "Achọ ikike"
+    },
+    "postingPermOptions": {
+      "allMembers": "Ndị otu niile",
+      "leadersOnly": "Ndị isi naanị",
+      "moderated": "Nleba anya"
+    },
+    "commentingPermOptions": {
+      "open": "Mepere emepe",
+      "membersOnly": "Ndị otu naanị",
+      "disabled": "Mechiri"
+    },
+    "upgradePrompt": "Ike ịmepụta otu dị maka ndị otu nke ọ bụ elu. Were akara ọkwa gị iji mepụta ma jikwa otu.",
+    "createSuccess": "Emepụtala otu nke ọma!",
+    "settingsTitle": "Ntọala Otu",
+    "settingsSaved": "Echekwara ntọala",
+    "members": "Ndị otu {count}",
+    "noGroups": "Ahụghị otu ọ bụla.",
+    "noGroupsHint": "Bụrụ onye mbụ iji mepụta otu!",
+    "searchPlaceholder": "Chọọ otu...",
+    "joinButton": "Banye",
+    "comingSoon": "Ọdịnaya otu na-abịa n'oge na-adịghị anya.",
+    "errors": {
+      "nameTaken": "Otu nwere aha a dị adị",
+      "permissionDenied": "Enweghị gị ikike iji mepụta otu",
+      "fetchFailed": "Enweghị ike ịnweta otu. Biko nwaa ọzọ."
+    }
   }
 }
