@@ -9,8 +9,26 @@ import {
   removeGroupMember,
   listGroupLeaders,
 } from "@/db/queries/groups";
+import {
+  getDefaultChannelConversationId,
+  listAllChannelConversationIds,
+  addMembersToConversation,
+} from "@/db/queries/group-channels";
+import { db } from "@/db";
+import { communityProfiles } from "@/db/schema/community-profiles";
+import { eq } from "drizzle-orm";
 import { getPlatformSetting } from "@/db/queries/platform-settings";
 import { eventBus } from "@/services/event-bus";
+import { messageService } from "@/services/message-service";
+
+async function getDisplayName(userId: string): Promise<string> {
+  const [row] = await db
+    .select({ displayName: communityProfiles.displayName })
+    .from(communityProfiles)
+    .where(eq(communityProfiles.userId, userId))
+    .limit(1);
+  return row?.displayName ?? "A member";
+}
 
 const DEFAULT_GROUP_MEMBERSHIP_LIMIT = 40;
 
@@ -68,11 +86,22 @@ export async function joinOpenGroup(
 
   await insertGroupMember(groupId, userId, "member", "active");
 
+  // Enroll the new member in all existing channel conversations
+  const channelConvIds = await listAllChannelConversationIds(groupId);
+  await Promise.all(channelConvIds.map((cid) => addMembersToConversation(cid, [userId])));
+
   eventBus.emit("group.member_joined", {
     groupId,
     userId,
     timestamp: new Date().toISOString(),
   });
+
+  // System message in General channel (deferred from Story 5.2, completed in 5.3)
+  const conversationId = await getDefaultChannelConversationId(groupId);
+  if (conversationId) {
+    const name = await getDisplayName(userId);
+    await messageService.sendSystemMessage(conversationId, userId, `${name} joined the group`);
+  }
 
   return { role: "member", status: "active" };
 }
@@ -190,12 +219,23 @@ export async function approveJoinRequest(
 
   await updateGroupMemberStatus(groupId, memberId, "active");
 
+  // Enroll the approved member in all existing channel conversations
+  const channelConvIds = await listAllChannelConversationIds(groupId);
+  await Promise.all(channelConvIds.map((cid) => addMembersToConversation(cid, [memberId])));
+
   eventBus.emit("group.join_approved", {
     groupId,
     userId: memberId,
     approvedBy: leaderId,
     timestamp: new Date().toISOString(),
   });
+
+  // System message in General channel
+  const conversationId = await getDefaultChannelConversationId(groupId);
+  if (conversationId) {
+    const name = await getDisplayName(memberId);
+    await messageService.sendSystemMessage(conversationId, memberId, `${name} joined the group`);
+  }
 }
 
 /**
@@ -267,4 +307,11 @@ export async function leaveGroup(userId: string, groupId: string): Promise<void>
     userId,
     timestamp: new Date().toISOString(),
   });
+
+  // System message in General channel
+  const conversationId = await getDefaultChannelConversationId(groupId);
+  if (conversationId) {
+    const name = await getDisplayName(userId);
+    await messageService.sendSystemMessage(conversationId, userId, `${name} left the group`);
+  }
 }
