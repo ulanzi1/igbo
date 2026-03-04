@@ -1085,16 +1085,49 @@
     "createSuccess": "Emepụtala otu nke ọma!",
     "settingsTitle": "Ntọala Otu",
     "settingsSaved": "Echekwara ntọala",
+    "settingsSaveButton": "Chekwaa Ntọala",
     "members": "Ndị otu {count}",
     "noGroups": "Ahụghị otu ọ bụla.",
     "noGroupsHint": "Bụrụ onye mbụ iji mepụta otu!",
     "searchPlaceholder": "Chọọ otu...",
     "joinButton": "Banye",
+    "requestToJoin": "Rịọ ịbanye",
+    "pendingRequest": "Na-echere",
+    "joined": "Ejirila otu",
+    "leaveGroup": "Hapụ Otu",
+    "leaveGroupConfirm": "Ị kwesịrị na ịchọrọ ịhapụ otu a?",
+    "groupFull": "Otu jupụtara",
+    "membershipLimitReached": "Oke ndị otu erula",
+    "membershipLimitMessage": "Ị nwetala oke kacha elu nke otu {limit}. Hapụ otu iji banye nke ọhụrụ.",
+    "approveRequest": "Kwado",
+    "rejectRequest": "Jụ",
+    "pendingRequests": "Arịrịọ na-echere",
+    "noRequests": "Enweghị arịrịọ na-echere",
+    "joinSuccess": "Ị banyelea n'otu!",
+    "requestSent": "Ezigara arịrịọ gị",
+    "leaveSuccess": "Ị hapụla otu ahụ",
+    "requestApproved": "Akwadola arịrịọ",
+    "requestRejected": "Ajụla arịrịọ",
+    "creatorCannotLeave": "Ndị mepụtara otu enweghị ike ịhapụ. Bufee onyenwe na mbụ.",
     "comingSoon": "Ọdịnaya otu na-abịa n'oge na-adịghị anya.",
     "errors": {
       "nameTaken": "Otu nwere aha a dị adị",
       "permissionDenied": "Enweghị gị ikike iji mepụta otu",
       "fetchFailed": "Enweghị ike ịnweta otu. Biko nwaa ọzọ."
+    }
+  },
+  "notifications": {
+    "group_join_request": {
+      "title": "Arịrịọ Ịbanye Ọhụrụ",
+      "body": "Onye otu rịọrọ ịbanye n'otu gị"
+    },
+    "group_join_approved": {
+      "title": "Akwadola Arịrịọ Ịbanye",
+      "body": "Akwadola arịrịọ gị ịbanye n'otu"
+    },
+    "group_join_rejected": {
+      "title": "Ajụla Arịrịọ Ịbanye",
+      "body": "Akwadoghị arịrịọ gị ịbanye n'otu"
     }
   }
 }

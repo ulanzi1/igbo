@@ -95,7 +95,7 @@ development_status:
   # Epic 5: Groups & Community Structure
   epic-5: in-progress
   5-1-group-creation-configuration: done
-  5-2-group-discovery-membership: backlog
+  5-2-group-discovery-membership: done
   5-3-group-channels-feed-content: backlog
   5-4-group-leadership-moderation: backlog
   epic-5-retrospective: optional

@@ -64,7 +64,10 @@ describe("useGroups", () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-    expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining("name=London"));
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.stringContaining("name=London"),
+      expect.objectContaining({ credentials: "include" }),
+    );
   });
 
   it("calls correct URL with cursor param", async () => {
@@ -75,6 +78,7 @@ describe("useGroups", () => {
 
     expect(mockFetch).toHaveBeenCalledWith(
       expect.stringContaining(`cursor=${encodeURIComponent(cursor)}`),
+      expect.objectContaining({ credentials: "include" }),
     );
   });
 

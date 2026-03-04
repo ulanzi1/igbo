@@ -1,17 +1,99 @@
 "use client";
 
+import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
-import type { GroupListItem } from "@/db/queries/groups";
+import type { DirectoryGroupItem } from "@/db/queries/groups";
+import type { GroupMemberRole, GroupMemberStatus } from "@/db/schema/community-groups";
 
 interface GroupCardProps {
-  group: GroupListItem;
+  group: DirectoryGroupItem;
+  viewerMembership: { role: GroupMemberRole; status: GroupMemberStatus } | null;
+  onJoin?: (groupId: string) => Promise<void>;
+  onRequestJoin?: (groupId: string) => Promise<void>;
 }
 
-export function GroupCard({ group }: GroupCardProps) {
+export function GroupCard({ group, viewerMembership, onJoin, onRequestJoin }: GroupCardProps) {
   const t = useTranslations("Groups");
+  const [isLoading, setIsLoading] = useState(false);
+  const [joinError, setJoinError] = useState<string | null>(null);
 
   const visibilityKey = group.visibility as "public" | "private" | "hidden";
+  const isFull = group.memberLimit !== null && group.memberCount >= group.memberLimit;
+
+  const handleJoinClick = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+
+    if (isLoading) return;
+    setIsLoading(true);
+    setJoinError(null);
+    try {
+      if (group.joinType === "open" && onJoin) {
+        await onJoin(group.id);
+      } else if (group.joinType === "approval" && onRequestJoin) {
+        await onRequestJoin(group.id);
+      }
+    } catch (err) {
+      setJoinError(err instanceof Error ? err.message : t("errors.fetchFailed"));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const renderButton = () => {
+    // Already an active member
+    if (viewerMembership?.status === "active") {
+      return (
+        <span className="rounded-md bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
+          {t("joined")}
+        </span>
+      );
+    }
+
+    // Pending request
+    if (viewerMembership?.status === "pending") {
+      return (
+        <span className="rounded-md bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
+          {t("pendingRequest")}
+        </span>
+      );
+    }
+
+    // Group is full
+    if (isFull) {
+      return (
+        <span className="rounded-md bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
+          {t("groupFull")}
+        </span>
+      );
+    }
+
+    // Not a member — show Join or Request to Join
+    if (group.joinType === "approval") {
+      return (
+        <button
+          type="button"
+          onClick={handleJoinClick}
+          disabled={isLoading}
+          className="rounded-md border border-primary px-3 py-1 text-xs font-medium text-primary hover:bg-primary/5 disabled:opacity-50"
+        >
+          {isLoading ? "..." : t("requestToJoin")}
+        </button>
+      );
+    }
+
+    return (
+      <button
+        type="button"
+        onClick={handleJoinClick}
+        disabled={isLoading}
+        className="rounded-md bg-primary px-3 py-1 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+      >
+        {isLoading ? "..." : t("joinButton")}
+      </button>
+    );
+  };
 
   return (
     <article
@@ -52,14 +134,13 @@ export function GroupCard({ group }: GroupCardProps) {
             <span className="text-xs text-muted-foreground">
               {t("members", { count: group.memberCount })}
             </span>
-            {/* Join button is a placeholder — fully implemented in Story 5.2 */}
-            <span
-              className="rounded-md bg-primary/10 px-3 py-1 text-xs font-medium text-primary opacity-50"
-              aria-hidden="true"
-            >
-              {t("joinButton")}
-            </span>
+            {renderButton()}
           </div>
+          {joinError && (
+            <p className="text-xs text-destructive" role="alert">
+              {joinError}
+            </p>
+          )}
         </div>
       </Link>
     </article>

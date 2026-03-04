@@ -1,9 +1,16 @@
 // @vitest-environment jsdom
 import React from "react";
-import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { GroupHeader } from "./GroupHeader";
 import type { CommunityGroup } from "@/db/schema/community-groups";
+
+const mockPush = vi.fn();
+const mockRefresh = vi.fn();
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: mockPush, refresh: mockRefresh }),
+}));
 
 vi.mock("next-intl", () => ({
   useTranslations: () => (key: string, params?: Record<string, unknown>) => {
@@ -27,6 +34,16 @@ vi.mock("@/i18n/navigation", () => ({
     </a>
   ),
 }));
+
+const mockFetch = vi.fn();
+
+beforeEach(() => {
+  mockPush.mockReset();
+  mockRefresh.mockReset();
+  mockFetch.mockReset();
+  global.fetch = mockFetch;
+  global.confirm = vi.fn(() => true);
+});
 
 const GROUP_ID = "00000000-0000-4000-8000-000000000001";
 const CREATOR_ID = "00000000-0000-4000-8000-000000000002";
@@ -93,5 +110,78 @@ describe("GroupHeader", () => {
     const group: CommunityGroup = { ...mockGroup, description: null };
     render(<GroupHeader group={group} />);
     expect(screen.queryByText("For Igbo diaspora in London")).not.toBeInTheDocument();
+  });
+
+  describe("Leave Group button", () => {
+    it("shows leave button for active non-creator member", () => {
+      render(
+        <GroupHeader group={mockGroup} viewerMembership={{ role: "member", status: "active" }} />,
+      );
+      expect(screen.getByRole("button", { name: "leaveGroup" })).toBeInTheDocument();
+    });
+
+    it("does not show leave button for creator", () => {
+      render(
+        <GroupHeader group={mockGroup} viewerMembership={{ role: "creator", status: "active" }} />,
+      );
+      expect(screen.queryByRole("button", { name: "leaveGroup" })).not.toBeInTheDocument();
+    });
+
+    it("does not show leave button when not a member", () => {
+      render(<GroupHeader group={mockGroup} viewerMembership={null} />);
+      expect(screen.queryByRole("button", { name: "leaveGroup" })).not.toBeInTheDocument();
+    });
+
+    it("calls DELETE API and redirects on confirm", async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ data: { left: true } }),
+      });
+
+      render(
+        <GroupHeader group={mockGroup} viewerMembership={{ role: "member", status: "active" }} />,
+      );
+
+      fireEvent.click(screen.getByRole("button", { name: "leaveGroup" }));
+
+      await waitFor(() => {
+        expect(mockFetch).toHaveBeenCalledWith(
+          `/api/v1/groups/${GROUP_ID}/members/self`,
+          expect.objectContaining({ method: "DELETE" }),
+        );
+        expect(mockPush).toHaveBeenCalledWith("/groups");
+      });
+    });
+
+    it("shows error message when leave fails", async () => {
+      mockFetch.mockResolvedValue({
+        ok: false,
+        json: () => Promise.resolve({ detail: "Group creators cannot leave." }),
+      });
+
+      render(
+        <GroupHeader group={mockGroup} viewerMembership={{ role: "member", status: "active" }} />,
+      );
+
+      fireEvent.click(screen.getByRole("button", { name: "leaveGroup" }));
+
+      await waitFor(() => {
+        expect(screen.getByText("Group creators cannot leave.")).toBeInTheDocument();
+      });
+    });
+
+    it("does not call API when confirm is cancelled", async () => {
+      global.confirm = vi.fn(() => false);
+
+      render(
+        <GroupHeader group={mockGroup} viewerMembership={{ role: "member", status: "active" }} />,
+      );
+
+      fireEvent.click(screen.getByRole("button", { name: "leaveGroup" }));
+
+      await waitFor(() => {
+        expect(mockFetch).not.toHaveBeenCalled();
+      });
+    });
   });
 });

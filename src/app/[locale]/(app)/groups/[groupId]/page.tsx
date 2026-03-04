@@ -39,7 +39,13 @@ export default async function GroupDetailPage({
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-8 space-y-6">
-      <GroupHeader group={group} viewerIsCreatorOrLeader={viewerIsCreatorOrLeader} />
+      <GroupHeader
+        group={group}
+        viewerIsCreatorOrLeader={viewerIsCreatorOrLeader}
+        viewerMembership={
+          viewerMembership ? { role: viewerMembership.role, status: viewerMembership.status } : null
+        }
+      />
 
       {/* Stub: detailed tabs (Feed/Chat/Members/Files) implemented in Stories 5.2–5.4 */}
       <GroupDetailStub />

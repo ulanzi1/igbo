@@ -242,6 +242,33 @@ export interface GroupArchivedEvent extends BaseEvent {
   archivedBy: string;
 }
 
+export interface GroupMemberJoinedEvent extends BaseEvent {
+  groupId: string;
+  userId: string;
+}
+
+export interface GroupMemberLeftEvent extends BaseEvent {
+  groupId: string;
+  userId: string;
+}
+
+export interface GroupJoinRequestedEvent extends BaseEvent {
+  groupId: string;
+  userId: string;
+}
+
+export interface GroupJoinApprovedEvent extends BaseEvent {
+  groupId: string;
+  userId: string;
+  approvedBy: string;
+}
+
+export interface GroupJoinRejectedEvent extends BaseEvent {
+  groupId: string;
+  userId: string;
+  rejectedBy: string;
+}
+
 // --- Event (Calendar) Events ---
 
 export interface EventAttendedEvent extends BaseEvent {
@@ -367,6 +394,11 @@ export type EventName =
   | "group.created"
   | "group.updated"
   | "group.archived"
+  | "group.member_joined"
+  | "group.member_left"
+  | "group.join_requested"
+  | "group.join_approved"
+  | "group.join_rejected"
   | "event.attended"
   | "recording.expired"
   | "job.failed"
@@ -424,6 +456,11 @@ export interface EventMap {
   "group.created": GroupCreatedEvent;
   "group.updated": GroupUpdatedEvent;
   "group.archived": GroupArchivedEvent;
+  "group.member_joined": GroupMemberJoinedEvent;
+  "group.member_left": GroupMemberLeftEvent;
+  "group.join_requested": GroupJoinRequestedEvent;
+  "group.join_approved": GroupJoinApprovedEvent;
+  "group.join_rejected": GroupJoinRejectedEvent;
   "event.attended": EventAttendedEvent;
   "recording.expired": RecordingExpiredEvent;
   "job.failed": JobFailedEvent;
