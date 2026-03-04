@@ -91,6 +91,7 @@ function TopNav({ className }: { className?: string }) {
               type="button"
               aria-label={t("profile")}
               className="flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-border bg-muted text-muted-foreground hover:bg-accent transition-colors"
+              suppressHydrationWarning
             >
               <UserCircleIcon className="size-6" aria-hidden="true" />
             </button>

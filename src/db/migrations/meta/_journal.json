@@ -162,6 +162,13 @@
       "when": 1708000022000,
       "tag": "0022_post_bookmarks",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1708000023000,
+      "tag": "0023_community_groups",
+      "breakpoints": true
     }
   ]
 }

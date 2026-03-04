@@ -1045,5 +1045,56 @@
       "pinAriaLabel": "Pin post to top of feed",
       "unpinAriaLabel": "Unpin post from top of feed"
     }
+  },
+  "Groups": {
+    "title": "Groups",
+    "createGroup": "Create Group",
+    "createGroupCta": "Start a group for your community",
+    "form": {
+      "name": "Group Name",
+      "description": "Description",
+      "bannerImage": "Banner Image",
+      "visibility": "Visibility",
+      "joinType": "Join Type",
+      "postingPermission": "Who Can Post",
+      "commentingPermission": "Who Can Comment",
+      "memberLimit": "Member Limit",
+      "submit": "Create Group",
+      "cancel": "Cancel"
+    },
+    "visibilityOptions": {
+      "public": "Public",
+      "private": "Private",
+      "hidden": "Hidden"
+    },
+    "joinTypeOptions": {
+      "open": "Open",
+      "approval": "Approval Required"
+    },
+    "postingPermOptions": {
+      "allMembers": "All Members",
+      "leadersOnly": "Leaders Only",
+      "moderated": "Moderated"
+    },
+    "commentingPermOptions": {
+      "open": "Open",
+      "membersOnly": "Members Only",
+      "disabled": "Disabled"
+    },
+    "upgradePrompt": "Group creation is available to Top-tier members. Upgrade your membership to create and manage groups.",
+    "createSuccess": "Group created successfully!",
+    "settingsTitle": "Group Settings",
+    "settingsSaved": "Settings saved",
+    "members": "{count} members",
+    "noGroups": "No groups found.",
+    "noGroupsHint": "Be the first to create one!",
+    "searchPlaceholder": "Search groups...",
+    "joinButton": "Join",
+    "comingSoon": "Group feed and content coming soon.",
+    "errors": {
+      "nameTaken": "A group with this name already exists",
+      "permissionDenied": "You do not have permission to create groups",
+      "fetchFailed": "Failed to load groups. Please try again."
+    }
   }
 }

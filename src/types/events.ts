@@ -227,6 +227,16 @@ export interface ArticleCommentedEvent extends BaseEvent {
 
 // --- Group Events ---
 
+export interface GroupCreatedEvent extends BaseEvent {
+  groupId: string;
+  creatorId: string;
+}
+
+export interface GroupUpdatedEvent extends BaseEvent {
+  groupId: string;
+  updatedBy: string;
+}
+
 export interface GroupArchivedEvent extends BaseEvent {
   groupId: string;
   archivedBy: string;
@@ -354,6 +364,8 @@ export type EventName =
   | "article.submitted"
   | "article.published"
   | "article.commented"
+  | "group.created"
+  | "group.updated"
   | "group.archived"
   | "event.attended"
   | "recording.expired"
@@ -409,6 +421,8 @@ export interface EventMap {
   "article.submitted": ArticleSubmittedEvent;
   "article.published": ArticlePublishedEvent;
   "article.commented": ArticleCommentedEvent;
+  "group.created": GroupCreatedEvent;
+  "group.updated": GroupUpdatedEvent;
   "group.archived": GroupArchivedEvent;
   "event.attended": EventAttendedEvent;
   "recording.expired": RecordingExpiredEvent;

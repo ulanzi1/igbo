@@ -21,6 +21,7 @@ import * as communityConnectionsSchema from "./schema/community-connections";
 import * as communityPostsSchema from "./schema/community-posts";
 import * as postInteractionsSchema from "./schema/post-interactions";
 import * as bookmarksSchema from "./schema/bookmarks";
+import * as communityGroupsSchema from "./schema/community-groups";
 
 const client = postgres(env.DATABASE_URL, {
   max: env.DATABASE_POOL_SIZE,
@@ -48,6 +49,7 @@ export const db = drizzle(client, {
     ...communityPostsSchema,
     ...postInteractionsSchema,
     ...bookmarksSchema,
+    ...communityGroupsSchema,
   },
 });
 
