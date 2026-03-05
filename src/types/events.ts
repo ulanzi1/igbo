@@ -228,6 +228,13 @@ export interface ArticleRejectedEvent extends BaseEvent {
   feedback?: string;
 }
 
+export interface ArticleRevisionRequestedEvent extends BaseEvent {
+  articleId: string;
+  authorId: string;
+  title: string;
+  feedback: string;
+}
+
 export interface ArticleCommentedEvent extends BaseEvent {
   articleId: string;
   commentId: string;
@@ -465,6 +472,7 @@ export type EventName =
   | "article.submitted"
   | "article.published"
   | "article.rejected"
+  | "article.revision_requested"
   | "article.commented"
   | "group.created"
   | "group.updated"
@@ -538,6 +546,7 @@ export interface EventMap {
   "article.submitted": ArticleSubmittedEvent;
   "article.published": ArticlePublishedEvent;
   "article.rejected": ArticleRejectedEvent;
+  "article.revision_requested": ArticleRevisionRequestedEvent;
   "article.commented": ArticleCommentedEvent;
   "group.created": GroupCreatedEvent;
   "group.updated": GroupUpdatedEvent;

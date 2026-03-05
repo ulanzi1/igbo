@@ -116,4 +116,23 @@ describe("POST /api/v1/articles/[articleId]/submit", () => {
     const response = await POST(request);
     expect(response.status).toBe(404);
   });
+
+  it("returns 422 when cover image is missing", async () => {
+    mockSubmitArticle.mockRejectedValue(
+      new ApiError({
+        title: "Unprocessable Entity",
+        status: 422,
+        detail: "Articles.meta.coverImageRequired",
+      }),
+    );
+
+    const request = new Request(`https://localhost:3000/api/v1/articles/${ARTICLE_ID}/submit`, {
+      method: "POST",
+      headers: CSRF_HEADERS,
+      body: JSON.stringify({}),
+    });
+
+    const response = await POST(request);
+    expect(response.status).toBe(422);
+  });
 });

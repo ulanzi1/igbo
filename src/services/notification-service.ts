@@ -9,6 +9,8 @@ import { filterNotificationRecipients } from "@/services/block-service";
 import { getConversationNotificationPreference } from "@/db/queries/chat-conversations";
 import { getRedisPublisher } from "@/lib/redis";
 import { listGroupLeaders } from "@/db/queries/groups";
+import { findUserById } from "@/db/queries/auth-queries";
+import { enqueueEmailJob } from "@/services/email-service";
 import type {
   MemberApprovedEvent,
   MemberFollowedEvent,
@@ -25,6 +27,7 @@ import type {
   AccountStatusChangedEvent,
   ArticlePublishedEvent,
   ArticleRejectedEvent,
+  ArticleRevisionRequestedEvent,
 } from "@/types/events";
 import type { NotificationType } from "@/db/schema/platform-notifications";
 
@@ -260,6 +263,20 @@ eventBus.on("article.published", async (payload: ArticlePublishedEvent) => {
     body: "notifications.article_published.body",
     link: `/articles/${payload.slug}`,
   });
+  // Email notification
+  const user = await findUserById(payload.authorId);
+  if (user?.email) {
+    enqueueEmailJob(`article-published-${payload.articleId}-${Date.now()}`, {
+      to: user.email,
+      templateId: "article-published",
+      data: {
+        name: user.name ?? user.email,
+        title: payload.title,
+        articleUrl: `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/en/articles/${payload.slug}`,
+      },
+      locale: user.languagePreference === "ig" ? "ig" : "en",
+    });
+  }
 });
 
 eventBus.on("article.rejected", async (payload: ArticleRejectedEvent) => {
@@ -271,6 +288,46 @@ eventBus.on("article.rejected", async (payload: ArticleRejectedEvent) => {
     body: payload.feedback ?? "notifications.article_rejected.body",
     link: `/articles/${payload.articleId}/edit`,
   });
+  // Email notification
+  const user = await findUserById(payload.authorId);
+  if (user?.email) {
+    enqueueEmailJob(`article-rejected-${payload.articleId}-${Date.now()}`, {
+      to: user.email,
+      templateId: "article-rejected",
+      data: {
+        name: user.name ?? user.email,
+        title: payload.title,
+        feedback: payload.feedback ?? "",
+        editUrl: `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/en/articles/${payload.articleId}/edit`,
+      },
+      locale: user.languagePreference === "ig" ? "ig" : "en",
+    });
+  }
+});
+
+eventBus.on("article.revision_requested", async (payload: ArticleRevisionRequestedEvent) => {
+  await deliverNotification({
+    userId: payload.authorId,
+    actorId: payload.authorId, // self-notify pattern: bypasses block/mute filter
+    type: "admin_announcement",
+    title: "notifications.article_revision_requested.title",
+    body: payload.feedback,
+    link: `/articles/${payload.articleId}/edit`,
+  });
+  const user = await findUserById(payload.authorId);
+  if (user?.email) {
+    enqueueEmailJob(`article-revision-${payload.articleId}-${Date.now()}`, {
+      to: user.email,
+      templateId: "article-revision-requested",
+      data: {
+        name: user.name ?? user.email,
+        title: payload.title,
+        feedback: payload.feedback,
+        editUrl: `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/en/articles/${payload.articleId}/edit`,
+      },
+      locale: user.languagePreference === "ig" ? "ig" : "en",
+    });
+  }
 });
 
 // ─── Ownership Transfer on Account Status Change ──────────────────────────────

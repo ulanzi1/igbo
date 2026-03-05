@@ -22,12 +22,14 @@ vi.mock("@/db/queries/articles", () => ({
   getArticleByIdForAdmin: vi.fn(),
   publishArticleById: vi.fn(),
   rejectArticleById: vi.fn(),
+  requestRevisionById: vi.fn(),
   toggleArticleFeature: vi.fn(),
   listPublishedArticles: vi.fn(),
   getPublishedArticleBySlug: vi.fn(),
   incrementArticleViewCount: vi.fn(),
   getRelatedArticles: vi.fn(),
   getArticleTagsById: vi.fn(),
+  listArticlesByAuthor: vi.fn(),
 }));
 
 vi.mock("@/i18n/navigation", () => ({

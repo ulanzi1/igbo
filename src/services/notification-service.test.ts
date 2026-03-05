@@ -27,6 +27,8 @@ const mockGetRedisPublisher = vi.hoisted(() =>
 const mockGetConversationNotificationPreference = vi.hoisted(() =>
   vi.fn().mockResolvedValue("all"),
 );
+const mockFindUserById = vi.hoisted(() => vi.fn());
+const mockEnqueueEmailJob = vi.hoisted(() => vi.fn());
 
 vi.mock("@/services/event-bus", () => ({
   eventBus: { on: mockEventBusOn, emit: mockEventBusEmit },
@@ -55,6 +57,16 @@ vi.mock("@/db/queries/groups", () => ({
   listGroupLeaders: vi.fn().mockResolvedValue([]),
 }));
 
+vi.mock("@/db/queries/auth-queries", () => ({
+  findUserById: (...args: unknown[]) => mockFindUserById(...args),
+  findUserByEmail: vi.fn(),
+}));
+
+vi.mock("@/services/email-service", () => ({
+  enqueueEmailJob: (...args: unknown[]) => mockEnqueueEmailJob(...args),
+  emailService: { send: vi.fn() },
+}));
+
 // Import module once — listeners are registered at load time and captured by handlerRef
 import { markNotificationAsRead, markAllNotificationsAsRead } from "./notification-service";
 
@@ -79,6 +91,13 @@ beforeEach(() => {
   mockRedisExists.mockResolvedValue(0);
   mockGetRedisPublisher.mockReturnValue({ publish: mockPublish, exists: mockRedisExists });
   mockGetConversationNotificationPreference.mockResolvedValue("all");
+  mockFindUserById.mockResolvedValue({
+    id: "00000000-0000-4000-8000-000000000050",
+    email: "author@example.com",
+    name: "Test Author",
+    languagePreference: "en",
+  });
+  mockEnqueueEmailJob.mockReturnValue(undefined);
 });
 
 describe("notification-service module loading", () => {
@@ -440,5 +459,159 @@ describe("article.rejected handler", () => {
         body: "notifications.article_rejected.body",
       }),
     );
+  });
+
+  it("calls enqueueEmailJob with article-rejected template when user has email", async () => {
+    mockFilterNotificationRecipients.mockResolvedValue([AUTHOR_ID]);
+    const handler = handlerRef.current.get("article.rejected");
+
+    await handler?.({
+      articleId: ARTICLE_ID,
+      authorId: AUTHOR_ID,
+      title: "My Article",
+      feedback: "Needs more detail",
+      timestamp: new Date().toISOString(),
+    });
+
+    expect(mockFindUserById).toHaveBeenCalledWith(AUTHOR_ID);
+    expect(mockEnqueueEmailJob).toHaveBeenCalledWith(
+      expect.stringContaining(`article-rejected-${ARTICLE_ID}`),
+      expect.objectContaining({
+        to: "author@example.com",
+        templateId: "article-rejected",
+        data: expect.objectContaining({
+          title: "My Article",
+          feedback: "Needs more detail",
+        }) as unknown,
+      }),
+    );
+  });
+});
+
+// ─── Article Published Email Tests (Story 6.4) ───────────────────────────────
+
+describe("article.published handler — email (Story 6.4)", () => {
+  const AUTHOR_ID = "00000000-0000-4000-8000-000000000050";
+  const ARTICLE_ID = "00000000-0000-4000-8000-000000000060";
+
+  it("calls enqueueEmailJob with article-published template when user has email", async () => {
+    mockFilterNotificationRecipients.mockResolvedValue([AUTHOR_ID]);
+    const handler = handlerRef.current.get("article.published");
+
+    await handler?.({
+      articleId: ARTICLE_ID,
+      authorId: AUTHOR_ID,
+      title: "My Published Article",
+      slug: "my-published-article",
+      timestamp: new Date().toISOString(),
+    });
+
+    expect(mockFindUserById).toHaveBeenCalledWith(AUTHOR_ID);
+    expect(mockEnqueueEmailJob).toHaveBeenCalledWith(
+      expect.stringContaining(`article-published-${ARTICLE_ID}`),
+      expect.objectContaining({
+        to: "author@example.com",
+        templateId: "article-published",
+        data: expect.objectContaining({ title: "My Published Article" }) as unknown,
+      }),
+    );
+  });
+
+  it("does NOT call enqueueEmailJob when findUserById returns null", async () => {
+    mockFilterNotificationRecipients.mockResolvedValue([AUTHOR_ID]);
+    mockFindUserById.mockResolvedValue(null);
+    const handler = handlerRef.current.get("article.published");
+
+    await handler?.({
+      articleId: ARTICLE_ID,
+      authorId: AUTHOR_ID,
+      title: "My Article",
+      slug: "my-article",
+      timestamp: new Date().toISOString(),
+    });
+
+    expect(mockEnqueueEmailJob).not.toHaveBeenCalled();
+  });
+});
+
+// ─── Article Revision Requested Tests (Story 6.4) ────────────────────────────
+
+describe("article.revision_requested handler", () => {
+  const AUTHOR_ID = "00000000-0000-4000-8000-000000000052";
+  const ARTICLE_ID = "00000000-0000-4000-8000-000000000062";
+
+  it("registers article.revision_requested listener", () => {
+    expect(handlerRef.current.has("article.revision_requested")).toBe(true);
+  });
+
+  it("calls deliverNotification with feedback as body", async () => {
+    mockFilterNotificationRecipients.mockResolvedValue([AUTHOR_ID]);
+    const handler = handlerRef.current.get("article.revision_requested");
+
+    await handler?.({
+      articleId: ARTICLE_ID,
+      authorId: AUTHOR_ID,
+      title: "My Article",
+      feedback: "Please add citations",
+      timestamp: new Date().toISOString(),
+    });
+
+    expect(mockCreateNotification).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: AUTHOR_ID,
+        type: "admin_announcement",
+        title: "notifications.article_revision_requested.title",
+        body: "Please add citations",
+        link: `/articles/${ARTICLE_ID}/edit`,
+      }),
+    );
+  });
+
+  it("calls enqueueEmailJob with article-revision-requested template when user has email", async () => {
+    mockFilterNotificationRecipients.mockResolvedValue([AUTHOR_ID]);
+    mockFindUserById.mockResolvedValue({
+      id: AUTHOR_ID,
+      email: "author2@example.com",
+      name: "Author Two",
+      languagePreference: "en",
+    });
+    const handler = handlerRef.current.get("article.revision_requested");
+
+    await handler?.({
+      articleId: ARTICLE_ID,
+      authorId: AUTHOR_ID,
+      title: "My Article",
+      feedback: "Please add citations",
+      timestamp: new Date().toISOString(),
+    });
+
+    expect(mockFindUserById).toHaveBeenCalledWith(AUTHOR_ID);
+    expect(mockEnqueueEmailJob).toHaveBeenCalledWith(
+      expect.stringContaining(`article-revision-${ARTICLE_ID}`),
+      expect.objectContaining({
+        to: "author2@example.com",
+        templateId: "article-revision-requested",
+        data: expect.objectContaining({
+          title: "My Article",
+          feedback: "Please add citations",
+        }) as unknown,
+      }),
+    );
+  });
+
+  it("does NOT call enqueueEmailJob when findUserById returns null", async () => {
+    mockFilterNotificationRecipients.mockResolvedValue([AUTHOR_ID]);
+    mockFindUserById.mockResolvedValue(null);
+    const handler = handlerRef.current.get("article.revision_requested");
+
+    await handler?.({
+      articleId: ARTICLE_ID,
+      authorId: AUTHOR_ID,
+      title: "My Article",
+      feedback: "Please add citations",
+      timestamp: new Date().toISOString(),
+    });
+
+    expect(mockEnqueueEmailJob).not.toHaveBeenCalled();
   });
 });

@@ -24,6 +24,7 @@ export const articleStatusEnum = pgEnum("community_article_status", [
   "draft",
   "pending_review",
   "published",
+  "revision_requested",
   "rejected",
 ]);
 
@@ -86,5 +87,10 @@ export type NewCommunityArticle = typeof communityArticles.$inferInsert;
 export type CommunityArticleTag = typeof communityArticleTags.$inferSelect;
 export type ArticleLanguage = "en" | "ig" | "both";
 export type ArticleVisibility = "guest" | "members_only";
-export type ArticleStatus = "draft" | "pending_review" | "published" | "rejected";
+export type ArticleStatus =
+  | "draft"
+  | "pending_review"
+  | "published"
+  | "revision_requested"
+  | "rejected";
 export type ArticleCategory = "discussion" | "announcement" | "event";

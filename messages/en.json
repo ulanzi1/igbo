@@ -118,13 +118,32 @@
       "visibilityGuest": "Public (Guests)",
       "addTagPlaceholder": "+ add tag",
       "removeCoverImage": "Remove cover image",
-      "coverAlt": "Cover"
+      "coverAlt": "Cover",
+      "coverImageRequired": "Cover image is required to submit an article."
     },
     "submit": {
       "button": "Submit for Review",
+      "resubmitButton": "ReSubmit for Review",
       "successMessage": "Your article has been submitted for review.",
       "confirmTitle": "Submit for Review?",
       "confirmBody": "Once submitted, your article will be reviewed before publication."
+    },
+    "revision": {
+      "bannerTitle": "Revision Requested",
+      "bannerBody": "An admin has requested revisions to your article. Please review the feedback below and resubmit."
+    },
+    "myArticles": {
+      "title": "My Articles",
+      "writeButton": "Write Article",
+      "empty": "You haven't written any articles yet.",
+      "emptyButton": "Start Writing",
+      "sectionPublished": "Published",
+      "sectionPending": "Under Review",
+      "sectionRevision": "Revision Requested",
+      "sectionRejected": "Rejected",
+      "sectionDraft": "Drafts",
+      "editButton": "Edit",
+      "viewButton": "View"
     },
     "permissions": {
       "notEligible": "You need a Professional or Top-tier membership to publish articles.",
@@ -406,7 +425,15 @@
       "visibilityMembers": "Members Only",
       "readingTime": "{minutes} min read",
       "slug": "Slug",
-      "rejectionFeedbackLabel": "Rejection Feedback"
+      "rejectionFeedbackLabel": "Rejection Feedback",
+      "rejectionFeedbackRequired": "Rejection reason is required",
+      "requestRevision": "Request Revisions",
+      "revisionFeedbackLabel": "Revision notes (required)",
+      "revisionFeedbackPlaceholder": "Explain what the author needs to revise...",
+      "revisionSubmit": "Send Revision Request",
+      "revisionSuccess": "Revision request sent",
+      "revisionError": "Failed to send revision request",
+      "revisionConfirm": "Request Revisions?"
     }
   },
   "Permissions": {

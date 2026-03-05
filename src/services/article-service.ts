@@ -178,14 +178,23 @@ export async function submitArticle(
     });
   }
 
-  const submitted = await submitArticleForReview(articleId, authorId);
-  if (!submitted) {
+  const article = await getArticleForEditing(articleId, authorId);
+  if (!article) {
     throw new ApiError({
       title: "Not Found",
       status: 404,
-      detail: "Article not found or not in draft status",
+      detail: "Article not found or not editable",
     });
   }
+  if (!article.coverImageUrl) {
+    throw new ApiError({
+      title: "Unprocessable Entity",
+      status: 422,
+      detail: "Articles.meta.coverImageRequired",
+    });
+  }
+
+  await submitArticleForReview(articleId, authorId);
 
   await eventBus.emit("article.submitted", {
     articleId,

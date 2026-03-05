@@ -82,7 +82,7 @@ export function ArticleEditor({ articleId, initialData, canSetVisibility }: Arti
   const englishValid = state.enTitle.trim().length > 0 && !isContentEmpty(state.enContent);
   const hasIgboContent = !isContentEmpty(state.igContent);
   const igboValid = !hasIgboContent || state.igTitle.trim().length > 0;
-  const canSubmit = englishValid && igboValid;
+  const canSubmit = englishValid && igboValid && !!state.coverImageUrl;
 
   const handleSaveDraft = () => {
     setSaveError(null);
@@ -122,10 +122,26 @@ export function ArticleEditor({ articleId, initialData, canSetVisibility }: Arti
 
   const isPending = isPendingSave || isPendingSubmit;
 
+  const isResubmit =
+    initialData?.status === "revision_requested" || initialData?.status === "rejected";
+
   const showRejectionBanner = initialData?.status === "rejected" && initialData?.rejectionFeedback;
+  const showRevisionBanner = initialData?.status === "revision_requested";
 
   return (
     <div className="flex flex-col gap-4">
+      {showRevisionBanner && (
+        <div
+          className="rounded-md border border-amber-500/40 bg-amber-950/30 px-4 py-3"
+          role="alert"
+        >
+          <p className="text-sm font-semibold text-amber-400 mb-1">{t("revision.bannerTitle")}</p>
+          <p className="text-sm text-amber-300">{t("revision.bannerBody")}</p>
+          {initialData?.rejectionFeedback && (
+            <p className="text-sm text-amber-300 mt-2 italic">{initialData.rejectionFeedback}</p>
+          )}
+        </div>
+      )}
       {showRejectionBanner && (
         <div className="rounded-md border border-red-500/40 bg-red-950/30 px-4 py-3" role="alert">
           <p className="text-sm font-semibold text-red-400 mb-1">{t("rejectionFeedback")}</p>
@@ -239,15 +255,26 @@ export function ArticleEditor({ articleId, initialData, canSetVisibility }: Arti
         disabled={isPending}
       />
 
+      {/* Cover image required hint */}
+      {!state.coverImageUrl && (
+        <p className="text-sm text-amber-500 text-right" role="alert">
+          {t("meta.coverImageRequired")}
+        </p>
+      )}
+
       {/* Submit */}
       <div className="flex justify-end">
         <Button
           type="button"
           onClick={handleSubmit}
           disabled={!canSubmit || !currentArticleId || isPending}
-          aria-label={t("submit.button")}
+          aria-label={isResubmit ? t("submit.resubmitButton") : t("submit.button")}
         >
-          {isPendingSubmit ? t("editor.submitting") : t("submit.button")}
+          {isPendingSubmit
+            ? t("editor.submitting")
+            : isResubmit
+              ? t("submit.resubmitButton")
+              : t("submit.button")}
         </Button>
       </div>
 
