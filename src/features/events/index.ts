@@ -7,3 +7,6 @@ export { EventMembershipGate } from "./components/EventMembershipGate";
 export { CreateEventButton } from "./components/CreateEventButton";
 export { EventDetailActions } from "./components/EventDetailActions";
 export { useEvents, useEventDetail } from "./hooks/use-events";
+export { RSVPButton } from "./components/RSVPButton";
+export { EventsPageTabs } from "./components/EventsPageTabs";
+export { UpcomingEventsWidget } from "./components/UpcomingEventsWidget";

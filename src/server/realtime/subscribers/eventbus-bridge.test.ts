@@ -4,6 +4,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 vi.mock("@/config/realtime", () => ({
   ROOM_USER: (id: string) => `user:${id}`,
   ROOM_CONVERSATION: (id: string) => `conversation:${id}`,
+  ROOM_EVENT: (id: string) => `event:${id}`,
   NAMESPACE_NOTIFICATIONS: "/notifications",
   NAMESPACE_CHAT: "/chat",
 }));
@@ -298,6 +299,79 @@ describe("startEventBusBridge", () => {
     );
 
     expect(chatEmit).not.toHaveBeenCalled();
+  });
+
+  it("routes event.rsvp to event room with attendee count on /notifications namespace", async () => {
+    const notifEmit = vi.fn();
+    const { subscriber, pmessageCallbacks } = makeSubscriber();
+    const io = makeIo(notifEmit);
+
+    await startEventBusBridge(io, subscriber);
+
+    const ts = new Date().toISOString();
+    const payload = {
+      eventId: "event-1",
+      userId: USER_ID,
+      status: "registered",
+      attendeeCount: 12,
+      timestamp: ts,
+    };
+
+    pmessageCallbacks[0]?.("eventbus:*", "eventbus:event.rsvp", JSON.stringify(payload));
+
+    expect(io.of).toHaveBeenCalledWith("/notifications");
+    expect(notifEmit).toHaveBeenCalledWith(
+      "event:attendee_update",
+      expect.objectContaining({
+        eventId: "event-1",
+        attendeeCount: 12,
+        timestamp: ts,
+      }),
+    );
+  });
+
+  it("routes event.rsvp_cancelled to event room with updated attendee count", async () => {
+    const notifEmit = vi.fn();
+    const { subscriber, pmessageCallbacks } = makeSubscriber();
+    const io = makeIo(notifEmit);
+
+    await startEventBusBridge(io, subscriber);
+
+    const ts = new Date().toISOString();
+    const payload = {
+      eventId: "event-1",
+      userId: USER_ID,
+      attendeeCount: 11,
+      timestamp: ts,
+    };
+
+    pmessageCallbacks[0]?.("eventbus:*", "eventbus:event.rsvp_cancelled", JSON.stringify(payload));
+
+    expect(io.of).toHaveBeenCalledWith("/notifications");
+    expect(notifEmit).toHaveBeenCalledWith(
+      "event:attendee_update",
+      expect.objectContaining({
+        eventId: "event-1",
+        attendeeCount: 11,
+        timestamp: ts,
+      }),
+    );
+  });
+
+  it("ignores event.rsvp when eventId is missing", async () => {
+    const notifEmit = vi.fn();
+    const { subscriber, pmessageCallbacks } = makeSubscriber();
+    const io = makeIo(notifEmit);
+
+    await startEventBusBridge(io, subscriber);
+
+    pmessageCallbacks[0]?.(
+      "eventbus:*",
+      "eventbus:event.rsvp",
+      JSON.stringify({ userId: USER_ID, attendeeCount: 5 }), // no eventId
+    );
+
+    expect(notifEmit).not.toHaveBeenCalled();
   });
 
   it("ignores unknown event types gracefully", async () => {

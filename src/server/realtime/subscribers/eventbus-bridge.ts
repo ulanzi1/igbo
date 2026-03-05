@@ -4,6 +4,7 @@ import type { Server } from "socket.io";
 import {
   ROOM_USER,
   ROOM_CONVERSATION,
+  ROOM_EVENT,
   NAMESPACE_NOTIFICATIONS,
   NAMESPACE_CHAT,
 } from "@/config/realtime";
@@ -22,6 +23,8 @@ import type {
   ReactionRemovedEvent,
   GroupMemberJoinedEvent,
   GroupMemberLeftEvent,
+  EventRsvpEvent,
+  EventRsvpCancelledEvent,
 } from "@/types/events";
 
 const CHANNEL_PREFIX = "eventbus:";
@@ -247,6 +250,27 @@ function routeToNamespace(io: Server, eventName: string, payload: unknown): void
           // Non-critical
         }
       })();
+      break;
+    }
+    case "event.rsvp": {
+      const rsvpPayload = payload as EventRsvpEvent;
+      if (!rsvpPayload?.eventId) break;
+      // Emit attendee count update to all clients viewing this event
+      notificationsNs.to(ROOM_EVENT(rsvpPayload.eventId)).emit("event:attendee_update", {
+        eventId: rsvpPayload.eventId,
+        attendeeCount: rsvpPayload.attendeeCount,
+        timestamp: rsvpPayload.timestamp,
+      });
+      break;
+    }
+    case "event.rsvp_cancelled": {
+      const cancelledPayload = payload as EventRsvpCancelledEvent;
+      if (!cancelledPayload?.eventId) break;
+      notificationsNs.to(ROOM_EVENT(cancelledPayload.eventId)).emit("event:attendee_update", {
+        eventId: cancelledPayload.eventId,
+        attendeeCount: cancelledPayload.attendeeCount,
+        timestamp: cancelledPayload.timestamp,
+      });
       break;
     }
     default:

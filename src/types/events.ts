@@ -380,6 +380,30 @@ export interface EventAttendedEvent extends BaseEvent {
   userId: string;
 }
 
+// --- Event RSVP Events ---
+
+export interface EventRsvpEvent extends BaseEvent {
+  eventId: string;
+  userId: string;
+  status: "registered" | "waitlisted";
+  waitlistPosition: number | null; // set when status = 'waitlisted'
+  attendeeCount: number; // updated count after RSVP
+}
+
+export interface EventRsvpCancelledEvent extends BaseEvent {
+  eventId: string;
+  userId: string;
+  previousStatus: "registered" | "waitlisted";
+  attendeeCount: number; // updated count after cancellation
+}
+
+export interface EventWaitlistPromotedEvent extends BaseEvent {
+  eventId: string;
+  promotedUserId: string; // the user being promoted
+  title: string; // event title (embedded to avoid bridge DB query)
+  startTime: string; // ISO 8601
+}
+
 // --- Recording Events ---
 
 export interface RecordingExpiredEvent extends BaseEvent {
@@ -519,6 +543,9 @@ export type EventName =
   | "event.updated"
   | "event.cancelled"
   | "event.attended"
+  | "event.rsvp"
+  | "event.rsvp_cancelled"
+  | "event.waitlist_promoted"
   | "recording.expired"
   | "job.failed"
   | "member.logged_in"
@@ -596,6 +623,9 @@ export interface EventMap {
   "event.updated": EventUpdatedEvent;
   "event.cancelled": EventCancelledEvent;
   "event.attended": EventAttendedEvent;
+  "event.rsvp": EventRsvpEvent;
+  "event.rsvp_cancelled": EventRsvpCancelledEvent;
+  "event.waitlist_promoted": EventWaitlistPromotedEvent;
   "recording.expired": RecordingExpiredEvent;
   "job.failed": JobFailedEvent;
   "member.logged_in": MemberLoggedInEvent;

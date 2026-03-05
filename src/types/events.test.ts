@@ -23,11 +23,14 @@ describe("Event type definitions", () => {
       "message.mentioned",
       "group.archived",
       "event.attended",
+      "event.rsvp",
+      "event.rsvp_cancelled",
+      "event.waitlist_promoted",
       "recording.expired",
       "job.failed",
     ];
 
-    expect(eventNames).toHaveLength(20);
+    expect(eventNames).toHaveLength(23);
   });
 
   it("requires timestamp on all event payloads", () => {

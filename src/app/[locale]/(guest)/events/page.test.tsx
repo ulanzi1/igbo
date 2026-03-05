@@ -40,10 +40,12 @@ vi.mock("@/db/queries/events", () => ({
   getEventsByParentId: vi.fn(),
 }));
 
-vi.mock("@/features/events/components/EventList", () => ({
-  EventList: ({ events }: { events: unknown[] }) => (
+vi.mock("@/features/events", () => ({
+  EventsPageTabs: ({ initialUpcomingEvents }: { initialUpcomingEvents: unknown[] }) => (
     <div data-testid="event-list">
-      {events.length === 0 ? "Events.list.empty" : `${events.length} events`}
+      {initialUpcomingEvents.length === 0
+        ? "Events.list.empty"
+        : `${initialUpcomingEvents.length} events`}
     </div>
   ),
 }));

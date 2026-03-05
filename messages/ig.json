@@ -535,6 +535,35 @@
       "signInPrompt": "iji hụ nkọwa zuru ezu.",
       "groupMembersOnly": "Ihe omume a dị maka ndị otu naanị.",
       "backToEvents": "Laghachi na ihe omume"
+    },
+    "rsvp": {
+      "button": "Debanye Aha",
+      "cancelButton": "Kagbuo Ndebanye Aha",
+      "confirming": "Na-akwado...",
+      "cancelling": "Na-akagbuo...",
+      "registered": "Edebanye aha gị! Anyị ga-echetara gị tupu ihe omume.",
+      "waitlisted": "Ihe omume a juputara. Edebanye aha gị na ndepụta ndọdọ n'ọnọdụ {position}.",
+      "alreadyRegistered": "Edebanye aha gị maka ihe omume a.",
+      "alreadyWaitlisted": "Ị nọ na ndepụta ndọdọ (ọnọdụ {position}).",
+      "cancelConfirm": "Kagbuo ndebanye aha gị?",
+      "cancelDescription": "Ebe gị nwere ike inye onye ọzọ nọ na ndepụta ndọdọ.",
+      "cancelSuccess": "Akagbuola ndebanye aha gị.",
+      "cancelError": "Ọ dịghị mma ịkagbuo ndebanye aha.",
+      "error": "Ọ dịghị mma ịdebanye aha. Biko nwalee ọzọ.",
+      "spotsLeft": "Ebe {count} fọdụrụ",
+      "signInToRsvp": "Banye iji debanye aha"
+    },
+    "past": {
+      "empty": "Enweghị ihe omume gara aga",
+      "attendedCount": "{count} bịara"
+    },
+    "myRsvps": {
+      "empty": "Ị debeghị aha maka ihe omume ọ bụla na-abịa."
+    },
+    "widget": {
+      "title": "Ihe Omume Na-abịa",
+      "empty": "Enweghị ihe omume na-abịa",
+      "viewAll": "Hụ ihe omume niile"
     }
   },
   "Permissions": {
@@ -890,6 +919,9 @@
       "minutesAgo": "{count}m gara aga",
       "hoursAgo": "{count}h gara aga",
       "daysAgo": "{count}d gara aga"
+    },
+    "event_waitlist_promoted": {
+      "title": "Ewepụtara gị na ndepụta ndọdọ!"
     }
   },
   "Dashboard": {
@@ -916,6 +948,7 @@
     "widget": {
       "error": "Ihe adaghị nke ọma n'ibugo akụkụ a"
     },
+    "upcomingEvents": "Ihe Omume Na-abịa",
     "peopleNear": {
       "title": "Ndị nọ n'ógbè gị",
       "seeAll": "Lee ha nile",

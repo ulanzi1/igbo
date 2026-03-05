@@ -615,3 +615,35 @@ describe("article.revision_requested handler", () => {
     expect(mockEnqueueEmailJob).not.toHaveBeenCalled();
   });
 });
+
+describe("event.waitlist_promoted handler", () => {
+  const PROMOTED_USER_ID = "00000000-0000-4000-8000-000000000099";
+  const EVENT_ID = "00000000-0000-4000-8000-000000000088";
+
+  it("registers event.waitlist_promoted listener", () => {
+    expect(handlerRef.current.has("event.waitlist_promoted")).toBe(true);
+  });
+
+  it("calls createNotification with event_reminder type and promoted user as recipient", async () => {
+    mockFilterNotificationRecipients.mockResolvedValue([PROMOTED_USER_ID]);
+    const handler = handlerRef.current.get("event.waitlist_promoted");
+
+    await handler?.({
+      eventId: EVENT_ID,
+      promotedUserId: PROMOTED_USER_ID,
+      title: "Community Night Out",
+      startTime: new Date("2030-06-15T18:00:00Z").toISOString(),
+      timestamp: new Date().toISOString(),
+    });
+
+    expect(mockCreateNotification).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: PROMOTED_USER_ID,
+        type: "event_reminder",
+        title: "notifications.event_waitlist_promoted.title",
+        body: "Community Night Out",
+        link: `/events/${EVENT_ID}`,
+      }),
+    );
+  });
+});
