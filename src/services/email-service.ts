@@ -7,7 +7,8 @@ import { registerJob, runJob } from "@/server/jobs/job-runner";
 
 export interface EmailPayload {
   to: string;
-  subject: string;
+  /** Subject is resolved from the template — only pass to override. */
+  subject?: string;
   templateId: string;
   data: Record<string, unknown>;
   locale?: "en" | "ig";

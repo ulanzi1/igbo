@@ -47,4 +47,8 @@ class TypedEventBus {
   }
 }
 
-export const eventBus = new TypedEventBus();
+// Use globalThis to persist the singleton across Next.js dev-mode hot reloads.
+// Without this, module re-evaluation creates a new EventBus instance while
+// notification handlers remain registered on the old (now-orphaned) instance.
+const globalForEventBus = globalThis as unknown as { __eventBus?: TypedEventBus };
+export const eventBus = (globalForEventBus.__eventBus ??= new TypedEventBus());

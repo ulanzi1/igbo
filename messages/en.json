@@ -125,8 +125,11 @@
       "button": "Submit for Review",
       "resubmitButton": "ReSubmit for Review",
       "successMessage": "Your article has been submitted for review.",
+      "thankYouTitle": "Thank You for Your Submission",
+      "thankYouBody": "We appreciate your contribution. Please allow us 2–3 days for review. You will receive an email once your article has been approved.",
       "confirmTitle": "Submit for Review?",
-      "confirmBody": "Once submitted, your article will be reviewed before publication."
+      "confirmBody": "Once submitted, your article will be reviewed before publication.",
+      "notEligible": "This article cannot be submitted in its current state."
     },
     "revision": {
       "bannerTitle": "Revision Requested",
@@ -145,7 +148,14 @@
       "editButton": "Edit",
       "viewButton": "View"
     },
+    "limit": {
+      "title": "Weekly Article Limit Reached",
+      "body": "You have reached your weekly article posting limit of {count, plural, one {# article} other {# articles}} per week. Please try again next week or contact an admin for an enhanced limit.",
+      "dashboard": "Dashboard",
+      "chat": "Chat"
+    },
     "permissions": {
+      "deniedTitle": "Article Publishing Not Available",
       "notEligible": "You need a Professional or Top-tier membership to publish articles.",
       "weeklyLimitReached": "You have reached your weekly article submission limit."
     },

@@ -212,6 +212,7 @@ export interface FileQuarantinedEvent extends BaseEvent {
 export interface ArticleSubmittedEvent extends BaseEvent {
   articleId: string;
   authorId: string;
+  title: string;
 }
 
 export interface ArticlePublishedEvent extends BaseEvent {

@@ -10,6 +10,7 @@ import {
   MenuIcon,
   XIcon,
   PenLineIcon,
+  BookOpenIcon,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useSession, signOut } from "next-auth/react";
@@ -150,6 +151,12 @@ function TopNav({ className }: { className?: string }) {
                 <Link href="/articles/new" className="flex items-center gap-2 cursor-pointer">
                   <PenLineIcon className="size-4" aria-hidden="true" />
                   {tArticles("nav.writeArticle")}
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/my-articles" className="flex items-center gap-2 cursor-pointer">
+                  <BookOpenIcon className="size-4" aria-hidden="true" />
+                  {tArticles("myArticles.title")}
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />

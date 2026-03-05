@@ -198,6 +198,7 @@ describe("submitArticle", () => {
     mockGetArticleForEditing.mockReset();
     mockGetArticleForEditing.mockResolvedValue({
       id: ARTICLE_ID,
+      title: "Test Article",
       coverImageUrl: "/uploads/cover.jpg",
       status: "draft",
     } as Awaited<ReturnType<typeof getArticleForEditing>>);
@@ -263,11 +264,24 @@ describe("submitArticle", () => {
     expect((err as ApiError).status).toBe(404);
   });
 
+  it("throws 409 when submitArticleForReview returns null (already pending/published)", async () => {
+    mockGetTier.mockResolvedValue("PROFESSIONAL");
+    mockCountWeekly.mockResolvedValue(0);
+    mockSubmitArticleForReview.mockResolvedValue(null);
+    mockEventBusEmit.mockResolvedValue(undefined);
+
+    const err = await submitArticle(AUTHOR_ID, ARTICLE_ID).catch((e: ApiError) => e);
+    expect((err as ApiError).status).toBe(409);
+    expect((err as ApiError).detail).toBe("Articles.submit.notEligible");
+    expect(mockEventBusEmit).not.toHaveBeenCalled();
+  });
+
   it("submits successfully from revision_requested status", async () => {
     mockGetTier.mockResolvedValue("PROFESSIONAL");
     mockCountWeekly.mockResolvedValue(0);
     mockGetArticleForEditing.mockResolvedValue({
       id: ARTICLE_ID,
+      title: "Revised Article",
       coverImageUrl: "/uploads/cover.jpg",
       status: "revision_requested",
     } as Awaited<ReturnType<typeof getArticleForEditing>>);

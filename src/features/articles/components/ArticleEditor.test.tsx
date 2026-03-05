@@ -3,6 +3,11 @@ import React from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, act } from "@/test/test-utils";
 
+const mockPush = vi.fn();
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: mockPush, refresh: vi.fn() }),
+}));
+
 // ─── Tiptap mocks ─────────────────────────────────────────────────────────────
 
 type OnUpdateCallback = (props: { editor: { getJSON: () => object } }) => void;
