@@ -25,6 +25,7 @@ import type {
   GroupOwnershipTransferredEvent,
   GroupArchivedEvent,
   AccountStatusChangedEvent,
+  ArticleSubmittedEvent,
   ArticlePublishedEvent,
   ArticleRejectedEvent,
   ArticleRevisionRequestedEvent,
@@ -96,271 +97,295 @@ async function deliverNotification(params: {
 
 // ─── EventBus Listeners ───────────────────────────────────────────────────────
 
-eventBus.on("member.approved", async (payload: MemberApprovedEvent) => {
-  await deliverNotification({
-    userId: payload.userId,
-    actorId: payload.approvedBy,
-    type: "admin_announcement",
-    title: "notifications.member_approved.title",
-    body: "notifications.member_approved.body",
-    link: "/dashboard",
-  });
-});
+// Guard against duplicate handler registration during Next.js dev-mode hot reloads.
+// Without this, each re-evaluation of this module would add another copy of every handler.
+const globalForNotif = globalThis as unknown as { __notifHandlersRegistered?: boolean };
+if (globalForNotif.__notifHandlersRegistered) {
+  // Handlers already live on the globalThis-persisted eventBus — skip re-registration
+} else {
+  globalForNotif.__notifHandlersRegistered = true;
 
-// NOTE: post.reacted, post.commented, and message.sent handlers are intentionally
-// deferred — their event types do not carry the target recipient's ID (post author
-// or message recipient). These will be implemented when the posts (Epic 4) and
-// chat (Epic 2) features are built and the event types include authorId/recipientId.
-
-eventBus.on("member.followed", async (payload: MemberFollowedEvent) => {
-  await deliverNotification({
-    userId: payload.followedId,
-    actorId: payload.followerId,
-    type: "system",
-    title: "notifications.new_follower.title",
-    body: "notifications.new_follower.body",
-    link: "/profile",
-  });
-});
-
-eventBus.on("message.mentioned", async (payload: MessageMentionedEvent) => {
-  const { conversationId, senderId, mentionedUserIds, contentPreview } = payload;
-  const redis = getRedisPublisher();
-
-  for (const recipientId of mentionedUserIds) {
-    // Check per-conversation notification preference
-    const pref = await getConversationNotificationPreference(conversationId, recipientId);
-    if (pref === "muted") {
-      continue; // suppress — user has muted this conversation
-    }
-    // "mentions" preference allows message.mentioned through (it IS a mention)
-    // "all" also allows through
-
-    // Check global DnD
-    const isDnd = await redis.exists(`dnd:${recipientId}`);
-    if (isDnd) {
-      continue; // suppress — DnD active
-    }
-
+  eventBus.on("member.approved", async (payload: MemberApprovedEvent) => {
     await deliverNotification({
-      userId: recipientId,
-      actorId: senderId,
-      type: "mention",
-      title: "notifications.mention.title",
-      body: contentPreview,
-      link: `/chat?conversation=${conversationId}`,
+      userId: payload.userId,
+      actorId: payload.approvedBy,
+      type: "admin_announcement",
+      title: "notifications.member_approved.title",
+      body: "notifications.member_approved.body",
+      link: "/dashboard",
     });
-  }
-});
+  });
 
-// ─── Group Membership Notifications (Story 5.2) ──────────────────────────────
+  // NOTE: post.reacted, post.commented, and message.sent handlers are intentionally
+  // deferred — their event types do not carry the target recipient's ID (post author
+  // or message recipient). These will be implemented when the posts (Epic 4) and
+  // chat (Epic 2) features are built and the event types include authorId/recipientId.
 
-eventBus.on("group.join_requested", async (payload: GroupJoinRequestedEvent) => {
-  const leaders = await listGroupLeaders(payload.groupId);
-  for (const leaderId of leaders) {
+  eventBus.on("member.followed", async (payload: MemberFollowedEvent) => {
     await deliverNotification({
-      userId: leaderId,
-      actorId: payload.userId,
+      userId: payload.followedId,
+      actorId: payload.followerId,
+      type: "system",
+      title: "notifications.new_follower.title",
+      body: "notifications.new_follower.body",
+      link: "/profile",
+    });
+  });
+
+  eventBus.on("message.mentioned", async (payload: MessageMentionedEvent) => {
+    const { conversationId, senderId, mentionedUserIds, contentPreview } = payload;
+    const redis = getRedisPublisher();
+
+    for (const recipientId of mentionedUserIds) {
+      // Check per-conversation notification preference
+      const pref = await getConversationNotificationPreference(conversationId, recipientId);
+      if (pref === "muted") {
+        continue; // suppress — user has muted this conversation
+      }
+      // "mentions" preference allows message.mentioned through (it IS a mention)
+      // "all" also allows through
+
+      // Check global DnD
+      const isDnd = await redis.exists(`dnd:${recipientId}`);
+      if (isDnd) {
+        continue; // suppress — DnD active
+      }
+
+      await deliverNotification({
+        userId: recipientId,
+        actorId: senderId,
+        type: "mention",
+        title: "notifications.mention.title",
+        body: contentPreview,
+        link: `/chat?conversation=${conversationId}`,
+      });
+    }
+  });
+
+  // ─── Group Membership Notifications (Story 5.2) ──────────────────────────────
+
+  eventBus.on("group.join_requested", async (payload: GroupJoinRequestedEvent) => {
+    const leaders = await listGroupLeaders(payload.groupId);
+    for (const leaderId of leaders) {
+      await deliverNotification({
+        userId: leaderId,
+        actorId: payload.userId,
+        type: "group_activity",
+        title: "notifications.group_join_request.title",
+        body: "notifications.group_join_request.body",
+        link: `/groups/${payload.groupId}`,
+      });
+    }
+  });
+
+  eventBus.on("group.join_approved", async (payload: GroupJoinApprovedEvent) => {
+    await deliverNotification({
+      userId: payload.userId,
+      actorId: payload.approvedBy,
       type: "group_activity",
-      title: "notifications.group_join_request.title",
-      body: "notifications.group_join_request.body",
+      title: "notifications.group_join_approved.title",
+      body: "notifications.group_join_approved.body",
       link: `/groups/${payload.groupId}`,
     });
-  }
-});
-
-eventBus.on("group.join_approved", async (payload: GroupJoinApprovedEvent) => {
-  await deliverNotification({
-    userId: payload.userId,
-    actorId: payload.approvedBy,
-    type: "group_activity",
-    title: "notifications.group_join_approved.title",
-    body: "notifications.group_join_approved.body",
-    link: `/groups/${payload.groupId}`,
   });
-});
 
-eventBus.on("group.join_rejected", async (payload: GroupJoinRejectedEvent) => {
-  await deliverNotification({
-    userId: payload.userId,
-    actorId: payload.rejectedBy,
-    type: "group_activity",
-    title: "notifications.group_join_rejected.title",
-    body: "notifications.group_join_rejected.body",
-  });
-});
-
-// ─── Group Leadership & Moderation Notifications (Story 5.4) ─────────────────
-
-eventBus.on("group.leader_assigned", async (payload: GroupLeaderAssignedEvent) => {
-  await deliverNotification({
-    userId: payload.userId,
-    actorId: payload.assignedBy,
-    type: "group_activity",
-    title: "notifications.group_leader_assigned.title",
-    body: "notifications.group_leader_assigned.body",
-    link: `/groups/${payload.groupId}`,
-  });
-});
-
-eventBus.on("group.member_muted", async (payload: GroupMemberMutedEvent) => {
-  await deliverNotification({
-    userId: payload.userId,
-    actorId: payload.moderatorId,
-    type: "group_activity",
-    title: "notifications.group_member_muted.title",
-    body: "notifications.group_member_muted.body",
-    link: `/groups/${payload.groupId}`,
-  });
-});
-
-eventBus.on("group.member_banned", async (payload: GroupMemberBannedEvent) => {
-  await deliverNotification({
-    userId: payload.userId,
-    actorId: payload.moderatorId,
-    type: "group_activity",
-    title: "notifications.group_member_banned.title",
-    body: "notifications.group_member_banned.body",
-  });
-});
-
-eventBus.on("group.ownership_transferred", async (payload: GroupOwnershipTransferredEvent) => {
-  await deliverNotification({
-    userId: payload.newOwnerId,
-    actorId: payload.previousOwnerId,
-    type: "group_activity",
-    title: "notifications.group_ownership_transferred.title",
-    body: "notifications.group_ownership_transferred.body",
-    link: `/groups/${payload.groupId}`,
-  });
-});
-
-eventBus.on("group.archived", async (payload: GroupArchivedEvent) => {
-  // Look up all active members to notify them
-  const { listActiveGroupMemberIds } = await import("@/db/queries/group-channels");
-  const memberIds = await listActiveGroupMemberIds(payload.groupId);
-  for (const userId of memberIds) {
+  eventBus.on("group.join_rejected", async (payload: GroupJoinRejectedEvent) => {
     await deliverNotification({
-      userId,
-      actorId: payload.archivedBy,
+      userId: payload.userId,
+      actorId: payload.rejectedBy,
       type: "group_activity",
-      title: "notifications.group_archived.title",
-      body: "notifications.group_archived.body",
+      title: "notifications.group_join_rejected.title",
+      body: "notifications.group_join_rejected.body",
+    });
+  });
+
+  // ─── Group Leadership & Moderation Notifications (Story 5.4) ─────────────────
+
+  eventBus.on("group.leader_assigned", async (payload: GroupLeaderAssignedEvent) => {
+    await deliverNotification({
+      userId: payload.userId,
+      actorId: payload.assignedBy,
+      type: "group_activity",
+      title: "notifications.group_leader_assigned.title",
+      body: "notifications.group_leader_assigned.body",
       link: `/groups/${payload.groupId}`,
     });
-  }
-});
-
-// ─── Article Publication Notifications (Story 6.2) ───────────────────────────
-
-// self-notify pattern: bypasses block/mute filter (actorId === userId)
-eventBus.on("article.published", async (payload: ArticlePublishedEvent) => {
-  await deliverNotification({
-    userId: payload.authorId,
-    actorId: payload.authorId, // self-notify pattern: bypasses block/mute filter
-    type: "admin_announcement",
-    title: "notifications.article_published.title",
-    body: "notifications.article_published.body",
-    link: `/articles/${payload.slug}`,
   });
-  // Email notification
-  const user = await findUserById(payload.authorId);
-  if (user?.email) {
-    enqueueEmailJob(`article-published-${payload.articleId}-${Date.now()}`, {
-      to: user.email,
-      templateId: "article-published",
-      data: {
-        name: user.name ?? user.email,
-        title: payload.title,
-        articleUrl: `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/en/articles/${payload.slug}`,
-      },
-      locale: user.languagePreference === "ig" ? "ig" : "en",
-    });
-  }
-});
 
-eventBus.on("article.rejected", async (payload: ArticleRejectedEvent) => {
-  await deliverNotification({
-    userId: payload.authorId,
-    actorId: payload.authorId, // self-notify pattern: bypasses block/mute filter
-    type: "admin_announcement",
-    title: "notifications.article_rejected.title",
-    body: payload.feedback ?? "notifications.article_rejected.body",
-    link: `/articles/${payload.articleId}/edit`,
+  eventBus.on("group.member_muted", async (payload: GroupMemberMutedEvent) => {
+    await deliverNotification({
+      userId: payload.userId,
+      actorId: payload.moderatorId,
+      type: "group_activity",
+      title: "notifications.group_member_muted.title",
+      body: "notifications.group_member_muted.body",
+      link: `/groups/${payload.groupId}`,
+    });
   });
-  // Email notification
-  const user = await findUserById(payload.authorId);
-  if (user?.email) {
-    enqueueEmailJob(`article-rejected-${payload.articleId}-${Date.now()}`, {
-      to: user.email,
-      templateId: "article-rejected",
-      data: {
-        name: user.name ?? user.email,
-        title: payload.title,
-        feedback: payload.feedback ?? "",
-        editUrl: `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/en/articles/${payload.articleId}/edit`,
-      },
-      locale: user.languagePreference === "ig" ? "ig" : "en",
-    });
-  }
-});
 
-eventBus.on("article.revision_requested", async (payload: ArticleRevisionRequestedEvent) => {
-  await deliverNotification({
-    userId: payload.authorId,
-    actorId: payload.authorId, // self-notify pattern: bypasses block/mute filter
-    type: "admin_announcement",
-    title: "notifications.article_revision_requested.title",
-    body: payload.feedback,
-    link: `/articles/${payload.articleId}/edit`,
+  eventBus.on("group.member_banned", async (payload: GroupMemberBannedEvent) => {
+    await deliverNotification({
+      userId: payload.userId,
+      actorId: payload.moderatorId,
+      type: "group_activity",
+      title: "notifications.group_member_banned.title",
+      body: "notifications.group_member_banned.body",
+    });
   });
-  const user = await findUserById(payload.authorId);
-  if (user?.email) {
-    enqueueEmailJob(`article-revision-${payload.articleId}-${Date.now()}`, {
-      to: user.email,
-      templateId: "article-revision-requested",
-      data: {
-        name: user.name ?? user.email,
-        title: payload.title,
-        feedback: payload.feedback,
-        editUrl: `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/en/articles/${payload.articleId}/edit`,
-      },
-      locale: user.languagePreference === "ig" ? "ig" : "en",
+
+  eventBus.on("group.ownership_transferred", async (payload: GroupOwnershipTransferredEvent) => {
+    await deliverNotification({
+      userId: payload.newOwnerId,
+      actorId: payload.previousOwnerId,
+      type: "group_activity",
+      title: "notifications.group_ownership_transferred.title",
+      body: "notifications.group_ownership_transferred.body",
+      link: `/groups/${payload.groupId}`,
     });
-  }
-});
+  });
 
-// ─── Ownership Transfer on Account Status Change ──────────────────────────────
-
-eventBus.on("account.status_changed", async (payload: AccountStatusChangedEvent) => {
-  const suspendedStatuses = ["SUSPENDED", "PENDING_DELETION", "ANONYMIZED"];
-  if (!suspendedStatuses.includes(payload.newStatus)) return;
-
-  // Find all groups where user is creator and trigger ownership transfer
-  const { db } = await import("@/db");
-  const { communityGroups, communityGroupMembers } = await import("@/db/schema/community-groups");
-  const { and, eq, sql } = await import("drizzle-orm");
-
-  const creatorGroups = await db
-    .select({ groupId: communityGroups.id })
-    .from(communityGroups)
-    .innerJoin(communityGroupMembers, eq(communityGroupMembers.groupId, communityGroups.id))
-    .where(
-      and(
-        eq(communityGroupMembers.userId, payload.userId),
-        eq(communityGroupMembers.role, "creator"),
-        eq(communityGroupMembers.status, "active"),
-        sql`${communityGroups.deletedAt} IS NULL`,
-      ),
-    );
-
-  if (creatorGroups.length > 0) {
-    const { transferGroupOwnership } = await import("@/services/group-service");
-    for (const { groupId } of creatorGroups) {
-      await transferGroupOwnership(groupId, payload.userId);
+  eventBus.on("group.archived", async (payload: GroupArchivedEvent) => {
+    // Look up all active members to notify them
+    const { listActiveGroupMemberIds } = await import("@/db/queries/group-channels");
+    const memberIds = await listActiveGroupMemberIds(payload.groupId);
+    for (const userId of memberIds) {
+      await deliverNotification({
+        userId,
+        actorId: payload.archivedBy,
+        type: "group_activity",
+        title: "notifications.group_archived.title",
+        body: "notifications.group_archived.body",
+        link: `/groups/${payload.groupId}`,
+      });
     }
-  }
-});
+  });
+
+  // ─── Article Publication Notifications (Story 6.2) ───────────────────────────
+
+  eventBus.on("article.submitted", async (payload: ArticleSubmittedEvent) => {
+    const user = await findUserById(payload.authorId);
+    if (user?.email) {
+      enqueueEmailJob(`article-submitted-${payload.articleId}-${Date.now()}`, {
+        to: user.email,
+        templateId: "article-submitted",
+        data: {
+          name: user.name ?? user.email,
+          title: payload.title,
+        },
+        locale: user.languagePreference === "ig" ? "ig" : "en",
+      });
+    }
+  });
+
+  // self-notify pattern: bypasses block/mute filter (actorId === userId)
+  eventBus.on("article.published", async (payload: ArticlePublishedEvent) => {
+    await deliverNotification({
+      userId: payload.authorId,
+      actorId: payload.authorId, // self-notify pattern: bypasses block/mute filter
+      type: "admin_announcement",
+      title: "notifications.article_published.title",
+      body: "notifications.article_published.body",
+      link: `/articles/${payload.slug}`,
+    });
+    // Email notification
+    const user = await findUserById(payload.authorId);
+    if (user?.email) {
+      enqueueEmailJob(`article-published-${payload.articleId}-${Date.now()}`, {
+        to: user.email,
+        templateId: "article-published",
+        data: {
+          name: user.name ?? user.email,
+          title: payload.title,
+          articleUrl: `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/en/articles/${payload.slug}`,
+        },
+        locale: user.languagePreference === "ig" ? "ig" : "en",
+      });
+    }
+  });
+
+  eventBus.on("article.rejected", async (payload: ArticleRejectedEvent) => {
+    await deliverNotification({
+      userId: payload.authorId,
+      actorId: payload.authorId, // self-notify pattern: bypasses block/mute filter
+      type: "admin_announcement",
+      title: "notifications.article_rejected.title",
+      body: payload.feedback ?? "notifications.article_rejected.body",
+      link: `/articles/${payload.articleId}/edit`,
+    });
+    // Email notification
+    const user = await findUserById(payload.authorId);
+    if (user?.email) {
+      enqueueEmailJob(`article-rejected-${payload.articleId}-${Date.now()}`, {
+        to: user.email,
+        templateId: "article-rejected",
+        data: {
+          name: user.name ?? user.email,
+          title: payload.title,
+          feedback: payload.feedback ?? "",
+          editUrl: `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/en/articles/${payload.articleId}/edit`,
+        },
+        locale: user.languagePreference === "ig" ? "ig" : "en",
+      });
+    }
+  });
+
+  eventBus.on("article.revision_requested", async (payload: ArticleRevisionRequestedEvent) => {
+    await deliverNotification({
+      userId: payload.authorId,
+      actorId: payload.authorId, // self-notify pattern: bypasses block/mute filter
+      type: "admin_announcement",
+      title: "notifications.article_revision_requested.title",
+      body: payload.feedback,
+      link: `/articles/${payload.articleId}/edit`,
+    });
+    const user = await findUserById(payload.authorId);
+    if (user?.email) {
+      enqueueEmailJob(`article-revision-${payload.articleId}-${Date.now()}`, {
+        to: user.email,
+        templateId: "article-revision-requested",
+        data: {
+          name: user.name ?? user.email,
+          title: payload.title,
+          feedback: payload.feedback,
+          editUrl: `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/en/articles/${payload.articleId}/edit`,
+        },
+        locale: user.languagePreference === "ig" ? "ig" : "en",
+      });
+    }
+  });
+
+  // ─── Ownership Transfer on Account Status Change ──────────────────────────────
+
+  eventBus.on("account.status_changed", async (payload: AccountStatusChangedEvent) => {
+    const suspendedStatuses = ["SUSPENDED", "PENDING_DELETION", "ANONYMIZED"];
+    if (!suspendedStatuses.includes(payload.newStatus)) return;
+
+    // Find all groups where user is creator and trigger ownership transfer
+    const { db } = await import("@/db");
+    const { communityGroups, communityGroupMembers } = await import("@/db/schema/community-groups");
+    const { and, eq, sql } = await import("drizzle-orm");
+
+    const creatorGroups = await db
+      .select({ groupId: communityGroups.id })
+      .from(communityGroups)
+      .innerJoin(communityGroupMembers, eq(communityGroupMembers.groupId, communityGroups.id))
+      .where(
+        and(
+          eq(communityGroupMembers.userId, payload.userId),
+          eq(communityGroupMembers.role, "creator"),
+          eq(communityGroupMembers.status, "active"),
+          sql`${communityGroups.deletedAt} IS NULL`,
+        ),
+      );
+
+    if (creatorGroups.length > 0) {
+      const { transferGroupOwnership } = await import("@/services/group-service");
+      for (const { groupId } of creatorGroups) {
+        await transferGroupOwnership(groupId, payload.userId);
+      }
+    }
+  });
+} // end of hot-reload guard (globalForNotif.__notifHandlersRegistered)
 
 // ─── Service Functions (called by API routes) ─────────────────────────────────
 

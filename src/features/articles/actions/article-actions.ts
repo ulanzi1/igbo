@@ -1,6 +1,5 @@
 "use server";
 
-import { redirect } from "next/navigation";
 import { saveDraft, submitArticle } from "@/services/article-service";
 import { requireAuthenticatedSession } from "@/services/permissions";
 import type { ArticleCategory, ArticleVisibility } from "@/db/schema/community-articles";
@@ -54,10 +53,8 @@ export async function submitArticleAction(
   try {
     const { userId } = await requireAuthenticatedSession();
     await submitArticle(userId, input.articleId);
-    redirect("/dashboard");
+    return { success: true };
   } catch (err) {
-    // redirect() throws — re-throw it
-    if (err instanceof Error && err.message === "NEXT_REDIRECT") throw err;
     const msg = err instanceof Error ? err.message : "Failed to submit article";
     return { success: false, error: msg };
   }

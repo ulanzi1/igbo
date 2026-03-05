@@ -174,7 +174,7 @@ export async function submitArticle(
     throw new ApiError({
       title: "Conflict",
       status: 409,
-      detail: "Articles.permissions.weeklyLimitReached",
+      detail: `WEEKLY_LIMIT:${maxPerWeek}`,
     });
   }
 
@@ -194,11 +194,19 @@ export async function submitArticle(
     });
   }
 
-  await submitArticleForReview(articleId, authorId);
+  const submitted = await submitArticleForReview(articleId, authorId);
+  if (!submitted) {
+    throw new ApiError({
+      title: "Conflict",
+      status: 409,
+      detail: "Articles.submit.notEligible",
+    });
+  }
 
   await eventBus.emit("article.submitted", {
     articleId,
     authorId,
+    title: article.title,
     timestamp: new Date().toISOString(),
   });
 

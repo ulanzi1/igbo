@@ -14,6 +14,7 @@ import { render as render2faResetComplete } from "./2fa-reset-complete";
 import { render as renderGdprAccountDeletion } from "./gdpr-account-deletion";
 import { render as renderGdprExportReady } from "./gdpr-export-ready";
 import { render as renderGdprBreachNotification } from "./gdpr-breach-notification";
+import { render as renderArticleSubmitted } from "./article-submitted";
 import { render as renderArticlePublished } from "./article-published";
 import { render as renderArticleRejected } from "./article-rejected";
 import { render as renderArticleRevisionRequested } from "./article-revision-requested";
@@ -37,6 +38,7 @@ const REGISTRY: Record<string, EmailTemplateRenderer> = {
   "gdpr-account-deletion": renderGdprAccountDeletion,
   "gdpr-export-ready": renderGdprExportReady,
   "gdpr-breach-notification": renderGdprBreachNotification,
+  "article-submitted": renderArticleSubmitted,
   "article-published": renderArticlePublished,
   "article-rejected": renderArticleRejected,
   "article-revision-requested": renderArticleRevisionRequested,

@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useTranslations } from "next-intl";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { BilingualEditorPane } from "./BilingualEditorPane";
 import { ArticleMetaForm } from "./ArticleMetaForm";
@@ -59,6 +60,7 @@ function isContentEmpty(json: string): boolean {
 
 export function ArticleEditor({ articleId, initialData, canSetVisibility }: ArticleEditorProps) {
   const t = useTranslations("Articles");
+  const router = useRouter();
   const [isPendingSave, startSaveTransition] = useTransition();
   const [isPendingSubmit, startSubmitTransition] = useTransition();
 
@@ -66,6 +68,8 @@ export function ArticleEditor({ articleId, initialData, canSetVisibility }: Arti
   const [currentArticleId, setCurrentArticleId] = useState<string | undefined>(articleId);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [submitted, setSubmitted] = useState(false);
+  const [weeklyLimit, setWeeklyLimit] = useState<number | null>(null);
 
   const [state, setState] = useState<ArticleEditorState>({
     enTitle: initialData?.title ?? "",
@@ -114,9 +118,15 @@ export function ArticleEditor({ articleId, initialData, canSetVisibility }: Arti
     startSubmitTransition(async () => {
       const result = await submitArticleAction({ articleId: currentArticleId });
       if (!result.success) {
-        setSubmitError(result.error);
+        const limitMatch = result.error.match(/^WEEKLY_LIMIT:(\d+)$/);
+        if (limitMatch) {
+          setWeeklyLimit(Number(limitMatch[1]));
+        } else {
+          setSubmitError(result.error);
+        }
+      } else {
+        setSubmitted(true);
       }
-      // On success, the action handles redirect
     });
   };
 
@@ -127,6 +137,45 @@ export function ArticleEditor({ articleId, initialData, canSetVisibility }: Arti
 
   const showRejectionBanner = initialData?.status === "rejected" && initialData?.rejectionFeedback;
   const showRevisionBanner = initialData?.status === "revision_requested";
+
+  if (submitted) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-6 py-16 text-center">
+        <div className="max-w-md space-y-3">
+          <h2 className="text-xl font-semibold">{t("submit.thankYouTitle")}</h2>
+          <p className="text-muted-foreground">{t("submit.thankYouBody")}</p>
+        </div>
+        <div className="flex gap-3">
+          <Button variant="outline" onClick={() => router.push("/my-articles")}>
+            {t("myArticles.title")}
+          </Button>
+          <Button onClick={() => router.push("/articles/new")}>{t("nav.writeArticle")}</Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (weeklyLimit !== null) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-6 py-16 text-center">
+        <div className="max-w-md space-y-3">
+          <h2 className="text-xl font-semibold">{t("limit.title")}</h2>
+          <p className="text-muted-foreground">{t("limit.body", { count: weeklyLimit })}</p>
+        </div>
+        <div className="flex flex-wrap justify-center gap-3">
+          <Button variant="outline" onClick={() => router.push("/dashboard")}>
+            {t("limit.dashboard")}
+          </Button>
+          <Button variant="outline" onClick={() => router.push("/my-articles")}>
+            {t("myArticles.title")}
+          </Button>
+          <Button variant="outline" onClick={() => router.push("/chat")}>
+            {t("limit.chat")}
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-4">

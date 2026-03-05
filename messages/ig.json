@@ -125,8 +125,11 @@
       "button": "Zipu maka Nlele",
       "resubmitButton": "Zipu Ọzọ maka Nlele",
       "successMessage": "E zigara akụkọ gị maka nlele.",
+      "thankYouTitle": "Daalụ maka Nzipu Gị",
+      "thankYouBody": "Anyị ekele maka ntinye gị. Biko nye anyị ụbọchị 2–3 maka nlele. Ị ga-enweta email mgbe akụkọ gị enwetara nkwado.",
       "confirmTitle": "Zipu maka Nlele?",
-      "confirmBody": "Mgbe ezigara, a ga-enyochaa akụkọ gị tupu ewepụtara ya."
+      "confirmBody": "Mgbe ezigara, a ga-enyochaa akụkọ gị tupu ewepụtara ya.",
+      "notEligible": "Akụkọ a enweghị ike izi n'ọnọdụ ya ugbu a."
     },
     "revision": {
       "bannerTitle": "Achọrọ Mgbanwe",
@@ -145,7 +148,14 @@
       "editButton": "Dezie",
       "viewButton": "Lelee"
     },
+    "limit": {
+      "title": "Ị Ruru Oke Akụkọ Izu a",
+      "body": "Ị ruru oke akụkọ ị nwere ike iziga n'izu a nke bụ {count, plural, one {akụkọ #} other {akụkọ #}} kwa izu. Biko nwaa ọzọ n'izu ọzọ ma ọ bụ kpọtụrụ onye nlekọta maka oke a kachasị.",
+      "dashboard": "Dashibọọdụ",
+      "chat": "Okwu"
+    },
     "permissions": {
+      "deniedTitle": "Ịbipụta Akụkọ Adịghị",
       "notEligible": "Ịchọrọ ọrụ Professional ma ọ bụ Top-tier iji bipụta akụkọ.",
       "weeklyLimitReached": "Ị eruo oke akụkọ ị nwere ike iziga n'izu a."
     },
