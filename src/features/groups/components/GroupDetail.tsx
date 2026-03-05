@@ -78,6 +78,7 @@ export function GroupDetail({
               viewerDisplayName={viewerDisplayName}
               viewerPhotoUrl={viewerPhotoUrl}
               canPost={false}
+              isModerated={group.postingPermission === "moderated"}
             />
           </TabsContent>
 
@@ -107,6 +108,7 @@ export function GroupDetail({
             viewerDisplayName={viewerDisplayName}
             viewerPhotoUrl={viewerPhotoUrl}
             canPost={canPost}
+            isModerated={group.postingPermission === "moderated"}
           />
         </TabsContent>
 

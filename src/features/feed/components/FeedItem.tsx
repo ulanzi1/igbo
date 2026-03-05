@@ -152,6 +152,14 @@ export function FeedItem({
               : t("composer.categoryAnnouncement")}
           </Badge>
         )}
+        {post.status === "pending_approval" && (
+          <Badge
+            variant="outline"
+            className="text-xs border-amber-400 text-amber-700 bg-amber-50 dark:bg-amber-950 dark:text-amber-300"
+          >
+            {t("awaitingModeration")}
+          </Badge>
+        )}
         {(isAdmin || onPinToggle) && (
           <button
             type="button"

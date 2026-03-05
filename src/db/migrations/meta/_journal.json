@@ -183,6 +183,13 @@
       "when": 1708000025000,
       "tag": "0025_group_moderation",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1708000026000,
+      "tag": "0026_post_status",
+      "breakpoints": true
     }
   ]
 }

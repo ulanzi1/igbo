@@ -25,6 +25,7 @@ export interface CreateFeedPostInput {
 export interface CreateFeedPostResult {
   success: true;
   postId: string;
+  status?: "active" | "pending_approval"; // present for group posts; undefined = active for feed posts
 }
 
 export interface CreateFeedPostError {
@@ -164,17 +165,20 @@ export async function createGroupPost(
   }
 
   // Enforce postingPermission
-  if (
-    group.postingPermission === "leaders_only" &&
-    membership.role !== "creator" &&
-    membership.role !== "leader"
-  ) {
+  const isLeaderOrCreator = membership.role === "creator" || membership.role === "leader";
+  if (group.postingPermission === "leaders_only" && !isLeaderOrCreator) {
     return {
       success: false,
       errorCode: "TIER_BLOCKED",
       reason: "Groups.feed.postingPermissionDenied",
     };
   }
+
+  // Moderated groups: non-leaders post with pending_approval status
+  const postStatus =
+    group.postingPermission === "moderated" && !isLeaderOrCreator
+      ? ("pending_approval" as const)
+      : ("active" as const);
 
   // Resolve media
   const fileUploadIds = input.fileUploadIds ?? [];
@@ -200,23 +204,27 @@ export async function createGroupPost(
     visibility: "group",
     category: input.category,
     groupId: input.groupId,
+    status: postStatus,
   });
 
   await insertPostMedia(post.id, media);
 
-  try {
-    await eventBus.emit("post.published", {
-      postId: post.id,
-      authorId: input.authorId,
-      groupId: input.groupId,
-      category: input.category,
-      timestamp: new Date().toISOString(),
-    });
-  } catch {
-    // Non-critical
+  // Only emit post.published for active posts — pending posts await leader approval
+  if (postStatus === "active") {
+    try {
+      await eventBus.emit("post.published", {
+        postId: post.id,
+        authorId: input.authorId,
+        groupId: input.groupId,
+        category: input.category,
+        timestamp: new Date().toISOString(),
+      });
+    } catch {
+      // Non-critical
+    }
   }
 
-  return { success: true, postId: post.id };
+  return { success: true, postId: post.id, status: postStatus };
 }
 
 /** Returns the next Monday at 00:00 UTC (the weekly limit reset time). */

@@ -24,6 +24,11 @@ vi.mock("@/services/post-service", () => ({
   createGroupPost: (...args: unknown[]) => mockCreateGroupPost(...args),
 }));
 
+const mockListPendingGroupPosts = vi.fn();
+vi.mock("@/db/queries/posts", () => ({
+  listPendingGroupPosts: (...args: unknown[]) => mockListPendingGroupPosts(...args),
+}));
+
 vi.mock("@/lib/request-context", () => ({
   runWithContext: vi.fn((_ctx: unknown, fn: () => unknown) => fn()),
 }));
@@ -56,6 +61,7 @@ beforeEach(() => {
   mockGetGroupMember.mockReset();
   mockGetGroupFeedPosts.mockReset();
   mockCreateGroupPost.mockReset();
+  mockListPendingGroupPosts.mockReset();
   mockRequireAuthenticatedSession.mockResolvedValue({ userId: USER_ID, role: "MEMBER" });
 });
 
@@ -100,6 +106,71 @@ describe("GET /api/v1/groups/[groupId]/posts", () => {
 
     expect(res.status).toBe(401);
   });
+
+  it("returns pending posts for leader with ?pending=true", async () => {
+    mockGetGroupMember.mockResolvedValue({ role: "leader", status: "active" });
+    mockListPendingGroupPosts.mockResolvedValue({
+      posts: [{ id: POST_ID, content: "Pending" }],
+      nextCursor: null,
+    });
+
+    const req = new Request(`${BASE_URL}?pending=true`);
+    const res = await GET(req);
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.data.posts).toHaveLength(1);
+  });
+
+  it("forwards cursor and limit params to listPendingGroupPosts", async () => {
+    mockGetGroupMember.mockResolvedValue({ role: "leader", status: "active" });
+    mockListPendingGroupPosts.mockResolvedValue({ posts: [], nextCursor: null });
+
+    const req = new Request(`${BASE_URL}?pending=true&cursor=2026-03-01T10%3A00%3A00.000Z&limit=5`);
+    await GET(req);
+
+    expect(mockListPendingGroupPosts).toHaveBeenCalledWith(
+      GROUP_ID,
+      expect.objectContaining({ cursor: "2026-03-01T10:00:00.000Z", limit: 5 }),
+    );
+  });
+
+  it("returns nextCursor in response when more pending posts exist", async () => {
+    mockGetGroupMember.mockResolvedValue({ role: "creator", status: "active" });
+    mockListPendingGroupPosts.mockResolvedValue({
+      posts: [{ id: POST_ID, content: "Pending" }],
+      nextCursor: "2026-03-01T12:00:00.000Z",
+    });
+
+    const req = new Request(`${BASE_URL}?pending=true`);
+    const res = await GET(req);
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.data.nextCursor).toBe("2026-03-01T12:00:00.000Z");
+  });
+
+  it("caps limit at 20 even if larger value is provided", async () => {
+    mockGetGroupMember.mockResolvedValue({ role: "leader", status: "active" });
+    mockListPendingGroupPosts.mockResolvedValue({ posts: [], nextCursor: null });
+
+    const req = new Request(`${BASE_URL}?pending=true&limit=100`);
+    await GET(req);
+
+    expect(mockListPendingGroupPosts).toHaveBeenCalledWith(
+      GROUP_ID,
+      expect.objectContaining({ limit: 20 }),
+    );
+  });
+
+  it("returns 403 for member requesting ?pending=true", async () => {
+    mockGetGroupMember.mockResolvedValue({ role: "member", status: "active" });
+
+    const req = new Request(`${BASE_URL}?pending=true`);
+    const res = await GET(req);
+
+    expect(res.status).toBe(403);
+  });
 });
 
 describe("POST /api/v1/groups/[groupId]/posts", () => {
@@ -109,9 +180,9 @@ describe("POST /api/v1/groups/[groupId]/posts", () => {
     category: "discussion",
   };
 
-  it("returns 201 on successful group post creation", async () => {
+  it("returns 201 on successful group post creation with active status", async () => {
     mockGetGroupMember.mockResolvedValue({ role: "member", status: "active" });
-    mockCreateGroupPost.mockResolvedValue({ success: true, postId: POST_ID });
+    mockCreateGroupPost.mockResolvedValue({ success: true, postId: POST_ID, status: "active" });
 
     const req = new Request(BASE_URL, {
       method: "POST",
@@ -123,6 +194,27 @@ describe("POST /api/v1/groups/[groupId]/posts", () => {
     expect(res.status).toBe(201);
     const body = await res.json();
     expect(body.data.postId).toBe(POST_ID);
+    expect(body.data.status).toBe("active");
+  });
+
+  it("returns 201 with pending_approval status in moderated group", async () => {
+    mockGetGroupMember.mockResolvedValue({ role: "member", status: "active" });
+    mockCreateGroupPost.mockResolvedValue({
+      success: true,
+      postId: POST_ID,
+      status: "pending_approval",
+    });
+
+    const req = new Request(BASE_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...CSRF_HEADERS },
+      body: JSON.stringify(validBody),
+    });
+    const res = await POST(req);
+
+    expect(res.status).toBe(201);
+    const body = await res.json();
+    expect(body.data.status).toBe("pending_approval");
   });
 
   it("returns 403 for non-member trying to post", async () => {

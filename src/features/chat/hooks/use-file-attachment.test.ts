@@ -31,6 +31,32 @@ vi.mock("@/config/upload", () => ({
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
 
+// XMLHttpRequest mock — the hook POSTs to /api/upload/file via XHR (no fetch calls)
+class MockXHR {
+  static instances: MockXHR[] = [];
+  upload = { onprogress: null as ((e: ProgressEvent) => void) | null };
+  onload: (() => void) | null = null;
+  onerror: (() => void) | null = null;
+  status = 200;
+  responseText = "";
+  open = vi.fn();
+  send = vi.fn();
+
+  constructor() {
+    MockXHR.instances.push(this);
+  }
+
+  triggerLoad(status = 200) {
+    this.status = status;
+    this.onload?.();
+  }
+
+  triggerError() {
+    this.onerror?.();
+  }
+}
+global.XMLHttpRequest = MockXHR as unknown as typeof XMLHttpRequest;
+
 import { useFileAttachment } from "./use-file-attachment";
 
 function makeFile(name: string, type: string, size = 100): File {
@@ -41,6 +67,7 @@ function makeFile(name: string, type: string, size = 100): File {
 describe("useFileAttachment", () => {
   beforeEach(() => {
     mockFetch.mockReset();
+    MockXHR.instances = [];
   });
 
   it("starts with empty pendingUploads and isUploading=false", () => {
@@ -88,24 +115,7 @@ describe("useFileAttachment", () => {
     expect(mockFetch).not.toHaveBeenCalled();
   });
 
-  it("completes upload flow: presign → S3 → confirm", async () => {
-    // Mock presign response
-    mockFetch
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          data: {
-            uploadUrl: "https://s3.example.com/upload",
-            fileUploadId: "file-upload-id-123",
-            objectKey: "key/file.jpg",
-          },
-        }),
-      })
-      // Mock S3 PUT
-      .mockResolvedValueOnce({ ok: true })
-      // Mock confirm response
-      .mockResolvedValueOnce({ ok: true, json: async () => ({}) });
-
+  it("completes upload via single XHR POST to /api/upload/file", async () => {
     const { result } = renderHook(() => useFileAttachment());
 
     const file = makeFile("photo.jpg", "image/jpeg");
@@ -113,29 +123,30 @@ describe("useFileAttachment", () => {
       await result.current.addFiles([file]);
     });
 
-    // Let async processUpload settle
+    // Let processUpload reach the XHR creation
     await act(async () => {
-      await new Promise((r) => setTimeout(r, 50));
+      await new Promise((r) => setTimeout(r, 0));
     });
 
-    expect(mockFetch).toHaveBeenCalledTimes(3);
-    // First call: presign
-    expect(mockFetch.mock.calls[0]?.[0]).toBe("/api/upload/presign");
-    // Second call: S3 upload
-    expect(mockFetch.mock.calls[1]?.[0]).toBe("https://s3.example.com/upload");
-    // Third call: confirm
-    expect(mockFetch.mock.calls[2]?.[0]).toBe("/api/upload/confirm");
+    expect(MockXHR.instances.length).toBeGreaterThan(0);
+    const xhr = MockXHR.instances[0];
+    expect(xhr.open).toHaveBeenCalledWith("POST", "/api/upload/file");
+
+    // Simulate successful server response
+    xhr.responseText = JSON.stringify({ data: { fileUploadId: "file-upload-id-123" } });
+    await act(async () => {
+      xhr.triggerLoad(200);
+      await new Promise((r) => setTimeout(r, 0));
+    });
 
     expect(result.current.pendingUploads[0]?.status).toBe("done");
     expect(result.current.isUploading).toBe(false);
-    // UploadedFileInfo should have fileUploadId
     const upload = result.current.pendingUploads[0];
     expect("fileUploadId" in (upload ?? {})).toBe(true);
+    expect((upload as { fileUploadId?: string }).fileUploadId).toBe("file-upload-id-123");
   });
 
-  it("marks upload as error when presign fails", async () => {
-    mockFetch.mockResolvedValueOnce({ ok: false });
-
+  it("marks upload as error when XHR returns non-2xx status", async () => {
     const { result } = renderHook(() => useFileAttachment());
 
     const file = makeFile("doc.pdf", "application/pdf");
@@ -144,23 +155,20 @@ describe("useFileAttachment", () => {
     });
 
     await act(async () => {
-      await new Promise((r) => setTimeout(r, 50));
+      await new Promise((r) => setTimeout(r, 0));
+    });
+
+    expect(MockXHR.instances.length).toBeGreaterThan(0);
+    await act(async () => {
+      MockXHR.instances[0].triggerLoad(500);
+      await new Promise((r) => setTimeout(r, 0));
     });
 
     expect(result.current.pendingUploads[0]?.status).toBe("error");
     expect(result.current.pendingUploads[0]?.errorMessage).toBe("uploadFailed");
   });
 
-  it("marks upload as error when S3 upload fails", async () => {
-    mockFetch
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          data: { uploadUrl: "https://s3.example.com/upload", fileUploadId: "fid", objectKey: "k" },
-        }),
-      })
-      .mockResolvedValueOnce({ ok: false }); // S3 PUT fails
-
+  it("marks upload as error when XHR network error occurs", async () => {
     const { result } = renderHook(() => useFileAttachment());
 
     await act(async () => {
@@ -168,7 +176,13 @@ describe("useFileAttachment", () => {
     });
 
     await act(async () => {
-      await new Promise((r) => setTimeout(r, 50));
+      await new Promise((r) => setTimeout(r, 0));
+    });
+
+    expect(MockXHR.instances.length).toBeGreaterThan(0);
+    await act(async () => {
+      MockXHR.instances[0].triggerError();
+      await new Promise((r) => setTimeout(r, 0));
     });
 
     expect(result.current.pendingUploads[0]?.status).toBe("error");

@@ -208,3 +208,82 @@ export function useRealTimersForReactQuery() {
  *
  * This pattern was required in Story 4.4 for `communityPostBookmarks` mock objects.
  */
+
+/**
+ * ✅ successResponse signature — status is the THIRD argument, not the second.
+ *
+ * Root cause: `successResponse(data, meta?, status=200)` — the second arg is metadata,
+ * not status. Passing status as the second arg silently produces a 200 response instead
+ * of the intended 201/202, with no runtime error.
+ *
+ * Rule: For non-200 responses use `successResponse({ x }, undefined, 201)`.
+ * Never pass status as the second argument.
+ *
+ * ✅ CORRECT:
+ * ```ts
+ * return successResponse({ created: true }, undefined, 201);
+ * return successResponse({ items }, { total: 10 }, 200); // explicit 200 with meta
+ * ```
+ *
+ * ❌ WRONG — status silently ignored, response returns 200:
+ * ```ts
+ * return successResponse({ created: true }, 201); // ← 201 treated as `meta`, status defaults to 200
+ * ```
+ *
+ * First hit: Story 5.3 route audit. Repeated in Story 5.4 ban error response.
+ */
+
+/**
+ * ⚠️ eventbus-bridge @/db/queries/* import cascade.
+ *
+ * Root cause: `src/server/realtime/eventbus-bridge.ts` imports query files at the top level.
+ * Any new `import ... from "@/db/queries/new-file"` in that bridge causes `@/db` to load,
+ * which triggers env validation — breaking BOTH `eventbus-bridge.test.ts` AND
+ * `notification-flow.test.ts` (the integration test that imports the bridge).
+ *
+ * Fix: Whenever you add a new `@/db/queries/*` import to the bridge, add a matching
+ * `vi.mock()` to BOTH test files:
+ *
+ * ```ts
+ * // In eventbus-bridge.test.ts AND notification-flow.test.ts:
+ * vi.mock("@/db/queries/new-file", () => ({
+ *   newQueryFn: vi.fn().mockResolvedValue([]),
+ * }));
+ * ```
+ *
+ * Rule: Every new query file imported in the bridge requires a mock in both files.
+ * Never bare-mock (`vi.mock("@/db/queries/new-file")`) — always use an explicit factory.
+ *
+ * First hit: Story 5.3 group-channels import. Repeated in Story 5.4 groups import.
+ */
+
+/**
+ * 🌍 i18n hardcoding — ZERO hardcoded English strings in UI components.
+ *
+ * Root cause: It is tempting to write inline strings like `"Join group"` or
+ * `"You are muted"` directly in JSX or error responses. These bypass the translation
+ * system and will always render in English regardless of the user's language preference.
+ *
+ * Rule: Every user-facing string MUST come from `useTranslations()` in React components
+ * or an i18n key reference in server responses. Define keys in `messages/en.json` AND
+ * `messages/ig.json` BEFORE writing the component.
+ *
+ * ✅ CORRECT — translated string:
+ * ```tsx
+ * const t = useTranslations("Groups");
+ * <button>{t("joinGroup")}</button>
+ * // messages/en.json: { "Groups": { "joinGroup": "Join group" } }
+ * // messages/ig.json: { "Groups": { "joinGroup": "Sonye otu" } }
+ * ```
+ *
+ * ❌ WRONG — hardcoded English string:
+ * ```tsx
+ * <button>Join group</button>
+ * // Also wrong in error responses:
+ * return errorResponse({ title: "You are muted", status: 403 });
+ * ```
+ *
+ * Pre-review check: Search component files for literal English prose strings
+ * in JSX and API responses before submitting for review.
+ * First hit: Story 5.3 channel tab. Repeated in Story 5.4 ban response.
+ */

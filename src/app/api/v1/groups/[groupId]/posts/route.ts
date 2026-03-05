@@ -6,6 +6,7 @@ import { ApiError } from "@/lib/api-error";
 import { requireAuthenticatedSession } from "@/services/permissions";
 import { getGroupMember } from "@/db/queries/groups";
 import { getGroupFeedPosts } from "@/db/queries/feed";
+import { listPendingGroupPosts } from "@/db/queries/posts";
 import { createGroupPost } from "@/services/post-service";
 import { RATE_LIMIT_PRESETS } from "@/services/rate-limiter";
 import { z } from "zod/v4";
@@ -47,6 +48,24 @@ const getHandler = async (request: Request) => {
   }
 
   const searchParams = new URL(request.url).searchParams;
+
+  // Leaders/creators can request pending posts via ?pending=true
+  if (searchParams.get("pending") === "true") {
+    const isLeaderOrCreator = membership.role === "creator" || membership.role === "leader";
+    if (!isLeaderOrCreator) {
+      throw new ApiError({
+        title: "Forbidden",
+        status: 403,
+        detail: "Only group creators or leaders can view pending posts",
+      });
+    }
+    const cursor = searchParams.get("cursor") ?? undefined;
+    const limitParam = parseInt(searchParams.get("limit") ?? "10", 10);
+    const limit = Math.min(isNaN(limitParam) ? 10 : limitParam, 20);
+    const result = await listPendingGroupPosts(groupId, { cursor, limit });
+    return successResponse(result);
+  }
+
   const cursor = searchParams.get("cursor") ?? undefined;
   const limitParam = parseInt(searchParams.get("limit") ?? "20", 10);
   const limit = Math.min(isNaN(limitParam) ? 20 : limitParam, 20);
@@ -94,7 +113,11 @@ const postHandler = async (request: Request) => {
     throw new ApiError({ title: "Forbidden", status: 403, detail: result.reason });
   }
 
-  return successResponse({ postId: result.postId }, undefined, 201);
+  return successResponse(
+    { postId: result.postId, status: result.status ?? "active" },
+    undefined,
+    201,
+  );
 };
 
 export const GET = withApiHandler(getHandler, {

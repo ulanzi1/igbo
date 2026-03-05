@@ -73,10 +73,31 @@ async function fetchConversation(conversationId: string): Promise<ConversationDa
   return json.data;
 }
 
+interface GroupMemberAPIItem {
+  userId: string;
+  displayName: string | null;
+  photoUrl: string | null;
+}
+
+async function fetchGroupMembers(groupId: string): Promise<ConversationMember[]> {
+  const res = await fetch(`/api/v1/groups/${groupId}/members?limit=50`, {
+    credentials: "include",
+  });
+  if (!res.ok) return [];
+  const json = (await res.json()) as { data: { members: GroupMemberAPIItem[] } };
+  return json.data.members.map((m) => ({
+    id: m.userId,
+    displayName: m.displayName ?? "Unknown",
+    photoUrl: m.photoUrl,
+  }));
+}
+
 interface ChatWindowProps {
   conversationId: string;
   /** When set (e.g. group channels), overrides the header name derived from conversation members. */
   channelName?: string;
+  /** When set, fetches all group members for @ mention autocomplete instead of conversation members. */
+  groupId?: string;
 }
 
 type InfiniteData = { pages: MessagesPage[]; pageParams: unknown[] };
@@ -97,7 +118,7 @@ function updateMessageInCache(
   };
 }
 
-export function ChatWindow({ conversationId, channelName }: ChatWindowProps) {
+export function ChatWindow({ conversationId, channelName, groupId }: ChatWindowProps) {
   const t = useTranslations("Chat");
   const tDeleteMessage = useTranslations("Chat.deleteMessage");
   const tEditMessage = useTranslations("Chat.editMessage");
@@ -142,6 +163,15 @@ export function ChatWindow({ conversationId, channelName }: ChatWindowProps) {
   const groupMembers = conversationData?.members ?? [];
   const memberCount = conversationData?.memberCount ?? groupMembers.length;
 
+  // In channel context: fetch all group members for @ mention autocomplete
+  const groupMembersQuery = useQuery({
+    queryKey: ["group-members-autocomplete", groupId],
+    queryFn: () => fetchGroupMembers(groupId!),
+    enabled: !!groupId,
+    staleTime: 60_000,
+  });
+  const allGroupMembers = groupMembersQuery.data ?? [];
+
   // Seed memberReadAt from API data so read receipts survive page refresh
   useEffect(() => {
     const apiReadAt = conversationData?.memberLastReadAt;
@@ -164,7 +194,11 @@ export function ChatWindow({ conversationId, channelName }: ChatWindowProps) {
   if (currentUserId) {
     memberDisplayNameMap[currentUserId] = t("group.you").replace("(", "").replace(")", "");
   }
-  if (isGroup) {
+  if (groupId && allGroupMembers.length > 0) {
+    for (const m of allGroupMembers) {
+      memberDisplayNameMap[m.id] = m.displayName;
+    }
+  } else if (isGroup) {
     for (const m of groupMembers) {
       memberDisplayNameMap[m.id] = m.displayName;
     }
@@ -173,17 +207,20 @@ export function ChatWindow({ conversationId, channelName }: ChatWindowProps) {
   }
 
   // Members for @mention autocomplete
-  const conversationMembers = isGroup
-    ? groupMembers
-    : otherMember
-      ? [
-          {
-            id: otherMember.id,
-            displayName: otherMember.displayName,
-            photoUrl: otherMember.photoUrl,
-          },
-        ]
-      : [];
+  // In channel context (groupId provided), use all group members instead of conversation members
+  const conversationMembers = groupId
+    ? allGroupMembers
+    : isGroup
+      ? groupMembers
+      : otherMember
+        ? [
+            {
+              id: otherMember.id,
+              displayName: otherMember.displayName,
+              photoUrl: otherMember.photoUrl,
+            },
+          ]
+        : [];
 
   // Fetch message history with cursor pagination
   const query = useInfiniteQuery({

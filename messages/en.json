@@ -914,9 +914,37 @@
     }
   },
   "notifications": {
-    "new_follower": {
-      "title": "New follower",
-      "body": "{name} started following you"
+    "group_join_request": {
+      "title": "New Join Request",
+      "body": "A member has requested to join your group"
+    },
+    "group_join_approved": {
+      "title": "Join Request Approved",
+      "body": "Your request to join the group has been approved"
+    },
+    "group_join_rejected": {
+      "title": "Join Request Declined",
+      "body": "Your request to join the group was not approved"
+    },
+    "group_leader_assigned": {
+      "title": "You are now a Group Leader",
+      "body": "You have been assigned as a leader of a group"
+    },
+    "group_member_muted": {
+      "title": "You have been muted",
+      "body": "A group moderator has temporarily muted you in a group"
+    },
+    "group_member_banned": {
+      "title": "You have been banned",
+      "body": "A group moderator has banned you from a group"
+    },
+    "group_ownership_transferred": {
+      "title": "You are now the Group Owner",
+      "body": "Group ownership has been transferred to you"
+    },
+    "group_archived": {
+      "title": "Group Archived",
+      "body": "A group you are a member of has been archived"
     }
   },
   "Feed": {
@@ -950,6 +978,7 @@
     "postByAuthor": "Post by {name}",
     "feedPostsList": "Feed posts",
     "feedSortGroup": "Feed sort",
+    "awaitingModeration": "Awaiting Moderation",
     "loadError": "Something went wrong loading the feed",
     "composer": {
       "placeholder": "What's on your mind, {name}?",
@@ -1163,8 +1192,15 @@
       "unpin": "Unpin post",
       "empty": "No posts yet. Be the first to post in this group!",
       "postingPermissionDenied": "Only group leaders can post in this group.",
+      "postPendingApproval": "Your post is pending leader approval.",
       "loadMore": "Load more",
-      "loading": "Loading..."
+      "loading": "Loading...",
+      "reviewPending": "Review Pending",
+      "pendingCount": "{count} pending",
+      "approvePending": "Approve",
+      "noPendingPosts": "No posts awaiting approval.",
+      "approveSuccess": "Post approved.",
+      "pendingLoadMore": "Load more pending posts"
     },
     "systemMessage": {
       "joined": "{name} joined the group",
@@ -1177,40 +1213,6 @@
       "nameTaken": "A group with this name already exists",
       "permissionDenied": "You do not have permission to create groups",
       "fetchFailed": "Failed to load groups. Please try again."
-    }
-  },
-  "notifications": {
-    "group_join_request": {
-      "title": "New Join Request",
-      "body": "A member has requested to join your group"
-    },
-    "group_join_approved": {
-      "title": "Join Request Approved",
-      "body": "Your request to join the group has been approved"
-    },
-    "group_join_rejected": {
-      "title": "Join Request Declined",
-      "body": "Your request to join the group was not approved"
-    },
-    "group_leader_assigned": {
-      "title": "You are now a Group Leader",
-      "body": "You have been assigned as a leader of a group"
-    },
-    "group_member_muted": {
-      "title": "You have been muted",
-      "body": "A group moderator has temporarily muted you in a group"
-    },
-    "group_member_banned": {
-      "title": "You have been banned",
-      "body": "A group moderator has banned you from a group"
-    },
-    "group_ownership_transferred": {
-      "title": "You are now the Group Owner",
-      "body": "Group ownership has been transferred to you"
-    },
-    "group_archived": {
-      "title": "Group Archived",
-      "body": "A group you are a member of has been archived"
     }
   }
 }
