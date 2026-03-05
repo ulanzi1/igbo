@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 const NAV_LINKS = [
   { key: "dashboard" as const, href: "/admin" },
   { key: "approvals" as const, href: "/admin/approvals" },
+  { key: "articles" as const, href: "/admin/articles" },
   { key: "members" as const, href: "/admin/members" },
   { key: "moderation" as const, href: "/admin/moderation" },
   { key: "reports" as const, href: "/admin/reports" },

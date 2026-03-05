@@ -26,6 +26,11 @@ vi.mock("@/server/auth/config", () => ({
   auth: (...args: unknown[]) => mockAuth(...args),
 }));
 
+// Required: canPublishArticle now dynamically imports articles queries for weekly count check
+vi.mock("@/db/queries/articles", () => ({
+  countWeeklyArticleSubmissions: vi.fn().mockResolvedValue(0),
+}));
+
 import {
   getPermissions,
   canCreateGroup,

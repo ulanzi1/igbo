@@ -10,6 +10,26 @@ vi.mock("next-intl/server", () => ({
   setRequestLocale: vi.fn(),
 }));
 
+vi.mock("@/db/queries/articles", () => ({
+  listPublishedArticlesPublic: vi.fn().mockResolvedValue({ items: [], total: 0 }),
+  createArticle: vi.fn(),
+  updateArticle: vi.fn(),
+  submitArticleForReview: vi.fn(),
+  countWeeklyArticleSubmissions: vi.fn(),
+  upsertArticleTags: vi.fn(),
+  getArticleForEditing: vi.fn(),
+  listPendingArticles: vi.fn(),
+  getArticleByIdForAdmin: vi.fn(),
+  publishArticleById: vi.fn(),
+  rejectArticleById: vi.fn(),
+  toggleArticleFeature: vi.fn(),
+  listPublishedArticles: vi.fn(),
+  getPublishedArticleBySlug: vi.fn(),
+  incrementArticleViewCount: vi.fn(),
+  getRelatedArticles: vi.fn(),
+  getArticleTagsById: vi.fn(),
+}));
+
 vi.mock("@/i18n/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
   usePathname: () => "/articles",

@@ -9,6 +9,7 @@ import {
   SettingsIcon,
   MenuIcon,
   XIcon,
+  PenLineIcon,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useSession, signOut } from "next-auth/react";
@@ -38,6 +39,7 @@ const navLinks = [
 function TopNav({ className }: { className?: string }) {
   const t = useTranslations("Navigation");
   const tShell = useTranslations("Shell");
+  const tArticles = useTranslations("Articles");
   const { data: session } = useSession();
   const displayName = session?.user?.name ?? "";
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -142,6 +144,12 @@ function TopNav({ className }: { className?: string }) {
                 <Link href="/settings" className="flex items-center gap-2 cursor-pointer">
                   <SettingsIcon className="size-4" aria-hidden="true" />
                   {t("settings")}
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/articles/new" className="flex items-center gap-2 cursor-pointer">
+                  <PenLineIcon className="size-4" aria-hidden="true" />
+                  {tArticles("nav.writeArticle")}
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />

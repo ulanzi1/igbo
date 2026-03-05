@@ -85,7 +85,91 @@
     "description": "Chọpụta akụkọ, echiche, na ihe gbasara omenala site n'ọha Igbo.",
     "emptyTitle": "Akụkọ na-abịa n'oge na-adịghị anya",
     "emptyDescription": "Sonyere obodo iji bụrụ nke mbụ ọ marara mgbe akụkọ ọhụrụ enwetara!",
-    "ctaButton": "Sonyere ka ị nọdụ ụzọ"
+    "ctaButton": "Sonyere ka ị nọdụ ụzọ",
+    "nav": {
+      "writeArticle": "Dee Akụkọ"
+    },
+    "editor": {
+      "newArticle": "Akụkọ Ọhụrụ",
+      "editDraft": "Dezie Ihe Edere",
+      "englishPane": "🇬🇧 Bekee (Achọrọ)",
+      "igboPane": "🇳🇬 Igbo (Ọ dịghị mkpa)",
+      "titlePlaceholder": "Aha akụkọ...",
+      "bodyPlaceholder": "Dee akụkọ gị ebe a...",
+      "saveDraft": "Chekwa Ihe Edere",
+      "submitting": "Na-eziga...",
+      "igboOptional": "ọ dịghị mkpa",
+      "insertImage": "Tinye Ọnụọgụ",
+      "insertLink": "Tinye njikọ",
+      "removeLink": "Wepụ njikọ",
+      "linkUrl": "URL:",
+      "linkApply": "Tinye",
+      "linkCancel": "Kagbuo"
+    },
+    "meta": {
+      "category": "Udi",
+      "tags": "Mkpado",
+      "coverImage": "Foto Mkpuchi",
+      "visibility": "Ndị Hụrụ Ya",
+      "categoryDiscussion": "Ikwu Okwu",
+      "categoryAnnouncement": "Mkpọsa",
+      "categoryEvent": "Mmemme",
+      "visibilityMembers": "Ndị Otu Naanị",
+      "visibilityGuest": "Ọha (Ndị Ọbịa)",
+      "addTagPlaceholder": "+ tinye mkpado",
+      "removeCoverImage": "Wepụ foto mkpuchi",
+      "coverAlt": "Mkpuchi"
+    },
+    "submit": {
+      "button": "Zipu maka Nlele",
+      "successMessage": "E zigara akụkọ gị maka nlele.",
+      "confirmTitle": "Zipu maka Nlele?",
+      "confirmBody": "Mgbe ezigara, a ga-enyochaa akụkọ gị tupu ewepụtara ya."
+    },
+    "permissions": {
+      "notEligible": "Ịchọrọ ọrụ Professional ma ọ bụ Top-tier iji bipụta akụkọ.",
+      "weeklyLimitReached": "Ị eruo oke akụkọ ị nwere ike iziga n'izu a."
+    },
+    "validation": {
+      "englishRequired": "Aha na ọdịnaya Bekee achọrọ.",
+      "igboTitleRequired": "Aha Igbo achọrọ mgbe ọdịnaya Igbo enweghị efu.",
+      "titleTooLong": "Aha ga-abụrịrị mkpụmkpụ karịa mkpụrụedemede 255."
+    },
+    "mentions": {
+      "noResults": "Enweghị nsonaazụ"
+    },
+    "rejectionFeedback": "Nzaghachi Onye Nlekọta",
+    "reading": {
+      "viewCount": "{count} nlele",
+      "commentCount": "{count} nkọwa",
+      "languageToggle": {
+        "en": "Bekee",
+        "ig": "Igbo"
+      },
+      "featuredBadge": "Akụkọ Pụtara Ìhè",
+      "bilingualBadge": "EN + IG",
+      "readMin": "Ọgụgụ nke {n} nkeji",
+      "category": {
+        "discussion": "Mkparịta",
+        "announcement": "Mkọwaụlọ",
+        "event": "Oge Mmemme"
+      }
+    },
+    "comments": {
+      "title": "Nkọwa",
+      "placeholder": "Dee nkọwa...",
+      "submit": "Tinye Nkọwa",
+      "submitting": "Na-etinye...",
+      "empty": "Enweghị nkọwa ọ bụla. Bụrụ nke mbụ iji kesaa echiche gị.",
+      "guestCta": "Sonyere obodo iji sonye na mkparịta ụka",
+      "guestButton": "Sonyere OBIGBO",
+      "membersOnlyCta": "Akụkọ a bụ maka ndị otu naanị. Sonyere OBIGBO iji gụọ ma dee nkọwa.",
+      "error": "Ọ dịghị mma itinye nkọwa. Biko nwaa ọzọ."
+    },
+    "related": {
+      "title": "Akụkọ Ndị Yitụ",
+      "readMin": "Ọgụgụ nke {n} nkeji"
+    }
   },
   "Events": {
     "title": "Kalenda Ihe Omume",
@@ -227,7 +311,8 @@
       "moderation": "Moderation",
       "reports": "Reports",
       "analytics": "Analytics",
-      "auditLog": "Audit Log"
+      "auditLog": "Audit Log",
+      "articles": "Akụkọ"
     },
     "members": {
       "title": "Member Management",
@@ -280,6 +365,48 @@
       "sendButton": "Send to {count} Member(s)",
       "sending": "Sending...",
       "gdprWarning": "GDPR Article 33 requires breach notification within 72 hours. See docs/gdpr-breach-runbook.md for the full procedure."
+    },
+    "articles": {
+      "title": "Nyocha Akụkọ",
+      "pendingTab": "Na-atọ Anya Nyocha",
+      "publishedTab": "Ebipụtara",
+      "approve": "Kwado",
+      "reject": "Jụ",
+      "feature": "Kee Ọkwa Elu",
+      "unfeature": "Wepu n'Ọkwa Elu",
+      "preview": "Lelee Tupu",
+      "approveConfirm": "Kwado akụkọ a ka ọ bipụta?",
+      "rejectConfirm": "Jụ akụkọ a?",
+      "feedbackLabel": "Nzaghachi nye onye odeere (ọ dịghị mkpa)",
+      "feedbackPlaceholder": "Kọọ ihe mere a jụrụ akụkọ a...",
+      "emptyPending": "Ọ nweghị akụkọ na-atọ anya nyocha",
+      "emptyPublished": "Ọ nweghị akụkọ ebipụtara",
+      "columnTitle": "Aha",
+      "columnAuthor": "Onye Odee",
+      "columnLanguage": "Asụsụ",
+      "columnCategory": "Udi",
+      "columnDate": "Ụbọchị",
+      "columnActions": "Omume",
+      "loading": "Na-ebu…",
+      "loadError": "Enweghị ike ibunye akụkọ.",
+      "loadArticleError": "Enweghị ike ibunye akụkọ.",
+      "featuredBadge": "Akụkọ Elu",
+      "pageInfo": "Peeji {page} n'ime {totalPages} ({total} niile)",
+      "previous": "Nke gara aga",
+      "next": "Nke ọzọ",
+      "close": "Mechie",
+      "cancel": "Kagbuo",
+      "approveSuccess": "Akwadola akụkọ a bipụta ya!",
+      "rejectSuccess": "Ajụla akụkọ a.",
+      "approveError": "Enweghị ike ikwado akụkọ.",
+      "rejectError": "Enweghị ike ịjụ akụkọ.",
+      "featureError": "Enweghị ike ịmelite ọnọdụ akụkọ.",
+      "igboLabel": "Igbo",
+      "visibilityGuest": "Ọha (Ndị Ọbịa)",
+      "visibilityMembers": "Ndị Otu Naanị",
+      "readingTime": "Nkeji {minutes} ịgụ",
+      "slug": "Aha URL",
+      "rejectionFeedbackLabel": "Ihe Onye Nlekọta Siri"
     }
   },
   "Permissions": {
@@ -945,6 +1072,14 @@
     "group_archived": {
       "title": "Etinyela Otu n'Ọdekọ",
       "body": "Etinyela otu ị bụ otu n'ọdekọ"
+    },
+    "article_published": {
+      "title": "Ebipụtara Akụkọ",
+      "body": "Akwadola akụkọ gị ma bipụta ya!"
+    },
+    "article_rejected": {
+      "title": "Ajụla Akụkọ",
+      "body": "Ajụla akụkọ gị."
     }
   },
   "Feed": {

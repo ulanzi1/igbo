@@ -85,7 +85,91 @@
     "description": "Discover stories, insights, and cultural perspectives from the Igbo community.",
     "emptyTitle": "Articles are coming soon",
     "emptyDescription": "Join the community to be the first to know when new articles are published!",
-    "ctaButton": "Join to Stay Updated"
+    "ctaButton": "Join to Stay Updated",
+    "nav": {
+      "writeArticle": "Write an Article"
+    },
+    "editor": {
+      "newArticle": "New Article",
+      "editDraft": "Edit Draft",
+      "englishPane": "🇬🇧 English (Required)",
+      "igboPane": "🇳🇬 Igbo (Optional)",
+      "titlePlaceholder": "Article title...",
+      "bodyPlaceholder": "Write your article here...",
+      "saveDraft": "Save Draft",
+      "submitting": "Submitting...",
+      "igboOptional": "optional",
+      "insertImage": "Insert Image",
+      "insertLink": "Insert link",
+      "removeLink": "Remove link",
+      "linkUrl": "URL:",
+      "linkApply": "Apply",
+      "linkCancel": "Cancel"
+    },
+    "meta": {
+      "category": "Category",
+      "tags": "Tags",
+      "coverImage": "Cover Image",
+      "visibility": "Visibility",
+      "categoryDiscussion": "Discussion",
+      "categoryAnnouncement": "Announcement",
+      "categoryEvent": "Event",
+      "visibilityMembers": "Members Only",
+      "visibilityGuest": "Public (Guests)",
+      "addTagPlaceholder": "+ add tag",
+      "removeCoverImage": "Remove cover image",
+      "coverAlt": "Cover"
+    },
+    "submit": {
+      "button": "Submit for Review",
+      "successMessage": "Your article has been submitted for review.",
+      "confirmTitle": "Submit for Review?",
+      "confirmBody": "Once submitted, your article will be reviewed before publication."
+    },
+    "permissions": {
+      "notEligible": "You need a Professional or Top-tier membership to publish articles.",
+      "weeklyLimitReached": "You have reached your weekly article submission limit."
+    },
+    "validation": {
+      "englishRequired": "English title and content are required.",
+      "igboTitleRequired": "Igbo title is required when Igbo content is provided.",
+      "titleTooLong": "Title must be 255 characters or fewer."
+    },
+    "mentions": {
+      "noResults": "No results"
+    },
+    "rejectionFeedback": "Admin Feedback",
+    "reading": {
+      "viewCount": "{count} views",
+      "commentCount": "{count} comments",
+      "languageToggle": {
+        "en": "English",
+        "ig": "Igbo"
+      },
+      "featuredBadge": "Featured",
+      "bilingualBadge": "EN + IG",
+      "readMin": "{n} min read",
+      "category": {
+        "discussion": "Discussion",
+        "announcement": "Announcement",
+        "event": "Event"
+      }
+    },
+    "comments": {
+      "title": "Comments",
+      "placeholder": "Write a comment...",
+      "submit": "Post Comment",
+      "submitting": "Posting...",
+      "empty": "No comments yet. Be the first to share your thoughts.",
+      "guestCta": "Join the community to join the conversation",
+      "guestButton": "Join OBIGBO",
+      "membersOnlyCta": "This article is for members only. Join OBIGBO to read and comment.",
+      "error": "Failed to post comment. Please try again."
+    },
+    "related": {
+      "title": "Related Articles",
+      "readMin": "{n} min read"
+    }
   },
   "Events": {
     "title": "Events Calendar",
@@ -227,7 +311,8 @@
       "moderation": "Moderation",
       "reports": "Reports",
       "analytics": "Analytics",
-      "auditLog": "Audit Log"
+      "auditLog": "Audit Log",
+      "articles": "Articles"
     },
     "members": {
       "title": "Member Management",
@@ -280,6 +365,48 @@
       "sendButton": "Send to {count} Member(s)",
       "sending": "Sending...",
       "gdprWarning": "GDPR Article 33 requires breach notification within 72 hours. See docs/gdpr-breach-runbook.md for the full procedure."
+    },
+    "articles": {
+      "title": "Article Review",
+      "pendingTab": "Pending Review",
+      "publishedTab": "Published",
+      "approve": "Approve",
+      "reject": "Reject",
+      "feature": "Feature",
+      "unfeature": "Unfeature",
+      "preview": "Preview",
+      "approveConfirm": "Approve this article for publication?",
+      "rejectConfirm": "Reject this article?",
+      "feedbackLabel": "Feedback for author (optional)",
+      "feedbackPlaceholder": "Explain why the article was rejected...",
+      "emptyPending": "No articles pending review",
+      "emptyPublished": "No published articles yet",
+      "columnTitle": "Title",
+      "columnAuthor": "Author",
+      "columnLanguage": "Language",
+      "columnCategory": "Category",
+      "columnDate": "Date",
+      "columnActions": "Actions",
+      "loading": "Loading…",
+      "loadError": "Failed to load articles.",
+      "loadArticleError": "Failed to load article.",
+      "featuredBadge": "Featured",
+      "pageInfo": "Page {page} of {totalPages} ({total} total)",
+      "previous": "Previous",
+      "next": "Next",
+      "close": "Close",
+      "cancel": "Cancel",
+      "approveSuccess": "Article approved and published!",
+      "rejectSuccess": "Article rejected.",
+      "approveError": "Failed to approve article.",
+      "rejectError": "Failed to reject article.",
+      "featureError": "Failed to update featured status.",
+      "igboLabel": "Igbo",
+      "visibilityGuest": "Public (Guests)",
+      "visibilityMembers": "Members Only",
+      "readingTime": "{minutes} min read",
+      "slug": "Slug",
+      "rejectionFeedbackLabel": "Rejection Feedback"
     }
   },
   "Permissions": {
@@ -945,6 +1072,14 @@
     "group_archived": {
       "title": "Group Archived",
       "body": "A group you are a member of has been archived"
+    },
+    "article_published": {
+      "title": "Article Published",
+      "body": "Your article has been approved and published!"
+    },
+    "article_rejected": {
+      "title": "Article Rejected",
+      "body": "Your article submission has been rejected."
     }
   },
   "Feed": {
