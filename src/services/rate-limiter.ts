@@ -22,6 +22,7 @@ import type { RateLimitResult } from "@/lib/rate-limiter";
  *                      POST_BOOKMARK, BOOKMARK_LIST, PIN_POST
  *   Groups:            GROUP_CREATE, GROUP_UPDATE, GROUP_LIST, GROUP_DETAIL, GROUP_JOIN,
  *                      GROUP_REQUEST, GROUP_APPROVE_REJECT, GROUP_LEAVE, GROUP_CHANNEL, GROUP_MANAGE
+ *   Events:            EVENT_CREATE, EVENT_UPDATE, EVENT_LIST, EVENT_DETAIL
  *   Tier quotas:       TIER_BASIC, TIER_PROFESSIONAL, TIER_TOP_TIER
  *
  * ⚠️  `BROWSE` does NOT exist. Story specs must not reference it.
@@ -100,6 +101,11 @@ export const RATE_LIMIT_PRESETS = {
   // Story 5.3 additions
   GROUP_CHANNEL: { maxRequests: 5, windowMs: 60_000 }, // 5/min per userId (channel create/delete)
   GROUP_MANAGE: { maxRequests: 20, windowMs: 60_000 }, // 20/min per userId (pin, etc.)
+  // Story 7.1 additions
+  EVENT_CREATE: { maxRequests: 5, windowMs: 3_600_000 }, // 5/hour per userId (event creation is costly)
+  EVENT_UPDATE: { maxRequests: 20, windowMs: 60_000 }, // 20/min per userId
+  EVENT_LIST: { maxRequests: 60, windowMs: 60_000 }, // 60/min per userId
+  EVENT_DETAIL: { maxRequests: 120, windowMs: 60_000 }, // 120/min per userId
   // Tier-based API quotas (per hour)
   TIER_BASIC: { maxRequests: 200, windowMs: 3_600_000 },
   TIER_PROFESSIONAL: { maxRequests: 1000, windowMs: 3_600_000 },

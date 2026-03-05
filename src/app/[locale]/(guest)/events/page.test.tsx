@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@/test/test-utils";
 
 vi.mock("next-intl/server", () => ({
@@ -30,20 +30,53 @@ vi.mock("@/i18n/navigation", () => ({
   getPathname: vi.fn(),
 }));
 
+vi.mock("@/db/queries/events", () => ({
+  listUpcomingEvents: vi.fn().mockResolvedValue([]),
+  createEvent: vi.fn(),
+  getEventById: vi.fn(),
+  updateEvent: vi.fn(),
+  cancelEvent: vi.fn(),
+  listGroupEvents: vi.fn(),
+  getEventsByParentId: vi.fn(),
+}));
+
+vi.mock("@/features/events/components/EventList", () => ({
+  EventList: ({ events }: { events: unknown[] }) => (
+    <div data-testid="event-list">
+      {events.length === 0 ? "Events.list.empty" : `${events.length} events`}
+    </div>
+  ),
+}));
+
+vi.mock("@/features/events/components/CreateEventButton", () => ({
+  CreateEventButton: () => <button data-testid="create-event-btn">Create Event</button>,
+}));
+
+import { listUpcomingEvents } from "@/db/queries/events";
 import EventsPage from "./page";
 
 describe("EventsPage", () => {
-  it("renders empty state with CTA when no data", async () => {
+  beforeEach(() => {
+    vi.mocked(listUpcomingEvents).mockResolvedValue([]);
+  });
+
+  it("renders page title and create button", async () => {
     const Page = await EventsPage({ params: Promise.resolve({ locale: "en" }) });
     render(Page);
-    expect(screen.getByText("Events.emptyTitle")).toBeInTheDocument();
-    expect(screen.getByText("Events.emptyDescription")).toBeInTheDocument();
-    expect(screen.getByText("Events.ctaButton")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Events.list.title");
+    expect(screen.getByTestId("create-event-btn")).toBeInTheDocument();
   });
 
   it("has a single h1", async () => {
     const Page = await EventsPage({ params: Promise.resolve({ locale: "en" }) });
     render(Page);
     expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
+  });
+
+  it("shows empty state when no events", async () => {
+    vi.mocked(listUpcomingEvents).mockResolvedValue([]);
+    const Page = await EventsPage({ params: Promise.resolve({ locale: "en" }) });
+    render(Page);
+    expect(screen.getByTestId("event-list")).toHaveTextContent("Events.list.empty");
   });
 });

@@ -200,13 +200,6 @@
       "readMin": "{n} min read"
     }
   },
-  "Events": {
-    "title": "Events Calendar",
-    "description": "Upcoming events, gatherings, and celebrations from the Igbo community.",
-    "emptyTitle": "Events are coming soon",
-    "emptyDescription": "Join the community to be the first to know about upcoming events and gatherings!",
-    "ctaButton": "Join to Stay Updated"
-  },
   "Blog": {
     "title": "Blog",
     "description": "Stories and updates from the Igbo community.",
@@ -446,6 +439,104 @@
       "revisionConfirm": "Request Revisions?"
     }
   },
+  "Events": {
+    "list": {
+      "title": "Events",
+      "empty": "No upcoming events",
+      "upcoming": "Upcoming",
+      "myRsvps": "My RSVPs",
+      "past": "Past",
+      "createButton": "Create Event"
+    },
+    "create": {
+      "title": "Create Event",
+      "submitButton": "Create Event",
+      "cancelButton": "Cancel"
+    },
+    "edit": {
+      "title": "Edit Event",
+      "submitButton": "Save Changes",
+      "success": "Event updated",
+      "error": "Failed to update event"
+    },
+    "cancel": {
+      "confirm": "Cancel this event?",
+      "button": "Cancel Event",
+      "success": "Event cancelled",
+      "error": "Failed to cancel event",
+      "description": "This action cannot be undone. All RSVPs will be cancelled.",
+      "keepEvent": "Keep Event",
+      "cancelling": "Cancelling..."
+    },
+    "detail": {
+      "attendees": "Attendees",
+      "registered": "{count} registered",
+      "noLimit": "No registration limit",
+      "noMeetingLink": "Meeting link will be provided closer to the event",
+      "editButton": "Edit Event",
+      "seriesLabel": "Recurring Event",
+      "seriesInstance": "Part of a recurring series",
+      "viewSeries": "View all dates"
+    },
+    "fields": {
+      "title": "Title",
+      "titlePlaceholder": "Give your event a name",
+      "description": "Description",
+      "descriptionPlaceholder": "What should attendees know about this event?",
+      "startTime": "Start Date & Time",
+      "endTime": "End Date & Time",
+      "timezone": "Timezone",
+      "format": "Format",
+      "location": "Location",
+      "locationPlaceholder": "Enter the venue address",
+      "meetingLink": "Meeting Link",
+      "meetingLinkPlaceholder": "https://...",
+      "registrationLimit": "Registration Limit",
+      "registrationLimitPlaceholder": "Leave blank for unlimited",
+      "eventType": "Event Type",
+      "recurrence": "Recurrence",
+      "group": "Group",
+      "groupPlaceholder": "Select a group (optional)"
+    },
+    "format": {
+      "virtual": "Virtual",
+      "inPerson": "In Person",
+      "hybrid": "Hybrid"
+    },
+    "type": {
+      "general": "General",
+      "group": "Group Event"
+    },
+    "recurrence": {
+      "none": "No Recurrence",
+      "daily": "Daily (7 dates)",
+      "weekly": "Weekly (8 dates)",
+      "monthly": "Monthly (6 dates)"
+    },
+    "status": {
+      "upcoming": "Upcoming",
+      "live": "Live",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
+    },
+    "permissions": {
+      "createRequired": "Event creation is available to Professional and Top-tier members."
+    },
+    "validation": {
+      "titleRequired": "Title is required",
+      "futureDate": "Event date must be in the future",
+      "positiveLimit": "Registration limit must be a positive integer",
+      "endAfterStart": "End time must be after start time",
+      "groupRequired": "Please select a group for group events",
+      "startEndRequired": "Start and end time are required"
+    },
+    "gate": {
+      "signIn": "Sign in",
+      "signInPrompt": "to see full details.",
+      "groupMembersOnly": "This event is for group members only.",
+      "backToEvents": "Back to events"
+    }
+  },
   "Permissions": {
     "upgradeRequired": "This feature requires a higher membership tier.",
     "tierBasic": "Basic",
@@ -454,6 +545,7 @@
     "groupCreationRequired": "Group creation is available to Top-tier members. Here's how to reach Top-tier status.",
     "articlePublishRequired": "Article publishing is available to Professional and Top-tier members.",
     "groupLeaderRequired": "Assigning group leaders is available to Top-tier members.",
+    "eventCreationRequired": "Event creation is available to Professional and Top-tier members.",
     "tierBenefits": {
       "basic": "Chat, join public groups, view articles, attend events, use member directory.",
       "professional": "All Basic capabilities plus publish 1 article per week (members-only).",

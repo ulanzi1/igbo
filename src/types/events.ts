@@ -351,7 +351,29 @@ export interface GroupChannelDeletedEvent extends BaseEvent {
   deletedBy: string;
 }
 
-// --- Event (Calendar) Events ---
+// --- Event (Calendar) Management Events ---
+
+export interface EventCreatedEvent extends BaseEvent {
+  eventId: string;
+  creatorId: string;
+  title: string;
+  eventType: "general" | "group";
+  format: "virtual" | "in_person" | "hybrid";
+  startTime: string; // ISO 8601
+  groupId?: string;
+}
+
+export interface EventUpdatedEvent extends BaseEvent {
+  eventId: string;
+  updatedBy: string;
+  title: string;
+}
+
+export interface EventCancelledEvent extends BaseEvent {
+  eventId: string;
+  cancelledBy: string;
+  title: string;
+}
 
 export interface EventAttendedEvent extends BaseEvent {
   eventId: string;
@@ -493,6 +515,9 @@ export type EventName =
   | "group.member_unbanned"
   | "group.ownership_transferred"
   | "account.status_changed"
+  | "event.created"
+  | "event.updated"
+  | "event.cancelled"
   | "event.attended"
   | "recording.expired"
   | "job.failed"
@@ -567,6 +592,9 @@ export interface EventMap {
   "group.member_unbanned": GroupMemberUnbannedEvent;
   "group.ownership_transferred": GroupOwnershipTransferredEvent;
   "account.status_changed": AccountStatusChangedEvent;
+  "event.created": EventCreatedEvent;
+  "event.updated": EventUpdatedEvent;
+  "event.cancelled": EventCancelledEvent;
   "event.attended": EventAttendedEvent;
   "recording.expired": RecordingExpiredEvent;
   "job.failed": JobFailedEvent;

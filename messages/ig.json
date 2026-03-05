@@ -200,13 +200,6 @@
       "readMin": "Ọgụgụ nke {n} nkeji"
     }
   },
-  "Events": {
-    "title": "Kalenda Ihe Omume",
-    "description": "Ihe omume na-abịa, nzukọ, na ọchịchọ sitere n'ọha Igbo.",
-    "emptyTitle": "Ihe omume na-abịa n'oge na-adịghị anya",
-    "emptyDescription": "Sonyere obodo iji bụrụ nke mbụ ọ marara ihe omume na nzukọ ndị na-abịa!",
-    "ctaButton": "Sonyere ka ị nọdụ ụzọ"
-  },
   "Blog": {
     "title": "Blọgụ",
     "description": "Akụkọ na nkọwa sitere n'ọha Igbo.",
@@ -446,6 +439,104 @@
       "revisionConfirm": "Rịọọ Mgbanwe?"
     }
   },
+  "Events": {
+    "list": {
+      "title": "Ihe omume",
+      "empty": "Ọnweghị ihe omume na-abịa",
+      "upcoming": "Na-abịa",
+      "myRsvps": "RSVP m",
+      "past": "Gara aga",
+      "createButton": "Mepụta Ihe Omume"
+    },
+    "create": {
+      "title": "Mepụta Ihe Omume",
+      "submitButton": "Mepụta Ihe Omume",
+      "cancelButton": "Kagbuo"
+    },
+    "edit": {
+      "title": "Dezie Ihe Omume",
+      "submitButton": "Chekwa Mgbanwe",
+      "success": "Edeziela ihe omume",
+      "error": "Edezighị ike ihe omume"
+    },
+    "cancel": {
+      "confirm": "Kagbuo ihe omume a?",
+      "button": "Kagbuo Ihe Omume",
+      "success": "Akagbuola ihe omume",
+      "error": "Akagbuọghị ike ihe omume",
+      "description": "Ọ nweghị ike ịlaghachi. A kagbuọ RSVP niile.",
+      "keepEvent": "Debe Ihe Omume",
+      "cancelling": "Na-akagbu..."
+    },
+    "detail": {
+      "attendees": "Ndị ọbịa",
+      "registered": "{count} dereelarị",
+      "noLimit": "Ọnweghị oke ndebanye aha",
+      "noMeetingLink": "A ga-enye njikọ ọgbako dị nso n'ihe omume",
+      "editButton": "Dezie Ihe Omume",
+      "seriesLabel": "Ihe Omume Na-emegharị",
+      "seriesInstance": "Akụkụ nke usoro na-emegharị",
+      "viewSeries": "Hụ ụbọchị niile"
+    },
+    "fields": {
+      "title": "Aha",
+      "titlePlaceholder": "Nyee ihe omume gị aha",
+      "description": "Nkọwa",
+      "descriptionPlaceholder": "Gịnị kwesịrị ka ndị ọbịa ọ mara banyere ihe omume a?",
+      "startTime": "Ụbọchị na Oge Mmalite",
+      "endTime": "Ụbọchị na Oge Njedebe",
+      "timezone": "Mpaghara oge",
+      "format": "Ụdị",
+      "location": "Ọnọdụ",
+      "locationPlaceholder": "Tinye adreesị ebe",
+      "meetingLink": "Njikọ Ọgbako",
+      "meetingLinkPlaceholder": "https://...",
+      "registrationLimit": "Oke Ndebanye Aha",
+      "registrationLimitPlaceholder": "Hapụ ọfo maka enweghị oke",
+      "eventType": "Ụdị Ihe Omume",
+      "recurrence": "Emegharị",
+      "group": "Otu",
+      "groupPlaceholder": "Họrọ otu (ọ dịghị mkpa)"
+    },
+    "format": {
+      "virtual": "Ịntanetị",
+      "inPerson": "Na-ahụ anya",
+      "hybrid": "Ejikọtara"
+    },
+    "type": {
+      "general": "Izugbe",
+      "group": "Ihe Omume Otu"
+    },
+    "recurrence": {
+      "none": "Emegharịghị",
+      "daily": "Kwa ụbọchị (ụbọchị 7)",
+      "weekly": "Kwa izu (izu 8)",
+      "monthly": "Kwa ọnwa (ọnwa 6)"
+    },
+    "status": {
+      "upcoming": "Na-abịa",
+      "live": "Dị ndụ",
+      "completed": "Emechala",
+      "cancelled": "Akagbuola"
+    },
+    "permissions": {
+      "createRequired": "Ịmepụta ihe omume dị maka ndị otu ọkachamara na ọkwa elu."
+    },
+    "validation": {
+      "titleRequired": "Aha dị mkpa",
+      "futureDate": "Ụbọchị ihe omume kwesịrị ịbụ n'oge na-abịa",
+      "positiveLimit": "Oke ndebanye aha kwesịrị ịbụ nọmba ozugbo dị mma",
+      "endAfterStart": "Oge njedebe kwesịrị ịbụ mgbe oge mmalite gasịrị",
+      "groupRequired": "Biko họrọ otu maka ihe omume otu",
+      "startEndRequired": "A chọrọ oge mmalite na oge njedebe"
+    },
+    "gate": {
+      "signIn": "Banye",
+      "signInPrompt": "iji hụ nkọwa zuru ezu.",
+      "groupMembersOnly": "Ihe omume a dị maka ndị otu naanị.",
+      "backToEvents": "Laghachi na ihe omume"
+    }
+  },
   "Permissions": {
     "upgradeRequired": "Atụmụta a chọrọ ọkwa otu dị elu.",
     "tierBasic": "Isi",
@@ -454,6 +545,7 @@
     "groupCreationRequired": "Ịmepụta otu dị maka ndị otu ọkwa elu. Nke a bụ otu iji nweta ọkwa elu.",
     "articlePublishRequired": "Mbipụta akụkọ dị maka ndị otu ọkachamara na ọkwa elu.",
     "groupLeaderRequired": "Inyekarị ọnụ ndị nduzi otu dị maka ndị otu ọkwa elu.",
+    "eventCreationRequired": "Ịmepụta ihe omume dị maka ndị otu ọkachamara na ọkwa elu.",
     "tierBenefits": {
       "basic": "Mkparịta ụka, sonyere otu ọhaneze, lelee akụkọ, sonyere ihe omume, jiri ndepụta ndị otu.",
       "professional": "Ihe niile nke Isi gị ka itinye akụkọ 1 n'izu (maka ndị otu).",
