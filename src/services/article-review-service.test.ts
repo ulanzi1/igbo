@@ -17,6 +17,7 @@ vi.mock("@/db/queries/articles", () => ({
   getArticleByIdForAdmin: vi.fn(),
   publishArticleById: vi.fn(),
   rejectArticleById: vi.fn(),
+  requestRevisionById: vi.fn(),
   toggleArticleFeature: vi.fn(),
   createArticle: vi.fn(),
   updateArticle: vi.fn(),
@@ -24,6 +25,7 @@ vi.mock("@/db/queries/articles", () => ({
   countWeeklyArticleSubmissions: vi.fn(),
   upsertArticleTags: vi.fn(),
   getArticleForEditing: vi.fn(),
+  listArticlesByAuthor: vi.fn(),
 }));
 
 import { requireAdminSession } from "@/lib/admin-auth";
@@ -34,6 +36,7 @@ import {
   getArticleByIdForAdmin,
   publishArticleById,
   rejectArticleById,
+  requestRevisionById,
   toggleArticleFeature,
 } from "@/db/queries/articles";
 import {
@@ -41,6 +44,7 @@ import {
   listPublishedArticlesForAdmin,
   approveArticle,
   rejectArticle,
+  requestArticleRevision,
   featureArticle,
   getArticlePreview,
 } from "./article-review-service";
@@ -51,6 +55,7 @@ const mockListPublishedArticles = listPublishedArticles as ReturnType<typeof vi.
 const mockGetArticleByIdForAdmin = getArticleByIdForAdmin as ReturnType<typeof vi.fn>;
 const mockPublishArticleById = publishArticleById as ReturnType<typeof vi.fn>;
 const mockRejectArticleById = rejectArticleById as ReturnType<typeof vi.fn>;
+const mockRequestRevisionById = requestRevisionById as ReturnType<typeof vi.fn>;
 const mockToggleArticleFeature = toggleArticleFeature as ReturnType<typeof vi.fn>;
 const mockEventBusEmit = eventBus.emit as ReturnType<typeof vi.fn>;
 
@@ -69,6 +74,7 @@ beforeEach(() => {
   mockGetArticleByIdForAdmin.mockReset();
   mockPublishArticleById.mockReset();
   mockRejectArticleById.mockReset();
+  mockRequestRevisionById.mockReset();
   mockToggleArticleFeature.mockReset();
   mockEventBusEmit.mockReset();
 
@@ -174,33 +180,22 @@ describe("rejectArticle", () => {
     );
   });
 
-  it("rejects article without feedback", async () => {
-    mockRejectArticleById.mockResolvedValue({
-      id: ARTICLE_ID,
-      authorId: AUTHOR_ID,
-      title: "Test Article",
-    });
-
-    const result = await rejectArticle(makeRequest(), ARTICLE_ID, null);
-    expect(result).toEqual({ articleId: ARTICLE_ID });
-    expect(mockEventBusEmit).toHaveBeenCalledWith(
-      "article.rejected",
-      expect.objectContaining({ feedback: undefined }),
-    );
-  });
-
   it("throws 404 when article not found", async () => {
     mockRejectArticleById.mockResolvedValue(null);
     mockGetArticleByIdForAdmin.mockResolvedValue(null);
 
-    await expect(rejectArticle(makeRequest(), ARTICLE_ID)).rejects.toMatchObject({ status: 404 });
+    await expect(rejectArticle(makeRequest(), ARTICLE_ID, "Feedback")).rejects.toMatchObject({
+      status: 404,
+    });
   });
 
   it("throws 409 when article not in pending_review", async () => {
     mockRejectArticleById.mockResolvedValue(null);
     mockGetArticleByIdForAdmin.mockResolvedValue({ id: ARTICLE_ID, status: "published" });
 
-    await expect(rejectArticle(makeRequest(), ARTICLE_ID)).rejects.toMatchObject({ status: 409 });
+    await expect(rejectArticle(makeRequest(), ARTICLE_ID, "Feedback")).rejects.toMatchObject({
+      status: 409,
+    });
   });
 });
 
@@ -235,6 +230,58 @@ describe("featureArticle", () => {
     await expect(featureArticle(makeRequest(), ARTICLE_ID, true)).rejects.toMatchObject({
       status: 409,
     });
+  });
+});
+
+describe("requestArticleRevision", () => {
+  it("requests revision and emits article.revision_requested event", async () => {
+    mockRequestRevisionById.mockResolvedValue({
+      id: ARTICLE_ID,
+      authorId: AUTHOR_ID,
+      title: "Test Article",
+    });
+
+    const result = await requestArticleRevision(
+      makeRequest(),
+      ARTICLE_ID,
+      "Please add more detail",
+    );
+
+    expect(result).toEqual({ articleId: ARTICLE_ID });
+    expect(mockEventBusEmit).toHaveBeenCalledWith(
+      "article.revision_requested",
+      expect.objectContaining({
+        articleId: ARTICLE_ID,
+        authorId: AUTHOR_ID,
+        title: "Test Article",
+        feedback: "Please add more detail",
+      }),
+    );
+  });
+
+  it("throws 404 when article not found", async () => {
+    mockRequestRevisionById.mockResolvedValue(null);
+    mockGetArticleByIdForAdmin.mockResolvedValue(null);
+
+    await expect(
+      requestArticleRevision(makeRequest(), ARTICLE_ID, "Feedback"),
+    ).rejects.toMatchObject({ status: 404 });
+  });
+
+  it("throws 409 when article not in pending_review", async () => {
+    mockRequestRevisionById.mockResolvedValue(null);
+    mockGetArticleByIdForAdmin.mockResolvedValue({ id: ARTICLE_ID, status: "draft" });
+
+    await expect(
+      requestArticleRevision(makeRequest(), ARTICLE_ID, "Feedback"),
+    ).rejects.toMatchObject({ status: 409 });
+  });
+
+  it("throws 401 when not admin", async () => {
+    const { ApiError } = await import("@/lib/api-error");
+    mockRequireAdminSession.mockRejectedValue(new ApiError({ status: 401, title: "Unauthorized" }));
+
+    await expect(requestArticleRevision(makeRequest(), ARTICLE_ID, "Feedback")).rejects.toThrow();
   });
 });
 

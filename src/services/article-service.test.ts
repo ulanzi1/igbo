@@ -195,6 +195,12 @@ describe("submitArticle", () => {
     mockCountWeekly.mockReset();
     mockSubmitArticleForReview.mockReset();
     mockEventBusEmit.mockReset();
+    mockGetArticleForEditing.mockReset();
+    mockGetArticleForEditing.mockResolvedValue({
+      id: ARTICLE_ID,
+      coverImageUrl: "/uploads/cover.jpg",
+      status: "draft",
+    } as Awaited<ReturnType<typeof getArticleForEditing>>);
   });
 
   it("submits successfully when within weekly limit", async () => {
@@ -251,10 +257,41 @@ describe("submitArticle", () => {
   it("throws 404 when article not found", async () => {
     mockGetTier.mockResolvedValue("PROFESSIONAL");
     mockCountWeekly.mockResolvedValue(0);
-    mockSubmitArticleForReview.mockResolvedValue(null);
+    mockGetArticleForEditing.mockResolvedValue(null);
 
     const err = await submitArticle(AUTHOR_ID, ARTICLE_ID).catch((e: ApiError) => e);
     expect((err as ApiError).status).toBe(404);
+  });
+
+  it("submits successfully from revision_requested status", async () => {
+    mockGetTier.mockResolvedValue("PROFESSIONAL");
+    mockCountWeekly.mockResolvedValue(0);
+    mockGetArticleForEditing.mockResolvedValue({
+      id: ARTICLE_ID,
+      coverImageUrl: "/uploads/cover.jpg",
+      status: "revision_requested",
+    } as Awaited<ReturnType<typeof getArticleForEditing>>);
+    mockSubmitArticleForReview.mockResolvedValue({ id: ARTICLE_ID });
+    mockEventBusEmit.mockResolvedValue(undefined);
+
+    const result = await submitArticle(AUTHOR_ID, ARTICLE_ID);
+    expect(result).toEqual({ articleId: ARTICLE_ID });
+    expect(mockSubmitArticleForReview).toHaveBeenCalledWith(ARTICLE_ID, AUTHOR_ID);
+  });
+
+  it("throws 422 when coverImageUrl is null", async () => {
+    mockGetTier.mockResolvedValue("PROFESSIONAL");
+    mockCountWeekly.mockResolvedValue(0);
+    mockGetArticleForEditing.mockResolvedValue({
+      id: ARTICLE_ID,
+      coverImageUrl: null,
+      status: "draft",
+    } as Awaited<ReturnType<typeof getArticleForEditing>>);
+
+    const err = await submitArticle(AUTHOR_ID, ARTICLE_ID).catch((e: ApiError) => e);
+    expect((err as ApiError).status).toBe(422);
+    expect((err as ApiError).detail).toBe("Articles.meta.coverImageRequired");
+    expect(mockSubmitArticleForReview).not.toHaveBeenCalled();
   });
 
   it("emits article.submitted event with correct payload", async () => {

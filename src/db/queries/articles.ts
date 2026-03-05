@@ -80,7 +80,7 @@ export async function updateArticle(
       and(
         eq(communityArticles.id, articleId),
         eq(communityArticles.authorId, authorId),
-        eq(communityArticles.status, "draft"),
+        inArray(communityArticles.status, ["draft", "revision_requested", "rejected"]),
       ),
     )
     .returning({ id: communityArticles.id });
@@ -99,7 +99,7 @@ export async function submitArticleForReview(
       and(
         eq(communityArticles.id, articleId),
         eq(communityArticles.authorId, authorId),
-        eq(communityArticles.status, "draft"),
+        inArray(communityArticles.status, ["draft", "revision_requested", "rejected"]),
       ),
     )
     .returning({ id: communityArticles.id });
@@ -158,7 +158,7 @@ export interface AdminArticleListItem {
   createdAt: Date;
   slug: string;
   isFeatured: boolean;
-  status: "draft" | "pending_review" | "published" | "rejected";
+  status: "draft" | "pending_review" | "published" | "revision_requested" | "rejected";
 }
 
 export async function listPendingArticles(
@@ -262,7 +262,7 @@ export async function publishArticleById(
 
 export async function rejectArticleById(
   articleId: string,
-  feedback: string | null,
+  feedback: string,
 ): Promise<{ id: string; authorId: string; title: string } | null> {
   const [row] = await db
     .update(communityArticles)
@@ -275,6 +275,56 @@ export async function rejectArticleById(
     });
 
   return row ?? null;
+}
+
+export async function requestRevisionById(
+  articleId: string,
+  feedback: string,
+): Promise<{ id: string; authorId: string; title: string } | null> {
+  const [row] = await db
+    .update(communityArticles)
+    .set({ status: "revision_requested", rejectionFeedback: feedback, updatedAt: new Date() })
+    .where(and(eq(communityArticles.id, articleId), eq(communityArticles.status, "pending_review")))
+    .returning({
+      id: communityArticles.id,
+      authorId: communityArticles.authorId,
+      title: communityArticles.title,
+    });
+  return row ?? null;
+}
+
+export interface AuthorArticleListItem {
+  id: string;
+  title: string;
+  slug: string;
+  status: "draft" | "pending_review" | "published" | "revision_requested" | "rejected";
+  category: "discussion" | "announcement" | "event";
+  isFeatured: boolean;
+  viewCount: number;
+  commentCount: number;
+  updatedAt: Date;
+  createdAt: Date;
+}
+
+export async function listArticlesByAuthor(authorId: string): Promise<AuthorArticleListItem[]> {
+  return db
+    .select({
+      id: communityArticles.id,
+      title: communityArticles.title,
+      slug: communityArticles.slug,
+      status: communityArticles.status,
+      category: communityArticles.category,
+      isFeatured: communityArticles.isFeatured,
+      viewCount: communityArticles.viewCount,
+      commentCount: communityArticles.commentCount,
+      updatedAt: communityArticles.updatedAt,
+      createdAt: communityArticles.createdAt,
+    })
+    .from(communityArticles)
+    .where(
+      and(eq(communityArticles.authorId, authorId), sql`${communityArticles.deletedAt} IS NULL`),
+    )
+    .orderBy(desc(communityArticles.updatedAt));
 }
 
 export async function toggleArticleFeature(

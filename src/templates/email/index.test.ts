@@ -41,13 +41,30 @@ const minData: Record<string, Record<string, unknown>> = {
     incidentTimestamp: "2026-02-26T00:00:00Z",
     notificationMessage: "We detected unusual activity.",
   },
+  "article-published": {
+    name: "Chima",
+    title: "My First Article",
+    articleUrl: "https://example.com/articles/my-first-article",
+  },
+  "article-rejected": {
+    name: "Chima",
+    title: "My First Article",
+    editUrl: "https://example.com/articles/article-uuid/edit",
+    feedback: "Please add more cultural context.",
+  },
+  "article-revision-requested": {
+    name: "Chima",
+    title: "My First Article",
+    editUrl: "https://example.com/articles/article-uuid/edit",
+    feedback: "Please expand the introduction section.",
+  },
 };
 
 const ALL_TEMPLATE_IDS = Object.keys(minData);
 
 describe("renderTemplate registry", () => {
-  it("has all 15 templates registered", () => {
-    expect(ALL_TEMPLATE_IDS).toHaveLength(15);
+  it("has all 18 templates registered", () => {
+    expect(ALL_TEMPLATE_IDS).toHaveLength(18);
   });
 
   it.each(ALL_TEMPLATE_IDS)("template '%s' renders without throwing (en)", (id) => {

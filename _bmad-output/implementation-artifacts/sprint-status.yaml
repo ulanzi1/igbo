@@ -102,11 +102,13 @@ development_status:
   epic-5-retro-action-items: done # CP-1/CP-2 bugs fixed + AI-1 through AI-6 all completed 2026-03-05
 
   # Epic 6: Articles & Cultural Preservation
-  epic-6: in-progress
+  epic-6: done
   6-1-article-editor-submission: done
   6-2-article-review-publication: done
   6-3-article-reading-experience: done
-  epic-6-retrospective: optional
+  epic-6-retrospective: done
+  epic-6-retro-action-items: done # AI-1 through AI-6 completed 2026-03-05
+  6-4-article-revision-flow-author-dashboard: done
 
   # Epic 7: Events & Video Meetings
   epic-7: backlog

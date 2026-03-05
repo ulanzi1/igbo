@@ -158,7 +158,7 @@ describe("ArticleReviewActions", () => {
       });
     });
 
-    it("calls POST reject route without feedback when textarea is empty", async () => {
+    it("reject confirm button is disabled when feedback is empty", async () => {
       renderActions({ mode: "pending" });
 
       fireEvent.click(screen.getByText("articles.reject"));
@@ -167,19 +167,78 @@ describe("ArticleReviewActions", () => {
         expect(screen.getByTestId("alert-dialog")).toBeInTheDocument();
       });
 
-      // Click reject without entering feedback
+      // The confirm reject button should be disabled when no feedback entered
       const rejectButtons = screen.getAllByText("articles.reject");
-      const dialogRejectBtn = rejectButtons[rejectButtons.length - 1];
-      fireEvent.click(dialogRejectBtn);
+      const dialogRejectBtn = rejectButtons[rejectButtons.length - 1] as HTMLButtonElement;
+      expect(dialogRejectBtn.disabled).toBe(true);
+    });
+
+    it("renders request revision button in pending mode", () => {
+      renderActions({ mode: "pending" });
+      expect(screen.getByText("articles.requestRevision")).toBeInTheDocument();
+    });
+
+    it("opens revision dialog and calls POST request-revision route with feedback", async () => {
+      renderActions({ mode: "pending" });
+
+      fireEvent.click(screen.getByText("articles.requestRevision"));
+
+      await waitFor(() => {
+        expect(screen.getByTestId("alert-dialog")).toBeInTheDocument();
+      });
+
+      const textarea = screen.getByPlaceholderText("articles.revisionFeedbackPlaceholder");
+      fireEvent.change(textarea, { target: { value: "Please add more context" } });
+
+      fireEvent.click(screen.getByText("articles.revisionSubmit"));
 
       await waitFor(() => {
         expect(global.fetch).toHaveBeenCalledWith(
-          `/api/v1/admin/articles/${ARTICLE_ID}/reject`,
+          `/api/v1/admin/articles/${ARTICLE_ID}/request-revision`,
           expect.objectContaining({
             method: "POST",
-            body: JSON.stringify({}),
+            credentials: "include",
+            body: JSON.stringify({ feedback: "Please add more context" }),
           }),
         );
+      });
+
+      await waitFor(() => {
+        expect(toast.success).toHaveBeenCalledWith("articles.revisionSuccess");
+      });
+    });
+
+    it("revision submit button is disabled when feedback is empty", async () => {
+      renderActions({ mode: "pending" });
+
+      fireEvent.click(screen.getByText("articles.requestRevision"));
+
+      await waitFor(() => {
+        expect(screen.getByTestId("alert-dialog")).toBeInTheDocument();
+      });
+
+      const submitBtn = screen.getByText("articles.revisionSubmit") as HTMLButtonElement;
+      expect(submitBtn.disabled).toBe(true);
+    });
+
+    it("shows error toast on revision request failure", async () => {
+      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
+        new Response("", { status: 500 }),
+      );
+
+      renderActions({ mode: "pending" });
+      fireEvent.click(screen.getByText("articles.requestRevision"));
+
+      await waitFor(() => {
+        expect(screen.getByTestId("alert-dialog")).toBeInTheDocument();
+      });
+
+      const textarea = screen.getByPlaceholderText("articles.revisionFeedbackPlaceholder");
+      fireEvent.change(textarea, { target: { value: "Needs work" } });
+      fireEvent.click(screen.getByText("articles.revisionSubmit"));
+
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalledWith("articles.revisionError");
       });
     });
   });

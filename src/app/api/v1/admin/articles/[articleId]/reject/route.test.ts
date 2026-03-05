@@ -54,15 +54,21 @@ describe("POST /api/v1/admin/articles/[articleId]/reject", () => {
     );
   });
 
-  it("returns 200 without feedback (empty body)", async () => {
+  it("returns 422 when no feedback provided", async () => {
     const res = await POST(makePostRequest({}));
-    expect(res.status).toBe(200);
-    expect(mockRejectArticle).toHaveBeenCalledWith(expect.any(Request), ARTICLE_ID, null);
+    expect(res.status).toBe(422);
+    expect(mockRejectArticle).not.toHaveBeenCalled();
+  });
+
+  it("returns 422 when feedback is empty string", async () => {
+    const res = await POST(makePostRequest({ feedback: "" }));
+    expect(res.status).toBe(422);
+    expect(mockRejectArticle).not.toHaveBeenCalled();
   });
 
   it("returns 401 when not admin", async () => {
     mockRejectArticle.mockRejectedValue(new ApiError({ status: 401, title: "Unauthorized" }));
-    const res = await POST(makePostRequest({}));
+    const res = await POST(makePostRequest({ feedback: "Needs work" }));
     expect(res.status).toBe(401);
   });
 

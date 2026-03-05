@@ -8,6 +8,7 @@ import {
   getArticleByIdForAdmin,
   publishArticleById,
   rejectArticleById,
+  requestRevisionById,
   toggleArticleFeature,
   type PaginatedArticleListOptions,
 } from "@/db/queries/articles";
@@ -62,11 +63,11 @@ export async function approveArticle(
 export async function rejectArticle(
   request: Request,
   articleId: string,
-  feedback?: string | null,
+  feedback: string,
 ): Promise<{ articleId: string }> {
   await requireAdminSession(request);
 
-  const result = await rejectArticleById(articleId, feedback ?? null);
+  const result = await rejectArticleById(articleId, feedback);
   if (!result) {
     const article = await getArticleByIdForAdmin(articleId);
     if (!article) {
@@ -83,7 +84,38 @@ export async function rejectArticle(
     articleId: result.id,
     authorId: result.authorId,
     title: result.title,
-    feedback: feedback ?? undefined,
+    feedback,
+    timestamp: new Date().toISOString(),
+  });
+
+  return { articleId: result.id };
+}
+
+export async function requestArticleRevision(
+  request: Request,
+  articleId: string,
+  feedback: string,
+): Promise<{ articleId: string }> {
+  await requireAdminSession(request);
+
+  const result = await requestRevisionById(articleId, feedback);
+  if (!result) {
+    const article = await getArticleByIdForAdmin(articleId);
+    if (!article) {
+      throw new ApiError({ title: "Not Found", status: 404, detail: "Article not found" });
+    }
+    throw new ApiError({
+      title: "Conflict",
+      status: 409,
+      detail: "Article is not in pending_review status",
+    });
+  }
+
+  await eventBus.emit("article.revision_requested", {
+    articleId: result.id,
+    authorId: result.authorId,
+    title: result.title,
+    feedback,
     timestamp: new Date().toISOString(),
   });
 

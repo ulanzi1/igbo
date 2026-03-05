@@ -118,13 +118,32 @@
       "visibilityGuest": "Ọha (Ndị Ọbịa)",
       "addTagPlaceholder": "+ tinye mkpado",
       "removeCoverImage": "Wepụ foto mkpuchi",
-      "coverAlt": "Mkpuchi"
+      "coverAlt": "Mkpuchi",
+      "coverImageRequired": "Akara foto dị mkpa iji zipu isiokwu."
     },
     "submit": {
       "button": "Zipu maka Nlele",
+      "resubmitButton": "Zipu Ọzọ maka Nlele",
       "successMessage": "E zigara akụkọ gị maka nlele.",
       "confirmTitle": "Zipu maka Nlele?",
       "confirmBody": "Mgbe ezigara, a ga-enyochaa akụkọ gị tupu ewepụtara ya."
+    },
+    "revision": {
+      "bannerTitle": "Achọrọ Mgbanwe",
+      "bannerBody": "Onye nlekọta achọrọ mgbanwe n'akụkọ gị. Biko lelee nzaghachi dị n'okpuru ma zipu ọzọ."
+    },
+    "myArticles": {
+      "title": "Akụkọ m",
+      "writeButton": "Dee Akụkọ",
+      "empty": "Ị debeghị akụkọ ọ bụla.",
+      "emptyButton": "Bido Ide",
+      "sectionPublished": "Ebipụtara",
+      "sectionPending": "Na-atọ Anya Nlele",
+      "sectionRevision": "Achọrọ Mgbanwe",
+      "sectionRejected": "Ajụrụ",
+      "sectionDraft": "Ihe Edere",
+      "editButton": "Dezie",
+      "viewButton": "Lelee"
     },
     "permissions": {
       "notEligible": "Ịchọrọ ọrụ Professional ma ọ bụ Top-tier iji bipụta akụkọ.",
@@ -406,7 +425,15 @@
       "visibilityMembers": "Ndị Otu Naanị",
       "readingTime": "Nkeji {minutes} ịgụ",
       "slug": "Aha URL",
-      "rejectionFeedbackLabel": "Ihe Onye Nlekọta Siri"
+      "rejectionFeedbackLabel": "Ihe Onye Nlekọta Siri",
+      "rejectionFeedbackRequired": "Ihe kpatara ịjụ achọrọ",
+      "requestRevision": "Rịọọ Mgbanwe",
+      "revisionFeedbackLabel": "Ndetu mgbanwe (achọrọ)",
+      "revisionFeedbackPlaceholder": "Kọọ ihe onye odee kwesịrị ịgbanwe...",
+      "revisionSubmit": "Zipu Arịọ Mgbanwe",
+      "revisionSuccess": "Ezigara arịọ mgbanwe",
+      "revisionError": "Ezighị ike iziga arịọ mgbanwe",
+      "revisionConfirm": "Rịọọ Mgbanwe?"
     }
   },
   "Permissions": {

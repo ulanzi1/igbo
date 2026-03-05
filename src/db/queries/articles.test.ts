@@ -72,10 +72,12 @@ import {
   getArticleByIdForAdmin,
   publishArticleById,
   rejectArticleById,
+  requestRevisionById,
   toggleArticleFeature,
   incrementArticleViewCount,
   getRelatedArticles,
   getArticleTagsById,
+  listArticlesByAuthor,
 } from "./articles";
 
 const AUTHOR_ID = "author-uuid-1";
@@ -438,7 +440,36 @@ describe("rejectArticleById", () => {
     const set = vi.fn().mockReturnValue({ where });
     mockDbUpdate.mockReturnValue({ set });
 
-    const result = await rejectArticleById(ARTICLE_ID, null);
+    const result = await rejectArticleById(ARTICLE_ID, "Feedback");
+    expect(result).toBeNull();
+  });
+});
+
+describe("requestRevisionById", () => {
+  beforeEach(() => {
+    mockDbUpdate.mockReset();
+  });
+
+  it("updates status to revision_requested and returns id, authorId, title", async () => {
+    const returning = vi
+      .fn()
+      .mockResolvedValue([{ id: ARTICLE_ID, authorId: AUTHOR_ID, title: "Test" }]);
+    const where = vi.fn().mockReturnValue({ returning });
+    const set = vi.fn().mockReturnValue({ where });
+    mockDbUpdate.mockReturnValue({ set });
+
+    const result = await requestRevisionById(ARTICLE_ID, "Please add more detail");
+    expect(result).toEqual({ id: ARTICLE_ID, authorId: AUTHOR_ID, title: "Test" });
+    expect(mockDbUpdate).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns null when article not in pending_review", async () => {
+    const returning = vi.fn().mockResolvedValue([]);
+    const where = vi.fn().mockReturnValue({ returning });
+    const set = vi.fn().mockReturnValue({ where });
+    mockDbUpdate.mockReturnValue({ set });
+
+    const result = await requestRevisionById(ARTICLE_ID, "Feedback");
     expect(result).toBeNull();
   });
 });
@@ -564,6 +595,36 @@ describe("getArticleTagsById", () => {
     mockDbSelect.mockReturnValue({ from });
 
     const result = await getArticleTagsById(ARTICLE_ID);
+    expect(result).toEqual([]);
+  });
+});
+
+describe("listArticlesByAuthor", () => {
+  beforeEach(() => {
+    mockDbSelect.mockReset();
+  });
+
+  it("returns articles for the given author ordered by updatedAt desc", async () => {
+    const articles = [
+      { id: ARTICLE_ID, title: "My Article", status: "draft", updatedAt: new Date() },
+    ];
+    const orderBy = vi.fn().mockResolvedValue(articles);
+    const where = vi.fn().mockReturnValue({ orderBy });
+    const from = vi.fn().mockReturnValue({ where });
+    mockDbSelect.mockReturnValue({ from });
+
+    const result = await listArticlesByAuthor(AUTHOR_ID);
+    expect(result).toEqual(articles);
+    expect(mockDbSelect).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns empty array when author has no articles", async () => {
+    const orderBy = vi.fn().mockResolvedValue([]);
+    const where = vi.fn().mockReturnValue({ orderBy });
+    const from = vi.fn().mockReturnValue({ where });
+    mockDbSelect.mockReturnValue({ from });
+
+    const result = await listArticlesByAuthor(AUTHOR_ID);
     expect(result).toEqual([]);
   });
 });

@@ -135,6 +135,7 @@ const filledInitialData: ArticleEditorInitialData = {
   title: "My Article Title",
   content:
     '{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"Hello"}]}]}',
+  coverImageUrl: "/uploads/cover.jpg",
 };
 
 beforeEach(() => {
@@ -238,5 +239,71 @@ describe("ArticleEditor", () => {
 
     // After upload, the remove button should appear
     expect(screen.getByText("×")).toBeInTheDocument();
+  });
+
+  it("shows ReSubmit button label when status is revision_requested", () => {
+    render(
+      <ArticleEditor
+        articleId={ARTICLE_ID}
+        initialData={{
+          ...filledInitialData,
+          status: "revision_requested",
+          rejectionFeedback: "Fix intro",
+        }}
+      />,
+    );
+
+    expect(screen.getByText("Articles.submit.resubmitButton")).toBeInTheDocument();
+    // Should NOT show the regular submit label
+    expect(screen.queryByText("Articles.submit.button")).not.toBeInTheDocument();
+  });
+
+  it("shows ReSubmit button label when status is rejected", () => {
+    render(
+      <ArticleEditor
+        articleId={ARTICLE_ID}
+        initialData={{
+          ...filledInitialData,
+          status: "rejected",
+          rejectionFeedback: "Not suitable",
+        }}
+      />,
+    );
+
+    expect(screen.getByText("Articles.submit.resubmitButton")).toBeInTheDocument();
+  });
+
+  it("shows amber revision banner when status is revision_requested", () => {
+    render(
+      <ArticleEditor
+        articleId={ARTICLE_ID}
+        initialData={{
+          ...filledInitialData,
+          status: "revision_requested",
+          rejectionFeedback: "Expand section 2",
+        }}
+      />,
+    );
+
+    expect(screen.getByText("Articles.revision.bannerTitle")).toBeInTheDocument();
+    expect(screen.getByText("Articles.revision.bannerBody")).toBeInTheDocument();
+    expect(screen.getByText("Expand section 2")).toBeInTheDocument();
+  });
+
+  it("shows cover image required hint when no cover image", () => {
+    render(
+      <ArticleEditor articleId={ARTICLE_ID} initialData={{ ...initialData, title: "A Title" }} />,
+    );
+
+    expect(screen.getByText("Articles.meta.coverImageRequired")).toBeInTheDocument();
+  });
+
+  it("submit button is disabled when cover image is missing even if content is valid", () => {
+    const dataWithoutCover = { ...filledInitialData, coverImageUrl: undefined };
+    render(<ArticleEditor articleId={ARTICLE_ID} initialData={dataWithoutCover} />);
+
+    // Should show resubmit or submit button, but it should be disabled
+    const submitBtn = screen.getByText("Articles.submit.button");
+    expect(submitBtn).toBeDisabled();
   });
 });

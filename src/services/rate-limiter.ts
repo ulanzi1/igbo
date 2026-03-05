@@ -2,6 +2,31 @@ import "server-only";
 import { checkRateLimit, buildRateLimitHeaders } from "@/lib/rate-limiter";
 import type { RateLimitResult } from "@/lib/rate-limiter";
 
+/**
+ * All rate-limit presets. Use with `withApiHandler({ rateLimit: { ...RATE_LIMIT_PRESETS.KEY } })`.
+ *
+ * Available preset names:
+ *   Auth:              LOGIN, REGISTER, FORGOT_PASSWORD, RESEND_VERIFY, EMAIL_OTP, MFA_VERIFY
+ *   User self-service: PROFILE_UPDATE, LANGUAGE_UPDATE, GDPR_EXPORT
+ *   General:           API_GENERAL
+ *   Files:             FILE_UPLOAD_PRESIGN
+ *   Notifications:     NOTIFICATION_FETCH
+ *   Chat:              CONVERSATION_LIST, CONVERSATION_CREATE, MESSAGE_FETCH, CONVERSATION_READ,
+ *                      CONVERSATION_MARK_READ, CONVERSATION_MEMBER_MANAGE, MESSAGE_REACTION,
+ *                      MESSAGE_EDIT, MESSAGE_DELETE, MESSAGE_SEARCH, BLOCK_MUTE,
+ *                      CONVERSATION_PREFERENCE, DND_TOGGLE
+ *   Members:           MEMBER_SEARCH, MEMBER_SUGGESTIONS, SUGGESTION_DISMISS,
+ *                      MEMBER_FOLLOW, FOLLOW_LIST, FOLLOW_STATUS_BATCH
+ *   Feed/Posts:        FEED_READ, POST_CREATE, POST_COMMENTS_READ, POST_COMMENT_DELETE,
+ *                      POST_REACTIONS_READ, POST_REACT, POST_COMMENT, POST_SHARE,
+ *                      POST_BOOKMARK, BOOKMARK_LIST, PIN_POST
+ *   Groups:            GROUP_CREATE, GROUP_UPDATE, GROUP_LIST, GROUP_DETAIL, GROUP_JOIN,
+ *                      GROUP_REQUEST, GROUP_APPROVE_REJECT, GROUP_LEAVE, GROUP_CHANNEL, GROUP_MANAGE
+ *   Tier quotas:       TIER_BASIC, TIER_PROFESSIONAL, TIER_TOP_TIER
+ *
+ * ⚠️  `BROWSE` does NOT exist. Story specs must not reference it.
+ * For public GET routes (unauthenticated), omit the `rateLimit` option entirely from `withApiHandler`.
+ */
 export const RATE_LIMIT_PRESETS = {
   // Auth endpoints — strict limits, IP-based key recommended
   LOGIN: { maxRequests: 10, windowMs: 60_000 }, // 10/min per IP+email

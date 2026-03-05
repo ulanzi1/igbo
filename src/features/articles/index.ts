@@ -9,3 +9,4 @@ export { ArticleLanguageToggle } from "./components/ArticleLanguageToggle";
 export { ArticleViewTracker } from "./components/ArticleViewTracker";
 export { ArticleComments } from "./components/ArticleComments";
 export { ArticleRelatedSuggestions } from "./components/ArticleRelatedSuggestions";
+export { MyArticlesList } from "./components/MyArticlesList";

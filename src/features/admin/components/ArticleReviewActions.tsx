@@ -33,6 +33,8 @@ export function ArticleReviewActions({
 
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [feedback, setFeedback] = useState("");
+  const [showRevisionDialog, setShowRevisionDialog] = useState(false);
+  const [revisionFeedback, setRevisionFeedback] = useState("");
 
   const invalidateQueries = () => {
     void queryClient.invalidateQueries({ queryKey: ["admin-articles"] });
@@ -70,7 +72,7 @@ export function ArticleReviewActions({
           Host: window.location.host,
           Origin: window.location.origin,
         },
-        body: JSON.stringify({ feedback: fb || undefined }),
+        body: JSON.stringify({ feedback: fb }),
       });
       if (!res.ok) throw new Error("Failed to reject");
     },
@@ -82,6 +84,31 @@ export function ArticleReviewActions({
     },
     onError: () => {
       toast.error(t("articles.rejectError"));
+    },
+  });
+
+  const requestRevisionMutation = useMutation({
+    mutationFn: async (fb: string) => {
+      const res = await fetch(`/api/v1/admin/articles/${articleId}/request-revision`, {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          Host: window.location.host,
+          Origin: window.location.origin,
+        },
+        body: JSON.stringify({ feedback: fb }),
+      });
+      if (!res.ok) throw new Error("Failed to request revision");
+    },
+    onSuccess: () => {
+      toast.success(t("articles.revisionSuccess"));
+      setShowRevisionDialog(false);
+      setRevisionFeedback("");
+      invalidateQueries();
+    },
+    onError: () => {
+      toast.error(t("articles.revisionError"));
     },
   });
 
@@ -140,21 +167,42 @@ export function ArticleReviewActions({
         <Button
           size="sm"
           onClick={() => approveMutation.mutate()}
-          disabled={approveMutation.isPending || rejectMutation.isPending}
+          disabled={
+            approveMutation.isPending ||
+            rejectMutation.isPending ||
+            requestRevisionMutation.isPending
+          }
           className="bg-green-700 hover:bg-green-600 text-white"
         >
           {t("articles.approve")}
         </Button>
         <Button
           size="sm"
+          variant="outline"
+          onClick={() => setShowRevisionDialog(true)}
+          disabled={
+            approveMutation.isPending ||
+            rejectMutation.isPending ||
+            requestRevisionMutation.isPending
+          }
+        >
+          {t("articles.requestRevision")}
+        </Button>
+        <Button
+          size="sm"
           variant="destructive"
           onClick={() => setShowRejectDialog(true)}
-          disabled={approveMutation.isPending || rejectMutation.isPending}
+          disabled={
+            approveMutation.isPending ||
+            rejectMutation.isPending ||
+            requestRevisionMutation.isPending
+          }
         >
           {t("articles.reject")}
         </Button>
       </div>
 
+      {/* Reject Dialog */}
       <AlertDialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
         <AlertDialogContent className="bg-zinc-900 border-zinc-700 text-white">
           <AlertDialogHeader>
@@ -176,6 +224,9 @@ export function ArticleReviewActions({
               rows={4}
               className="w-full rounded-md border border-zinc-600 bg-zinc-800 px-3 py-2 text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-400"
             />
+            {feedback.trim() === "" && (
+              <p className="text-xs text-red-400 mt-1">{t("articles.rejectionFeedbackRequired")}</p>
+            )}
           </div>
           <AlertDialogFooter>
             <AlertDialogCancel
@@ -190,9 +241,53 @@ export function ArticleReviewActions({
             <AlertDialogAction
               className="bg-red-700 hover:bg-red-600 text-white"
               onClick={() => rejectMutation.mutate(feedback)}
-              disabled={rejectMutation.isPending}
+              disabled={rejectMutation.isPending || feedback.trim() === ""}
             >
               {t("articles.reject")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Request Revision Dialog */}
+      <AlertDialog open={showRevisionDialog} onOpenChange={setShowRevisionDialog}>
+        <AlertDialogContent className="bg-zinc-900 border-zinc-700 text-white">
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("articles.revisionConfirm")}</AlertDialogTitle>
+            <AlertDialogDescription className="text-zinc-400">
+              {t("articles.revisionFeedbackLabel")}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-2">
+            <label htmlFor="revision-feedback" className="text-zinc-300 text-sm mb-1 block">
+              {t("articles.revisionFeedbackLabel")}
+            </label>
+            <textarea
+              id="revision-feedback"
+              value={revisionFeedback}
+              onChange={(e) => setRevisionFeedback(e.target.value)}
+              placeholder={t("articles.revisionFeedbackPlaceholder")}
+              maxLength={1000}
+              rows={4}
+              className="w-full rounded-md border border-zinc-600 bg-zinc-800 px-3 py-2 text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-400"
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              className="border-zinc-600 text-zinc-300 hover:bg-zinc-800"
+              onClick={() => {
+                setShowRevisionDialog(false);
+                setRevisionFeedback("");
+              }}
+            >
+              {t("articles.cancel")}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-amber-600 hover:bg-amber-500 text-white"
+              onClick={() => requestRevisionMutation.mutate(revisionFeedback)}
+              disabled={requestRevisionMutation.isPending || revisionFeedback.trim() === ""}
+            >
+              {t("articles.revisionSubmit")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

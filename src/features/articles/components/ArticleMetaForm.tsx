@@ -127,7 +127,12 @@ export function ArticleMetaForm({
 
       {/* Cover Image */}
       <div className="space-y-1.5">
-        <label className="text-sm font-medium">{t("meta.coverImage")}</label>
+        <label className="text-sm font-medium">
+          {t("meta.coverImage")}{" "}
+          <span className="text-destructive" aria-hidden="true">
+            *
+          </span>
+        </label>
         {coverImageUrl && (
           <div className="relative w-full max-w-xs rounded-md overflow-hidden aspect-video bg-muted">
             {/* eslint-disable-next-line @next/next/no-img-element */}

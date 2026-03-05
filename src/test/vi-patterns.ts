@@ -287,3 +287,45 @@ export function useRealTimersForReactQuery() {
  * in JSX and API responses before submitting for review.
  * First hit: Story 5.3 channel tab. Repeated in Story 5.4 ban response.
  */
+
+/**
+ * ✅ dangerouslySetInnerHTML safe-use — ALWAYS sanitize server-side first.
+ *
+ * Root cause: React's `dangerouslySetInnerHTML` renders HTML strings exactly as-is.
+ * If that HTML contains user-generated content (article body, rich text, bios),
+ * it creates an XSS vector — any `<script>` or event handler in the HTML executes.
+ *
+ * Rule: Any HTML string passed to `dangerouslySetInnerHTML` MUST be sanitized
+ * with `sanitize-html` on the server BEFORE being sent to the client component.
+ * The client component receives clean HTML and can safely render it.
+ *
+ * ✅ CORRECT — server component sanitizes first:
+ * ```ts
+ * import sanitizeHtml from "sanitize-html";
+ *
+ * // In Server Component (server-side):
+ * const safeHtml = sanitizeHtml(rawHtmlFromTiptap, {
+ *   allowedTags: sanitizeHtml.defaults.allowedTags.concat(["h2", "h3", "img"]),
+ *   allowedAttributes: { ...sanitizeHtml.defaults.allowedAttributes, img: ["src", "alt"] },
+ * });
+ *
+ * // Pass safe HTML to client component:
+ * return <ArticleLanguageToggle enContent={safeHtml} />;
+ *
+ * // In client component — safe because input was sanitized server-side:
+ * <div dangerouslySetInnerHTML={{ __html: enContent }} />
+ * ```
+ *
+ * ❌ WRONG — rendering raw user HTML without sanitization:
+ * ```tsx
+ * <div dangerouslySetInnerHTML={{ __html: article.contentHtml }} />
+ * // article.contentHtml came directly from DB — NOT sanitized
+ * ```
+ *
+ * Pre-review check: Search for `dangerouslySetInnerHTML` in all components and verify
+ * the HTML source was sanitized with `sanitize-html` before reaching the client.
+ *
+ * First hit: Story 6.2 ArticlePreviewModal — unsanitized admin preview of user article HTML.
+ * Canonical correct example: Story 6.3 article reading page — Server Component passes
+ * sanitized HTML strings to `<ArticleLanguageToggle>`.
+ */
