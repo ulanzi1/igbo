@@ -1,9 +1,10 @@
 // No "server-only" — consistent with follows.ts and feed.ts.
 // This file is used by post-service.ts (server-only) and tests.
-import { eq, and, gte, sql, inArray } from "drizzle-orm";
+import { eq, and, gte, gt, sql, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import { env } from "@/env";
 import { communityPosts, communityPostMedia } from "@/db/schema/community-posts";
+import { communityProfiles } from "@/db/schema/community-profiles";
 import { platformFileUploads } from "@/db/schema/file-uploads";
 
 export interface CreatePostData {
@@ -14,6 +15,7 @@ export interface CreatePostData {
   category: "discussion" | "event" | "announcement";
   groupId?: string | null; // Group-scoped posts (Story 5.3)
   originalPostId?: string | null; // Reposts
+  status?: "active" | "pending_approval"; // 'pending_approval' for moderated groups (CP-1)
 }
 
 export interface CreatePostMediaData {
@@ -21,6 +23,17 @@ export interface CreatePostMediaData {
   mediaType: "image" | "video" | "audio";
   altText?: string;
   sortOrder: number;
+}
+
+export interface PendingGroupPost {
+  id: string;
+  authorId: string;
+  authorDisplayName: string;
+  authorPhotoUrl: string | null;
+  content: string;
+  contentType: string;
+  createdAt: Date;
+  media: Array<{ id: string; mediaUrl: string; mediaType: string; sortOrder: number }>;
 }
 
 /**
@@ -66,6 +79,7 @@ export async function insertPost(data: CreatePostData) {
       category: data.category,
       groupId: data.groupId ?? null,
       originalPostId: data.originalPostId ?? null,
+      status: data.status ?? "active",
     })
     .returning();
   return post!;
@@ -151,6 +165,107 @@ export async function getPostGroupId(postId: string): Promise<string | null | un
   // undefined means post not found; null means found but no group (general feed)
   if (!row) return undefined;
   return row.groupId;
+}
+
+/**
+ * List pending-approval posts for a group (for leader moderation queue).
+ * Returns posts sorted by creation date (oldest first), with author info and media.
+ * Supports cursor pagination (oldest-first FIFO queue).
+ */
+export async function listPendingGroupPosts(
+  groupId: string,
+  params: { cursor?: string; limit?: number } = {},
+): Promise<{ posts: PendingGroupPost[]; nextCursor: string | null }> {
+  const { cursor, limit = 10 } = params;
+  const parsedDate = cursor ? new Date(cursor) : undefined;
+  const cursorDate = parsedDate && !isNaN(parsedDate.getTime()) ? parsedDate : undefined;
+
+  const rows = await db
+    .select({
+      id: communityPosts.id,
+      authorId: communityPosts.authorId,
+      authorDisplayName: communityProfiles.displayName,
+      authorPhotoUrl: communityProfiles.photoUrl,
+      content: communityPosts.content,
+      contentType: communityPosts.contentType,
+      createdAt: communityPosts.createdAt,
+    })
+    .from(communityPosts)
+    .innerJoin(
+      communityProfiles,
+      and(
+        eq(communityProfiles.userId, communityPosts.authorId),
+        sql`${communityProfiles.deletedAt} IS NULL`,
+      ),
+    )
+    .where(
+      and(
+        eq(communityPosts.groupId, groupId),
+        eq(communityPosts.status, "pending_approval"),
+        sql`${communityPosts.deletedAt} IS NULL`,
+        ...(cursorDate ? [gt(communityPosts.createdAt, cursorDate)] : []),
+      ),
+    )
+    .orderBy(communityPosts.createdAt)
+    .limit(limit + 1);
+
+  const hasMore = rows.length > limit;
+  const pageRows = rows.slice(0, limit);
+  const postIds = pageRows.map((r) => r.id);
+
+  const mediaRows =
+    postIds.length > 0
+      ? await db
+          .select()
+          .from(communityPostMedia)
+          .where(inArray(communityPostMedia.postId, postIds))
+          .orderBy(communityPostMedia.sortOrder)
+      : [];
+
+  const mediaByPostId = new Map<string, typeof mediaRows>();
+  for (const m of mediaRows) {
+    if (!mediaByPostId.has(m.postId)) mediaByPostId.set(m.postId, []);
+    mediaByPostId.get(m.postId)!.push(m);
+  }
+
+  const posts: PendingGroupPost[] = pageRows.map((r) => ({
+    id: r.id,
+    authorId: r.authorId,
+    authorDisplayName: r.authorDisplayName,
+    authorPhotoUrl: r.authorPhotoUrl ?? null,
+    content: r.content,
+    contentType: r.contentType,
+    createdAt: r.createdAt,
+    media: (mediaByPostId.get(r.id) ?? []).map((m) => ({
+      id: m.id,
+      mediaUrl: m.mediaUrl,
+      mediaType: m.mediaType,
+      sortOrder: m.sortOrder,
+    })),
+  }));
+
+  const nextCursor = hasMore ? pageRows[pageRows.length - 1].createdAt.toISOString() : null;
+  return { posts, nextCursor };
+}
+
+/**
+ * Approve a pending post in a group — transitions status from pending_approval to active.
+ * Returns true if the post was found and approved; false if not found or already active.
+ */
+export async function approveGroupPost(postId: string, groupId: string): Promise<boolean> {
+  const [updated] = await db
+    .update(communityPosts)
+    .set({ status: "active" })
+    .where(
+      and(
+        eq(communityPosts.id, postId),
+        eq(communityPosts.groupId, groupId),
+        eq(communityPosts.status, "pending_approval"),
+        sql`${communityPosts.deletedAt} IS NULL`,
+      ),
+    )
+    .returning({ id: communityPosts.id });
+  return !!updated;
 }
 
 /**

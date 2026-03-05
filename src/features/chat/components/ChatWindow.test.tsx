@@ -117,8 +117,12 @@ vi.mock("./MessageBubble", () => ({
     ),
 }));
 
+const mockMessageInputProps = vi.hoisted(() => ({ members: [] as unknown[] }));
 vi.mock("./MessageInput", () => ({
-  MessageInput: () => React.createElement("div", { "data-testid": "message-input" }),
+  MessageInput: (props: { members?: unknown[] }) => {
+    mockMessageInputProps.members = props.members ?? [];
+    return React.createElement("div", { "data-testid": "message-input" });
+  },
 }));
 
 vi.mock("./ChatWindowSkeleton", () => ({
@@ -177,27 +181,42 @@ const mockMessages = [
   },
 ];
 
-global.fetch = vi.fn().mockImplementation((url: string, opts?: RequestInit) => {
-  if (typeof url === "string" && url.includes("/messages")) {
-    return Promise.resolve({
-      ok: true,
-      json: async () => ({
-        data: { messages: mockMessages, meta: { cursor: null, hasMore: false } },
-      }),
-    });
-  }
-  if (typeof url === "string" && url.includes("/conversations/") && opts?.method === "PATCH") {
-    return Promise.resolve({ ok: true, json: async () => ({ data: { ok: true } }) });
-  }
-  // GET /api/v1/conversations/[id] — conversation details
-  if (typeof url === "string" && url.includes("/conversations/")) {
-    return Promise.resolve({
-      ok: true,
-      json: async () => ({ data: { conversation: mockConversation } }),
-    });
-  }
-  return Promise.resolve({ ok: true, json: async () => ({ data: {} }) });
-});
+function makeFetchMock(opts?: { groupMembers?: unknown[] }) {
+  return (url: string, fetchOpts?: RequestInit) => {
+    if (typeof url === "string" && url.includes("/messages")) {
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({
+          data: { messages: mockMessages, meta: { cursor: null, hasMore: false } },
+        }),
+      });
+    }
+    if (
+      typeof url === "string" &&
+      url.includes("/conversations/") &&
+      fetchOpts?.method === "PATCH"
+    ) {
+      return Promise.resolve({ ok: true, json: async () => ({ data: { ok: true } }) });
+    }
+    if (typeof url === "string" && url.includes("/groups/") && url.includes("/members")) {
+      const members = opts?.groupMembers ?? [];
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({ data: { members, nextCursor: null } }),
+      });
+    }
+    // GET /api/v1/conversations/[id] — conversation details
+    if (typeof url === "string" && url.includes("/conversations/")) {
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({ data: { conversation: mockConversation } }),
+      });
+    }
+    return Promise.resolve({ ok: true, json: async () => ({ data: {} }) });
+  };
+}
+
+global.fetch = vi.fn().mockImplementation(makeFetchMock());
 
 import { ChatWindow } from "./ChatWindow";
 
@@ -216,28 +235,8 @@ beforeEach(() => {
   mockSocketCtx.isConnected = false;
   // Re-mock scrollIntoView after clearAllMocks
   window.HTMLElement.prototype.scrollIntoView = vi.fn();
-  (global.fetch as ReturnType<typeof vi.fn>).mockImplementation(
-    (url: string, opts?: RequestInit) => {
-      if (typeof url === "string" && url.includes("/messages")) {
-        return Promise.resolve({
-          ok: true,
-          json: async () => ({
-            data: { messages: mockMessages, meta: { cursor: null, hasMore: false } },
-          }),
-        });
-      }
-      if (typeof url === "string" && url.includes("/conversations/") && opts?.method === "PATCH") {
-        return Promise.resolve({ ok: true, json: async () => ({ data: { ok: true } }) });
-      }
-      if (typeof url === "string" && url.includes("/conversations/")) {
-        return Promise.resolve({
-          ok: true,
-          json: async () => ({ data: { conversation: mockConversation } }),
-        });
-      }
-      return Promise.resolve({ ok: true, json: async () => ({ data: {} }) });
-    },
-  );
+  (global.fetch as ReturnType<typeof vi.fn>).mockImplementation(makeFetchMock());
+  mockMessageInputProps.members = [];
 });
 
 describe("ChatWindow", () => {
@@ -612,5 +611,75 @@ describe("ChatWindow — socket events (Story 2.6)", () => {
     expect(invalidateSpy).not.toHaveBeenCalledWith({ queryKey: ["conversations"] });
 
     invalidateSpy.mockRestore();
+  });
+});
+
+describe("ChatWindow — group channel @ mention (CP-2)", () => {
+  const GROUP_ID = "group-1";
+  const mockGroupMembers = [
+    {
+      userId: "user-a",
+      displayName: "Alice",
+      photoUrl: null,
+      role: "member",
+      joinedAt: new Date().toISOString(),
+      mutedUntil: null,
+    },
+    {
+      userId: "user-b",
+      displayName: "Bob",
+      photoUrl: null,
+      role: "leader",
+      joinedAt: new Date().toISOString(),
+      mutedUntil: null,
+    },
+    {
+      userId: "user-c",
+      displayName: "Carol",
+      photoUrl: null,
+      role: "member",
+      joinedAt: new Date().toISOString(),
+      mutedUntil: null,
+    },
+  ];
+
+  beforeEach(() => {
+    (global.fetch as ReturnType<typeof vi.fn>).mockImplementation(
+      makeFetchMock({ groupMembers: mockGroupMembers }),
+    );
+  });
+
+  it("fetches group members when groupId prop is provided", async () => {
+    render(<ChatWindow conversationId="conv-1" channelName="general" groupId={GROUP_ID} />, {
+      wrapper: makeWrapper(),
+    });
+
+    await waitFor(() => {
+      const calls = (global.fetch as ReturnType<typeof vi.fn>).mock.calls as string[][];
+      expect(calls.some((c) => String(c[0]).includes(`/groups/${GROUP_ID}/members`))).toBe(true);
+    });
+  });
+
+  it("passes all group members to MessageInput as mention candidates", async () => {
+    render(<ChatWindow conversationId="conv-1" channelName="general" groupId={GROUP_ID} />, {
+      wrapper: makeWrapper(),
+    });
+
+    await waitFor(() => {
+      expect(mockMessageInputProps.members).toHaveLength(3);
+    });
+
+    const members = mockMessageInputProps.members as Array<{ id: string; displayName: string }>;
+    expect(members.map((m) => m.id)).toEqual(["user-a", "user-b", "user-c"]);
+    expect(members.map((m) => m.displayName)).toEqual(["Alice", "Bob", "Carol"]);
+  });
+
+  it("does NOT fetch group members when groupId is not provided", async () => {
+    render(<ChatWindow conversationId="conv-1" />, { wrapper: makeWrapper() });
+
+    await waitFor(() => screen.getByTestId("message-input"));
+
+    const calls = (global.fetch as ReturnType<typeof vi.fn>).mock.calls as string[][];
+    expect(calls.some((c) => String(c[0]).includes("/groups/"))).toBe(false);
   });
 });

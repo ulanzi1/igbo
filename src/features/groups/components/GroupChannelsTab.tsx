@@ -130,6 +130,7 @@ export function GroupChannelsTab({ groupId, viewerRole }: GroupChannelsTabProps)
           <ChatWindow
             conversationId={activeChannel.conversationId}
             channelName={activeChannel.name}
+            groupId={groupId}
           />
         ) : (
           <div className="flex h-full items-center justify-center text-sm text-muted-foreground">

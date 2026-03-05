@@ -9,6 +9,7 @@ import {
   timestamp,
   index,
 } from "drizzle-orm/pg-core";
+
 import { sql } from "drizzle-orm";
 import { authUsers } from "./auth-users";
 import { communityGroups } from "./community-groups";
@@ -32,6 +33,8 @@ export const postCategoryEnum = pgEnum("community_post_category", [
   "announcement",
 ]);
 
+export const postStatusEnum = pgEnum("community_post_status", ["active", "pending_approval"]);
+
 export const communityPosts = pgTable(
   "community_posts",
   {
@@ -44,6 +47,7 @@ export const communityPosts = pgTable(
     visibility: postVisibilityEnum("visibility").notNull().default("members_only"),
     category: postCategoryEnum("category").notNull().default("discussion"),
     groupId: uuid("group_id").references(() => communityGroups.id, { onDelete: "setNull" }), // FK added Story 5.1
+    status: postStatusEnum("status").notNull().default("active"), // 'pending_approval' for moderated groups
     isPinned: boolean("is_pinned").notNull().default(false),
     pinnedAt: timestamp("pinned_at", { withTimezone: true }), // Set when admin pins; null = not pinned
     likeCount: integer("like_count").notNull().default(0),
@@ -84,3 +88,4 @@ export type NewCommunityPost = typeof communityPosts.$inferInsert;
 export type CommunityPostMedia = typeof communityPostMedia.$inferSelect;
 export type NewCommunityPostMedia = typeof communityPostMedia.$inferInsert;
 export type PostCategory = "discussion" | "event" | "announcement";
+export type PostStatus = "active" | "pending_approval";

@@ -394,12 +394,13 @@ describe("createGroupPost", () => {
     mockEventBusEmit.mockResolvedValue(undefined);
 
     const result = await createGroupPost(groupPostInput);
-    expect(result).toEqual({ success: true, postId: "post-1" });
+    expect(result).toEqual({ success: true, postId: "post-1", status: "active" });
     expect(mockInsertPost).toHaveBeenCalledWith(
       expect.objectContaining({
         visibility: "group",
         groupId: "group-1",
         authorId: "user-1",
+        status: "active",
       }),
     );
   });
@@ -421,5 +422,86 @@ describe("createGroupPost", () => {
       "post.published",
       expect.objectContaining({ postId: "post-1", groupId: "group-1" }),
     );
+  });
+
+  // ── postingPermission = 'moderated' (CP-1 fix) ──
+
+  it("holds member post as pending_approval in moderated group", async () => {
+    mockGetGroupById.mockResolvedValue(
+      makeGroup({ postingPermission: "moderated" }) as Awaited<ReturnType<typeof getGroupById>>,
+    );
+    mockGetGroupMemberFull.mockResolvedValue({
+      role: "member",
+      status: "active",
+      mutedUntil: null,
+    });
+    mockResolveFileUploadUrls.mockResolvedValue(new Map());
+    mockInsertPost.mockResolvedValue({ id: "post-2" } as Awaited<ReturnType<typeof insertPost>>);
+    mockInsertPostMedia.mockResolvedValue(undefined);
+
+    const result = await createGroupPost(groupPostInput);
+    expect(result).toEqual({ success: true, postId: "post-2", status: "pending_approval" });
+    expect(mockInsertPost).toHaveBeenCalledWith(
+      expect.objectContaining({ status: "pending_approval" }),
+    );
+  });
+
+  it("does NOT emit post.published for pending_approval posts", async () => {
+    mockGetGroupById.mockResolvedValue(
+      makeGroup({ postingPermission: "moderated" }) as Awaited<ReturnType<typeof getGroupById>>,
+    );
+    mockGetGroupMemberFull.mockResolvedValue({
+      role: "member",
+      status: "active",
+      mutedUntil: null,
+    });
+    mockResolveFileUploadUrls.mockResolvedValue(new Map());
+    mockInsertPost.mockResolvedValue({ id: "post-2" } as Awaited<ReturnType<typeof insertPost>>);
+    mockInsertPostMedia.mockResolvedValue(undefined);
+
+    await createGroupPost(groupPostInput);
+    expect(mockEventBusEmit).not.toHaveBeenCalled();
+  });
+
+  it("allows leader to post as active in moderated group", async () => {
+    mockGetGroupById.mockResolvedValue(
+      makeGroup({ postingPermission: "moderated" }) as Awaited<ReturnType<typeof getGroupById>>,
+    );
+    mockGetGroupMemberFull.mockResolvedValue({
+      role: "leader",
+      status: "active",
+      mutedUntil: null,
+    });
+    mockResolveFileUploadUrls.mockResolvedValue(new Map());
+    mockInsertPost.mockResolvedValue({ id: "post-3" } as Awaited<ReturnType<typeof insertPost>>);
+    mockInsertPostMedia.mockResolvedValue(undefined);
+    mockEventBusEmit.mockResolvedValue(undefined);
+
+    const result = await createGroupPost(groupPostInput);
+    expect(result).toEqual({ success: true, postId: "post-3", status: "active" });
+    expect(mockInsertPost).toHaveBeenCalledWith(expect.objectContaining({ status: "active" }));
+    expect(mockEventBusEmit).toHaveBeenCalledWith(
+      "post.published",
+      expect.objectContaining({ postId: "post-3" }),
+    );
+  });
+
+  it("all_members group: member posts with active status directly", async () => {
+    mockGetGroupById.mockResolvedValue(
+      makeGroup({ postingPermission: "all_members" }) as Awaited<ReturnType<typeof getGroupById>>,
+    );
+    mockGetGroupMemberFull.mockResolvedValue({
+      role: "member",
+      status: "active",
+      mutedUntil: null,
+    });
+    mockResolveFileUploadUrls.mockResolvedValue(new Map());
+    mockInsertPost.mockResolvedValue({ id: "post-4" } as Awaited<ReturnType<typeof insertPost>>);
+    mockInsertPostMedia.mockResolvedValue(undefined);
+    mockEventBusEmit.mockResolvedValue(undefined);
+
+    const result = await createGroupPost(groupPostInput);
+    expect(result).toEqual({ success: true, postId: "post-4", status: "active" });
+    expect(mockInsertPost).toHaveBeenCalledWith(expect.objectContaining({ status: "active" }));
   });
 });

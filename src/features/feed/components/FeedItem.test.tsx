@@ -97,6 +97,7 @@ function makePost(overrides: Partial<FeedPost> = {}): FeedPost {
     shareCount: 1,
     category: "discussion",
     originalPostId: null,
+    status: "active",
     media: [],
     isBookmarked: false,
     createdAt: new Date(Date.now() - 3_600_000 * 2).toISOString(), // 2 hours ago
@@ -341,5 +342,19 @@ describe("FeedItem", () => {
     renderPost({ isPinned: true }, "ADMIN");
     const unpinBtn = screen.getByRole("button", { name: /Feed.admin.unpinAriaLabel/i });
     expect(unpinBtn).toBeInTheDocument();
+  });
+
+  it("shows 'Awaiting Moderation' badge when status is pending_approval", () => {
+    renderPost({ status: "pending_approval" });
+    const badges = screen.getAllByTestId("badge");
+    const pendingBadge = badges.find((b) => b.textContent === "Feed.awaitingModeration");
+    expect(pendingBadge).toBeTruthy();
+  });
+
+  it("does NOT show 'Awaiting Moderation' badge when status is active", () => {
+    renderPost({ status: "active" });
+    const badges = screen.queryAllByTestId("badge");
+    const pendingBadge = badges.find((b) => b.textContent === "Feed.awaitingModeration");
+    expect(pendingBadge).toBeUndefined();
   });
 });

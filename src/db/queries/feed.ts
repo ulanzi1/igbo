@@ -42,6 +42,7 @@ export interface FeedPost {
   originalPostId: string | null;
   originalPost: FeedPostOriginal | null;
   media: FeedPostMedia[];
+  status: "active" | "pending_approval";
   isBookmarked: boolean; // true if current viewer has bookmarked this post
   createdAt: string; // ISO 8601
   updatedAt: string; // ISO 8601
@@ -105,6 +106,7 @@ const FEED_SELECT_COLUMNS = {
   shareCount: communityPosts.shareCount,
   category: communityPosts.category,
   originalPostId: communityPosts.originalPostId,
+  status: communityPosts.status,
   createdAt: communityPosts.createdAt,
   updatedAt: communityPosts.updatedAt,
   isBookmarked: sql<boolean>`${communityPostBookmarks.userId} IS NOT NULL`,
@@ -126,6 +128,7 @@ type FeedSelectRow = {
   shareCount: number;
   category: string;
   originalPostId: string | null;
+  status: string;
   createdAt: Date;
   updatedAt: Date;
   isBookmarked: boolean;
@@ -172,6 +175,7 @@ async function _assemblePostPage(rows: FeedSelectRow[]): Promise<FeedPost[]> {
     shareCount: r.shareCount,
     category: r.category as FeedPost["category"],
     originalPostId: r.originalPostId,
+    status: r.status as FeedPost["status"],
     originalPost: r.originalPostId ? (originalEmbeds.get(r.originalPostId) ?? null) : null,
     media: (mediaByPostId.get(r.id) ?? []).map((m) => ({
       id: m.id,
@@ -422,9 +426,30 @@ export async function getGroupFeedPosts(
         ? and(
             eq(communityPosts.groupId, groupId),
             sql`${communityPosts.deletedAt} IS NULL`,
+            viewerId
+              ? or(
+                  eq(communityPosts.status, "active"),
+                  and(
+                    eq(communityPosts.status, "pending_approval"),
+                    eq(communityPosts.authorId, viewerId),
+                  ),
+                )
+              : eq(communityPosts.status, "active"),
             lt(communityPosts.createdAt, cursorDate),
           )
-        : and(eq(communityPosts.groupId, groupId), sql`${communityPosts.deletedAt} IS NULL`),
+        : and(
+            eq(communityPosts.groupId, groupId),
+            sql`${communityPosts.deletedAt} IS NULL`,
+            viewerId
+              ? or(
+                  eq(communityPosts.status, "active"),
+                  and(
+                    eq(communityPosts.status, "pending_approval"),
+                    eq(communityPosts.authorId, viewerId),
+                  ),
+                )
+              : eq(communityPosts.status, "active"),
+          ),
     )
     .orderBy(
       sql`CASE WHEN ${communityPosts.isPinned} THEN ${communityPosts.pinnedAt} ELSE NULL END DESC NULLS LAST`,

@@ -49,6 +49,7 @@ class MockXHR {
   onload: (() => void) | null = null;
   onerror: (() => void) | null = null;
   status = 200;
+  responseText = "";
   open = vi.fn();
   setRequestHeader = vi.fn();
   send = vi.fn();
@@ -77,10 +78,6 @@ const PRESIGN_SUCCESS = {
   },
 };
 
-const CONFIRM_SUCCESS = {
-  data: { message: "Upload received. Processing will begin shortly." },
-};
-
 beforeEach(() => {
   vi.clearAllMocks();
   MockXHR.instances = [];
@@ -106,17 +103,7 @@ describe("FileUpload", () => {
     expect(input.disabled).toBe(true);
   });
 
-  it("calls presign endpoint, uploads to Hetzner, calls confirm endpoint on successful flow", async () => {
-    mockFetch
-      .mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve(PRESIGN_SUCCESS),
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve(CONFIRM_SUCCESS),
-      });
-
+  it("uploads via XHR to /api/upload/file and calls onUploadComplete on success", async () => {
     const onUploadComplete = vi.fn();
     render(<FileUpload category="image" onUploadComplete={onUploadComplete} />);
 
@@ -124,13 +111,23 @@ describe("FileUpload", () => {
     const file = new File(["file-content"], "photo.jpg", { type: "image/jpeg" });
     fireEvent.change(input, { target: { files: [file] } });
 
-    // Wait for presign fetch and XHR setup
+    // Wait for XHR to be created
     await waitFor(() => expect(MockXHR.instances.length).toBeGreaterThan(0));
 
-    // Trigger XHR completion
-    MockXHR.instances[0].triggerLoad(200);
+    const xhr = MockXHR.instances[0];
+    // Verify XHR was opened to the proxy route
+    expect(xhr.open).toHaveBeenCalledWith("POST", "/api/upload/file");
 
-    // Wait for confirm fetch and completion
+    // Set response and trigger load
+    xhr.responseText = JSON.stringify({
+      data: {
+        fileUploadId: "upload-record-id",
+        objectKey: "uploads/user-123/photo.jpg",
+        publicUrl: "https://presigned.example.com/upload",
+      },
+    });
+    xhr.triggerLoad(200);
+
     await waitFor(() =>
       expect(onUploadComplete).toHaveBeenCalledWith(
         "upload-record-id",
@@ -138,30 +135,21 @@ describe("FileUpload", () => {
         "https://presigned.example.com/upload",
       ),
     );
-
-    // Verify API calls were made in correct order
-    expect(mockFetch).toHaveBeenCalledWith(
-      "/api/upload/presign",
-      expect.objectContaining({ method: "POST" }),
-    );
-    expect(mockFetch).toHaveBeenCalledWith(
-      "/api/upload/confirm",
-      expect.objectContaining({ method: "POST" }),
-    );
   });
 
-  it("calls onError when presign returns error response", async () => {
-    mockFetch.mockResolvedValueOnce({
-      ok: false,
-      json: () => Promise.resolve({ title: "Bad Request", detail: "File type not allowed" }),
-    });
-
+  it("calls onError when the upload XHR returns an error response", async () => {
     const onError = vi.fn();
     render(<FileUpload category="image" onUploadComplete={vi.fn()} onError={onError} />);
 
     const input = document.querySelector('input[type="file"]') as HTMLInputElement;
     const file = new File(["content"], "virus.exe", { type: "application/x-msdownload" });
     fireEvent.change(input, { target: { files: [file] } });
+
+    await waitFor(() => expect(MockXHR.instances.length).toBeGreaterThan(0));
+
+    const xhr = MockXHR.instances[0];
+    xhr.responseText = JSON.stringify({ detail: "File type not allowed" });
+    xhr.triggerLoad(400);
 
     await waitFor(() => expect(onError).toHaveBeenCalled());
     expect(onError).toHaveBeenCalledWith("File type not allowed");

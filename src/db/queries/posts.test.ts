@@ -33,13 +33,24 @@ vi.mock("@/db/schema/community-posts", () => ({
     visibility: "visibility",
     category: "category",
     originalPostId: "originalPostId",
+    status: "status",
   },
   communityPostMedia: {
+    id: "id",
     postId: "postId",
     mediaUrl: "mediaUrl",
     mediaType: "mediaType",
     altText: "altText",
     sortOrder: "sortOrder",
+  },
+}));
+
+vi.mock("@/db/schema/community-profiles", () => ({
+  communityProfiles: {
+    userId: "user_id",
+    displayName: "display_name",
+    photoUrl: "photo_url",
+    deletedAt: "deleted_at",
   },
 }));
 
@@ -57,6 +68,7 @@ import {
   insertPost,
   insertPostMedia,
   resolveFileUploadUrls,
+  listPendingGroupPosts,
 } from "./posts";
 
 // Helper to build fluent DB query chain mocks
@@ -85,6 +97,20 @@ function buildInsertChainNoReturn() {
     values: vi.fn().mockResolvedValue(undefined),
   };
   mockDbInsert.mockReturnValue(chain);
+  return chain;
+}
+
+function buildSelectChainWithLimit(result: unknown) {
+  const resolved = Promise.resolve(result);
+  const chain: Record<string, unknown> = {
+    then: resolved.then.bind(resolved),
+    catch: resolved.catch.bind(resolved),
+    finally: resolved.finally.bind(resolved),
+  };
+  ["from", "innerJoin", "where", "orderBy"].forEach((k) => {
+    chain[k] = vi.fn().mockReturnValue(chain);
+  });
+  chain["limit"] = vi.fn().mockResolvedValue(result);
   return chain;
 }
 
@@ -268,5 +294,99 @@ describe("resolveFileUploadUrls", () => {
     expect(result.size).toBe(2);
     expect(result.get("file-1")?.mediaUrl).toBe("https://cdn.example.com/p1.webp");
     expect(result.get("file-2")?.mediaUrl).toBe("https://cdn.example.com/uploads/p2.jpg");
+  });
+});
+
+describe("listPendingGroupPosts", () => {
+  const GROUP_ID = "group-1";
+  const POST_ID_1 = "post-1";
+  const POST_ID_2 = "post-2";
+  const AUTHOR_ID = "author-1";
+  const BASE_DATE = new Date("2026-03-01T10:00:00Z");
+  const LATER_DATE = new Date("2026-03-02T10:00:00Z");
+
+  function makeRow(id: string, createdAt: Date) {
+    return {
+      id,
+      authorId: AUTHOR_ID,
+      authorDisplayName: "Bob Smith",
+      authorPhotoUrl: "https://cdn.example.com/bob.jpg",
+      content: "Hello",
+      contentType: "text",
+      createdAt,
+    };
+  }
+
+  it("returns empty result when no pending posts", async () => {
+    mockDbSelect.mockReturnValueOnce(buildSelectChainWithLimit([]));
+
+    const result = await listPendingGroupPosts(GROUP_ID);
+    expect(result).toEqual({ posts: [], nextCursor: null });
+  });
+
+  it("returns enriched posts with author name and empty media when no attachments", async () => {
+    const rows = [makeRow(POST_ID_1, BASE_DATE)];
+    mockDbSelect
+      .mockReturnValueOnce(buildSelectChainWithLimit(rows))
+      .mockReturnValueOnce(buildSelectChainWithLimit([]));
+
+    const result = await listPendingGroupPosts(GROUP_ID);
+    expect(result.posts).toHaveLength(1);
+    expect(result.posts[0].authorDisplayName).toBe("Bob Smith");
+    expect(result.posts[0].authorPhotoUrl).toBe("https://cdn.example.com/bob.jpg");
+    expect(result.posts[0].media).toEqual([]);
+    expect(result.nextCursor).toBeNull();
+  });
+
+  it("attaches media to the correct post", async () => {
+    const rows = [makeRow(POST_ID_1, BASE_DATE)];
+    const mediaRows = [
+      {
+        id: "m1",
+        postId: POST_ID_1,
+        mediaUrl: "https://cdn.example.com/img.jpg",
+        mediaType: "image",
+        sortOrder: 0,
+      },
+    ];
+    mockDbSelect
+      .mockReturnValueOnce(buildSelectChainWithLimit(rows))
+      .mockReturnValueOnce(buildSelectChainWithLimit(mediaRows));
+
+    const result = await listPendingGroupPosts(GROUP_ID);
+    expect(result.posts[0].media).toHaveLength(1);
+    expect(result.posts[0].media[0].mediaUrl).toBe("https://cdn.example.com/img.jpg");
+    expect(result.posts[0].media[0].mediaType).toBe("image");
+  });
+
+  it("sets nextCursor to last post's createdAt ISO string when more posts exist beyond limit", async () => {
+    const rows = Array.from({ length: 11 }, (_, i) =>
+      makeRow(`post-${i}`, new Date(Date.UTC(2026, 2, i + 1))),
+    );
+    mockDbSelect
+      .mockReturnValueOnce(buildSelectChainWithLimit(rows))
+      .mockReturnValueOnce(buildSelectChainWithLimit([]));
+
+    const result = await listPendingGroupPosts(GROUP_ID, { limit: 10 });
+    expect(result.posts).toHaveLength(10);
+    expect(result.nextCursor).toBe(rows[9].createdAt.toISOString());
+  });
+
+  it("returns nextCursor null on last page", async () => {
+    const rows = [makeRow(POST_ID_1, BASE_DATE), makeRow(POST_ID_2, LATER_DATE)];
+    mockDbSelect
+      .mockReturnValueOnce(buildSelectChainWithLimit(rows))
+      .mockReturnValueOnce(buildSelectChainWithLimit([]));
+
+    const result = await listPendingGroupPosts(GROUP_ID, { limit: 10 });
+    expect(result.posts).toHaveLength(2);
+    expect(result.nextCursor).toBeNull();
+  });
+
+  it("skips media fetch when no posts returned", async () => {
+    mockDbSelect.mockReturnValueOnce(buildSelectChainWithLimit([]));
+
+    await listPendingGroupPosts(GROUP_ID);
+    expect(mockDbSelect).toHaveBeenCalledTimes(1);
   });
 });

@@ -914,9 +914,37 @@
     }
   },
   "notifications": {
-    "new_follower": {
-      "title": "Onye ọhụrụ na-eso gị",
-      "body": "{name} bidoro iso gị"
+    "group_join_request": {
+      "title": "Arịrịọ Ịbanye Ọhụrụ",
+      "body": "Onye otu rịọrọ ịbanye n'otu gị"
+    },
+    "group_join_approved": {
+      "title": "Akwadola Arịrịọ Ịbanye",
+      "body": "Akwadola arịrịọ gị ịbanye n'otu"
+    },
+    "group_join_rejected": {
+      "title": "Ajụla Arịrịọ Ịbanye",
+      "body": "Akwadoghị arịrịọ gị ịbanye n'otu"
+    },
+    "group_leader_assigned": {
+      "title": "Ị bụ Ugbu a Onye Ndu Otu",
+      "body": "Ahọrọ gị dị ka onye ndu n'otu"
+    },
+    "group_member_muted": {
+      "title": "Amechiri Ọnụ Gị",
+      "body": "Onye nlekọta otu mechiri ọnụ gị n'otu"
+    },
+    "group_member_banned": {
+      "title": "Aleputara Gị",
+      "body": "Onye nlekọta otu aleputara gị n'otu"
+    },
+    "group_ownership_transferred": {
+      "title": "Ị bụ Ugbu a Onyenwe Otu",
+      "body": "Nyefere gị nhọrọ otu"
+    },
+    "group_archived": {
+      "title": "Etinyela Otu n'Ọdekọ",
+      "body": "Etinyela otu ị bụ otu n'ọdekọ"
     }
   },
   "Feed": {
@@ -950,6 +978,7 @@
     "postByAuthor": "Ozi site n'aka {name}",
     "feedPostsList": "Ndepụta ozi",
     "feedSortGroup": "Nhazi ozi",
+    "awaitingModeration": "Na-atọ Nkwado",
     "loadError": "Ihe adaghị mma na nbudata ozi",
     "composer": {
       "placeholder": "Gịnị dị n'obi gị, {name}?",
@@ -1163,8 +1192,15 @@
       "unpin": "Wepu ozi edina",
       "empty": "Ọ dịghị ozi. Bụrụ nke mbụ ị dee n'otu a!",
       "postingPermissionDenied": "Ndị ndu otu naanị nwere ike ịde ozi n'otu a.",
+      "postPendingApproval": "Ozi gị na-eche nkwado ndu.",
       "loadMore": "Buo ibu ọzọ",
-      "loading": "Na-ebu..."
+      "loading": "Na-ebu...",
+      "reviewPending": "Lelee Ozi Ndị Ọzọ",
+      "pendingCount": "{count} na-atọ",
+      "approvePending": "Kwado",
+      "noPendingPosts": "Enweghị ozi na-atọ nkwado.",
+      "approveSuccess": "Akwadoro ozi.",
+      "pendingLoadMore": "Buo ozi ndị ọzọ na-atọ"
     },
     "systemMessage": {
       "joined": "{name} banye n'otu",
@@ -1177,40 +1213,6 @@
       "nameTaken": "Otu nwere aha a dị adị",
       "permissionDenied": "Enweghị gị ikike iji mepụta otu",
       "fetchFailed": "Enweghị ike ịnweta otu. Biko nwaa ọzọ."
-    }
-  },
-  "notifications": {
-    "group_join_request": {
-      "title": "Arịrịọ Ịbanye Ọhụrụ",
-      "body": "Onye otu rịọrọ ịbanye n'otu gị"
-    },
-    "group_join_approved": {
-      "title": "Akwadola Arịrịọ Ịbanye",
-      "body": "Akwadola arịrịọ gị ịbanye n'otu"
-    },
-    "group_join_rejected": {
-      "title": "Ajụla Arịrịọ Ịbanye",
-      "body": "Akwadoghị arịrịọ gị ịbanye n'otu"
-    },
-    "group_leader_assigned": {
-      "title": "Ị bụ Ugbu a Onye Ndu Otu",
-      "body": "Ahọrọ gị dị ka onye ndu n'otu"
-    },
-    "group_member_muted": {
-      "title": "Amechiri Ọnụ Gị",
-      "body": "Onye nlekọta otu mechiri ọnụ gị n'otu"
-    },
-    "group_member_banned": {
-      "title": "Aleputara Gị",
-      "body": "Onye nlekọta otu aleputara gị n'otu"
-    },
-    "group_ownership_transferred": {
-      "title": "Ị bụ Ugbu a Onyenwe Otu",
-      "body": "Nyefere gị nhọrọ otu"
-    },
-    "group_archived": {
-      "title": "Etinyela Otu n'Ọdekọ",
-      "body": "Etinyela otu ị bụ otu n'ọdekọ"
     }
   }
 }

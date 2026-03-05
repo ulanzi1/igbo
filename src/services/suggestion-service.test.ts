@@ -86,7 +86,9 @@ beforeEach(() => {
   mockRedisSmembers.mockResolvedValue([]); // no dismissed by default
 });
 
-// Helper to set up the standard 4-DB-call sequence for getMemberSuggestions
+// Helper to set up the standard 4-DB-call sequence for getMemberSuggestions.
+// db.execute() returns an iterable result (like a postgres RowList / array) directly —
+// the source code uses Array.from(rows) and rows.map() on the resolved value, NOT rows.rows.
 function setupDbForSuggestions(
   viewerProfile: Record<string, unknown> | null,
   messagedRows: unknown[],
@@ -94,14 +96,14 @@ function setupDbForSuggestions(
   candidateRows: unknown[],
 ) {
   if (viewerProfile === null) {
-    mockDbExecute.mockResolvedValueOnce({ rows: [] }); // profile not found → early return
+    mockDbExecute.mockResolvedValueOnce([]); // profile not found → early return
     return;
   }
   mockDbExecute
-    .mockResolvedValueOnce({ rows: [viewerProfile] }) // viewer profile
-    .mockResolvedValueOnce({ rows: messagedRows }) // messaged users
-    .mockResolvedValueOnce({ rows: blockedRows }) // blocked users (UNION query)
-    .mockResolvedValueOnce({ rows: candidateRows }); // candidates
+    .mockResolvedValueOnce([viewerProfile]) // viewer profile (Array.from used)
+    .mockResolvedValueOnce(messagedRows) // messaged users (.map used)
+    .mockResolvedValueOnce(blockedRows) // blocked users (.map used)
+    .mockResolvedValueOnce(candidateRows); // candidates (Array.from used)
 }
 
 describe("getMemberSuggestions", () => {
