@@ -1,6 +1,6 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { listUpcomingEvents } from "@/db/queries/events";
-import { EventList } from "@/features/events/components/EventList";
+import { EventsPageTabs } from "@/features/events";
 import { CreateEventButton } from "@/features/events/components/CreateEventButton";
 
 export const revalidate = 60;
@@ -33,13 +33,7 @@ export default async function EventsPage({ params }: { params: Promise<{ locale:
         <CreateEventButton />
       </div>
 
-      <div className="mb-4">
-        <span className="inline-flex items-center text-sm font-medium text-muted-foreground border-b-2 border-primary pb-1">
-          {t("list.upcoming")}
-        </span>
-      </div>
-
-      <EventList events={events} />
+      <EventsPageTabs initialUpcomingEvents={events} />
     </div>
   );
 }

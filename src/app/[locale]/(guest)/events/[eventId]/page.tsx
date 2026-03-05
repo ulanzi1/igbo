@@ -6,6 +6,7 @@ import { EventFormatBadge } from "@/features/events/components/EventFormatBadge"
 import { EventStatusBadge } from "@/features/events/components/EventStatusBadge";
 import { EventMembershipGate } from "@/features/events/components/EventMembershipGate";
 import { EventDetailActions } from "@/features/events/components/EventDetailActions";
+import { RSVPButton } from "@/features/events";
 
 export const revalidate = 60;
 
@@ -46,13 +47,13 @@ export default async function EventDetailPage({
     }
   }
 
-  const formattedStart = new Intl.DateTimeFormat("en", {
+  const formattedStart = new Intl.DateTimeFormat(locale, {
     timeZone: event.timezone,
     dateStyle: "full",
     timeStyle: "short",
   }).format(event.startTime);
 
-  const formattedEnd = new Intl.DateTimeFormat("en", {
+  const formattedEnd = new Intl.DateTimeFormat(locale, {
     timeZone: event.timezone,
     timeStyle: "short",
   }).format(event.endTime);
@@ -96,9 +97,26 @@ export default async function EventDetailPage({
         </div>
       )}
 
+      {/* RSVP Button — for public/general upcoming events */}
+      {event.status === "upcoming" && !isPrivateGroupEvent && (
+        <RSVPButton
+          eventId={event.id}
+          registrationLimit={event.registrationLimit}
+          attendeeCount={event.attendeeCount}
+        />
+      )}
+
       {/* Meeting link / group membership gate */}
       {isPrivateGroupEvent && event.groupId ? (
-        <EventMembershipGate groupId={event.groupId} meetingLink={event.meetingLink} />
+        <EventMembershipGate groupId={event.groupId} meetingLink={event.meetingLink}>
+          {event.status === "upcoming" && (
+            <RSVPButton
+              eventId={event.id}
+              registrationLimit={event.registrationLimit}
+              attendeeCount={event.attendeeCount}
+            />
+          )}
+        </EventMembershipGate>
       ) : (
         event.meetingLink && (
           <div className="text-sm">

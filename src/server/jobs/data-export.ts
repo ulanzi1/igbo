@@ -6,6 +6,7 @@ import { db } from "@/db";
 import { gdprExportRequests } from "@/db/schema/gdpr";
 import { authUsers } from "@/db/schema/auth-users";
 import { communityProfiles, communitySocialLinks } from "@/db/schema/community-profiles";
+import { listMyRsvps } from "@/db/queries/events";
 import { getRedisClient } from "@/lib/redis";
 import { eventBus } from "@/services/event-bus";
 import { enqueueEmailJob } from "@/services/email-service";
@@ -97,8 +98,16 @@ async function processExportRequest(requestId: string, userId: string): Promise<
     articles: [] as unknown[],
     // TODO(Story 4.x): populate with authored comments when comment schema exists
     comments: [] as unknown[],
-    // TODO(Story 7.x): populate with event RSVPs when event schema exists
-    eventRsvps: [] as unknown[],
+    // Event RSVPs (Story 7.2)
+    eventRsvps: await listMyRsvps(userId, { limit: 500 }).then((events) =>
+      events.map((e) => ({
+        eventId: e.id,
+        title: e.title,
+        startTime: e.startTime,
+        format: e.format,
+        rsvpStatus: e.rsvpStatus,
+      })),
+    ),
     // TODO(Story 8.x): populate with points history when points schema exists
     pointsHistory: [] as unknown[],
     // TODO(Story 9.x): populate with notification preferences when notification schema exists

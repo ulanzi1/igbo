@@ -11,6 +11,12 @@ vi.mock("@/db/queries/events", () => ({
   listUpcomingEvents: vi.fn(),
   listGroupEvents: vi.fn(),
   getEventsByParentId: vi.fn(),
+  rsvpToEvent: vi.fn(),
+  cancelRsvp: vi.fn(),
+  cancelAllEventRsvps: vi.fn(),
+  getAttendeeStatus: vi.fn(),
+  listPastEvents: vi.fn(),
+  listMyRsvps: vi.fn(),
 }));
 
 vi.mock("@/services/permissions", () => ({
@@ -32,7 +38,13 @@ vi.mock("@/lib/api-error", () => ({
   },
 }));
 
-import { createEvent as dbCreateEvent, getEventById } from "@/db/queries/events";
+import {
+  createEvent as dbCreateEvent,
+  getEventById,
+  rsvpToEvent as dbRsvpToEvent,
+  cancelRsvp as dbCancelRsvp,
+  cancelAllEventRsvps,
+} from "@/db/queries/events";
 import { canCreateEvent } from "@/services/permissions";
 import { eventBus } from "@/services/event-bus";
 
@@ -69,10 +81,14 @@ describe("event-service", () => {
     vi.mocked(dbCreateEvent).mockReset();
     vi.mocked(getEventById).mockReset();
     vi.mocked(eventBus.emit).mockReset();
+    vi.mocked(dbRsvpToEvent).mockReset();
+    vi.mocked(dbCancelRsvp).mockReset();
+    vi.mocked(cancelAllEventRsvps).mockReset();
 
     vi.mocked(canCreateEvent).mockResolvedValue({ allowed: true });
     vi.mocked(dbCreateEvent).mockResolvedValue(mockEvent);
     vi.mocked(getEventById).mockResolvedValue(mockEvent);
+    vi.mocked(cancelAllEventRsvps).mockResolvedValue(undefined);
   });
 
   describe("createEvent", () => {
@@ -253,6 +269,113 @@ describe("event-service", () => {
       vi.mocked(getEventById).mockResolvedValue({ ...mockEvent, creatorId: "other-user" });
       const { cancelEvent } = await import("./event-service");
       await expect(cancelEvent("user-1", "event-1")).rejects.toMatchObject({ status: 403 });
+    });
+
+    it("calls cancelAllEventRsvps after cancelling event", async () => {
+      const { cancelEvent: dbCancel } = await import("@/db/queries/events");
+      vi.mocked(dbCancel).mockResolvedValue(true);
+      const { cancelEvent } = await import("./event-service");
+      await cancelEvent("user-1", "event-1");
+      expect(cancelAllEventRsvps).toHaveBeenCalledWith("event-1");
+    });
+
+    it("emits event.cancelled after cascading RSVP cancellations", async () => {
+      const { cancelEvent: dbCancel } = await import("@/db/queries/events");
+      vi.mocked(dbCancel).mockResolvedValue(true);
+      const { cancelEvent } = await import("./event-service");
+      await cancelEvent("user-1", "event-1");
+      // cancelAllEventRsvps called before event.cancelled emit
+      const cancelAllCallOrder = vi.mocked(cancelAllEventRsvps).mock.invocationCallOrder[0];
+      const emitCallOrder = vi.mocked(eventBus.emit).mock.invocationCallOrder[0];
+      expect(cancelAllCallOrder).toBeLessThan(emitCallOrder!);
+    });
+  });
+
+  describe("rsvpToEvent", () => {
+    it("calls dbRsvpToEvent and emits event.rsvp on success", async () => {
+      vi.mocked(dbRsvpToEvent).mockResolvedValue({
+        success: true,
+        status: "registered",
+        waitlistPosition: null,
+        attendeeCount: 1,
+      });
+      const { rsvpToEvent } = await import("./event-service");
+      const result = await rsvpToEvent("user-1", "event-1");
+      expect(result).toMatchObject({ status: "registered", waitlistPosition: null });
+      expect(eventBus.emit).toHaveBeenCalledWith(
+        "event.rsvp",
+        expect.objectContaining({ eventId: "event-1", userId: "user-1", status: "registered" }),
+      );
+    });
+
+    it("throws ApiError 409 when DB returns { success: false, code: 409 }", async () => {
+      vi.mocked(dbRsvpToEvent).mockResolvedValue({
+        success: false,
+        code: 409,
+        reason: "Already registered or waitlisted for this event",
+      });
+      const { rsvpToEvent } = await import("./event-service");
+      await expect(rsvpToEvent("user-1", "event-1")).rejects.toMatchObject({ status: 409 });
+    });
+
+    it("throws ApiError 404 when DB returns { success: false, code: 404 }", async () => {
+      vi.mocked(dbRsvpToEvent).mockResolvedValue({
+        success: false,
+        code: 404,
+        reason: "Event not found",
+      });
+      const { rsvpToEvent } = await import("./event-service");
+      await expect(rsvpToEvent("user-1", "event-1")).rejects.toMatchObject({ status: 404 });
+    });
+  });
+
+  describe("cancelEventRsvp", () => {
+    it("calls dbCancelRsvp and emits event.rsvp_cancelled on success", async () => {
+      vi.mocked(dbCancelRsvp).mockResolvedValue({
+        success: true,
+        previousStatus: "registered",
+        promotedUserId: null,
+        attendeeCount: 0,
+      });
+      const { cancelEventRsvp } = await import("./event-service");
+      await cancelEventRsvp("user-1", "event-1");
+      expect(eventBus.emit).toHaveBeenCalledWith(
+        "event.rsvp_cancelled",
+        expect.objectContaining({ eventId: "event-1", userId: "user-1" }),
+      );
+    });
+
+    it("emits event.waitlist_promoted when promotedUserId is returned", async () => {
+      vi.mocked(dbCancelRsvp).mockResolvedValue({
+        success: true,
+        previousStatus: "registered",
+        promotedUserId: "promoted-user",
+        attendeeCount: 5,
+      });
+      const { cancelEventRsvp } = await import("./event-service");
+      await cancelEventRsvp("user-1", "event-1");
+      expect(eventBus.emit).toHaveBeenCalledWith(
+        "event.waitlist_promoted",
+        expect.objectContaining({ eventId: "event-1", promotedUserId: "promoted-user" }),
+      );
+    });
+
+    it("does NOT emit event.waitlist_promoted when no promoted user", async () => {
+      vi.mocked(dbCancelRsvp).mockResolvedValue({
+        success: true,
+        previousStatus: "waitlisted",
+        promotedUserId: null,
+        attendeeCount: 0,
+      });
+      const { cancelEventRsvp } = await import("./event-service");
+      await cancelEventRsvp("user-1", "event-1");
+      expect(eventBus.emit).not.toHaveBeenCalledWith("event.waitlist_promoted", expect.anything());
+    });
+
+    it("throws ApiError 404 when event not found", async () => {
+      vi.mocked(getEventById).mockResolvedValue(null);
+      const { cancelEventRsvp } = await import("./event-service");
+      await expect(cancelEventRsvp("user-1", "nonexistent")).rejects.toMatchObject({ status: 404 });
     });
   });
 });

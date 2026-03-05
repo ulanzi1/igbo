@@ -61,6 +61,10 @@ vi.mock("@/features/events/components/EventDetailActions", () => ({
   EventDetailActions: () => <div data-testid="detail-actions">actions</div>,
 }));
 
+vi.mock("@/features/events", () => ({
+  RSVPButton: ({ eventId }: { eventId: string }) => <div data-testid={`rsvp-button-${eventId}`} />,
+}));
+
 import EventDetailPage from "./page";
 
 const mockEvent = {

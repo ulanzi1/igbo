@@ -5,7 +5,8 @@ import { successResponse } from "@/lib/api-response";
 import { ApiError } from "@/lib/api-error";
 import { requireAuthenticatedSession } from "@/services/permissions";
 import { createEvent, CreateEventSchema } from "@/services/event-service";
-import { listUpcomingEvents } from "@/db/queries/events";
+import { listUpcomingEvents, listPastEvents, listMyRsvps } from "@/db/queries/events";
+import { errorResponse } from "@/lib/api-response";
 import { RATE_LIMIT_PRESETS } from "@/services/rate-limiter";
 import { auth } from "@/server/auth/config";
 
@@ -18,11 +19,26 @@ const getHandler = async (request: Request) => {
   const page = Math.max(1, parseInt(url.searchParams.get("page") ?? "1", 10));
   const limit = Math.min(100, Math.max(1, parseInt(url.searchParams.get("limit") ?? "20", 10)));
   const offset = (page - 1) * limit;
+  const view = url.searchParams.get("view"); // "past" | "my-rsvps" | null
 
   // Optional auth: auth() returns null when unauthenticated, never throws
   const session = await auth();
   const userId = session?.user?.id;
 
+  if (view === "past") {
+    const events = await listPastEvents({ userId, groupId, limit, offset });
+    return successResponse({ events, total: events.length, page, limit });
+  }
+
+  if (view === "my-rsvps") {
+    if (!userId) {
+      return errorResponse({ status: 401, title: "Authentication required" });
+    }
+    const events = await listMyRsvps(userId, { limit, offset });
+    return successResponse({ events, total: events.length, page, limit });
+  }
+
+  // Default: listUpcomingEvents (existing behavior)
   const events = await listUpcomingEvents({ userId, groupId, limit, offset });
   return successResponse({ events, total: events.length, page, limit });
 };

@@ -29,6 +29,7 @@ import type {
   ArticlePublishedEvent,
   ArticleRejectedEvent,
   ArticleRevisionRequestedEvent,
+  EventWaitlistPromotedEvent,
 } from "@/types/events";
 import type { NotificationType } from "@/db/schema/platform-notifications";
 
@@ -384,6 +385,20 @@ if (globalForNotif.__notifHandlersRegistered) {
         await transferGroupOwnership(groupId, payload.userId);
       }
     }
+  });
+  // ─── Event RSVP Notifications (Story 7.2) ────────────────────────────────
+
+  eventBus.on("event.waitlist_promoted", async (payload: EventWaitlistPromotedEvent) => {
+    // actorId = promotedUserId (self-notification pattern for system events)
+    // This ensures block/mute filter never suppresses a platform promotion notice
+    await deliverNotification({
+      userId: payload.promotedUserId,
+      actorId: payload.promotedUserId,
+      type: "event_reminder",
+      title: "notifications.event_waitlist_promoted.title",
+      body: payload.title, // event title as notification body
+      link: `/events/${payload.eventId}`,
+    });
   });
 } // end of hot-reload guard (globalForNotif.__notifHandlersRegistered)
 

@@ -7,6 +7,7 @@ import { DashboardGreeting } from "./DashboardGreeting";
 import { GettingStartedWidget } from "./GettingStartedWidget";
 import { WidgetSlot } from "./WidgetSlot";
 import { PeopleNearYouWidget } from "./PeopleNearYouWidget";
+import { UpcomingEventsWidget } from "@/features/events";
 
 interface DashboardShellProps {
   displayName: string;
@@ -41,6 +42,9 @@ export function DashboardShell({ displayName, avatarUrl }: DashboardShellProps) 
           <aside className="lg:w-[35%] flex flex-col gap-4">
             <WidgetSlot enabled={true} title={t("peopleNear.title")}>
               <PeopleNearYouWidget />
+            </WidgetSlot>
+            <WidgetSlot enabled={true} title={t("upcomingEvents")}>
+              <UpcomingEventsWidget />
             </WidgetSlot>
           </aside>
         )}

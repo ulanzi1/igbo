@@ -17,8 +17,8 @@ vi.mock("@/lib/api-response", () => ({
       }),
   ),
   errorResponse: vi.fn(
-    (title: string, status = 500, detail?: string) =>
-      new Response(JSON.stringify({ title, detail }), { status }),
+    (problem: { status?: number; title: string; detail?: string }) =>
+      new Response(JSON.stringify({ title: problem.title }), { status: problem.status ?? 500 }),
   ),
 }));
 
@@ -64,6 +64,12 @@ vi.mock("@/db/queries/events", () => ({
   cancelEvent: vi.fn(),
   listGroupEvents: vi.fn(),
   getEventsByParentId: vi.fn(),
+  listPastEvents: vi.fn().mockResolvedValue([]),
+  listMyRsvps: vi.fn().mockResolvedValue([]),
+  rsvpToEvent: vi.fn(),
+  cancelRsvp: vi.fn(),
+  getAttendeeStatus: vi.fn(),
+  cancelAllEventRsvps: vi.fn(),
 }));
 
 vi.mock("@/server/auth/config", () => ({
@@ -71,13 +77,16 @@ vi.mock("@/server/auth/config", () => ({
 }));
 
 vi.mock("@/services/rate-limiter", () => ({
-  RATE_LIMIT_PRESETS: { EVENT_CREATE: { maxRequests: 5, windowMs: 3600000 } },
+  RATE_LIMIT_PRESETS: {
+    EVENT_CREATE: { maxRequests: 5, windowMs: 3600000 },
+    EVENT_RSVP: { maxRequests: 10, windowMs: 60000 },
+  },
   applyRateLimit: vi.fn().mockResolvedValue({ success: true }),
 }));
 
 import { requireAuthenticatedSession } from "@/services/permissions";
 import { createEvent } from "@/services/event-service";
-import { listUpcomingEvents } from "@/db/queries/events";
+import { listUpcomingEvents, listPastEvents, listMyRsvps } from "@/db/queries/events";
 import { CreateEventSchema } from "@/services/event-service";
 
 const makeRequest = (method: string, body?: unknown) =>
@@ -172,5 +181,65 @@ describe("POST /api/v1/events", () => {
     );
     const { POST } = await import("./route");
     await expect(POST(makeRequest("POST", {}))).rejects.toMatchObject({ status: 422 });
+  });
+});
+
+describe("GET /api/v1/events?view=past", () => {
+  beforeEach(() => {
+    vi.mocked(listPastEvents).mockReset();
+    vi.mocked(listPastEvents).mockResolvedValue([]);
+  });
+
+  it("returns past events array", async () => {
+    const pastEvent = { id: "past-1", title: "Past Event", startTime: new Date("2024-01-01") };
+    vi.mocked(listPastEvents).mockResolvedValue([pastEvent] as ReturnType<
+      typeof listPastEvents
+    > extends Promise<infer T>
+      ? T
+      : never);
+    const { GET } = await import("./route");
+    const req = new Request("http://localhost/api/v1/events?view=past", {
+      headers: { Host: "localhost:3000", Origin: "https://localhost:3000" },
+    });
+    const res = await GET(req);
+    expect(res.status).toBe(200);
+    const data = (await res.json()) as { data: { events: unknown[] } };
+    expect(data.data.events).toHaveLength(1);
+  });
+});
+
+describe("GET /api/v1/events?view=my-rsvps", () => {
+  beforeEach(() => {
+    vi.mocked(listMyRsvps).mockReset();
+    vi.mocked(listMyRsvps).mockResolvedValue([]);
+    vi.mocked(requireAuthenticatedSession).mockReset();
+    vi.mocked(requireAuthenticatedSession).mockResolvedValue({ userId: "user-1", role: "MEMBER" });
+  });
+
+  it("returns my RSVP events for authenticated user", async () => {
+    const { auth } = await import("@/server/auth/config");
+    vi.mocked(auth).mockResolvedValue({ user: { id: "user-1" } } as Awaited<
+      ReturnType<typeof auth>
+    >);
+    vi.mocked(listMyRsvps).mockResolvedValue([
+      { id: "e-1", rsvpStatus: "registered" },
+    ] as ReturnType<typeof listMyRsvps> extends Promise<infer T> ? T : never);
+    const { GET } = await import("./route");
+    const req = new Request("http://localhost/api/v1/events?view=my-rsvps", {
+      headers: { Host: "localhost:3000", Origin: "https://localhost:3000" },
+    });
+    const res = await GET(req);
+    expect(res.status).toBe(200);
+  });
+
+  it("returns 401 when unauthenticated", async () => {
+    const { auth } = await import("@/server/auth/config");
+    vi.mocked(auth).mockResolvedValue(null);
+    const { GET } = await import("./route");
+    const req = new Request("http://localhost/api/v1/events?view=my-rsvps", {
+      headers: { Host: "localhost:3000", Origin: "https://localhost:3000" },
+    });
+    const res = await GET(req);
+    expect(res.status).toBe(401);
   });
 });

@@ -8,6 +8,9 @@ import {
   updateEvent as dbUpdateEvent,
   cancelEvent as dbCancelEvent,
   getEventById,
+  rsvpToEvent as dbRsvpToEvent,
+  cancelRsvp as dbCancelRsvp,
+  cancelAllEventRsvps,
 } from "@/db/queries/events";
 
 // ─── Schemas ──────────────────────────────────────────────────────────────────
@@ -233,6 +236,74 @@ export async function updateEvent(
   return { eventId };
 }
 
+/**
+ * RSVP a user to an event. Handles waitlist logic.
+ * Returns { status, waitlistPosition, attendeeCount } on success.
+ * Throws ApiError 404/409/422 on failure.
+ */
+export async function rsvpToEvent(
+  userId: string,
+  eventId: string,
+): Promise<{
+  status: "registered" | "waitlisted";
+  waitlistPosition: number | null;
+  attendeeCount: number;
+}> {
+  const result = await dbRsvpToEvent(eventId, userId);
+  if (!result.success) {
+    throw new ApiError({ title: result.reason, status: result.code });
+  }
+
+  await eventBus.emit("event.rsvp", {
+    eventId,
+    userId,
+    status: result.status,
+    waitlistPosition: result.waitlistPosition,
+    attendeeCount: result.attendeeCount,
+    timestamp: new Date().toISOString(),
+  });
+
+  return {
+    status: result.status,
+    waitlistPosition: result.waitlistPosition,
+    attendeeCount: result.attendeeCount,
+  };
+}
+
+/**
+ * Cancel a user's RSVP for an event. Triggers waitlist promotion if applicable.
+ * Throws ApiError 404 if no RSVP found, 409 if already cancelled.
+ */
+export async function cancelEventRsvp(userId: string, eventId: string): Promise<void> {
+  // Get event title for the waitlist promotion notification payload
+  const event = await getEventById(eventId);
+  if (!event) throw new ApiError({ title: "Event not found", status: 404 });
+
+  const result = await dbCancelRsvp(eventId, userId);
+  if (!result.success) {
+    throw new ApiError({ title: result.reason, status: result.code });
+  }
+
+  await eventBus.emit("event.rsvp_cancelled", {
+    eventId,
+    userId,
+    previousStatus: result.previousStatus,
+    attendeeCount: result.attendeeCount,
+    timestamp: new Date().toISOString(),
+  });
+
+  // Emit waitlist promotion event for the promoted user (if any)
+  if (result.promotedUserId) {
+    await eventBus.emit("event.waitlist_promoted", {
+      eventId,
+      promotedUserId: result.promotedUserId,
+      title: event.title,
+      startTime: event.startTime.toISOString(),
+      timestamp: new Date().toISOString(),
+    });
+  }
+}
+
 export async function cancelEvent(userId: string, eventId: string): Promise<void> {
   const event = await getEventById(eventId);
   if (!event) {
@@ -251,6 +322,9 @@ export async function cancelEvent(userId: string, eventId: string): Promise<void
   if (!cancelled) {
     throw new ApiError({ title: "Status conflict", status: 409 });
   }
+
+  // Cascade: mark all registered/waitlisted attendees as cancelled
+  await cancelAllEventRsvps(eventId);
 
   await eventBus.emit("event.cancelled", {
     eventId,
