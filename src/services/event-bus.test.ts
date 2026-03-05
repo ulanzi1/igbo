@@ -20,6 +20,8 @@ describe("EventBus", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.resetModules();
+    // Clear the globalThis singleton so each test gets a fresh EventBus instance
+    delete (globalThis as Record<string, unknown>).__eventBus;
     process.env.REDIS_URL = "redis://localhost:6379";
   });
 

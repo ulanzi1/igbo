@@ -1,5 +1,5 @@
 // NOTE: No "server-only" — consistent with follows.ts and block-mute.ts pattern
-import { and, eq, ilike, inArray, lt, desc, gt, sql } from "drizzle-orm";
+import { and, eq, ilike, inArray, isNull, lt, desc, gt, sql, asc } from "drizzle-orm";
 import { db } from "@/db";
 import {
   communityGroups,
@@ -652,4 +652,27 @@ export async function batchGetGroupMemberships(
     result[row.groupId] = { role: row.role, status: row.status };
   }
   return result;
+}
+
+/**
+ * Returns groups where the user is an active member (for event group selector).
+ */
+export async function getGroupsForUserMembership(
+  userId: string,
+): Promise<{ id: string; name: string }[]> {
+  return db
+    .select({
+      id: communityGroups.id,
+      name: communityGroups.name,
+    })
+    .from(communityGroupMembers)
+    .innerJoin(communityGroups, eq(communityGroupMembers.groupId, communityGroups.id))
+    .where(
+      and(
+        eq(communityGroupMembers.userId, userId),
+        eq(communityGroupMembers.status, "active"),
+        isNull(communityGroups.deletedAt),
+      ),
+    )
+    .orderBy(asc(communityGroups.name));
 }

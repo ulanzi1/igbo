@@ -20,6 +20,7 @@ export const PERMISSION_MATRIX = {
     articleVisibility: [] as string[],
     canCreateFeedPost: false,
     maxFeedPostsPerWeek: 0,
+    canCreateEvent: false,
   },
   PROFESSIONAL: {
     canChat: true,
@@ -34,6 +35,7 @@ export const PERMISSION_MATRIX = {
     articleVisibility: ["MEMBERS_ONLY"],
     canCreateFeedPost: true,
     maxFeedPostsPerWeek: 1, // FR51: Professional 1/week
+    canCreateEvent: true,
   },
   TOP_TIER: {
     canChat: true,
@@ -48,6 +50,7 @@ export const PERMISSION_MATRIX = {
     articleVisibility: ["MEMBERS_ONLY", "PUBLIC"],
     canCreateFeedPost: true,
     maxFeedPostsPerWeek: 999, // FR51: Top-tier — effectively unlimited for dev/testing
+    canCreateEvent: true,
   },
 } as const;
 
@@ -105,6 +108,20 @@ export async function canPublishArticle(userId: string): Promise<PermissionResul
     return result;
   }
   return { allowed: true };
+}
+
+export async function canCreateEvent(userId: string): Promise<PermissionResult> {
+  const tier = await getUserMembershipTier(userId);
+  if (PERMISSION_MATRIX[tier].canCreateEvent) {
+    return { allowed: true };
+  }
+  const result: PermissionResult = {
+    allowed: false,
+    reason: getTierUpgradeMessage("createEvent", "PROFESSIONAL"),
+    tierRequired: "PROFESSIONAL",
+  };
+  await emitPermissionDenied(userId, "createEvent", result.reason!);
+  return result;
 }
 
 export async function canCreateFeedPost(userId: string): Promise<PermissionResult> {
@@ -172,9 +189,11 @@ const UPGRADE_MESSAGE_KEYS: Record<string, string> = {
   publishArticle: "Permissions.articlePublishRequired",
   assignGroupLeaders: "Permissions.groupLeaderRequired",
   createFeedPost: "Permissions.feedPostRequired",
+  createEvent: "Permissions.eventCreationRequired",
 };
 
-export function getTierUpgradeMessage(action: string, _requiredTier: string): string {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export function getTierUpgradeMessage(action: string, requiredTier: string): string {
   // Return specific i18n key if available, otherwise the generic key with action/tier context
   return UPGRADE_MESSAGE_KEYS[action] ?? `Permissions.upgradeRequired`;
 }

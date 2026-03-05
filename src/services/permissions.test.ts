@@ -312,3 +312,19 @@ describe("Permission matrix completeness", () => {
     }
   });
 });
+
+describe("canCreateEvent", () => {
+  it("returns { allowed: false } for BASIC tier", async () => {
+    mockGetUserMembershipTier.mockResolvedValue("BASIC");
+    const { canCreateEvent } = await import("./permissions");
+    const result = await canCreateEvent("user-1");
+    expect(result.allowed).toBe(false);
+  });
+
+  it("returns { allowed: true } for PROFESSIONAL tier", async () => {
+    mockGetUserMembershipTier.mockResolvedValue("PROFESSIONAL");
+    const { canCreateEvent } = await import("./permissions");
+    const result = await canCreateEvent("user-1");
+    expect(result.allowed).toBe(true);
+  });
+});

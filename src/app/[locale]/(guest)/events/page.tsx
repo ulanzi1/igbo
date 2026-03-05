@@ -1,32 +1,18 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import { EmptyState } from "@/components/shared/EmptyState";
-import { CalendarIcon } from "lucide-react";
+import { listUpcomingEvents } from "@/db/queries/events";
+import { EventList } from "@/features/events/components/EventList";
+import { CreateEventButton } from "@/features/events/components/CreateEventButton";
 
 export const revalidate = 60;
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
-  const t = await getTranslations({ locale, namespace: "SEO" });
-
+  const t = await getTranslations({ locale, namespace: "Events" });
   return {
-    title: t("eventsTitle"),
-    description: t("eventsDescription"),
+    title: t("list.title"),
     alternates: {
       canonical: `/${locale}/events`,
-      languages: {
-        en: "/en/events",
-        ig: "/ig/events",
-      },
-    },
-    openGraph: {
-      title: t("eventsTitle"),
-      description: t("eventsDescription"),
-      type: "website",
-    },
-    twitter: {
-      card: "summary",
-      title: t("eventsTitle"),
-      description: t("eventsDescription"),
+      languages: { en: "/en/events", ig: "/ig/events" },
     },
   };
 }
@@ -36,20 +22,24 @@ export default async function EventsPage({ params }: { params: Promise<{ locale:
   setRequestLocale(locale);
   const t = await getTranslations("Events");
 
+  // DO NOT call auth() here — defeats ISR (revalidate=60)
+  // Only public/general events shown in ISR cache; auth-gated features use useSession() client-side
+  const events = await listUpcomingEvents({});
+
   return (
     <div className="mx-auto max-w-4xl px-4 py-12 md:py-16">
-      <h1 className="text-3xl md:text-4xl font-bold text-primary mb-4">{t("title")}</h1>
-      <p className="text-base text-muted-foreground mb-8">{t("description")}</p>
+      <div className="flex items-center justify-between mb-8">
+        <h1 className="text-3xl md:text-4xl font-bold text-primary">{t("list.title")}</h1>
+        <CreateEventButton />
+      </div>
 
-      <EmptyState
-        icon={<CalendarIcon className="size-7" aria-hidden="true" />}
-        title={t("emptyTitle")}
-        description={t("emptyDescription")}
-        primaryAction={{
-          label: t("ctaButton"),
-          href: "/apply",
-        }}
-      />
+      <div className="mb-4">
+        <span className="inline-flex items-center text-sm font-medium text-muted-foreground border-b-2 border-primary pb-1">
+          {t("list.upcoming")}
+        </span>
+      </div>
+
+      <EventList events={events} />
     </div>
   );
 }
