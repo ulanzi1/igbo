@@ -23,6 +23,8 @@ import type {
   GroupOwnershipTransferredEvent,
   GroupArchivedEvent,
   AccountStatusChangedEvent,
+  ArticlePublishedEvent,
+  ArticleRejectedEvent,
 } from "@/types/events";
 import type { NotificationType } from "@/db/schema/platform-notifications";
 
@@ -244,6 +246,31 @@ eventBus.on("group.archived", async (payload: GroupArchivedEvent) => {
       link: `/groups/${payload.groupId}`,
     });
   }
+});
+
+// ─── Article Publication Notifications (Story 6.2) ───────────────────────────
+
+// self-notify pattern: bypasses block/mute filter (actorId === userId)
+eventBus.on("article.published", async (payload: ArticlePublishedEvent) => {
+  await deliverNotification({
+    userId: payload.authorId,
+    actorId: payload.authorId, // self-notify pattern: bypasses block/mute filter
+    type: "admin_announcement",
+    title: "notifications.article_published.title",
+    body: "notifications.article_published.body",
+    link: `/articles/${payload.slug}`,
+  });
+});
+
+eventBus.on("article.rejected", async (payload: ArticleRejectedEvent) => {
+  await deliverNotification({
+    userId: payload.authorId,
+    actorId: payload.authorId, // self-notify pattern: bypasses block/mute filter
+    type: "admin_announcement",
+    title: "notifications.article_rejected.title",
+    body: payload.feedback ?? "notifications.article_rejected.body",
+    link: `/articles/${payload.articleId}/edit`,
+  });
 });
 
 // ─── Ownership Transfer on Account Status Change ──────────────────────────────

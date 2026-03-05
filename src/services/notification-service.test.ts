@@ -343,3 +343,102 @@ describe("message.mentioned handler (Story 2.7)", () => {
     expect(mockGetConversationNotificationPreference).toHaveBeenCalledTimes(2);
   });
 });
+
+// ─── Article Notification Tests (Story 6.2) ───────────────────────────────────
+
+describe("article.published handler", () => {
+  const AUTHOR_ID = "00000000-0000-4000-8000-000000000050";
+  const ARTICLE_ID = "00000000-0000-4000-8000-000000000060";
+
+  it("registers article.published listener", () => {
+    expect(handlerRef.current.has("article.published")).toBe(true);
+  });
+
+  it("delivers notification to author with slug link", async () => {
+    mockFilterNotificationRecipients.mockResolvedValue([AUTHOR_ID]);
+    const handler = handlerRef.current.get("article.published");
+
+    await handler?.({
+      articleId: ARTICLE_ID,
+      authorId: AUTHOR_ID,
+      title: "My Article",
+      slug: "my-article-abc123",
+      timestamp: new Date().toISOString(),
+    });
+
+    expect(mockCreateNotification).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: AUTHOR_ID,
+        type: "admin_announcement",
+        title: "notifications.article_published.title",
+        body: "notifications.article_published.body",
+        link: "/articles/my-article-abc123",
+      }),
+    );
+  });
+
+  it("uses actorId === userId (self-notify pattern bypasses block/mute)", async () => {
+    mockFilterNotificationRecipients.mockResolvedValue([AUTHOR_ID]);
+    const handler = handlerRef.current.get("article.published");
+
+    await handler?.({
+      articleId: ARTICLE_ID,
+      authorId: AUTHOR_ID,
+      title: "My Article",
+      slug: "my-article-abc123",
+      timestamp: new Date().toISOString(),
+    });
+
+    expect(mockFilterNotificationRecipients).toHaveBeenCalledWith([AUTHOR_ID], AUTHOR_ID);
+  });
+});
+
+describe("article.rejected handler", () => {
+  const AUTHOR_ID = "00000000-0000-4000-8000-000000000051";
+  const ARTICLE_ID = "00000000-0000-4000-8000-000000000061";
+
+  it("registers article.rejected listener", () => {
+    expect(handlerRef.current.has("article.rejected")).toBe(true);
+  });
+
+  it("delivers notification with feedback text as body when feedback provided", async () => {
+    mockFilterNotificationRecipients.mockResolvedValue([AUTHOR_ID]);
+    const handler = handlerRef.current.get("article.rejected");
+
+    await handler?.({
+      articleId: ARTICLE_ID,
+      authorId: AUTHOR_ID,
+      title: "My Article",
+      feedback: "Please add more historical context",
+      timestamp: new Date().toISOString(),
+    });
+
+    expect(mockCreateNotification).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: AUTHOR_ID,
+        type: "admin_announcement",
+        title: "notifications.article_rejected.title",
+        body: "Please add more historical context",
+        link: `/articles/${ARTICLE_ID}/edit`,
+      }),
+    );
+  });
+
+  it("uses fallback i18n body key when no feedback provided", async () => {
+    mockFilterNotificationRecipients.mockResolvedValue([AUTHOR_ID]);
+    const handler = handlerRef.current.get("article.rejected");
+
+    await handler?.({
+      articleId: ARTICLE_ID,
+      authorId: AUTHOR_ID,
+      title: "My Article",
+      timestamp: new Date().toISOString(),
+    });
+
+    expect(mockCreateNotification).toHaveBeenCalledWith(
+      expect.objectContaining({
+        body: "notifications.article_rejected.body",
+      }),
+    );
+  });
+});

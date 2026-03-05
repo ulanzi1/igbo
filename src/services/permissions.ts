@@ -6,7 +6,7 @@ import { eventBus } from "@/services/event-bus";
 
 // ─── Permission Matrix ────────────────────────────────────────────────────────
 
-const PERMISSION_MATRIX = {
+export const PERMISSION_MATRIX = {
   BASIC: {
     canChat: true,
     canJoinPublicGroups: true,
@@ -93,7 +93,17 @@ export async function canPublishArticle(userId: string): Promise<PermissionResul
     await emitPermissionDenied(userId, "publishArticle", result.reason!);
     return result;
   }
-  // TODO(Story 1.xx): add weekly count check against articles table once articles feature is built
+  const { countWeeklyArticleSubmissions } = await import("@/db/queries/articles");
+  const weeklyCount = await countWeeklyArticleSubmissions(userId);
+  const maxPerWeek = PERMISSION_MATRIX[tier].maxArticlesPerWeek;
+  if (weeklyCount >= maxPerWeek) {
+    const result: PermissionResult = {
+      allowed: false,
+      reason: "Articles.permissions.weeklyLimitReached",
+    };
+    await emitPermissionDenied(userId, "publishArticle", result.reason!);
+    return result;
+  }
   return { allowed: true };
 }
 
@@ -164,7 +174,7 @@ const UPGRADE_MESSAGE_KEYS: Record<string, string> = {
   createFeedPost: "Permissions.feedPostRequired",
 };
 
-export function getTierUpgradeMessage(action: string, requiredTier: string): string {
+export function getTierUpgradeMessage(action: string, _requiredTier: string): string {
   // Return specific i18n key if available, otherwise the generic key with action/tier context
   return UPGRADE_MESSAGE_KEYS[action] ?? `Permissions.upgradeRequired`;
 }

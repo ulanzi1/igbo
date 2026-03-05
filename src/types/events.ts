@@ -217,6 +217,15 @@ export interface ArticleSubmittedEvent extends BaseEvent {
 export interface ArticlePublishedEvent extends BaseEvent {
   articleId: string;
   authorId: string;
+  title: string;
+  slug: string;
+}
+
+export interface ArticleRejectedEvent extends BaseEvent {
+  articleId: string;
+  authorId: string;
+  title: string;
+  feedback?: string;
 }
 
 export interface ArticleCommentedEvent extends BaseEvent {
@@ -455,6 +464,7 @@ export type EventName =
   | "gdpr.export_ready"
   | "article.submitted"
   | "article.published"
+  | "article.rejected"
   | "article.commented"
   | "group.created"
   | "group.updated"
@@ -527,6 +537,7 @@ export interface EventMap {
   "gdpr.export_ready": GdprExportReadyEvent;
   "article.submitted": ArticleSubmittedEvent;
   "article.published": ArticlePublishedEvent;
+  "article.rejected": ArticleRejectedEvent;
   "article.commented": ArticleCommentedEvent;
   "group.created": GroupCreatedEvent;
   "group.updated": GroupUpdatedEvent;
