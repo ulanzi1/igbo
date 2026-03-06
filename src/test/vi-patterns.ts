@@ -329,3 +329,84 @@ export function useRealTimersForReactQuery() {
  * Canonical correct example: Story 6.3 article reading page — Server Component passes
  * sanitized HTML strings to `<ArticleLanguageToggle>`.
  */
+
+/**
+ * 🌐 Locale hardcoding — NEVER hardcode locale values ("en") in locale-dependent APIs.
+ *
+ * Root cause: Hardcoding `"en"` in `Intl.DateTimeFormat("en", ...)` (or any locale-dependent
+ * API) bypasses the user's language preference and always renders dates/numbers/text
+ * in English regardless of the active locale.
+ *
+ * Rule:
+ * - **Client Components**: use `useLocale()` from `next-intl` to get the current locale.
+ * - **Server Components**: receive `locale` from route params (Next.js App Router passes
+ *   `{ params: { locale } }` to page/layout Server Components).
+ * - **Shared utilities** (date formatters, etc.): accept `locale` as an explicit argument —
+ *   never derive it internally by hardcoding.
+ *
+ * ✅ CORRECT — Client Component reads locale from next-intl:
+ * ```tsx
+ * import { useLocale } from "next-intl";
+ *
+ * function EventDate({ date }: { date: Date }) {
+ *   const locale = useLocale();
+ *   return <span>{new Intl.DateTimeFormat(locale, { dateStyle: "long" }).format(date)}</span>;
+ * }
+ * ```
+ *
+ * ✅ CORRECT — Server Component receives locale from params:
+ * ```tsx
+ * export default function EventPage({ params }: { params: { locale: string; eventId: string } }) {
+ *   const formatted = new Intl.DateTimeFormat(params.locale, { dateStyle: "long" }).format(date);
+ *   return <span>{formatted}</span>;
+ * }
+ * ```
+ *
+ * ❌ WRONG — hardcoded locale:
+ * ```tsx
+ * // Always renders in English regardless of user's language preference
+ * new Intl.DateTimeFormat("en", { dateStyle: "long" }).format(date)
+ * ```
+ *
+ * Pre-review check: Search component files for `Intl.DateTimeFormat("en"` (or other
+ * hardcoded locale strings) before submitting for review.
+ *
+ * First hit: Epic 7 Stories 7.2 and 7.3 — hardcoded `"en"` in date formatting utilities.
+ */
+
+/**
+ * ✅ Additive permission audit — every new access path requires explicit regression tests.
+ *
+ * Root cause: When a new permission path is added (admin, creator, top-tier, etc.), existing
+ * code branches may share logic but with slightly different guards. Dead-code conditions
+ * (e.g. identical check on outer and inner guard) can silently make admin/creator paths
+ * unreachable — the feature ships broken with no failing test to surface it.
+ *
+ * Rule: For EVERY new permission path added to a handler or service:
+ * 1. Audit ALL code branches that gate that access level — outer conditions, inner conditions,
+ *    early returns. Check for duplicate or shadowed guards.
+ * 2. Write a NAMED regression test for each access path (e.g. "admin can preserve beyond
+ *    retention limit", "creator can cancel own event", "top-tier sees download button").
+ * 3. Write a corresponding negative test (e.g. "non-admin cannot preserve", "non-creator
+ *    cannot cancel").
+ *
+ * ✅ CORRECT — named tests for each permission branch:
+ * ```ts
+ * it("admin can preserve recording beyond retention window", async () => { ... });
+ * it("non-admin cannot preserve recording", async () => { ... });
+ * it("creator can cancel own event", async () => { ... });
+ * ```
+ *
+ * ❌ WRONG — single happy-path test only:
+ * ```ts
+ * it("returns 200 when preserving recording", async () => { ... });
+ * // Admin-bypass dead-code goes undetected
+ * ```
+ *
+ * Pre-review check: For each new `if (isAdmin)` / `if (userId === creatorId)` / tier-check
+ * branch, verify a named regression test exists for THAT specific path.
+ *
+ * First hit: Story 5.4 ban bypass (missing regression for ban enforcement in createGroupPost).
+ * Second hit: Story 7.4 preserveRecording — duplicate guard on outer/inner condition made
+ * admin preservation dead code; no regression test caught it.
+ */

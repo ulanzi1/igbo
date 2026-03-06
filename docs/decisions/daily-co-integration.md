@@ -203,6 +203,57 @@ Story 7.4 owns the recording webhook endpoint. Story 7.3 only sets `enable_recor
 
 ---
 
+## Pre-Launch Blockers — Production Environment Checklist
+
+Both variables below are **hard blockers** for production launch. Neither has a safe fallback.
+
+### `DAILY_API_KEY` (required for meeting creation and join tokens)
+
+**Behavior when missing / empty:**
+
+- `VideoService.createMeeting()` will throw a fetch error (Daily.co returns 401 Unauthorized).
+- Events can still be created in the DB, but `dailyRoomName` and `meetingUrl` will be `null`.
+- Members will see the event detail page without a join button (no room URL to display).
+- No meeting can be started or joined.
+
+**Pre-launch action:** Confirm `DAILY_API_KEY` is set in the production environment secrets manager and that the Daily.co domain matches the production app domain.
+
+---
+
+### `DAILY_WEBHOOK_SECRET` (required for recording webhook authentication)
+
+**Behavior when missing / empty:**
+
+- `verifyDailySignature()` in the webhook route detects an empty secret, logs a warning, and **returns `true` for all signatures** — validation is completely disabled.
+- Any unauthenticated POST to `/api/v1/webhooks/daily/recording-ready` will be processed as a valid recording event.
+- This is an unauthenticated write path: arbitrary `room_name` + `download_link` payloads can be injected, polluting event recording state.
+
+**Pre-launch action:** Set `DAILY_WEBHOOK_SECRET` in production secrets. Register the production webhook URL in the Daily.co dashboard (Settings → Webhooks) with the matching secret. Confirm the webhook fires and `x-webhook-signature` validates against the stored secret in a staging run before go-live.
+
+---
+
+### Smoke Test Gate (steps 4–8)
+
+Recording feature is **gated on completing these steps** before production launch.
+
+Steps 1–3 (confirmed complete in staging):
+
+1. Create event → Daily.co room created, `meetingUrl` stored on event row
+2. RSVP as attendee → join token issued, meeting join succeeds
+3. Host ends meeting → room deleted via `DELETE /api/v1/events/[eventId]/meeting`
+
+| Step | Item                                                                 | Owner   | Status     |
+| ---- | -------------------------------------------------------------------- | ------- | ---------- |
+| 4    | Confirm `attended` status transition                                 | Dana    | ⏳ Pending |
+| 5    | Trigger test recording (Top-tier host)                               | Dana    | ⏳ Pending |
+| 6    | Confirm `recording.ready-to-download` webhook fires + HMAC validates | Charlie | ⏳ Pending |
+| 7    | Confirm mirror job runs and `recording_mirror_url` stored            | Charlie | ⏳ Pending |
+| 8    | Confirm presigned download URL works                                 | Dana    | ⏳ Pending |
+
+Core event creation + meeting join (steps 1–3) are confirmed and can ship independently.
+
+---
+
 ## Story 7.3 Acceptance Criteria (no unknowns)
 
 - `POST /api/v1/events/[eventId]/meeting` → calls `createMeeting`, stores `room.url` + `room.name` on the event row, returns room URL
