@@ -117,7 +117,7 @@ development_status:
   7-3-video-meeting-integration: done
   7-4-event-reminders-recordings: done
   tech-spec-event-ux-enhancements: done # timezones, group feed, RSVP & change notifications — 2026-03-06
-  epic-7-retrospective: optional
+  epic-7-retrospective: done
 
   # Epic 8: Engagement & Gamification
   epic-8: backlog
