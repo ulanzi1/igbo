@@ -89,8 +89,28 @@ export function EventsPageTabs({ initialUpcomingEvents }: EventsPageTabsProps) {
           ) : (
             <div className="flex flex-col gap-4">
               {myRsvps.map((event) => (
-                <div key={event.id}>
+                <div key={event.id} className="flex flex-col gap-2">
                   <EventCard event={event} />
+                  {event.rsvpStatus === "cancelled" ? (
+                    <div className="px-1 space-y-1">
+                      <span className="inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300">
+                        {t("myRsvps.cancelledBadge")}
+                      </span>
+                      {event.cancellationReason && (
+                        <p className="text-xs text-muted-foreground">
+                          {t("myRsvps.cancelledReason", { reason: event.cancellationReason })}
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="px-1">
+                      <RSVPButton
+                        eventId={event.id}
+                        registrationLimit={event.registrationLimit}
+                        attendeeCount={event.attendeeCount}
+                      />
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

@@ -25,6 +25,7 @@ import type {
   GroupMemberLeftEvent,
   EventRsvpEvent,
   EventRsvpCancelledEvent,
+  EventAttendedEvent,
 } from "@/types/events";
 
 const CHANNEL_PREFIX = "eventbus:";
@@ -270,6 +271,17 @@ function routeToNamespace(io: Server, eventName: string, payload: unknown): void
         eventId: cancelledPayload.eventId,
         attendeeCount: cancelledPayload.attendeeCount,
         timestamp: cancelledPayload.timestamp,
+      });
+      break;
+    }
+    case "event.attended": {
+      const attendedPayload = payload as EventAttendedEvent;
+      if (!attendedPayload?.eventId) break;
+      notificationsNs.to(ROOM_EVENT(attendedPayload.eventId)).emit("event:attendee_update", {
+        eventId: attendedPayload.eventId,
+        userId: attendedPayload.userId,
+        status: "attended",
+        timestamp: attendedPayload.timestamp,
       });
       break;
     }

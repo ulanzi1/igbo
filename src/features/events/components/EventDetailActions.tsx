@@ -17,6 +17,8 @@ export function EventDetailActions({ eventId, creatorId }: EventDetailActionsPro
   const [isCancelling, setIsCancelling] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [cancelled, setCancelled] = useState(false);
+  const [reason, setReason] = useState("");
+  const [reasonError, setReasonError] = useState<string | null>(null);
 
   if (!session?.user?.id || session.user.id !== creatorId) {
     return null;
@@ -27,12 +29,19 @@ export function EventDetailActions({ eventId, creatorId }: EventDetailActionsPro
   }
 
   const handleCancel = async () => {
+    if (!reason.trim()) {
+      setReasonError(t("cancel.reasonRequired"));
+      return;
+    }
+    setReasonError(null);
     setIsCancelling(true);
     setError(null);
     try {
       const res = await fetch(`/api/v1/events/${eventId}`, {
         method: "DELETE",
         credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cancellationReason: reason }),
       });
       if (!res.ok) {
         const data = (await res.json()) as { detail?: string };
@@ -74,11 +83,32 @@ export function EventDetailActions({ eventId, creatorId }: EventDetailActionsPro
           <div className="w-full max-w-sm rounded-xl border border-border bg-card p-6 shadow-lg space-y-4">
             <h2 className="text-lg font-semibold">{t("cancel.confirm")}</h2>
             <p className="text-sm text-muted-foreground">{t("cancel.description")}</p>
+            <div className="space-y-1.5">
+              <label htmlFor="cancel-reason" className="text-sm font-medium">
+                {t("cancel.reasonLabel")}
+              </label>
+              <textarea
+                id="cancel-reason"
+                value={reason}
+                onChange={(e) => {
+                  setReason(e.target.value);
+                  if (e.target.value.trim()) setReasonError(null);
+                }}
+                placeholder={t("cancel.reasonPlaceholder")}
+                rows={3}
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring resize-none"
+              />
+              {reasonError && <p className="text-xs text-destructive">{reasonError}</p>}
+            </div>
             {error && <p className="text-sm text-destructive">{error}</p>}
             <div className="flex justify-end gap-3">
               <button
                 type="button"
-                onClick={() => setShowConfirm(false)}
+                onClick={() => {
+                  setShowConfirm(false);
+                  setReason("");
+                  setReasonError(null);
+                }}
                 disabled={isCancelling}
                 className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium hover:bg-accent disabled:opacity-50"
               >

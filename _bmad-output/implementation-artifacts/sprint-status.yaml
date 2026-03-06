@@ -114,8 +114,9 @@ development_status:
   epic-7: in-progress
   7-1-event-creation-management: done
   7-2-rsvp-waitlist-event-archive: done
-  7-3-video-meeting-integration: backlog
-  7-4-event-reminders-recordings: backlog
+  7-3-video-meeting-integration: done
+  7-4-event-reminders-recordings: done
+  tech-spec-event-ux-enhancements: done # timezones, group feed, RSVP & change notifications — 2026-03-06
   epic-7-retrospective: optional
 
   # Epic 8: Engagement & Gamification

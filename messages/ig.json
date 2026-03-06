@@ -466,7 +466,10 @@
       "error": "Akagbuọghị ike ihe omume",
       "description": "Ọ nweghị ike ịlaghachi. A kagbuọ RSVP niile.",
       "keepEvent": "Debe Ihe Omume",
-      "cancelling": "Na-akagbu..."
+      "cancelling": "Na-akagbu...",
+      "reasonLabel": "Reason for Cancellation",
+      "reasonPlaceholder": "Let attendees know why this event is being cancelled",
+      "reasonRequired": "A cancellation reason is required"
     },
     "detail": {
       "attendees": "Ndị ọbịa",
@@ -558,12 +561,64 @@
       "attendedCount": "{count} bịara"
     },
     "myRsvps": {
-      "empty": "Ị debeghị aha maka ihe omume ọ bụla na-abịa."
+      "empty": "Ị debeghị aha maka ihe omume ọ bụla na-abịa.",
+      "cancelledBadge": "Cancelled by organiser",
+      "cancelledReason": "Reason: {reason}"
+    },
+    "dateChange": {
+      "postponed": "Postponed",
+      "preponed": "Brought Forward",
+      "commentLabel": "Reason for Date Change",
+      "commentPlaceholder": "Explain why the date is changing...",
+      "commentRequired": "A note is required when changing the event date"
     },
     "widget": {
       "title": "Ihe Omume Na-abịa",
       "empty": "Enweghị ihe omume na-abịa",
       "viewAll": "Hụ ihe omume niile"
+    },
+    "video": {
+      "joinButton": "Sonye N'ihe Omume",
+      "joinButtonLoading": "Na-abanye...",
+      "joinButtonDisabled": "Nnọkọ adịghị ugbu a",
+      "loading": "Na-ebugharị nnọkọ...",
+      "error": "Ọ dara ada ijikọ na nnọkọ",
+      "reconnecting": "Na-ajikọtago...",
+      "networkGood": "Njikọ: Ọ dị mma",
+      "networkLow": "Njikọ: Ọ dịghị mma",
+      "networkVeryLow": "Njikọ: Dị ntakịrị — na-agbanwe na ụda naanị",
+      "waitingRoom": "Na-atọ ndị ọ bụla tụọ gị ọnụ",
+      "waitingRoomAdmit": "Tụọ ọnụ",
+      "coHost": "Onye Nduzi Ọzọ",
+      "promoteCoHost": "Wee bụrụ Onye Nduzi Ọzọ",
+      "removeCoHost": "Wepu Onye Nduzi Ọzọ",
+      "attendanceSyncError": "Ọ dara ada idekọ ọbịbịa — biko kpọtụrụ nkwado",
+      "leaveButton": "Hapụ Nnọkọ",
+      "screenShare": "Kefee Ihuenyo",
+      "stopScreenShare": "Kwụsị Ikefe",
+      "chat": "Okwuokwu",
+      "participantCount": "{count, plural, one {# onye sonyere} other {# ndị sonyere}}"
+    },
+    "checkIn": {
+      "title": "Ndekọ Ọbịbịa",
+      "markAttended": "Dee Ọbịbịa",
+      "alreadyAttended": "Abịala ya",
+      "noAttendees": "Enweghị ndị debeere aha"
+    },
+    "recordings": {
+      "topTierOnly": "Ndekọ ihe omume dị maka ndị otu ọkwa elu.",
+      "mirrorPending": "Na-ahaziri ndekọ...",
+      "mirrorFailed": "Ọ dara ada ichekwa ndekọ.",
+      "downloadButton": "Budata Ndekọ",
+      "preserveButton": "Debe Ruo Mgbe Niile",
+      "preservedLabel": "Edebekwala",
+      "expiresOn": "Ga-agwụ {date}",
+      "expiringSoon": "Na-agwụ n'oge — ụbọchị {days} fọdụrụ",
+      "quotaReached": "Ihe nchekwa jupụtara. Hapu ọhere ma ọ bụ kpọtụrụ onye nchịkwa.",
+      "recordingLost": "Ndekọ adịghị mma",
+      "recordingExpired": "Ndekọ agwụla",
+      "playButton": "Kpọọ",
+      "playSourceButton": "Kpọọ (isi)"
     }
   },
   "Permissions": {
@@ -922,6 +977,19 @@
     },
     "event_waitlist_promoted": {
       "title": "Ewepụtara gị na ndepụta ndọdọ!"
+    },
+    "event_attended": {
+      "title": "Edekọọla ọbịbịa gị",
+      "body": "Edekọọla ọbịbịa gị maka {eventTitle}."
+    },
+    "event_reminder": {
+      "title": "Ncheta ihe omume: {title}"
+    },
+    "recording_expiring": {
+      "title": "Ndekọ na-agwụ n'oge: {title}"
+    },
+    "recording_failed": {
+      "title": "Ọ dara ada ichekwa ndekọ: {title}"
     }
   },
   "Dashboard": {
@@ -1490,6 +1558,8 @@
       "empty": "Ọ dịghị ozi. Bụrụ nke mbụ ị dee n'otu a!",
       "postingPermissionDenied": "Ndị ndu otu naanị nwere ike ịde ozi n'otu a.",
       "postPendingApproval": "Ozi gị na-eche nkwado ndu.",
+      "upcomingEvents": "Upcoming Events",
+      "viewAllEvents": "View all group events",
       "loadMore": "Buo ibu ọzọ",
       "loading": "Na-ebu...",
       "reviewPending": "Lelee Ozi Ndị Ọzọ",

@@ -2,7 +2,8 @@
 // This file is used by event-service.ts (server-only) and tests.
 import { db } from "@/db";
 import { communityEvents, communityEventAttendees } from "@/db/schema/community-events";
-import { eq, and, isNull, asc, sql, inArray } from "drizzle-orm";
+import { communityProfiles } from "@/db/schema/community-profiles";
+import { eq, and, ne, isNull, asc, lte, sql, inArray } from "drizzle-orm";
 import type { CommunityEvent, NewCommunityEvent, EventStatus } from "@/db/schema/community-events";
 
 export type { CommunityEvent, NewCommunityEvent };
@@ -27,13 +28,16 @@ export interface EventListItem {
   recurrencePattern: "none" | "daily" | "weekly" | "monthly";
   recurrenceParentId: string | null;
   status: EventStatus;
+  dateChangeType: "postponed" | "preponed" | null;
+  dateChangeComment: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
 
 export interface MyRsvpEventListItem extends EventListItem {
-  rsvpStatus: "registered" | "waitlisted";
+  rsvpStatus: "registered" | "waitlisted" | "cancelled";
   waitlistPosition: number | null; // only set for 'waitlisted' status
+  cancellationReason: string | null;
 }
 
 export interface AttendeeStatusResult {
@@ -96,6 +100,9 @@ export async function updateEvent(
       | "endTime"
       | "durationMinutes"
       | "registrationLimit"
+      | "dailyRoomName"
+      | "dateChangeType"
+      | "dateChangeComment"
     >
   >,
 ): Promise<CommunityEvent | null> {
@@ -114,22 +121,27 @@ export async function updateEvent(
 }
 
 /**
- * Set status='cancelled' WHERE id AND creator_id AND status='upcoming'.
+ * Set status='cancelled' WHERE id AND creator_id AND status != 'cancelled'.
+ * Intentionally allows cancelling 'live' events (ne instead of eq upcoming).
  * Returns true if a row was affected, false otherwise.
  */
-export async function cancelEvent(eventId: string, creatorId: string): Promise<boolean> {
-  const result = await db
+export async function cancelEvent(
+  eventId: string,
+  creatorId: string,
+  reason: string,
+): Promise<boolean> {
+  const [updated] = await db
     .update(communityEvents)
-    .set({ status: "cancelled", updatedAt: new Date() })
+    .set({ status: "cancelled", cancellationReason: reason, updatedAt: new Date() })
     .where(
       and(
         eq(communityEvents.id, eventId),
-        eq(communityEvents.creatorId, creatorId),
-        eq(communityEvents.status, "upcoming"),
+        eq(communityEvents.creatorId, creatorId), // defence-in-depth: only creator
+        ne(communityEvents.status, "cancelled"), // allow cancelling live or upcoming
       ),
     )
     .returning({ id: communityEvents.id });
-  return result.length > 0;
+  return !!updated;
 }
 
 /**
@@ -170,6 +182,8 @@ export async function listUpcomingEvents(opts: {
       e.recurrence_pattern AS "recurrencePattern",
       e.recurrence_parent_id AS "recurrenceParentId",
       e.status,
+      e.date_change_type AS "dateChangeType",
+      e.date_change_comment AS "dateChangeComment",
       e.created_at AS "createdAt",
       e.updated_at AS "updatedAt"
     FROM community_events e
@@ -218,6 +232,8 @@ export async function listGroupEvents(groupId: string, userId?: string): Promise
       recurrencePattern: communityEvents.recurrencePattern,
       recurrenceParentId: communityEvents.recurrenceParentId,
       status: communityEvents.status,
+      dateChangeType: communityEvents.dateChangeType,
+      dateChangeComment: communityEvents.dateChangeComment,
       createdAt: communityEvents.createdAt,
       updatedAt: communityEvents.updatedAt,
     })
@@ -536,8 +552,9 @@ export async function listPastEvents(opts: {
       e.start_time AS "startTime", e.end_time AS "endTime",
       e.duration_minutes AS "durationMinutes", e.registration_limit AS "registrationLimit",
       e.attendee_count AS "attendeeCount", e.recurrence_pattern AS "recurrencePattern",
-      e.recurrence_parent_id AS "recurrenceParentId", e.status, e.created_at AS "createdAt",
-      e.updated_at AS "updatedAt"
+      e.recurrence_parent_id AS "recurrenceParentId", e.status,
+      e.date_change_type AS "dateChangeType", e.date_change_comment AS "dateChangeComment",
+      e.created_at AS "createdAt", e.updated_at AS "updatedAt"
     FROM community_events e
     LEFT JOIN community_groups g ON e.group_id = g.id
     LEFT JOIN community_group_members gm ON g.id = gm.group_id AND gm.user_id = ${userId ?? null} AND gm.status = 'active'
@@ -556,7 +573,87 @@ export async function listPastEvents(opts: {
   return Array.from(rows) as EventListItem[];
 }
 
-/** Lists upcoming events the user has RSVP'd to (registered or waitlisted). */
+export interface AttendeeWithProfile {
+  userId: string;
+  displayName: string;
+  status: "registered" | "waitlisted" | "attended" | "cancelled";
+  joinedAt: Date | null;
+}
+
+/**
+ * Mark an attendee as `attended` with a joined_at timestamp.
+ * Transaction: SELECT FOR UPDATE → check status → UPDATE.
+ * Idempotent: if already `attended`, returns { alreadyAttended: true }.
+ * Does NOT change attendeeCount — that tracks RSVPs, not attendance.
+ */
+export async function markAttended(
+  eventId: string,
+  userId: string,
+  joinedAt: Date,
+): Promise<{ alreadyAttended: boolean }> {
+  return db.transaction(async (tx) => {
+    const rows = await tx.execute(
+      sql`SELECT status FROM community_event_attendees
+          WHERE event_id = ${eventId} AND user_id = ${userId}
+          FOR UPDATE`,
+    );
+    const row = Array.from(rows)[0] as { status: string } | undefined;
+
+    if (!row) {
+      throw new Error("Attendee not found");
+    }
+
+    if (row.status === "attended") {
+      return { alreadyAttended: true };
+    }
+
+    if (row.status === "cancelled") {
+      throw new Error("Cannot mark cancelled attendee as attended");
+    }
+
+    await tx
+      .update(communityEventAttendees)
+      .set({ status: "attended", joinedAt })
+      .where(
+        and(
+          eq(communityEventAttendees.eventId, eventId),
+          eq(communityEventAttendees.userId, userId),
+        ),
+      );
+
+    return { alreadyAttended: false };
+  });
+}
+
+/**
+ * List all attendees for an event with their display names.
+ * Used by manual check-in UI (creator only).
+ */
+export async function listEventAttendees(eventId: string): Promise<AttendeeWithProfile[]> {
+  const rows = await db
+    .select({
+      userId: communityEventAttendees.userId,
+      displayName: communityProfiles.displayName,
+      status: communityEventAttendees.status,
+      joinedAt: communityEventAttendees.joinedAt,
+    })
+    .from(communityEventAttendees)
+    .innerJoin(communityProfiles, eq(communityProfiles.userId, communityEventAttendees.userId))
+    .where(eq(communityEventAttendees.eventId, eventId))
+    .orderBy(asc(communityEventAttendees.registeredAt));
+
+  return rows as AttendeeWithProfile[];
+}
+
+/**
+ * Lists events the user has RSVP'd to.
+ * Includes:
+ * - Active RSVPs (registered/waitlisted) for upcoming non-cancelled events
+ * - Organiser-cancelled events where the member had a valid RSVP at time of cancellation
+ *   (proxy: both e.status='cancelled' AND ea.status='cancelled')
+ * Note: if a member self-cancels their RSVP before an organiser cancels the event, the
+ * proxy still matches — this is accepted behaviour (reason is relevant to them).
+ */
 export async function listMyRsvps(
   userId: string,
   opts?: { limit?: number; offset?: number },
@@ -570,8 +667,10 @@ export async function listMyRsvps(
       e.start_time AS "startTime", e.end_time AS "endTime",
       e.duration_minutes AS "durationMinutes", e.registration_limit AS "registrationLimit",
       e.attendee_count AS "attendeeCount", e.recurrence_pattern AS "recurrencePattern",
-      e.recurrence_parent_id AS "recurrenceParentId", e.status, e.created_at AS "createdAt",
-      e.updated_at AS "updatedAt",
+      e.recurrence_parent_id AS "recurrenceParentId", e.status,
+      e.date_change_type AS "dateChangeType", e.date_change_comment AS "dateChangeComment",
+      e.cancellation_reason AS "cancellationReason",
+      e.created_at AS "createdAt", e.updated_at AS "updatedAt",
       ea.status AS "rsvpStatus",
       (CASE
         WHEN ea.status = 'waitlisted' THEN (
@@ -584,12 +683,188 @@ export async function listMyRsvps(
     FROM community_event_attendees ea
     INNER JOIN community_events e ON ea.event_id = e.id
     WHERE ea.user_id = ${userId}
-      AND ea.status IN ('registered', 'waitlisted')
-      AND e.start_time > NOW()
       AND e.deleted_at IS NULL
-      AND e.status != 'cancelled'
-    ORDER BY e.start_time ASC
+      AND (
+        (ea.status IN ('registered', 'waitlisted') AND e.status != 'cancelled' AND e.start_time > NOW())
+        OR
+        (e.status = 'cancelled' AND ea.status = 'cancelled')
+      )
+    ORDER BY CASE WHEN e.status = 'cancelled' THEN 1 ELSE 0 END ASC, e.start_time ASC
     LIMIT ${limit} OFFSET ${offset}`,
   );
   return Array.from(rows) as MyRsvpEventListItem[];
+}
+
+// ─── Recording Query Functions (Story 7.4) ───────────────────────────────────
+
+/** Set recording_url and transition recording_status to 'mirroring'. */
+export async function setRecordingSourceUrl(eventId: string, recordingUrl: string): Promise<void> {
+  await db
+    .update(communityEvents)
+    .set({ recordingUrl, recordingStatus: "mirroring", updatedAt: new Date() })
+    .where(eq(communityEvents.id, eventId));
+}
+
+/** Set mirror URL + size + expiry and mark recording_status as 'ready'. */
+export async function setRecordingMirror(
+  eventId: string,
+  mirrorUrl: string,
+  sizeBytes: number,
+  expiresAt: Date,
+): Promise<void> {
+  await db
+    .update(communityEvents)
+    .set({
+      recordingMirrorUrl: mirrorUrl,
+      recordingSizeBytes: sizeBytes,
+      recordingExpiresAt: expiresAt,
+      recordingStatus: "ready",
+      recordingMirrorRetryCount: 0,
+      recordingMirrorNextRetryAt: null,
+      updatedAt: new Date(),
+    })
+    .where(eq(communityEvents.id, eventId));
+}
+
+/** Mark recording as lost: clear URLs, set status to 'lost'. */
+export async function markRecordingLost(eventId: string): Promise<void> {
+  await db
+    .update(communityEvents)
+    .set({
+      recordingStatus: "lost",
+      recordingUrl: null,
+      recordingMirrorUrl: null,
+      updatedAt: new Date(),
+    })
+    .where(eq(communityEvents.id, eventId));
+}
+
+/** List recordings expiring within windowDays that have not yet received a warning. */
+export async function listExpiringRecordings(windowDays: number): Promise<CommunityEvent[]> {
+  const cutoff = new Date(Date.now() + windowDays * 24 * 60 * 60 * 1000);
+  return db
+    .select()
+    .from(communityEvents)
+    .where(
+      and(
+        lte(communityEvents.recordingExpiresAt, cutoff),
+        isNull(communityEvents.recordingWarningSentAt),
+        sql`${communityEvents.recordingMirrorUrl} IS NOT NULL`,
+        sql`${communityEvents.recordingExpiresAt} > NOW()`,
+      ),
+    );
+}
+
+/** List recordings where recording_expires_at < NOW() and mirror URL is still set. */
+export async function listExpiredRecordings(): Promise<CommunityEvent[]> {
+  return db
+    .select()
+    .from(communityEvents)
+    .where(
+      and(
+        sql`${communityEvents.recordingExpiresAt} < NOW()`,
+        sql`${communityEvents.recordingMirrorUrl} IS NOT NULL`,
+      ),
+    );
+}
+
+/** Mark that a 14-day expiry warning was sent for this event's recording. */
+export async function markRecordingWarningSent(eventId: string, timestamp: Date): Promise<void> {
+  await db
+    .update(communityEvents)
+    .set({ recordingWarningSentAt: timestamp, updatedAt: new Date() })
+    .where(eq(communityEvents.id, eventId));
+}
+
+/** List events in 'mirroring' state where retry time has arrived (or has never been set). */
+export async function listPendingMirrorRetries(): Promise<CommunityEvent[]> {
+  return db
+    .select()
+    .from(communityEvents)
+    .where(
+      and(
+        eq(communityEvents.recordingStatus, "mirroring"),
+        sql`(${communityEvents.recordingMirrorNextRetryAt} IS NULL OR ${communityEvents.recordingMirrorNextRetryAt} <= NOW())`,
+      ),
+    );
+}
+
+/** Update the mirror retry schedule (next retry time + count). */
+export async function updateMirrorRetrySchedule(
+  eventId: string,
+  nextRetryAt: Date,
+  retryCount: number,
+): Promise<void> {
+  await db
+    .update(communityEvents)
+    .set({
+      recordingMirrorNextRetryAt: nextRetryAt,
+      recordingMirrorRetryCount: retryCount,
+      updatedAt: new Date(),
+    })
+    .where(eq(communityEvents.id, eventId));
+}
+
+/** List user IDs of attendees in registered/attended status for a given event. */
+export async function listRegisteredAttendeeUserIds(eventId: string): Promise<string[]> {
+  const rows = await db
+    .select({ userId: communityEventAttendees.userId })
+    .from(communityEventAttendees)
+    .where(
+      and(
+        eq(communityEventAttendees.eventId, eventId),
+        inArray(communityEventAttendees.status, ["registered", "attended"]),
+      ),
+    );
+  return rows.map((r) => r.userId);
+}
+
+/** Reverse-lookup from Daily room_name to the event record. */
+export async function getEventByRoomName(roomName: string): Promise<CommunityEvent | null> {
+  const [row] = await db
+    .select()
+    .from(communityEvents)
+    .where(eq(communityEvents.dailyRoomName, roomName))
+    .limit(1);
+  return row ?? null;
+}
+
+/**
+ * List upcoming events that are within a reminder window and have not yet
+ * had a reminder of that type sent.
+ * @param reminderType - "24h" | "1h" | "15m"
+ * @param windowStartMs - earliest ms before start_time
+ * @param windowEndMs - latest ms before start_time
+ */
+export async function listEventsNeedingReminder(
+  reminderType: "24h" | "1h" | "15m",
+  windowStartMs: number,
+  windowEndMs: number,
+): Promise<CommunityEvent[]> {
+  const now = new Date();
+  const windowStart = new Date(now.getTime() + windowEndMs);
+  const windowEnd = new Date(now.getTime() + windowStartMs);
+
+  const rows = await db.execute(
+    sql`SELECT * FROM community_events
+        WHERE status = 'upcoming'
+          AND deleted_at IS NULL
+          AND start_time >= ${windowStart}
+          AND start_time <= ${windowEnd}
+          AND NOT (reminder_sent_flags ? ${reminderType})`,
+  );
+  return Array.from(rows) as CommunityEvent[];
+}
+
+/** Mark a reminder type as sent for an event by updating the JSONB flags. */
+export async function markReminderSent(
+  eventId: string,
+  reminderType: "24h" | "1h" | "15m",
+): Promise<void> {
+  await db.execute(
+    sql`UPDATE community_events
+        SET reminder_sent_flags = reminder_sent_flags || ${JSON.stringify({ [reminderType]: true })}::jsonb,
+            updated_at = NOW()
+        WHERE id = ${eventId}`,
+  );
 }

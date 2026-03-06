@@ -29,7 +29,20 @@ export function EventCard({ event, showEditActions = false }: EventCardProps) {
         >
           {event.title}
         </Link>
-        <EventStatusBadge status={event.status} />
+        <div className="flex items-center gap-1 shrink-0">
+          <EventStatusBadge status={event.status} />
+          {event.dateChangeType && (
+            <span
+              className={`inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full ${
+                event.dateChangeType === "postponed"
+                  ? "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300"
+                  : "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"
+              }`}
+            >
+              {t(`dateChange.${event.dateChangeType}`)}
+            </span>
+          )}
+        </div>
       </div>
 
       <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">

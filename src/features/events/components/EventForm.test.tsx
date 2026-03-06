@@ -69,6 +69,44 @@ describe("EventForm", () => {
     expect(await screen.findByText("Events.validation.futureDate")).toBeInTheDocument();
   });
 
+  it("timezone dropdown renders optgroup elements (not flat option list)", () => {
+    render(<EventForm mode="create" />);
+    const optgroups = document.querySelectorAll("optgroup");
+    expect(optgroups.length).toBeGreaterThan(0);
+  });
+
+  it("Africa/Lagos appears inside an optgroup labelled Africa", () => {
+    render(<EventForm mode="create" />);
+    const africaGroup = document.querySelector("optgroup[label='Africa']");
+    expect(africaGroup).not.toBeNull();
+    const lagosOption = africaGroup?.querySelector("option[value='Africa/Lagos']");
+    expect(lagosOption).not.toBeNull();
+  });
+
+  it("total option count is greater than 100 (full IANA list)", () => {
+    render(<EventForm mode="create" />);
+    const tzSelect = screen.getByLabelText(/Events.fields.timezone/i);
+    const options = tzSelect.querySelectorAll("option");
+    expect(options.length).toBeGreaterThan(100);
+  });
+
+  it("display label contains space not underscore (e.g. New York not New_York)", () => {
+    render(<EventForm mode="create" />);
+    const americaGroup = document.querySelector("optgroup[label='America']");
+    const newYorkOption = americaGroup?.querySelector("option[value='America/New_York']");
+    expect(newYorkOption?.textContent).toBe("America/New York");
+  });
+
+  it("renders dateChangeComment textarea in edit mode", () => {
+    render(<EventForm mode="edit" eventId="event-1" />);
+    expect(screen.getByLabelText(/Events\.dateChange\.commentLabel/i)).toBeInTheDocument();
+  });
+
+  it("does NOT render dateChangeComment textarea in create mode", () => {
+    render(<EventForm mode="create" />);
+    expect(screen.queryByLabelText(/Events\.dateChange\.commentLabel/i)).not.toBeInTheDocument();
+  });
+
   it("shows permission denied banner when server returns 403", async () => {
     vi.stubGlobal(
       "fetch",

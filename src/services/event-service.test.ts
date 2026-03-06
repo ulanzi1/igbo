@@ -17,6 +17,8 @@ vi.mock("@/db/queries/events", () => ({
   getAttendeeStatus: vi.fn(),
   listPastEvents: vi.fn(),
   listMyRsvps: vi.fn(),
+  markAttended: vi.fn(),
+  listEventAttendees: vi.fn(),
 }));
 
 vi.mock("@/services/permissions", () => ({
@@ -28,6 +30,15 @@ vi.mock("@/services/event-bus", () => ({
   eventBus: { emit: vi.fn().mockResolvedValue(undefined) },
 }));
 
+vi.mock("@/services/daily-video-service", () => ({
+  dailyVideoService: {
+    createMeeting: vi
+      .fn()
+      .mockResolvedValue({ roomUrl: "https://igbo.daily.co/room", roomName: "room" }),
+    getMeetingToken: vi.fn().mockResolvedValue({ token: "tok" }),
+  },
+}));
+
 vi.mock("@/lib/api-error", () => ({
   ApiError: class ApiError extends Error {
     status: number;
@@ -36,6 +47,48 @@ vi.mock("@/lib/api-error", () => ({
       this.status = status;
     }
   },
+}));
+
+// Mocks for recording service dependencies added in Story 7.4
+vi.mock("@/env", () => ({
+  env: {
+    HETZNER_S3_BUCKET: "test-bucket",
+    HETZNER_S3_ENDPOINT: "https://s3.example.com",
+    HETZNER_S3_REGION: "eu-central-1",
+    HETZNER_S3_ACCESS_KEY_ID: "key",
+    HETZNER_S3_SECRET_ACCESS_KEY: "secret",
+    DAILY_WEBHOOK_SECRET: "",
+  },
+}));
+
+vi.mock("@/lib/s3-client", () => ({
+  getS3Client: vi.fn().mockReturnValue({}),
+}));
+
+vi.mock("@aws-sdk/client-s3", () => ({
+  GetObjectCommand: vi.fn(function GetObjectCommand(
+    this: Record<string, unknown>,
+    args: Record<string, unknown>,
+  ) {
+    Object.assign(this, args);
+  }),
+  S3Client: vi.fn(),
+}));
+
+vi.mock("@aws-sdk/s3-request-presigner", () => ({
+  getSignedUrl: vi.fn().mockResolvedValue("https://presigned.example.com/download"),
+}));
+
+vi.mock("@/db/queries/auth-permissions", () => ({
+  getUserMembershipTier: vi.fn().mockResolvedValue("TOP_TIER"),
+}));
+
+vi.mock("@/db/queries/groups", () => ({
+  getUserPlatformRole: vi.fn().mockResolvedValue("MEMBER"),
+}));
+
+vi.mock("@/db/queries/platform-settings", () => ({
+  getPlatformSetting: vi.fn().mockResolvedValue(53_687_091_200),
 }));
 
 import {
@@ -214,6 +267,40 @@ describe("event-service", () => {
         }),
       ).rejects.toMatchObject({ status: 422 });
     });
+
+    it("CreateEventSchema accepts empty string groupId (coerces to falsy for || null)", async () => {
+      const { CreateEventSchema } = await import("./event-service");
+      const result = CreateEventSchema.safeParse({
+        title: "Test",
+        eventType: "general",
+        format: "virtual",
+        timezone: "UTC",
+        startTime: futureStart,
+        endTime: futureEnd,
+        recurrencePattern: "none",
+        groupId: "",
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        // The schema allows "" — the service converts it via || null
+        expect(result.data.groupId || null).toBeNull();
+      }
+    });
+
+    it("passes groupId=null to DB when groupId is empty string", async () => {
+      const { createEvent } = await import("./event-service");
+      await createEvent("user-1", {
+        title: "Test",
+        eventType: "general",
+        format: "virtual",
+        timezone: "UTC",
+        startTime: futureStart,
+        endTime: futureEnd,
+        recurrencePattern: "none",
+        groupId: "",
+      });
+      expect(dbCreateEvent).toHaveBeenCalledWith(expect.objectContaining({ groupId: null }));
+    });
   });
 
   describe("updateEvent", () => {
@@ -251,6 +338,72 @@ describe("event-service", () => {
         updateEvent("user-1", "event-1", { startTime: start, endTime: end }),
       ).rejects.toMatchObject({ status: 422 });
     });
+
+    it("throws 422 when startTime changed but dateChangeComment absent", async () => {
+      const { updateEvent } = await import("./event-service");
+      const newStart = new Date(Date.now() + 172800000).toISOString(); // +2 days
+      await expect(updateEvent("user-1", "event-1", { startTime: newStart })).rejects.toMatchObject(
+        { status: 422 },
+      );
+    });
+
+    it("sets dateChangeType='postponed' when new startTime is later than current", async () => {
+      const { updateEvent: dbUpdate } = await import("@/db/queries/events");
+      vi.mocked(dbUpdate).mockResolvedValue(mockEvent);
+      const { updateEvent } = await import("./event-service");
+      const newStart = new Date("2031-06-01T10:00:00Z").toISOString(); // later than mockEvent.startTime (2030-01-01)
+      await updateEvent("user-1", "event-1", {
+        startTime: newStart,
+        dateChangeComment: "Postponed due to holidays",
+      });
+      expect(dbUpdate).toHaveBeenCalledWith(
+        "event-1",
+        "user-1",
+        expect.objectContaining({ dateChangeType: "postponed" }),
+      );
+    });
+
+    it("sets dateChangeType='preponed' when new startTime is earlier than current", async () => {
+      const { updateEvent: dbUpdate } = await import("@/db/queries/events");
+      vi.mocked(dbUpdate).mockResolvedValue(mockEvent);
+      // mockEvent.startTime is 2030-01-01T10:00:00Z; newStart is in 2029
+      const newStart = new Date("2029-06-01T10:00:00Z").toISOString();
+      vi.mocked(getEventById).mockResolvedValue({
+        ...mockEvent,
+        startTime: new Date("2030-01-01T10:00:00Z"),
+      });
+      const { updateEvent } = await import("./event-service");
+      await updateEvent("user-1", "event-1", {
+        startTime: newStart,
+        dateChangeComment: "Earlier slot available",
+      });
+      expect(dbUpdate).toHaveBeenCalledWith(
+        "event-1",
+        "user-1",
+        expect.objectContaining({ dateChangeType: "preponed" }),
+      );
+    });
+
+    it("does not set dateChangeType when startTime not in payload", async () => {
+      const { updateEvent: dbUpdate } = await import("@/db/queries/events");
+      vi.mocked(dbUpdate).mockResolvedValue(mockEvent);
+      const { updateEvent } = await import("./event-service");
+      await updateEvent("user-1", "event-1", { title: "Updated title" });
+      const callArgs = vi.mocked(dbUpdate).mock.calls[0]?.[2];
+      expect(callArgs).not.toHaveProperty("dateChangeType");
+    });
+
+    it("emits event.updated with dateChangeType when date changes", async () => {
+      const { updateEvent: dbUpdate } = await import("@/db/queries/events");
+      vi.mocked(dbUpdate).mockResolvedValue(mockEvent);
+      const { updateEvent } = await import("./event-service");
+      const newStart = new Date("2031-06-01T10:00:00Z").toISOString(); // later than mockEvent.startTime (2030-01-01)
+      await updateEvent("user-1", "event-1", { startTime: newStart, dateChangeComment: "Delayed" });
+      expect(eventBus.emit).toHaveBeenCalledWith(
+        "event.updated",
+        expect.objectContaining({ dateChangeType: "postponed" }),
+      );
+    });
   });
 
   describe("cancelEvent", () => {
@@ -258,7 +411,7 @@ describe("event-service", () => {
       const { cancelEvent: dbCancel } = await import("@/db/queries/events");
       vi.mocked(dbCancel).mockResolvedValue(true);
       const { cancelEvent } = await import("./event-service");
-      await cancelEvent("user-1", "event-1");
+      await cancelEvent("user-1", "event-1", "Venue unavailable");
       expect(eventBus.emit).toHaveBeenCalledWith(
         "event.cancelled",
         expect.objectContaining({ eventId: "event-1" }),
@@ -268,14 +421,16 @@ describe("event-service", () => {
     it("throws 403 when userId !== event.creatorId", async () => {
       vi.mocked(getEventById).mockResolvedValue({ ...mockEvent, creatorId: "other-user" });
       const { cancelEvent } = await import("./event-service");
-      await expect(cancelEvent("user-1", "event-1")).rejects.toMatchObject({ status: 403 });
+      await expect(cancelEvent("user-1", "event-1", "reason")).rejects.toMatchObject({
+        status: 403,
+      });
     });
 
     it("calls cancelAllEventRsvps after cancelling event", async () => {
       const { cancelEvent: dbCancel } = await import("@/db/queries/events");
       vi.mocked(dbCancel).mockResolvedValue(true);
       const { cancelEvent } = await import("./event-service");
-      await cancelEvent("user-1", "event-1");
+      await cancelEvent("user-1", "event-1", "reason");
       expect(cancelAllEventRsvps).toHaveBeenCalledWith("event-1");
     });
 
@@ -283,11 +438,30 @@ describe("event-service", () => {
       const { cancelEvent: dbCancel } = await import("@/db/queries/events");
       vi.mocked(dbCancel).mockResolvedValue(true);
       const { cancelEvent } = await import("./event-service");
-      await cancelEvent("user-1", "event-1");
+      await cancelEvent("user-1", "event-1", "reason");
       // cancelAllEventRsvps called before event.cancelled emit
       const cancelAllCallOrder = vi.mocked(cancelAllEventRsvps).mock.invocationCallOrder[0];
       const emitCallOrder = vi.mocked(eventBus.emit).mock.invocationCallOrder[0];
       expect(cancelAllCallOrder).toBeLessThan(emitCallOrder!);
+    });
+
+    it("passes reason to dbCancelEvent", async () => {
+      const { cancelEvent: dbCancel } = await import("@/db/queries/events");
+      vi.mocked(dbCancel).mockResolvedValue(true);
+      const { cancelEvent } = await import("./event-service");
+      await cancelEvent("user-1", "event-1", "Venue flooded");
+      expect(dbCancel).toHaveBeenCalledWith("event-1", "user-1", "Venue flooded");
+    });
+
+    it("emits event.cancelled with reason in payload", async () => {
+      const { cancelEvent: dbCancel } = await import("@/db/queries/events");
+      vi.mocked(dbCancel).mockResolvedValue(true);
+      const { cancelEvent } = await import("./event-service");
+      await cancelEvent("user-1", "event-1", "Weather emergency");
+      expect(eventBus.emit).toHaveBeenCalledWith(
+        "event.cancelled",
+        expect.objectContaining({ reason: "Weather emergency" }),
+      );
     });
   });
 

@@ -367,12 +367,21 @@ export interface EventUpdatedEvent extends BaseEvent {
   eventId: string;
   updatedBy: string;
   title: string;
+  dateChangeType: "postponed" | "preponed" | null; // null when no date change
 }
 
 export interface EventCancelledEvent extends BaseEvent {
   eventId: string;
   cancelledBy: string;
   title: string;
+  reason: string;
+}
+
+export interface EventDateChangedEvent extends BaseEvent {
+  eventId: string;
+  updatedBy: string;
+  title: string;
+  dateChangeType: "postponed" | "preponed";
 }
 
 export interface EventAttendedEvent extends BaseEvent {
@@ -409,6 +418,30 @@ export interface EventWaitlistPromotedEvent extends BaseEvent {
 export interface RecordingExpiredEvent extends BaseEvent {
   recordingId: string;
   eventId: string;
+}
+
+export interface EventReminderEvent extends BaseEvent {
+  eventId: string;
+  userId: string;
+  reminderType: "24h" | "1h" | "15m";
+  title: string;
+  startTime: string; // ISO 8601
+}
+
+export interface RecordingReadyEvent extends BaseEvent {
+  eventId: string;
+  recordingUrl: string;
+}
+
+export interface RecordingMirrorFailedEvent extends BaseEvent {
+  eventId: string;
+  reason: string;
+}
+
+export interface RecordingExpiringWarningEvent extends BaseEvent {
+  eventId: string;
+  expiresAt: string; // ISO 8601
+  title: string;
 }
 
 // --- Auth Events ---
@@ -547,6 +580,10 @@ export type EventName =
   | "event.rsvp_cancelled"
   | "event.waitlist_promoted"
   | "recording.expired"
+  | "event.reminder"
+  | "recording.ready"
+  | "recording.mirror_failed"
+  | "recording.expiring_warning"
   | "job.failed"
   | "member.logged_in"
   | "member.locked_out"
@@ -627,6 +664,10 @@ export interface EventMap {
   "event.rsvp_cancelled": EventRsvpCancelledEvent;
   "event.waitlist_promoted": EventWaitlistPromotedEvent;
   "recording.expired": RecordingExpiredEvent;
+  "event.reminder": EventReminderEvent;
+  "recording.ready": RecordingReadyEvent;
+  "recording.mirror_failed": RecordingMirrorFailedEvent;
+  "recording.expiring_warning": RecordingExpiringWarningEvent;
   "job.failed": JobFailedEvent;
   "member.logged_in": MemberLoggedInEvent;
   "member.locked_out": MemberLockedOutEvent;

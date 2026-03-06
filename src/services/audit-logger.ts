@@ -13,7 +13,9 @@ export type AdminAction =
   | "REJECT_APPLICATION"
   | "UNDO_ACTION"
   | "RESET_2FA"
-  | "MEMBER_TIER_CHANGED";
+  | "MEMBER_TIER_CHANGED"
+  | "RECORDING_LOST"
+  | "RECORDING_EXPIRED_CLEANUP";
 
 interface AuditParams {
   actorId: string;

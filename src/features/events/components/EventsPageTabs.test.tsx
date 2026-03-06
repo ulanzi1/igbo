@@ -15,7 +15,13 @@ vi.mock("@tanstack/react-query", () => ({
 }));
 
 vi.mock("next-intl", () => ({
-  useTranslations: () => (key: string) => `Events.${key}`,
+  useTranslations: (ns: string) => (key: string, params?: Record<string, unknown>) => {
+    if (ns === "Events" && key === "myRsvps.cancelledReason" && params?.reason) {
+      return `Reason: ${String(params.reason)}`;
+    }
+    if (ns === "Common") return `Common.${key}`;
+    return `Events.${key}`;
+  },
 }));
 
 vi.mock("./EventCard", () => ({
@@ -58,6 +64,8 @@ const mockEvent: EventListItem = {
   recurrencePattern: "none",
   recurrenceParentId: null,
   status: "upcoming",
+  dateChangeType: null,
+  dateChangeComment: null,
   createdAt: new Date(),
   updatedAt: new Date(),
 };
@@ -97,5 +105,45 @@ describe("EventsPageTabs", () => {
   it("renders RSVPButton for each upcoming event", () => {
     render(<EventsPageTabs initialUpcomingEvents={[mockEvent]} />);
     expect(screen.getByTestId("rsvp-event-1")).toBeInTheDocument();
+  });
+
+  describe("My RSVPs tab — cancelled events", () => {
+    const cancelledRsvp = {
+      ...mockEvent,
+      id: "cancelled-event-1",
+      title: "Cancelled Event",
+      status: "cancelled" as const,
+      rsvpStatus: "cancelled" as const,
+      waitlistPosition: null,
+      cancellationReason: "Venue flooded",
+    };
+
+    beforeEach(() => {
+      mockUseSession.mockReturnValue({ data: { user: { id: "user-1" } } });
+    });
+
+    it("shows 'Cancelled by organiser' badge for cancelled rsvpStatus events", () => {
+      mockUseQuery
+        .mockReturnValueOnce({ data: undefined }) // past query
+        .mockReturnValueOnce({ data: { events: [cancelledRsvp] }, isError: false }); // myRsvps query
+      render(<EventsPageTabs initialUpcomingEvents={[]} />);
+      expect(screen.getByText("Events.myRsvps.cancelledBadge")).toBeInTheDocument();
+    });
+
+    it("renders cancellation reason text when cancellationReason is present", () => {
+      mockUseQuery
+        .mockReturnValueOnce({ data: undefined })
+        .mockReturnValueOnce({ data: { events: [cancelledRsvp] }, isError: false });
+      render(<EventsPageTabs initialUpcomingEvents={[]} />);
+      expect(screen.getByText("Reason: Venue flooded")).toBeInTheDocument();
+    });
+
+    it("does NOT render RSVPButton for cancelled events", () => {
+      mockUseQuery
+        .mockReturnValueOnce({ data: undefined })
+        .mockReturnValueOnce({ data: { events: [cancelledRsvp] }, isError: false });
+      render(<EventsPageTabs initialUpcomingEvents={[]} />);
+      expect(screen.queryByTestId("rsvp-cancelled-event-1")).not.toBeInTheDocument();
+    });
   });
 });
