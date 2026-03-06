@@ -466,7 +466,10 @@
       "error": "Failed to cancel event",
       "description": "This action cannot be undone. All RSVPs will be cancelled.",
       "keepEvent": "Keep Event",
-      "cancelling": "Cancelling..."
+      "cancelling": "Cancelling...",
+      "reasonLabel": "Reason for Cancellation",
+      "reasonPlaceholder": "Let attendees know why this event is being cancelled",
+      "reasonRequired": "A cancellation reason is required"
     },
     "detail": {
       "attendees": "Attendees",
@@ -558,12 +561,64 @@
       "attendedCount": "{count} attended"
     },
     "myRsvps": {
-      "empty": "You haven't RSVP'd to any upcoming events."
+      "empty": "You haven't RSVP'd to any upcoming events.",
+      "cancelledBadge": "Cancelled by organiser",
+      "cancelledReason": "Reason: {reason}"
+    },
+    "dateChange": {
+      "postponed": "Postponed",
+      "preponed": "Brought Forward",
+      "commentLabel": "Reason for Date Change",
+      "commentPlaceholder": "Explain why the date is changing...",
+      "commentRequired": "A note is required when changing the event date"
     },
     "widget": {
       "title": "Upcoming Events",
       "empty": "No upcoming events",
       "viewAll": "View all events"
+    },
+    "video": {
+      "joinButton": "Join Event",
+      "joinButtonLoading": "Joining...",
+      "joinButtonDisabled": "Meeting not available",
+      "loading": "Loading meeting...",
+      "error": "Failed to connect to meeting",
+      "reconnecting": "Reconnecting...",
+      "networkGood": "Connection: Good",
+      "networkLow": "Connection: Low",
+      "networkVeryLow": "Connection: Very Low — switching to audio only",
+      "waitingRoom": "Waiting to be admitted",
+      "waitingRoomAdmit": "Admit",
+      "coHost": "Co-Host",
+      "promoteCoHost": "Promote to Co-Host",
+      "removeCoHost": "Remove Co-Host",
+      "attendanceSyncError": "Failed to record attendance — please contact support",
+      "leaveButton": "Leave Meeting",
+      "screenShare": "Share Screen",
+      "stopScreenShare": "Stop Sharing",
+      "chat": "Chat",
+      "participantCount": "{count, plural, one {# participant} other {# participants}}"
+    },
+    "checkIn": {
+      "title": "Attendance Check-In",
+      "markAttended": "Mark Attended",
+      "alreadyAttended": "Already attended",
+      "noAttendees": "No registered attendees"
+    },
+    "recordings": {
+      "topTierOnly": "Recordings are available to Top-tier members.",
+      "mirrorPending": "Processing recording...",
+      "mirrorFailed": "Recording could not be saved.",
+      "downloadButton": "Download Recording",
+      "preserveButton": "Preserve Permanently",
+      "preservedLabel": "Preserved",
+      "expiresOn": "Expires {date}",
+      "expiringSoon": "Expiring soon — {days} days left",
+      "quotaReached": "Storage quota reached. Free up space or contact an admin.",
+      "recordingLost": "Recording unavailable",
+      "recordingExpired": "Recording expired",
+      "playButton": "Play",
+      "playSourceButton": "Play (source)"
     }
   },
   "Permissions": {
@@ -922,6 +977,19 @@
     },
     "event_waitlist_promoted": {
       "title": "You've been moved off the waitlist!"
+    },
+    "event_attended": {
+      "title": "Attendance recorded",
+      "body": "Your attendance for {eventTitle} has been recorded."
+    },
+    "event_reminder": {
+      "title": "Event reminder: {title}"
+    },
+    "recording_expiring": {
+      "title": "Recording expiring soon: {title}"
+    },
+    "recording_failed": {
+      "title": "Recording could not be saved: {title}"
     }
   },
   "Dashboard": {
@@ -1490,6 +1558,8 @@
       "empty": "No posts yet. Be the first to post in this group!",
       "postingPermissionDenied": "Only group leaders can post in this group.",
       "postPendingApproval": "Your post is pending leader approval.",
+      "upcomingEvents": "Upcoming Events",
+      "viewAllEvents": "View all group events",
       "loadMore": "Load more",
       "loading": "Loading...",
       "reviewPending": "Review Pending",

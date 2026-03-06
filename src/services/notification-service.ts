@@ -30,6 +30,9 @@ import type {
   ArticleRejectedEvent,
   ArticleRevisionRequestedEvent,
   EventWaitlistPromotedEvent,
+  EventReminderEvent,
+  RecordingMirrorFailedEvent,
+  RecordingExpiringWarningEvent,
 } from "@/types/events";
 import type { NotificationType } from "@/db/schema/platform-notifications";
 
@@ -397,6 +400,53 @@ if (globalForNotif.__notifHandlersRegistered) {
       type: "event_reminder",
       title: "notifications.event_waitlist_promoted.title",
       body: payload.title, // event title as notification body
+      link: `/events/${payload.eventId}`,
+    });
+  });
+
+  // ─── Event Reminder Notifications (Story 7.4) ─────────────────────────────
+
+  eventBus.on("event.reminder", async (payload: EventReminderEvent) => {
+    await deliverNotification({
+      userId: payload.userId,
+      actorId: payload.userId, // self-notification: bypass block/mute filter
+      type: "event_reminder",
+      title: "notifications.event_reminder.title",
+      body: payload.title,
+      link: `/events/${payload.eventId}`,
+    });
+  });
+
+  // ─── Recording Failure Notifications (Story 7.4) ──────────────────────────
+
+  eventBus.on("recording.mirror_failed", async (payload: RecordingMirrorFailedEvent) => {
+    const { getEventById } = await import("@/db/queries/events");
+    const event = await getEventById(payload.eventId);
+    if (!event) return;
+
+    await deliverNotification({
+      userId: event.creatorId,
+      actorId: event.creatorId,
+      type: "system",
+      title: "notifications.recording_failed.title",
+      body: event.title,
+      link: `/events/${payload.eventId}`,
+    });
+  });
+
+  // ─── Recording Expiry Warning Notifications (Story 7.4) ───────────────────
+
+  eventBus.on("recording.expiring_warning", async (payload: RecordingExpiringWarningEvent) => {
+    const { getEventById } = await import("@/db/queries/events");
+    const event = await getEventById(payload.eventId);
+    if (!event) return;
+
+    await deliverNotification({
+      userId: event.creatorId,
+      actorId: event.creatorId,
+      type: "system",
+      title: "notifications.recording_expiring.title",
+      body: payload.title,
       link: `/events/${payload.eventId}`,
     });
   });

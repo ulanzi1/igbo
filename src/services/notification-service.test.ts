@@ -67,6 +67,21 @@ vi.mock("@/services/email-service", () => ({
   emailService: { send: vi.fn() },
 }));
 
+const mockGetEventById = vi.hoisted(() => vi.fn());
+
+vi.mock("@/db/queries/events", () => ({
+  getEventById: (...args: unknown[]) => mockGetEventById(...args),
+  getAttendeeStatus: vi.fn(),
+  rsvpToEvent: vi.fn(),
+  cancelRsvp: vi.fn(),
+  cancelAllEventRsvps: vi.fn(),
+  createEvent: vi.fn(),
+  updateEvent: vi.fn(),
+  cancelEvent: vi.fn(),
+  markAttended: vi.fn(),
+  listEventAttendees: vi.fn(),
+}));
+
 // Import module once — listeners are registered at load time and captured by handlerRef
 import { markNotificationAsRead, markAllNotificationsAsRead } from "./notification-service";
 
@@ -645,5 +660,126 @@ describe("event.waitlist_promoted handler", () => {
         link: `/events/${EVENT_ID}`,
       }),
     );
+  });
+});
+
+describe("event.reminder handler", () => {
+  const ATTENDEE_USER_ID = "00000000-0000-4000-8000-000000000077";
+  const EVENT_ID = "00000000-0000-4000-8000-000000000088";
+
+  it("registers event.reminder listener", () => {
+    expect(handlerRef.current.has("event.reminder")).toBe(true);
+  });
+
+  it("delivers event_reminder notification to the attendee", async () => {
+    mockFilterNotificationRecipients.mockResolvedValue([ATTENDEE_USER_ID]);
+    const handler = handlerRef.current.get("event.reminder");
+
+    await handler?.({
+      eventId: EVENT_ID,
+      userId: ATTENDEE_USER_ID,
+      title: "Community Night Out",
+      startTime: new Date("2030-06-15T18:00:00Z").toISOString(),
+      timestamp: new Date().toISOString(),
+    });
+
+    expect(mockCreateNotification).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: ATTENDEE_USER_ID,
+        type: "event_reminder",
+        title: "notifications.event_reminder.title",
+        body: "Community Night Out",
+        link: `/events/${EVENT_ID}`,
+      }),
+    );
+  });
+});
+
+describe("recording.mirror_failed handler", () => {
+  const CREATOR_ID = "00000000-0000-4000-8000-000000000033";
+  const EVENT_ID = "00000000-0000-4000-8000-000000000088";
+
+  it("registers recording.mirror_failed listener", () => {
+    expect(handlerRef.current.has("recording.mirror_failed")).toBe(true);
+  });
+
+  it("notifies creator when recording mirror fails", async () => {
+    mockGetEventById.mockResolvedValue({
+      id: EVENT_ID,
+      creatorId: CREATOR_ID,
+      title: "Dev Summit",
+    });
+    mockFilterNotificationRecipients.mockResolvedValue([CREATOR_ID]);
+    const handler = handlerRef.current.get("recording.mirror_failed");
+
+    await handler?.({ eventId: EVENT_ID, retryCount: 20, timestamp: new Date().toISOString() });
+
+    expect(mockCreateNotification).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: CREATOR_ID,
+        type: "system",
+        title: "notifications.recording_failed.title",
+        body: "Dev Summit",
+        link: `/events/${EVENT_ID}`,
+      }),
+    );
+  });
+
+  it("is a no-op when event not found", async () => {
+    mockGetEventById.mockResolvedValue(null);
+    const handler = handlerRef.current.get("recording.mirror_failed");
+    await handler?.({ eventId: "unknown", retryCount: 20, timestamp: new Date().toISOString() });
+    expect(mockCreateNotification).not.toHaveBeenCalled();
+  });
+});
+
+describe("recording.expiring_warning handler", () => {
+  const CREATOR_ID = "00000000-0000-4000-8000-000000000033";
+  const EVENT_ID = "00000000-0000-4000-8000-000000000088";
+
+  it("registers recording.expiring_warning listener", () => {
+    expect(handlerRef.current.has("recording.expiring_warning")).toBe(true);
+  });
+
+  it("notifies creator when recording is about to expire", async () => {
+    mockGetEventById.mockResolvedValue({
+      id: EVENT_ID,
+      creatorId: CREATOR_ID,
+      title: "Dev Summit",
+    });
+    mockFilterNotificationRecipients.mockResolvedValue([CREATOR_ID]);
+    const handler = handlerRef.current.get("recording.expiring_warning");
+    const expiresAt = new Date("2026-04-01T00:00:00Z");
+
+    await handler?.({
+      eventId: EVENT_ID,
+      title: "Dev Summit",
+      expiresAt: expiresAt.toISOString(),
+      daysRemaining: 14,
+      timestamp: new Date().toISOString(),
+    });
+
+    expect(mockCreateNotification).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: CREATOR_ID,
+        type: "system",
+        title: "notifications.recording_expiring.title",
+        body: "Dev Summit",
+        link: `/events/${EVENT_ID}`,
+      }),
+    );
+  });
+
+  it("is a no-op when event not found", async () => {
+    mockGetEventById.mockResolvedValue(null);
+    const handler = handlerRef.current.get("recording.expiring_warning");
+    await handler?.({
+      eventId: "unknown",
+      title: "x",
+      expiresAt: new Date().toISOString(),
+      daysRemaining: 14,
+      timestamp: new Date().toISOString(),
+    });
+    expect(mockCreateNotification).not.toHaveBeenCalled();
   });
 });

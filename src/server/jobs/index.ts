@@ -12,6 +12,9 @@ export type { JobHandler, JobOptions } from "./job-runner";
 import "./retention-cleanup";
 import "./data-export";
 import "./file-processing";
+import "./recording-mirror";
+import "./recording-cleanup";
+import "./event-reminders";
 
 // Register event-driven subscribers
 // TODO: Epic 9 (Story 9.2) — move subscriber registration to a proper server initialization module for the web container

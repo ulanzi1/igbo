@@ -37,6 +37,14 @@ vi.mock("@/i18n/navigation", () => ({
   ),
 }));
 
+vi.mock("@/features/events/components/GroupEventCard", () => ({
+  GroupEventCard: ({ event }: { event: { id: string; title: string } }) => (
+    <div data-testid="group-event-card" data-event-id={event.id}>
+      {event.title}
+    </div>
+  ),
+}));
+
 vi.mock("@/components/ui/avatar", () => ({
   Avatar: ({ children, className }: { children: React.ReactNode; className?: string }) => (
     <div className={className}>{children}</div>
@@ -359,6 +367,91 @@ describe("GroupFeedTab", () => {
 
     await waitFor(() => {
       expect(approveCallCount).toBe(1);
+    });
+  });
+
+  describe("upcoming events section", () => {
+    const mockGroupEvent = {
+      id: "event-1",
+      title: "Upcoming Group Event",
+      description: null,
+      creatorId: "creator-1",
+      groupId: GROUP_ID,
+      eventType: "group",
+      format: "virtual",
+      location: null,
+      meetingLink: null,
+      timezone: "UTC",
+      startTime: new Date("2030-08-15T14:00:00Z").toISOString(),
+      endTime: new Date("2030-08-15T15:00:00Z").toISOString(),
+      durationMinutes: 60,
+      registrationLimit: null,
+      attendeeCount: 5,
+      recurrencePattern: "none",
+      recurrenceParentId: null,
+      status: "upcoming",
+      dateChangeType: null,
+      dateChangeComment: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    function makeEventsResponse(events: unknown[]) {
+      return Promise.resolve(new Response(JSON.stringify({ data: { events } }), { status: 200 }));
+    }
+
+    it("renders 'Upcoming Events' section when events are returned", async () => {
+      const fetchMock = vi.fn().mockImplementation((url: string) => {
+        if (typeof url === "string" && url.includes("/api/v1/events")) {
+          return makeEventsResponse([mockGroupEvent]);
+        }
+        return makeFeedResponse();
+      });
+      renderTab({}, fetchMock);
+      await waitFor(() => {
+        expect(screen.getByText("feed.upcomingEvents")).toBeInTheDocument();
+      });
+    });
+
+    it("renders GroupEventCard for each upcoming event", async () => {
+      const fetchMock = vi.fn().mockImplementation((url: string) => {
+        if (typeof url === "string" && url.includes("/api/v1/events")) {
+          return makeEventsResponse([mockGroupEvent]);
+        }
+        return makeFeedResponse();
+      });
+      renderTab({}, fetchMock);
+      await waitFor(() => {
+        expect(screen.getByTestId("group-event-card")).toBeInTheDocument();
+      });
+      expect(screen.getByText("Upcoming Group Event")).toBeInTheDocument();
+    });
+
+    it("renders 'View all group events' link when events are returned", async () => {
+      const fetchMock = vi.fn().mockImplementation((url: string) => {
+        if (typeof url === "string" && url.includes("/api/v1/events")) {
+          return makeEventsResponse([mockGroupEvent]);
+        }
+        return makeFeedResponse();
+      });
+      renderTab({}, fetchMock);
+      await waitFor(() => {
+        expect(screen.getByText("feed.viewAllEvents")).toBeInTheDocument();
+      });
+    });
+
+    it("does NOT render upcoming events section when events array is empty", async () => {
+      const fetchMock = vi.fn().mockImplementation((url: string) => {
+        if (typeof url === "string" && url.includes("/api/v1/events")) {
+          return makeEventsResponse([]);
+        }
+        return makeFeedResponse();
+      });
+      renderTab({}, fetchMock);
+      await waitFor(() => {
+        expect(screen.getByText("feed.empty")).toBeInTheDocument();
+      });
+      expect(screen.queryByText("feed.upcomingEvents")).not.toBeInTheDocument();
     });
   });
 

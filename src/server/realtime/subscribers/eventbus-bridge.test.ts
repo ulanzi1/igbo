@@ -358,6 +358,50 @@ describe("startEventBusBridge", () => {
     );
   });
 
+  it("routes event.attended to event room with status=attended on /notifications namespace", async () => {
+    const notifEmit = vi.fn();
+    const { subscriber, pmessageCallbacks } = makeSubscriber();
+    const io = makeIo(notifEmit);
+
+    await startEventBusBridge(io, subscriber);
+
+    const ts = new Date().toISOString();
+    const payload = {
+      eventId: "event-1",
+      userId: USER_ID,
+      timestamp: ts,
+    };
+
+    pmessageCallbacks[0]?.("eventbus:*", "eventbus:event.attended", JSON.stringify(payload));
+
+    expect(io.of).toHaveBeenCalledWith("/notifications");
+    expect(notifEmit).toHaveBeenCalledWith(
+      "event:attendee_update",
+      expect.objectContaining({
+        eventId: "event-1",
+        userId: USER_ID,
+        status: "attended",
+        timestamp: ts,
+      }),
+    );
+  });
+
+  it("ignores event.attended when eventId is missing", async () => {
+    const notifEmit = vi.fn();
+    const { subscriber, pmessageCallbacks } = makeSubscriber();
+    const io = makeIo(notifEmit);
+
+    await startEventBusBridge(io, subscriber);
+
+    pmessageCallbacks[0]?.(
+      "eventbus:*",
+      "eventbus:event.attended",
+      JSON.stringify({ userId: USER_ID }), // no eventId
+    );
+
+    expect(notifEmit).not.toHaveBeenCalled();
+  });
+
   it("ignores event.rsvp when eventId is missing", async () => {
     const notifEmit = vi.fn();
     const { subscriber, pmessageCallbacks } = makeSubscriber();

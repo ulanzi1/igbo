@@ -37,6 +37,8 @@ const mockEvent: EventListItem = {
   recurrencePattern: "none",
   recurrenceParentId: null,
   status: "upcoming",
+  dateChangeType: null,
+  dateChangeComment: null,
   createdAt: new Date(),
   updatedAt: new Date(),
 };
@@ -62,5 +64,21 @@ describe("EventCard", () => {
   it("does not show edit actions when showEditActions=false", () => {
     render(<EventCard event={mockEvent} showEditActions={false} />);
     expect(screen.queryByText("Events.detail.editButton")).not.toBeInTheDocument();
+  });
+
+  it("renders amber 'Postponed' badge when dateChangeType='postponed'", () => {
+    render(<EventCard event={{ ...mockEvent, dateChangeType: "postponed" }} />);
+    expect(screen.getByText("Events.dateChange.postponed")).toBeInTheDocument();
+  });
+
+  it("renders blue 'Brought Forward' badge when dateChangeType='preponed'", () => {
+    render(<EventCard event={{ ...mockEvent, dateChangeType: "preponed" }} />);
+    expect(screen.getByText("Events.dateChange.preponed")).toBeInTheDocument();
+  });
+
+  it("renders no date-change badge when dateChangeType is null", () => {
+    render(<EventCard event={{ ...mockEvent, dateChangeType: null }} />);
+    expect(screen.queryByText("Events.dateChange.postponed")).not.toBeInTheDocument();
+    expect(screen.queryByText("Events.dateChange.preponed")).not.toBeInTheDocument();
   });
 });

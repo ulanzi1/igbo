@@ -1,29 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
 import type { CreateEventInput } from "@/services/event-service";
-
-// Curated static list of common IANA timezones (NOT Intl.supportedValuesOf — requires Chrome 99+)
-const COMMON_TIMEZONES = [
-  "UTC",
-  "America/New_York",
-  "America/Chicago",
-  "America/Denver",
-  "America/Los_Angeles",
-  "America/Toronto",
-  "America/Sao_Paulo",
-  "Europe/London",
-  "Europe/Paris",
-  "Europe/Berlin",
-  "Africa/Lagos",
-  "Africa/Johannesburg",
-  "Asia/Dubai",
-  "Asia/Kolkata",
-  "Asia/Tokyo",
-  "Australia/Sydney",
-];
 
 interface EventFormProps {
   initialData?: Partial<CreateEventInput>;
@@ -64,10 +44,23 @@ export function EventForm({
     "none" | "daily" | "weekly" | "monthly"
   >(initialData?.recurrencePattern ?? "none");
 
+  const [dateChangeComment, setDateChangeComment] = useState("");
+
   const [validationError, setValidationError] = useState<string | null>(null);
   const [serverError, setServerError] = useState<string | null>(null);
   const [permissionDenied, setPermissionDenied] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const groupedTimezones = useMemo<[string, string[]][]>(() => {
+    const all = Intl.supportedValuesOf("timeZone");
+    const groups: Record<string, string[]> = {};
+    for (const tz of all) {
+      const continent = tz.split("/")[0] ?? tz;
+      if (!groups[continent]) groups[continent] = [];
+      groups[continent].push(tz);
+    }
+    return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b));
+  }, []);
 
   const validate = (): boolean => {
     if (!title.trim()) {
@@ -140,7 +133,10 @@ export function EventForm({
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
-          body: JSON.stringify(payload),
+          body: JSON.stringify({
+            ...payload,
+            ...(dateChangeComment.trim() ? { dateChangeComment } : {}),
+          }),
         });
       }
 
@@ -304,6 +300,25 @@ export function EventForm({
         </div>
       </div>
 
+      {/* Date Change Comment (edit mode only) */}
+      {mode === "edit" && (
+        <div className="space-y-1.5">
+          <label htmlFor="date-change-comment" className="text-sm font-medium">
+            {t("dateChange.commentLabel")}
+            <span className="text-destructive ml-1">*</span>
+          </label>
+          <textarea
+            id="date-change-comment"
+            value={dateChangeComment}
+            onChange={(e) => setDateChangeComment(e.target.value)}
+            placeholder={t("dateChange.commentPlaceholder")}
+            rows={2}
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring resize-none"
+          />
+          <p className="text-xs text-muted-foreground">{t("dateChange.commentRequired")}</p>
+        </div>
+      )}
+
       {/* Timezone */}
       <div className="space-y-1.5">
         <label htmlFor="timezone" className="text-sm font-medium">
@@ -315,10 +330,14 @@ export function EventForm({
           onChange={(e) => setTimezone(e.target.value)}
           className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
         >
-          {COMMON_TIMEZONES.map((tz) => (
-            <option key={tz} value={tz}>
-              {tz}
-            </option>
+          {groupedTimezones.map(([continent, zones]) => (
+            <optgroup key={continent} label={continent}>
+              {zones.map((tz) => (
+                <option key={tz} value={tz}>
+                  {tz.replace(/_/g, " ")}
+                </option>
+              ))}
+            </optgroup>
           ))}
         </select>
       </div>

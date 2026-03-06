@@ -27,6 +27,7 @@ vi.mock("drizzle-orm", () => ({
   asc: vi.fn(),
   sql: Object.assign(vi.fn().mockReturnValue({ toString: () => "sql" }), { raw: vi.fn() }),
   inArray: vi.fn(),
+  ne: vi.fn(),
 }));
 
 vi.mock("@/db/schema/community-events", () => ({

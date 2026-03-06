@@ -2,12 +2,14 @@
 
 import { useCallback, useState } from "react";
 import { useTranslations } from "next-intl";
-import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@/i18n/navigation";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { PostComposer } from "@/features/feed/components/PostComposer";
 import { FeedItem } from "@/features/feed/components/FeedItem";
+import { GroupEventCard } from "@/features/events/components/GroupEventCard";
 import type { FeedPost } from "@/features/feed/types";
+import type { EventListItem } from "@/db/queries/events";
 
 interface GroupFeedTabProps {
   groupId: string;
@@ -94,6 +96,18 @@ export function GroupFeedTab({
     staleTime: 30_000,
   });
 
+  const { data: groupEventsData } = useQuery<{ events: EventListItem[] }>({
+    queryKey: ["group-upcoming-events", groupId],
+    queryFn: async () => {
+      const res = await fetch(`/api/v1/events?groupId=${groupId}&limit=3`);
+      if (!res.ok) throw new Error("Failed to fetch group events");
+      const json = (await res.json()) as { data: { events: EventListItem[] } };
+      return json.data;
+    },
+    staleTime: 60_000,
+  });
+  const upcomingGroupEvents = groupEventsData?.events ?? [];
+
   const posts = data?.pages.flatMap((p) => p.posts) ?? [];
   const pendingPosts = pendingData?.pages.flatMap((p) => p.posts) ?? [];
   const pendingCount = pendingPosts.length;
@@ -129,6 +143,25 @@ export function GroupFeedTab({
 
   return (
     <div className="space-y-4">
+      {upcomingGroupEvents.length > 0 && (
+        <div className="mb-6">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+            {t("feed.upcomingEvents")}
+          </h3>
+          <div className="flex flex-col gap-2">
+            {upcomingGroupEvents.map((event) => (
+              <GroupEventCard key={event.id} event={event} />
+            ))}
+          </div>
+          <Link
+            href={`/events?groupId=${groupId}`}
+            className="text-xs text-primary hover:underline mt-2 inline-block"
+          >
+            {t("feed.viewAllEvents")}
+          </Link>
+        </div>
+      )}
+
       {isLeaderOrCreator && isModerated && (
         <div>
           <button

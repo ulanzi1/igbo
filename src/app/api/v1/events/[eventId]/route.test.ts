@@ -163,10 +163,33 @@ describe("DELETE /api/v1/events/[eventId]", () => {
     vi.mocked(serviceCancelEvent).mockResolvedValue(undefined);
   });
 
-  it("returns 200 cancels event", async () => {
+  it("returns 200 cancels event with valid cancellationReason", async () => {
     const { DELETE } = await import("./route");
-    const res = await DELETE(makeRequest("DELETE"));
+    const res = await DELETE(makeRequest("DELETE", { cancellationReason: "Venue unavailable" }));
     expect(res.status).toBe(200);
+  });
+
+  it("returns 422 when no body provided", async () => {
+    const req = new Request("http://localhost/api/v1/events/event-1", {
+      method: "DELETE",
+      headers: { Host: "localhost:3000", Origin: "https://localhost:3000" },
+      // no body
+    });
+    const { DELETE } = await import("./route");
+    await expect(DELETE(req)).rejects.toMatchObject({ status: 422 });
+  });
+
+  it("returns 422 when cancellationReason is empty string", async () => {
+    const { DELETE } = await import("./route");
+    await expect(DELETE(makeRequest("DELETE", { cancellationReason: "" }))).rejects.toMatchObject({
+      status: 422,
+    });
+  });
+
+  it("calls cancelEvent with userId, eventId, and reason", async () => {
+    const { DELETE } = await import("./route");
+    await DELETE(makeRequest("DELETE", { cancellationReason: "Weather emergency" }));
+    expect(serviceCancelEvent).toHaveBeenCalledWith("user-1", "event-1", "Weather emergency");
   });
 
   it("returns 404 when event not found (service throws 404)", async () => {
@@ -175,6 +198,29 @@ describe("DELETE /api/v1/events/[eventId]", () => {
       new ApiError({ title: "Not Found", status: 404 }),
     );
     const { DELETE } = await import("./route");
-    await expect(DELETE(makeRequest("DELETE"))).rejects.toMatchObject({ status: 404 });
+    await expect(
+      DELETE(makeRequest("DELETE", { cancellationReason: "reason" })),
+    ).rejects.toMatchObject({ status: 404 });
+  });
+});
+
+describe("PATCH /api/v1/events/[eventId] — dateChangeComment", () => {
+  beforeEach(() => {
+    vi.mocked(requireAuthenticatedSession).mockReset();
+    vi.mocked(serviceUpdateEvent).mockReset();
+    vi.mocked(requireAuthenticatedSession).mockResolvedValue({ userId: "user-1", role: "MEMBER" });
+    vi.mocked(serviceUpdateEvent).mockResolvedValue({ eventId: "event-1" });
+  });
+
+  it("returns 422 when startTime changed but no dateChangeComment (service validation)", async () => {
+    const { ApiError } = await import("@/lib/api-error");
+    vi.mocked(serviceUpdateEvent).mockRejectedValue(
+      new ApiError({ title: "A note is required when changing the event date", status: 422 }),
+    );
+    const futureStart = new Date(Date.now() + 172800000).toISOString();
+    const { PATCH } = await import("./route");
+    await expect(PATCH(makeRequest("PATCH", { startTime: futureStart }))).rejects.toMatchObject({
+      status: 422,
+    });
   });
 });

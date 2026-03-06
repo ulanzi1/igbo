@@ -47,6 +47,10 @@ export const env = createEnv({
     // Geocoding (Story 3.x — disabled by default, self-host Nominatim for production)
     ENABLE_GEOCODING: z.string().optional().default("false"),
     NOMINATIM_URL: z.string().url().optional().default("https://nominatim.openstreetmap.org"),
+    // Daily.co video meeting integration (Story 7.3)
+    DAILY_API_KEY: z.string().optional().default(""),
+    DAILY_API_URL: z.string().url().default("https://api.daily.co/v1"),
+    DAILY_WEBHOOK_SECRET: z.string().optional().default(""),
   },
   client: {
     NEXT_PUBLIC_APP_URL: z.url(),
@@ -93,5 +97,8 @@ export const env = createEnv({
     ENABLE_EMAIL_SENDING: process.env.ENABLE_EMAIL_SENDING,
     ENABLE_GEOCODING: process.env.ENABLE_GEOCODING,
     NOMINATIM_URL: process.env.NOMINATIM_URL,
+    DAILY_API_KEY: process.env.DAILY_API_KEY,
+    DAILY_API_URL: process.env.DAILY_API_URL,
+    DAILY_WEBHOOK_SECRET: process.env.DAILY_WEBHOOK_SECRET,
   },
 });
