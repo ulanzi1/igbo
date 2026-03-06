@@ -4,10 +4,10 @@ import { createHmac } from "node:crypto";
 
 vi.mock("server-only", () => ({}));
 
-// Webhook route uses withApiHandler but is machine-to-machine (no CSRF Origin/Host).
-// Use passthrough mock since Daily.co webhooks won't include CSRF headers.
-vi.mock("@/server/api/middleware", () => ({
-  withApiHandler: (handler: (req: Request) => Promise<Response>) => handler,
+// Use real withApiHandler with skipCsrf:true (set on the route) — no passthrough mock.
+// Rate-limiter mock not needed: route has no rateLimit option, so withApiHandler never imports it.
+vi.mock("@/lib/request-context", () => ({
+  runWithContext: vi.fn((_ctx: unknown, fn: () => unknown) => fn()),
 }));
 
 vi.mock("@/lib/api-response", () => ({

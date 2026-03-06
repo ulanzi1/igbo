@@ -12,15 +12,17 @@ import { runJob } from "@/server/jobs/job-runner";
 const WebhookPayloadSchema = z.object({
   type: z.string(),
   room_name: z.string(),
-  download_link: z.string().optional(),
+  download_link: z.url().optional(),
 });
 
 function verifyDailySignature(body: string, signature: string, secret: string): boolean {
   if (!secret) {
-    console.warn(
-      "[webhook] DAILY_WEBHOOK_SECRET is empty — signature validation is DISABLED. Set it in production.",
+    // Fail closed: missing secret means we cannot verify — reject all requests.
+    // An empty DAILY_WEBHOOK_SECRET is a misconfiguration, not a valid "skip verification" state.
+    console.error(
+      "[webhook] DAILY_WEBHOOK_SECRET is not set — rejecting all webhook requests. Set it in production.",
     );
-    return true;
+    return false;
   }
   const expected = createHmac("sha256", secret).update(body).digest("hex");
   try {
@@ -85,5 +87,5 @@ const postHandler = async (request: Request) => {
   return successResponse({ received: true });
 };
 
-// No rateLimit — machine-to-machine, authenticated by HMAC signature
-export const POST = withApiHandler(postHandler);
+// skipCsrf: true — machine-to-machine endpoint; HMAC signature provides authentication
+export const POST = withApiHandler(postHandler, { skipCsrf: true });

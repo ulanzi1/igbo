@@ -244,6 +244,40 @@ describe("withApiHandler", () => {
       const response = await handler(request);
       expect(response.status).toBe(403);
     });
+
+    it("allows POST without Origin when skipCsrf:true (machine-to-machine)", async () => {
+      const handler = withApiHandler(async () => Response.json({ data: { received: true } }), {
+        skipCsrf: true,
+      });
+
+      const request = createRequest("POST"); // no Origin header
+      const response = await handler(request);
+      expect(response.status).toBe(200);
+    });
+
+    it("allows POST with mismatched Origin when skipCsrf:true", async () => {
+      const handler = withApiHandler(async () => Response.json({ data: { received: true } }), {
+        skipCsrf: true,
+      });
+
+      const request = createRequest("POST", { headers: { Origin: "http://evil.com" } });
+      const response = await handler(request);
+      expect(response.status).toBe(200);
+    });
+
+    it("still rejects POST without Origin when skipCsrf is not set (default behaviour unchanged)", async () => {
+      const handler = withApiHandler(async () => Response.json({ data: {} }));
+      const request = createRequest("POST"); // no Origin header
+      const response = await handler(request);
+      expect(response.status).toBe(403);
+    });
+
+    it("still rejects POST with mismatched Origin when skipCsrf is not set", async () => {
+      const handler = withApiHandler(async () => Response.json({ data: {} }));
+      const request = createRequest("POST", { headers: { Origin: "http://evil.com" } });
+      const response = await handler(request);
+      expect(response.status).toBe(403);
+    });
   });
 
   describe("request tracing", () => {

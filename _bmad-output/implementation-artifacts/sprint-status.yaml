@@ -111,13 +111,14 @@ development_status:
   6-4-article-revision-flow-author-dashboard: done
 
   # Epic 7: Events & Video Meetings
-  epic-7: in-progress
+  epic-7: done
   7-1-event-creation-management: done
   7-2-rsvp-waitlist-event-archive: done
   7-3-video-meeting-integration: done
   7-4-event-reminders-recordings: done
   tech-spec-event-ux-enhancements: done # timezones, group feed, RSVP & change notifications — 2026-03-06
   epic-7-retrospective: done
+  epic-7-retro-action-items: done # AI-1 (locale hardcoding vi-patterns) + AI-2 (skipCsrf middleware) + AI-3 (permission audit vi-patterns) + AI-5 (daily-co pre-launch doc) completed 2026-03-06; AI-4 (mutation test story template) is SM/Bob process item — no codebase artifact
 
   # Epic 8: Engagement & Gamification
   epic-8: backlog

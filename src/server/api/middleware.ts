@@ -7,6 +7,11 @@ import type { RateLimitResult } from "@/lib/rate-limiter";
 type RouteHandler = (request: Request) => Promise<Response>;
 
 interface ApiHandlerOptions {
+  /** Skip CSRF Origin/Host validation for ALL mutating methods (POST, PATCH, PUT, DELETE).
+   * Use ONLY for machine-to-machine endpoints (e.g. inbound webhook routes from external
+   * systems that cannot supply a browser Origin header). Never use on user-facing routes.
+   * The endpoint must use its own authentication mechanism (e.g. HMAC signature). */
+  skipCsrf?: boolean;
   rateLimit?: {
     key: (request: Request) => string | Promise<string>;
     maxRequests: number;
@@ -83,7 +88,9 @@ export function withApiHandler(handler: RouteHandler, options?: ApiHandlerOption
     }
 
     try {
-      validateCsrf(request);
+      if (!options?.skipCsrf) {
+        validateCsrf(request);
+      }
 
       if (options?.rateLimit) {
         const rl = await import("@/lib/rate-limiter");
