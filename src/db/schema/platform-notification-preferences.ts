@@ -1,9 +1,12 @@
-import { boolean, pgTable, primaryKey, text, time, timestamp } from "drizzle-orm/pg-core";
+import { boolean, pgTable, primaryKey, text, time, timestamp, uuid } from "drizzle-orm/pg-core";
+import { authUsers } from "./auth-users";
 
 export const platformNotificationPreferences = pgTable(
   "platform_notification_preferences",
   {
-    userId: text("user_id").notNull(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => authUsers.id, { onDelete: "cascade" }),
     notificationType: text("notification_type").notNull(),
     channelInApp: boolean("channel_in_app").notNull().default(true),
     channelEmail: boolean("channel_email").notNull().default(false),

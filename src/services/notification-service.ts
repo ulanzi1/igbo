@@ -190,7 +190,7 @@ if (globalForNotif.__notifHandlersRegistered) {
       type: "system",
       title: "notifications.new_follower.title",
       body: "notifications.new_follower.body",
-      link: "/profile",
+      link: `/profiles/${payload.followerId}`,
     });
   });
 

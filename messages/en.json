@@ -829,6 +829,7 @@
     "privacyTab": "Privacy",
     "securityTab": "Security",
     "accountTab": "Account",
+    "notificationsTab": "Notifications",
     "profile": {
       "title": "Profile Settings",
       "heading": "Your Profile",

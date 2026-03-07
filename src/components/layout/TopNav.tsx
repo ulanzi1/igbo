@@ -137,7 +137,10 @@ function TopNav({ className }: { className?: string }) {
                 </>
               )}
               <DropdownMenuItem asChild>
-                <Link href="/profile" className="flex items-center gap-2 cursor-pointer">
+                <Link
+                  href={`/profiles/${session?.user?.id ?? ""}`}
+                  className="flex items-center gap-2 cursor-pointer"
+                >
                   <UserIcon className="size-4" aria-hidden="true" />
                   {t("viewProfile")}
                 </Link>

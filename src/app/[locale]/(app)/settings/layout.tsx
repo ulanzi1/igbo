@@ -15,6 +15,7 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
     { label: t("privacyTab"), href: `/${locale}/settings/privacy` },
     { label: t("securityTab"), href: `/${locale}/settings/security` },
     { label: t("accountTab"), href: `/${locale}/settings/account` },
+    { label: t("notificationsTab"), href: `/${locale}/settings/notifications` },
   ];
 
   return (

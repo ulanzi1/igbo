@@ -2,22 +2,24 @@
 
 import { HouseIcon, MessageCircleIcon, SearchIcon, NewspaperIcon, UserIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { useSession } from "next-auth/react";
 import { usePathname, Link } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
 import { useUnreadCount } from "@/features/chat/hooks/use-unread-count";
 
-const tabs = [
-  { key: "home" as const, icon: HouseIcon, href: "/" },
-  { key: "chat" as const, icon: MessageCircleIcon, href: "/chat" },
-  { key: "feed" as const, icon: NewspaperIcon, href: "/feed" },
-  { key: "discover" as const, icon: SearchIcon, href: "/discover" },
-  { key: "profile" as const, icon: UserIcon, href: "/profile" },
-];
-
 function BottomNav() {
   const t = useTranslations("Navigation");
   const pathname = usePathname();
+  const { data: session } = useSession();
   const { totalUnread } = useUnreadCount();
+
+  const tabs = [
+    { key: "home" as const, icon: HouseIcon, href: "/" },
+    { key: "chat" as const, icon: MessageCircleIcon, href: "/chat" },
+    { key: "feed" as const, icon: NewspaperIcon, href: "/feed" },
+    { key: "discover" as const, icon: SearchIcon, href: "/discover" },
+    { key: "profile" as const, icon: UserIcon, href: `/profiles/${session?.user?.id ?? ""}` },
+  ];
   const unreadLabel = t("chatUnread", { count: totalUnread });
 
   return (
