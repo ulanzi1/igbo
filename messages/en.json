@@ -1628,6 +1628,38 @@
       "atMax": "You have reached the maximum publishing limit.",
       "notEligible": "Upgrade your membership to publish articles.",
       "used": "{used} of {limit} used this week"
+    },
+    "howToEarn": {
+      "title": "How to Earn Points",
+      "intro": "Earn points by engaging with the community. Points unlock higher publishing limits and recognition.",
+      "linkLabel": "How to earn →",
+      "earningRules": {
+        "sectionTitle": "Earning Activities",
+        "activityColumn": "Activity",
+        "pointsColumn": "Base Points",
+        "descriptionColumn": "Description",
+        "noRules": "No earning activities configured."
+      },
+      "badges": {
+        "sectionTitle": "Verification Badge Multipliers",
+        "intro": "Verified members earn more points per activity. Badges are assigned by platform admins.",
+        "badgeColumn": "Badge",
+        "multiplierColumn": "Multiplier",
+        "blue": "Blue",
+        "red": "Red",
+        "purple": "Purple",
+        "multiplierValue": "×{value}"
+      },
+      "postingLimits": {
+        "sectionTitle": "Article Publishing Limits",
+        "intro": "Earn points to unlock higher weekly article publishing limits based on your membership tier.",
+        "thresholdColumn": "Points Threshold",
+        "limitColumn": "Weekly Articles",
+        "basicNote": "BASIC members are not eligible to publish articles.",
+        "professionalTitle": "Professional Members",
+        "topTierTitle": "Top Tier Members",
+        "atStart": "Starting (0 pts)"
+      }
     }
   },
   "Badges": {

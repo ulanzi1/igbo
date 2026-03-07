@@ -1628,6 +1628,38 @@
       "atMax": "Ị eruo oke nkwupụta kasị elu.",
       "notEligible": "Kwalite ọnọdụ onye otu gị iji bipụta akwụkwọ.",
       "used": "Ojiji {used} n'ime {limit} n'izu a"
+    },
+    "howToEarn": {
+      "title": "Otu Esi Enweta Ọnụọgụ",
+      "intro": "Nweta ọnụọgụ site na itinye aka n'obodo. Ọnụọgụ na-eme ka ọ bụrụ ohere ibipụta ihe karị na nchọpụta.",
+      "linkLabel": "Otu esi enweta →",
+      "earningRules": {
+        "sectionTitle": "Ọrụ Enweta Ọnụọgụ",
+        "activityColumn": "Ọrụ",
+        "pointsColumn": "Ọnụọgụ Ntọala",
+        "descriptionColumn": "Nkọwa",
+        "noRules": "Ọ dịghị ọrụ enweta ọnụọgụ edoziri."
+      },
+      "badges": {
+        "sectionTitle": "Ihe Mgbakwunye Ododo Nyochara",
+        "intro": "Ndị otu nyochara na-enweta ọnụọgụ karị n'ọrụ ọ bụla. Ndị nọ n'elu platform ka na-enye ododo.",
+        "badgeColumn": "Ododo",
+        "multiplierColumn": "Ihe Mgbakwunye",
+        "blue": "Anụnụ anụnụ",
+        "red": "Uhie",
+        "purple": "Ododo",
+        "multiplierValue": "×{value}"
+      },
+      "postingLimits": {
+        "sectionTitle": "Oke Ibipụta Akwụkwọ",
+        "intro": "Nweta ọnụọgụ iji mepee oke ibipụta akwụkwọ n'izu dabere na ọkwa otu gị.",
+        "thresholdColumn": "Ọnụọgụ Ntọala",
+        "limitColumn": "Akwụkwọ N'izu",
+        "basicNote": "Ndị otu BASIC enweghị ohere ibipụta akwụkwọ.",
+        "professionalTitle": "Ndị Otu Ọkachamara",
+        "topTierTitle": "Ndị Otu Kasị Elu",
+        "atStart": "Mmalite (0 pts)"
+      }
     }
   },
   "Badges": {

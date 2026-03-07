@@ -73,6 +73,16 @@ vi.mock("@/components/ui/skeleton", () => ({
   ),
 }));
 
+vi.mock("@/i18n/navigation", () => ({
+  Link: ({ children, ...props }: React.AnchorHTMLAttributes<HTMLAnchorElement>) => (
+    <a {...props}>{children}</a>
+  ),
+}));
+
+vi.mock("@/features/dashboard/components/ArticleLimitProgress", () => ({
+  ArticleLimitProgress: () => <div data-testid="article-limit-progress" />,
+}));
+
 import PointsPage from "./page";
 
 const mockSearchParams = {
@@ -134,6 +144,13 @@ describe("PointsPage", () => {
     mockUseQuery.mockReturnValue({ data: undefined, isLoading: true });
     render(<PointsPage />);
     expect(screen.getAllByTestId("skeleton").length).toBeGreaterThan(0);
+  });
+
+  it("renders 'How to Earn' link with correct href", () => {
+    render(<PointsPage />);
+    const link = screen.getByText("howToEarn.linkLabel");
+    expect(link).toBeTruthy();
+    expect(link.closest("a")).toHaveAttribute("href", "/points/how-to-earn");
   });
 
   it("shows zero-state CTA when balance is 0", () => {

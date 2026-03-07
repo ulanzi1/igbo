@@ -61,6 +61,7 @@ vi.mock("drizzle-orm", () => ({
   sum: vi.fn((col) => ({ type: "sum", col })),
   count: vi.fn(() => ({ type: "count" })),
   desc: vi.fn((col) => ({ type: "desc", col })),
+  asc: vi.fn((col) => ({ type: "asc", col })),
   sql: new Proxy(
     (strings: TemplateStringsArray, ...values: unknown[]) => ({ type: "sql", strings, values }),
     {
@@ -75,6 +76,7 @@ vi.mock("drizzle-orm", () => ({
 import {
   insertPointsLedgerEntry,
   getActivePointsRules,
+  getAllPostingLimits,
   getPointsRuleByActivityType,
   getUserPointsTotal,
   logPointsThrottle,
@@ -148,6 +150,77 @@ describe("getActivePointsRules", () => {
 
     expect(result).toEqual(rules);
     expect(mockSelect).toHaveBeenCalled();
+  });
+});
+
+// ─── getAllPostingLimits ───────────────────────────────────────────────────────
+
+describe("getAllPostingLimits", () => {
+  function makeOrderByChain(result: unknown[]) {
+    const mockOrderBy = vi.fn().mockResolvedValue(result);
+    const mockFrom = vi.fn().mockReturnValue({ orderBy: mockOrderBy });
+    return { from: mockFrom, orderBy: mockOrderBy };
+  }
+
+  it("returns all rows ordered by tier then pointsThreshold", async () => {
+    const rows = [
+      { id: "l1", tier: "PROFESSIONAL", baseLimit: 1, pointsThreshold: 0, bonusLimit: 0 },
+      { id: "l2", tier: "PROFESSIONAL", baseLimit: 1, pointsThreshold: 500, bonusLimit: 1 },
+      { id: "l3", tier: "TOP_TIER", baseLimit: 2, pointsThreshold: 0, bonusLimit: 0 },
+    ];
+    const { from, orderBy } = makeOrderByChain(rows);
+    mockSelect.mockReturnValue({ from });
+
+    const result = await getAllPostingLimits();
+
+    expect(result).toEqual(rows);
+    // Verify orderBy was called with asc(tier), asc(pointsThreshold)
+    const { asc } = await import("drizzle-orm");
+    expect(orderBy).toHaveBeenCalled();
+    expect(asc).toHaveBeenCalledWith("tier");
+    expect(asc).toHaveBeenCalledWith("points_threshold");
+  });
+
+  it("returns empty array when no rows exist", async () => {
+    const { from } = makeOrderByChain([]);
+    mockSelect.mockReturnValue({ from });
+
+    const result = await getAllPostingLimits();
+
+    expect(result).toHaveLength(0);
+  });
+
+  it("returns only professional rows when only those exist", async () => {
+    const rows = [
+      { id: "l1", tier: "PROFESSIONAL", baseLimit: 1, pointsThreshold: 0, bonusLimit: 0 },
+      { id: "l2", tier: "PROFESSIONAL", baseLimit: 1, pointsThreshold: 500, bonusLimit: 1 },
+      { id: "l3", tier: "PROFESSIONAL", baseLimit: 1, pointsThreshold: 2000, bonusLimit: 2 },
+    ];
+    const { from } = makeOrderByChain(rows);
+    mockSelect.mockReturnValue({ from });
+
+    const result = await getAllPostingLimits();
+
+    expect(result).toHaveLength(3);
+    expect(result.every((r) => (r as { tier: string }).tier === "PROFESSIONAL")).toBe(true);
+  });
+
+  it("returned objects have correct shape", async () => {
+    const rows = [
+      { id: "l1", tier: "PROFESSIONAL", baseLimit: 1, pointsThreshold: 0, bonusLimit: 0 },
+    ];
+    const { from } = makeOrderByChain(rows);
+    mockSelect.mockReturnValue({ from });
+
+    const result = await getAllPostingLimits();
+
+    expect(result[0]).toMatchObject({
+      id: "l1",
+      tier: "PROFESSIONAL",
+      baseLimit: 1,
+      pointsThreshold: 0,
+      bonusLimit: 0,
+    });
   });
 });
 
