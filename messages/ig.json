@@ -1316,6 +1316,10 @@
     "points_throttled": {
       "title": "Ọnụọgụ Mmesi Eruola",
       "body": "Biko hụzie oge — i na-eme mmesi ngwa ngwa karịa ọ dị mma"
+    },
+    "new_message": {
+      "title": "Ozi ọhụrụ",
+      "body": "Ị natara ozi ọhụrụ sitere n'aka {senderName}"
     }
   },
   "Feed": {

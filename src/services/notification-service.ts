@@ -14,6 +14,7 @@ import type {
   MemberApprovedEvent,
   MemberFollowedEvent,
   MessageMentionedEvent,
+  MessageSentEvent,
   NotificationCreatedEvent,
   GroupJoinRequestedEvent,
   GroupJoinApprovedEvent,
@@ -48,6 +49,26 @@ import type { NotificationType } from "@/db/schema/platform-notifications";
  * which are resolved at render time by the client using the user's locale preference.
  */
 
+/**
+ * Maps notification types to email template IDs.
+ * Returns null when no email template exists for the type.
+ *
+ * NOTE: "admin_announcement" is currently MVP-coupled to member.approved only.
+ * Story 9.4 should decouple this if additional admin announcement types are added.
+ */
+function getEmailTemplateForType(type: NotificationType): string | null {
+  switch (type) {
+    case "event_reminder":
+      return "notification-event-reminder";
+    case "admin_announcement":
+      return "notification-member-approved";
+    case "message":
+      return "notification-first-dm";
+    default:
+      return null;
+  }
+}
+
 async function deliverNotification(params: {
   userId: string;
   actorId: string;
@@ -55,9 +76,10 @@ async function deliverNotification(params: {
   title: string;
   body: string;
   link?: string;
-  conversationId?: string; // NEW: for per-conv pref check via router
+  conversationId?: string; // for per-conv pref check via router
+  emailData?: Record<string, unknown>; // Story 9.2: event-specific data merged into email template
 }): Promise<void> {
-  const { userId, actorId, type, title, body, link, conversationId } = params;
+  const { userId, actorId, type, title, body, link, conversationId, emailData } = params;
 
   // Route through NotificationRouter — evaluates block/mute, DnD, per-conv prefs
   const routeResult = await notificationRouter.route({ userId, actorId, type, conversationId });
@@ -101,16 +123,24 @@ async function deliverNotification(params: {
     }
   }
 
-  // Email channel: stub — eligible types identified by router but no enqueueEmailJob() call yet.
-  // Story 9.2 adds per-type email templates and wires enqueueEmailJob() here.
+  // Email channel: dispatch via enqueueEmailJob() when router says not suppressed.
   // Article events (submitted/published/rejected/revision_requested) send email directly
-  // in their handlers above — they are NOT routed through this email channel.
-  if (!routeResult.email.suppressed) {
-    // eslint-disable-next-line no-console -- AC5: email stub logs at debug level until Story 9.2
-    console.debug(
-      "[NotificationService] email channel: not yet implemented for type=%s (Story 9.2)",
-      type,
-    );
+  // in their handlers — they are NOT routed through this email channel.
+  // Guard: only send when caller explicitly provides emailData (even {} counts).
+  // Handlers that don't pass emailData (e.g. article handlers) skip this path.
+  if (!routeResult.email.suppressed && emailData !== undefined) {
+    const user = await findUserById(userId);
+    if (user?.email) {
+      const templateId = getEmailTemplateForType(type);
+      if (templateId) {
+        enqueueEmailJob(`notif-${type}-${userId}-${Date.now()}`, {
+          to: user.email,
+          templateId,
+          data: { name: user.name ?? "Member", ...emailData },
+          locale: user.languagePreference === "ig" ? "ig" : "en",
+        });
+      }
+    }
   }
 }
 
@@ -132,6 +162,7 @@ if (globalForNotif.__notifHandlersRegistered) {
       title: "notifications.member_approved.title",
       body: "notifications.member_approved.body",
       link: "/dashboard",
+      emailData: {}, // template only needs `name`, added by deliverNotification
     });
   });
 
@@ -413,6 +444,11 @@ if (globalForNotif.__notifHandlersRegistered) {
       title: "notifications.event_waitlist_promoted.title",
       body: payload.title, // event title as notification body
       link: `/events/${payload.eventId}`,
+      emailData: {
+        eventTitle: payload.title,
+        startTime: payload.startTime,
+        eventUrl: `/events/${payload.eventId}`,
+      },
     });
   });
 
@@ -426,6 +462,11 @@ if (globalForNotif.__notifHandlersRegistered) {
       title: "notifications.event_reminder.title",
       body: payload.title,
       link: `/events/${payload.eventId}`,
+      emailData: {
+        eventTitle: payload.title,
+        startTime: payload.startTime,
+        eventUrl: `/events/${payload.eventId}`,
+      },
     });
   });
 
@@ -460,6 +501,30 @@ if (globalForNotif.__notifHandlersRegistered) {
       title: "notifications.recording_expiring.title",
       body: payload.title,
       link: `/events/${payload.eventId}`,
+    });
+  });
+
+  // ─── First DM Email Notification (Story 9.2) ──────────────────────────────────
+  // Only triggers email for the FIRST message in a direct conversation (FR73).
+  // No in-app notification — chat already delivers real-time via Socket.IO.
+  // Group/channel messages and subsequent messages are filtered out below.
+
+  eventBus.on("message.sent", async (payload: MessageSentEvent) => {
+    if (payload.conversationType !== "direct") return;
+    if (payload.messageCount !== 1) return;
+    if (!payload.recipientId) return;
+    await deliverNotification({
+      userId: payload.recipientId,
+      actorId: payload.senderId,
+      type: "message",
+      title: "notifications.new_message.title",
+      body: "notifications.new_message.body",
+      link: `/chat/${payload.conversationId}`,
+      emailData: {
+        senderName: payload.senderName ?? "A member",
+        messagePreview: payload.messagePreview ?? "",
+        chatUrl: `/chat/${payload.conversationId}`,
+      },
     });
   });
 

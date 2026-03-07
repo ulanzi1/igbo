@@ -18,6 +18,10 @@ import { render as renderArticleSubmitted } from "./article-submitted";
 import { render as renderArticlePublished } from "./article-published";
 import { render as renderArticleRejected } from "./article-rejected";
 import { render as renderArticleRevisionRequested } from "./article-revision-requested";
+import { render as renderNotificationEventReminder } from "./notification-event-reminder";
+import { render as renderNotificationMemberApproved } from "./notification-member-approved";
+import { render as renderNotificationFirstDm } from "./notification-first-dm";
+import { render as renderNotificationNewFollower } from "./notification-new-follower";
 import type { EmailTemplateResult, EmailTemplateRenderer } from "./types";
 
 export type { EmailTemplateResult, EmailTemplateRenderer };
@@ -42,6 +46,10 @@ const REGISTRY: Record<string, EmailTemplateRenderer> = {
   "article-published": renderArticlePublished,
   "article-rejected": renderArticleRejected,
   "article-revision-requested": renderArticleRevisionRequested,
+  "notification-event-reminder": renderNotificationEventReminder,
+  "notification-member-approved": renderNotificationMemberApproved,
+  "notification-first-dm": renderNotificationFirstDm,
+  "notification-new-follower": renderNotificationNewFollower,
 };
 
 export function renderTemplate(

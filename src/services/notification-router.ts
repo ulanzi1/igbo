@@ -26,10 +26,10 @@ export interface RouteParams {
 const EMAIL_ELIGIBLE_TYPES = new Set<string>([
   "event_reminder",
   "admin_announcement",
-  "post_interaction",
+  "message", // first DM only — handler filters by messageCount===1 and conversationType==="direct"
 ]);
 // NOTE: article_* events send email directly in notification-service.ts handlers (4 events)
-// NOTE: message/* events handled via per-conversation pref check, not this set
+// NOTE: post_interaction removed — no email template exists for this type
 
 /**
  * NotificationRouter evaluates each notification against delivery rules and returns
