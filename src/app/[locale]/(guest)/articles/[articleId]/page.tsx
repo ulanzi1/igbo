@@ -12,6 +12,7 @@ import { ArticleLanguageToggle } from "@/features/articles/components/ArticleLan
 import { ArticleViewTracker } from "@/features/articles/components/ArticleViewTracker";
 import { ArticleComments } from "@/features/articles/components/ArticleComments";
 import { ArticleRelatedSuggestions } from "@/features/articles/components/ArticleRelatedSuggestions";
+import { VerificationBadge } from "@/components/shared/VerificationBadge";
 
 export const revalidate = 60;
 
@@ -155,7 +156,12 @@ export default async function ArticlePage({
 
       {/* Byline */}
       <div className="flex items-center gap-3 text-sm text-muted-foreground mb-8 pb-6 border-b border-border">
-        {article.authorName && <span>{article.authorName}</span>}
+        {article.authorName && (
+          <span className="flex items-center gap-1">
+            {article.authorName}
+            <VerificationBadge badgeType={article.authorBadgeType} />
+          </span>
+        )}
         <span>
           {new Date(article.createdAt).toLocaleDateString(locale, {
             year: "numeric",

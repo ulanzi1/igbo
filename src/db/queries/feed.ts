@@ -6,6 +6,7 @@ import { communityProfiles } from "@/db/schema/community-profiles";
 import { communityMemberFollows } from "@/db/schema/community-connections";
 import { communityPostBookmarks } from "@/db/schema/bookmarks";
 import { FEED_CONFIG, type FeedSortMode, type FeedFilter } from "@/config/feed";
+import { communityUserBadges } from "@/db/schema/community-badges";
 
 export interface FeedPostMedia {
   id: string;
@@ -44,6 +45,7 @@ export interface FeedPost {
   media: FeedPostMedia[];
   status: "active" | "pending_approval";
   isBookmarked: boolean; // true if current viewer has bookmarked this post
+  authorBadgeType: "blue" | "red" | "purple" | null;
   createdAt: string; // ISO 8601
   updatedAt: string; // ISO 8601
   score?: number; // Only present in algorithmic mode
@@ -110,6 +112,7 @@ const FEED_SELECT_COLUMNS = {
   createdAt: communityPosts.createdAt,
   updatedAt: communityPosts.updatedAt,
   isBookmarked: sql<boolean>`${communityPostBookmarks.userId} IS NOT NULL`,
+  authorBadgeType: communityUserBadges.badgeType,
 } as const;
 
 type FeedSelectRow = {
@@ -132,6 +135,7 @@ type FeedSelectRow = {
   createdAt: Date;
   updatedAt: Date;
   isBookmarked: boolean;
+  authorBadgeType: "blue" | "red" | "purple" | null;
   score?: number;
 };
 
@@ -185,6 +189,7 @@ async function _assemblePostPage(rows: FeedSelectRow[]): Promise<FeedPost[]> {
       sortOrder: m.sortOrder,
     })),
     isBookmarked: r.isBookmarked,
+    authorBadgeType: r.authorBadgeType ?? null,
     createdAt: r.createdAt.toISOString(),
     updatedAt: r.updatedAt.toISOString(),
     ...(r.score !== undefined ? { score: r.score } : {}),
@@ -361,6 +366,7 @@ async function _getChronologicalFeedPage(
         eq(communityPostBookmarks.userId, userId),
       ),
     )
+    .leftJoin(communityUserBadges, eq(communityUserBadges.userId, communityPosts.authorId))
     .where(
       cursorDate
         ? and(eligibilityCondition, lt(communityPosts.createdAt, cursorDate))
@@ -421,6 +427,7 @@ export async function getGroupFeedPosts(
           )
         : sql`false`,
     )
+    .leftJoin(communityUserBadges, eq(communityUserBadges.userId, communityPosts.authorId))
     .where(
       cursorDate
         ? and(
@@ -517,6 +524,7 @@ async function _getAlgorithmicFeedPage(
         eq(communityPostBookmarks.userId, userId),
       ),
     )
+    .leftJoin(communityUserBadges, eq(communityUserBadges.userId, communityPosts.authorId))
     .where(
       and(eligibilityCondition, sql`${communityPosts.createdAt} >= ${windowStart.toISOString()}`),
     );

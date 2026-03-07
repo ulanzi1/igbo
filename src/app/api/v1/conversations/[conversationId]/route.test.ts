@@ -97,6 +97,7 @@ describe("GET /api/v1/conversations/[conversationId]", () => {
       id: OTHER_ID,
       displayName: "Alice",
       photoUrl: null,
+      badgeType: null,
     });
   });
 

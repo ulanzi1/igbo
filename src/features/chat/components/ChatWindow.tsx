@@ -42,6 +42,7 @@ interface ConversationMember {
   id: string;
   displayName: string;
   photoUrl: string | null;
+  badgeType?: "blue" | "red" | "purple" | null;
 }
 
 interface ConversationData {
@@ -566,10 +567,14 @@ export function ChatWindow({ conversationId, channelName, groupId }: ChatWindowP
   }
 
   // For group conversations, look up sender's profile from group members
-  function getSenderInfo(senderId: string): { name?: string; photoUrl?: string | null } {
+  function getSenderInfo(senderId: string): {
+    name?: string;
+    photoUrl?: string | null;
+    badgeType?: "blue" | "red" | "purple" | null;
+  } {
     if (!isGroup) return {};
     const member = groupMembers.find((m) => m.id === senderId);
-    return { name: member?.displayName, photoUrl: member?.photoUrl };
+    return { name: member?.displayName, photoUrl: member?.photoUrl, badgeType: member?.badgeType };
   }
 
   // Format group header names (collapsed if > 3)
@@ -771,6 +776,11 @@ export function ChatWindow({ conversationId, channelName, groupId }: ChatWindowP
                   onEditCancel={() => setEditingMessageId(null)}
                   onDelete={(id) => setDeleteConfirmMessageId(id)}
                   onScrollToMessage={handleScrollToMessage}
+                  senderBadgeType={
+                    !isOwnMessage
+                      ? (senderInfo.badgeType ?? otherMember?.badgeType ?? null)
+                      : undefined
+                  }
                 />
               </div>
             );

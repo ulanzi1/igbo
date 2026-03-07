@@ -56,6 +56,7 @@ export interface MemberCardData {
   languages: string[];
   membershipTier: "BASIC" | "PROFESSIONAL" | "TOP_TIER";
   bio: string | null;
+  badgeType?: "blue" | "red" | "purple" | null;
 }
 
 export interface DirectorySearchResult {
@@ -138,9 +139,11 @@ export async function searchMembersInDirectory(
       cp.interests,
       cp.languages,
       cp.created_at,
-      au.membership_tier::text                AS membership_tier
+      au.membership_tier::text                AS membership_tier,
+      cub.badge_type::text                    AS badge_type
     FROM community_profiles cp
     INNER JOIN auth_users au ON au.id = cp.user_id
+    LEFT JOIN community_user_badges cub ON cub.user_id = cp.user_id
     WHERE cp.deleted_at IS NULL
       AND cp.profile_completed_at IS NOT NULL
       AND cp.profile_visibility != 'PRIVATE'
@@ -199,6 +202,7 @@ export async function searchMembersInDirectory(
     interests: Array.isArray(row.interests) ? (row.interests as string[]) : [],
     languages: Array.isArray(row.languages) ? (row.languages as string[]) : [],
     membershipTier: String(row.membership_tier) as MemberCardData["membershipTier"],
+    badgeType: row.badge_type ? (String(row.badge_type) as "blue" | "red" | "purple") : null,
   }));
 
   const lastRow = pageRows.at(-1);
@@ -347,9 +351,11 @@ export async function searchMembersWithGeoFallback(
       cp.interests,
       cp.languages,
       cp.created_at,
-      au.membership_tier::text                AS membership_tier
+      au.membership_tier::text                AS membership_tier,
+      cub.badge_type::text                    AS badge_type
     FROM community_profiles cp
     INNER JOIN auth_users au ON au.id = cp.user_id
+    LEFT JOIN community_user_badges cub ON cub.user_id = cp.user_id
     WHERE cp.deleted_at IS NULL
       AND cp.profile_completed_at IS NOT NULL
       AND cp.profile_visibility != 'PRIVATE'
@@ -385,6 +391,7 @@ export async function searchMembersWithGeoFallback(
     interests: Array.isArray(row.interests) ? (row.interests as string[]) : [],
     languages: Array.isArray(row.languages) ? (row.languages as string[]) : [],
     membershipTier: String(row.membership_tier) as MemberCardData["membershipTier"],
+    badgeType: row.badge_type ? (String(row.badge_type) as "blue" | "red" | "purple") : null,
   }));
 
   const lastRow = pageRows.at(-1);

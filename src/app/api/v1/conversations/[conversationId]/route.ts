@@ -67,6 +67,7 @@ const getHandler = async (request: Request) => {
             id: otherMemberData.id,
             displayName: otherMemberData.displayName,
             photoUrl: otherMemberData.photoUrl,
+            badgeType: otherMemberData.badgeType ?? null,
           }
         : undefined,
       memberLastReadAt,

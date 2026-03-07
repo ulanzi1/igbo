@@ -397,10 +397,13 @@ export async function getConversationWithMembers(
       ccm.user_id::text as id,
       COALESCE(cp.display_name, 'Unknown') as "displayName",
       cp.photo_url as "photoUrl",
-      ccm.last_read_at as "lastReadAt"
+      ccm.last_read_at as "lastReadAt",
+      cub.badge_type as "badgeType"
     FROM chat_conversation_members ccm
     LEFT JOIN community_profiles cp
       ON cp.user_id = ccm.user_id AND cp.deleted_at IS NULL
+    LEFT JOIN community_user_badges cub
+      ON cub.user_id = ccm.user_id
     WHERE ccm.conversation_id = ${conversationId}::uuid
     ORDER BY ccm.joined_at ASC
   `);
@@ -410,6 +413,7 @@ export async function getConversationWithMembers(
     displayName: string;
     photoUrl: string | null;
     lastReadAt: Date | null;
+    badgeType: "blue" | "red" | "purple" | null;
   }>;
 
   return { conversation, members, memberCount: members.length };

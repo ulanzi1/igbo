@@ -6,12 +6,14 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { VerificationBadge } from "@/components/shared/VerificationBadge";
 
 interface AttendeeRow {
   userId: string;
   displayName: string;
   status: "registered" | "waitlisted" | "attended" | "cancelled";
   joinedAt: string | null;
+  badgeType?: "blue" | "red" | "purple" | null;
 }
 
 interface AttendeesResponse {
@@ -84,7 +86,10 @@ export function AttendanceCheckIn({ eventId }: AttendanceCheckInProps) {
             const isAttended = attendee.status === "attended";
             return (
               <li key={attendee.userId} className="flex items-center justify-between py-2 text-sm">
-                <span>{attendee.displayName}</span>
+                <span className="inline-flex items-center gap-1">
+                  {attendee.displayName}
+                  <VerificationBadge badgeType={attendee.badgeType} />
+                </span>
                 {isAttended ? (
                   <Badge variant="default">{t("alreadyAttended")}</Badge>
                 ) : (

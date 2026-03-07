@@ -58,6 +58,11 @@ vi.mock("@/services/event-bus", () => ({
   eventBus: { on: vi.fn(captureHandler), emit: vi.fn() },
 }));
 
+const mockGetUserBadgeWithCache = vi.hoisted(() => vi.fn().mockResolvedValue(null));
+vi.mock("@/db/queries/badges", () => ({
+  getUserBadgeWithCache: (...args: unknown[]) => mockGetUserBadgeWithCache(...args),
+}));
+
 // Side-effect: registers handlers and captures them in handlerRef
 import "./points-engine";
 import {
@@ -81,6 +86,7 @@ beforeEach(() => {
   mockAwardPoints.mockResolvedValue([1, "ok", 100, 150]);
   mockRedisGet.mockResolvedValue(null);
   mockGetUserPointsTotal.mockResolvedValue(10);
+  mockGetUserBadgeWithCache.mockResolvedValue(null);
 });
 
 // ─── handlePostReacted ────────────────────────────────────────────────────────
@@ -392,9 +398,35 @@ describe("getUserPointsBalance", () => {
 // ─── getBadgeMultiplier ───────────────────────────────────────────────────────
 
 describe("getBadgeMultiplier", () => {
-  it("21. always returns 1 (Story 8.3 stub)", async () => {
-    const result = await getBadgeMultiplier("any-user");
+  it("21. returns 1 when user has no badge", async () => {
+    mockGetUserBadgeWithCache.mockResolvedValue(null);
+
+    const result = await getBadgeMultiplier("user-1");
 
     expect(result).toBe(1);
+  });
+
+  it("22. returns 3 for blue badge", async () => {
+    mockGetUserBadgeWithCache.mockResolvedValue({ badgeType: "blue", assignedAt: new Date() });
+
+    const result = await getBadgeMultiplier("user-1");
+
+    expect(result).toBe(3);
+  });
+
+  it("23. returns 6 for red badge", async () => {
+    mockGetUserBadgeWithCache.mockResolvedValue({ badgeType: "red", assignedAt: new Date() });
+
+    const result = await getBadgeMultiplier("user-1");
+
+    expect(result).toBe(6);
+  });
+
+  it("24. returns 10 for purple badge", async () => {
+    mockGetUserBadgeWithCache.mockResolvedValue({ badgeType: "purple", assignedAt: new Date() });
+
+    const result = await getBadgeMultiplier("user-1");
+
+    expect(result).toBe(10);
   });
 });

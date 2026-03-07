@@ -6,6 +6,7 @@ import { useRouter } from "@/i18n/navigation";
 import { createOrFindDirectConversation } from "@/features/chat/actions/create-conversation";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { FollowButton } from "@/features/profiles/components/FollowButton";
+import { VerificationBadge } from "@/components/shared/VerificationBadge";
 import type { MemberCardData } from "../types";
 
 interface MemberCardProps {
@@ -85,7 +86,10 @@ export function MemberCard({
           </AvatarFallback>
         </Avatar>
         <div className="min-w-0">
-          <p className="truncate font-semibold text-gray-900">{member.displayName}</p>
+          <p className="flex items-center gap-1 truncate font-semibold text-gray-900">
+            {member.displayName}
+            <VerificationBadge badgeType={member.badgeType} />
+          </p>
           {location && <p className="truncate text-xs text-gray-500">{location}</p>}
         </div>
       </div>
@@ -95,8 +99,6 @@ export function MemberCard({
 
       {/* Shared interests */}
       <p className="text-xs text-indigo-600">{t("sharedInterests", { count: sharedCount })}</p>
-
-      {/* TODO(Epic 8): BadgeDisplay */}
 
       {/* Follow button */}
       {showFollowButton !== false && member.userId !== viewerUserId && (

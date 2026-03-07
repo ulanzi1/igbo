@@ -11,6 +11,7 @@ import { ReactionPicker } from "./ReactionPicker";
 import { ReactionBadges } from "./ReactionBadges";
 import { useReactions } from "@/features/chat/hooks/use-reactions";
 import { useLongPress } from "@/features/chat/hooks/use-long-press";
+import { VerificationBadge } from "@/components/shared/VerificationBadge";
 import type { LocalChatMessage, ChatMessage, SharedPostPayload } from "@/features/chat/types";
 
 interface MessageBubbleProps {
@@ -36,6 +37,8 @@ interface MessageBubbleProps {
   onScrollToMessage?: (messageId: string) => void;
   /** Delivery status for own server messages (sent/delivered/read) — undefined for others' messages */
   deliveryStatus?: DeliveryStatus;
+  /** Sender's verification badge type — from message payload */
+  senderBadgeType?: "blue" | "red" | "purple" | null;
 }
 
 function formatMessageTime(isoString: string): string {
@@ -64,6 +67,7 @@ export function MessageBubble({
   onDelete,
   onScrollToMessage,
   deliveryStatus,
+  senderBadgeType,
 }: MessageBubbleProps) {
   const t = useTranslations("Chat");
   const tReactions = useTranslations("Chat.reactions");
@@ -198,7 +202,10 @@ export function MessageBubble({
       <div className={cn("relative flex flex-col", isOwnMessage ? "items-end" : "items-start")}>
         {/* Sender name — shown only for non-own messages when avatar is visible */}
         {!isOwnMessage && showAvatar && senderName && (
-          <span className="mb-1 text-xs font-medium text-muted-foreground">{senderName}</span>
+          <span className="mb-1 inline-flex items-center gap-1 text-xs font-medium text-muted-foreground">
+            {senderName}
+            <VerificationBadge badgeType={senderBadgeType} />
+          </span>
         )}
 
         {/* Reply context — quoted parent box */}

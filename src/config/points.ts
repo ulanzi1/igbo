@@ -20,3 +20,12 @@ export const POINTS_CONFIG = {
 } as const;
 
 export type PointsConfigKey = keyof typeof POINTS_CONFIG;
+
+/** Badge multipliers — single source of truth for points-engine and VerificationBadge tooltip */
+export const BADGE_MULTIPLIERS = {
+  blue: 3,
+  red: 6,
+  purple: 10,
+} as const;
+
+export type BadgeMultiplierKey = keyof typeof BADGE_MULTIPLIERS;

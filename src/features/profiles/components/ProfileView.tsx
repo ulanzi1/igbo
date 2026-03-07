@@ -9,11 +9,13 @@ import type { CommunityProfile, CommunitySocialLink } from "@/db/schema/communit
 import { createOrFindDirectConversation } from "@/features/chat/actions/create-conversation";
 import { FollowButton } from "./FollowButton";
 import { FollowList } from "./FollowList";
+import { VerificationBadge } from "@/components/shared/VerificationBadge";
 
 interface Props {
   profile: CommunityProfile;
   socialLinks: CommunitySocialLink[];
   viewerUserId: string; // viewer's own userId for self-detection
+  badgeType?: "blue" | "red" | "purple" | null;
 }
 
 const SOCIAL_ICONS: Record<string, string> = {
@@ -54,7 +56,7 @@ function MessageButton({ profileUserId }: { profileUserId: string }) {
   );
 }
 
-export function ProfileView({ profile, socialLinks, viewerUserId }: Props) {
+export function ProfileView({ profile, socialLinks, viewerUserId, badgeType }: Props) {
   const t = useTranslations("Profile");
   const params = useParams<{ locale: string }>();
   // locale used for social link display; kept for potential future use
@@ -80,9 +82,10 @@ export function ProfileView({ profile, socialLinks, viewerUserId }: Props) {
           )}
         </div>
         <div>
-          <h1 className="text-xl font-bold text-gray-900">{profile.displayName}</h1>
-          {/* Verification badge area — Story 1.10 will add actual badges */}
-          <div aria-label={t("verificationBadge")} />
+          <h1 className="flex items-center gap-2 text-xl font-bold text-gray-900">
+            {profile.displayName}
+            <VerificationBadge badgeType={badgeType} size="md" />
+          </h1>
           {/* Follow counts */}
           <div className="flex gap-3 text-sm text-muted-foreground mt-1">
             <button

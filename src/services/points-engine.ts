@@ -1,8 +1,9 @@
 import "server-only";
 import { eventBus } from "@/services/event-bus";
 import { awardPoints } from "@/lib/points-lua-runner";
-import { POINTS_CONFIG } from "@/config/points";
+import { POINTS_CONFIG, BADGE_MULTIPLIERS } from "@/config/points";
 import { getRedisClient, getRedisPublisher } from "@/lib/redis";
+import { getUserBadgeWithCache } from "@/db/queries/badges";
 import { createNotification } from "@/db/queries/notifications";
 import {
   insertPointsLedgerEntry,
@@ -18,9 +19,12 @@ import type {
   AccountStatusChangedEvent,
 } from "@/types/events";
 
-/** Returns badge multiplier for the earner. Story 8.3 will update when community_user_badges exists. */
-export async function getBadgeMultiplier(_userId: string): Promise<number> {
-  return 1;
+/** Returns badge multiplier for the earner based on their verification badge. */
+export async function getBadgeMultiplier(userId: string): Promise<number> {
+  const redis = getRedisClient();
+  const badge = await getUserBadgeWithCache(userId, redis);
+  if (!badge) return 1;
+  return BADGE_MULTIPLIERS[badge.badgeType] ?? 1;
 }
 
 /** Read points balance from Redis; fall back to DB aggregate on cache miss. */
