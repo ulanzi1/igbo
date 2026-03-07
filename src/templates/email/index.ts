@@ -23,6 +23,8 @@ import { render as renderNotificationMemberApproved } from "./notification-membe
 import { render as renderNotificationFirstDm } from "./notification-first-dm";
 import { render as renderNotificationNewFollower } from "./notification-new-follower";
 import { render as renderNotificationDigest } from "./notification-digest";
+import { render as renderNotificationMention } from "./notification-mention";
+import { render as renderNotificationGroupActivity } from "./notification-group-activity";
 import type { EmailTemplateResult, EmailTemplateRenderer } from "./types";
 
 export type { EmailTemplateResult, EmailTemplateRenderer };
@@ -52,6 +54,8 @@ const REGISTRY: Record<string, EmailTemplateRenderer> = {
   "notification-first-dm": renderNotificationFirstDm,
   "notification-new-follower": renderNotificationNewFollower,
   "notification-digest": renderNotificationDigest,
+  "notification-mention": renderNotificationMention,
+  "notification-group-activity": renderNotificationGroupActivity,
 };
 
 export function renderTemplate(

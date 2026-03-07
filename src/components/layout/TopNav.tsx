@@ -3,7 +3,6 @@
 import { useState } from "react";
 import {
   UserCircleIcon,
-  SearchIcon,
   LogOutIcon,
   UserIcon,
   SettingsIcon,
@@ -12,6 +11,7 @@ import {
   PenLineIcon,
   BookOpenIcon,
   StarIcon,
+  SearchIcon,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useSession, signOut } from "next-auth/react";
@@ -28,6 +28,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import { GlobalSearchBar } from "./GlobalSearchBar";
 
 const navLinks = [
   { key: "home" as const, href: "/" },
@@ -92,23 +93,23 @@ function TopNav({ className }: { className?: string }) {
           ))}
         </nav>
 
-        {/* Search placeholder — hidden on mobile */}
-        <div className="hidden md:flex flex-1 mx-4 max-w-xs">
-          <div
-            role="search"
-            aria-label={t("search")}
-            className="flex w-full items-center gap-2 rounded-full border border-border bg-muted px-4 h-10 text-sm text-muted-foreground cursor-pointer"
-          >
-            <SearchIcon className="size-4 shrink-0" aria-hidden="true" />
-            <span>{t("search")}</span>
-          </div>
-        </div>
+        {/* Global search — hidden on mobile */}
+        <GlobalSearchBar className="hidden md:flex" />
 
         {/* Spacer — pushes right actions to the far right */}
         <div className="flex-1" />
 
         {/* Right actions */}
         <div className="flex items-center gap-1">
+          {/* Mobile search icon — hidden on desktop where GlobalSearchBar is inline */}
+          <Link
+            href="/search"
+            aria-label={t("search")}
+            className="flex md:hidden items-center justify-center h-11 w-11 min-h-[44px] min-w-[44px] rounded-md text-muted-foreground hover:bg-accent transition-colors"
+          >
+            <SearchIcon className="size-5" aria-hidden="true" />
+          </Link>
+
           {/* Notification bell */}
           <NotificationBell />
 

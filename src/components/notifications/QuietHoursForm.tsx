@@ -40,9 +40,18 @@ export function QuietHoursForm({ onSaved }: QuietHoursFormProps) {
   const [enabled, setEnabled] = useState(false);
   const [start, setStart] = useState("22:00");
   const [end, setEnd] = useState("08:00");
-  const [timezone, setTimezone] = useState("UTC");
+  const [timezone, setTimezone] = useState(() => {
+    try {
+      const detected = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      return COMMON_TIMEZONES.includes(detected) ? detected : "UTC";
+    } catch {
+      return "UTC";
+    }
+  });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
+  const [savedValues, setSavedValues] = useState({ start: "22:00", end: "08:00", timezone: "UTC" });
 
   async function handleSave() {
     setSaving(true);
@@ -59,6 +68,8 @@ export function QuietHoursForm({ onSaved }: QuietHoursFormProps) {
         }),
       });
       if (!res.ok) throw new Error("save failed");
+      setSaved(true);
+      setSavedValues({ start, end, timezone });
       onSaved?.();
     } catch {
       setError(t("saveError"));
@@ -77,6 +88,7 @@ export function QuietHoursForm({ onSaved }: QuietHoursFormProps) {
       });
       if (!res.ok) throw new Error("disable failed");
       setEnabled(false);
+      setSaved(false);
       onSaved?.();
     } catch {
       setError(t("disableError"));
@@ -103,7 +115,23 @@ export function QuietHoursForm({ onSaved }: QuietHoursFormProps) {
         </label>
       </div>
 
-      {enabled && (
+      {enabled && saved && (
+        <div className="pl-6 text-sm text-muted-foreground">
+          <span>
+            {t("savedSummary")} · {savedValues.start} → {savedValues.end} ({savedValues.timezone})
+          </span>
+          {" · "}
+          <button
+            type="button"
+            onClick={() => setSaved(false)}
+            className="text-indigo-600 hover:underline text-sm"
+          >
+            {t("editButton")}
+          </button>
+        </div>
+      )}
+
+      {enabled && !saved && (
         <div className="space-y-3 pl-6">
           <p className="text-xs text-muted-foreground">{t("description")}</p>
           <div className="flex flex-wrap gap-4">
@@ -126,8 +154,12 @@ export function QuietHoursForm({ onSaved }: QuietHoursFormProps) {
               />
             </div>
             <div className="space-y-1">
-              <label className="text-xs font-medium text-gray-700">{t("timezoneLabel")}</label>
+              <label className="text-xs font-medium text-gray-700" htmlFor="quiet-hours-timezone">
+                {t("timezoneLabel")}
+              </label>
               <select
+                id="quiet-hours-timezone"
+                aria-label={t("timezoneLabel")}
                 value={timezone}
                 onChange={(e) => setTimezone(e.target.value)}
                 className="block border rounded px-2 py-1 text-sm bg-white"

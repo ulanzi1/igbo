@@ -65,6 +65,16 @@ function getEmailTemplateForType(type: NotificationType): string | null {
       return "notification-member-approved";
     case "message":
       return "notification-first-dm";
+    case "mention":
+      return "notification-mention"; // Story 9.5: B3
+    case "group_activity":
+      return "notification-group-activity"; // Story 9.5: B3
+    // post_interaction: no event handlers exist yet (deferred — Epic 4 post-interaction story
+    //   will add emailData when post.reacted/post.commented handlers are implemented)
+    // notification-new-follower template exists but is orphaned: member.followed uses type
+    //   "system" (not email-eligible), so the template is never invoked. Deferral noted here
+    //   alongside post_interaction until member.followed is redesigned to use type "system"
+    //   with email opt-in or a new "follower" type.
     default:
       return null;
   }
@@ -210,6 +220,7 @@ if (globalForNotif.__notifHandlersRegistered) {
         body: contentPreview,
         link: `/chat?conversation=${conversationId}`,
         conversationId, // router checks per-conv pref + DnD
+        emailData: { preview: contentPreview, link: `/chat?conversation=${conversationId}` },
       });
     }
   });
@@ -226,6 +237,7 @@ if (globalForNotif.__notifHandlersRegistered) {
         title: "notifications.group_join_request.title",
         body: "notifications.group_join_request.body",
         link: `/groups/${payload.groupId}`,
+        emailData: { link: `/groups/${payload.groupId}` },
       });
     }
   });
@@ -238,6 +250,7 @@ if (globalForNotif.__notifHandlersRegistered) {
       title: "notifications.group_join_approved.title",
       body: "notifications.group_join_approved.body",
       link: `/groups/${payload.groupId}`,
+      emailData: { link: `/groups/${payload.groupId}` },
     });
   });
 
@@ -248,6 +261,7 @@ if (globalForNotif.__notifHandlersRegistered) {
       type: "group_activity",
       title: "notifications.group_join_rejected.title",
       body: "notifications.group_join_rejected.body",
+      emailData: { link: "/dashboard" },
     });
   });
 
@@ -261,6 +275,7 @@ if (globalForNotif.__notifHandlersRegistered) {
       title: "notifications.group_leader_assigned.title",
       body: "notifications.group_leader_assigned.body",
       link: `/groups/${payload.groupId}`,
+      emailData: { link: `/groups/${payload.groupId}` },
     });
   });
 
@@ -272,6 +287,7 @@ if (globalForNotif.__notifHandlersRegistered) {
       title: "notifications.group_member_muted.title",
       body: "notifications.group_member_muted.body",
       link: `/groups/${payload.groupId}`,
+      emailData: { link: `/groups/${payload.groupId}` },
     });
   });
 
@@ -282,6 +298,7 @@ if (globalForNotif.__notifHandlersRegistered) {
       type: "group_activity",
       title: "notifications.group_member_banned.title",
       body: "notifications.group_member_banned.body",
+      emailData: { link: "/dashboard" },
     });
   });
 
@@ -293,6 +310,7 @@ if (globalForNotif.__notifHandlersRegistered) {
       title: "notifications.group_ownership_transferred.title",
       body: "notifications.group_ownership_transferred.body",
       link: `/groups/${payload.groupId}`,
+      emailData: { link: `/groups/${payload.groupId}` },
     });
   });
 
@@ -308,6 +326,7 @@ if (globalForNotif.__notifHandlersRegistered) {
         title: "notifications.group_archived.title",
         body: "notifications.group_archived.body",
         link: `/groups/${payload.groupId}`,
+        emailData: { link: `/groups/${payload.groupId}` },
       });
     }
   });

@@ -42,6 +42,14 @@ vi.mock("next-auth/react", () => ({
   signOut: (...args: unknown[]) => mockSignOut(...args),
 }));
 
+vi.mock("./GlobalSearchBar", () => ({
+  GlobalSearchBar: ({ className }: { className?: string }) => (
+    <div role="search" aria-label="GlobalSearch.ariaLabel" className={className}>
+      <input placeholder="GlobalSearch.placeholder" type="search" />
+    </div>
+  ),
+}));
+
 vi.mock("@/features/notifications", () => ({
   NotificationBell: () => (
     <button type="button" aria-label="Navigation.notifications">
@@ -144,6 +152,13 @@ describe("TopNav", () => {
     // Back to one nav
     const navs = screen.getAllByRole("navigation", { name: "Main navigation" });
     expect(navs.length).toBe(1);
+  });
+
+  it("renders mobile search icon linking to /search", () => {
+    render(<TopNav />);
+    const searchLink = screen.getByLabelText("Navigation.search");
+    expect(searchLink).toBeInTheDocument();
+    expect(searchLink.getAttribute("href")).toBe("/search");
   });
 
   it("profile dropdown contains View Profile, Settings, and Logout", () => {

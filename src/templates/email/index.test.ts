@@ -58,13 +58,19 @@ const minData: Record<string, Record<string, unknown>> = {
     editUrl: "https://example.com/articles/article-uuid/edit",
     feedback: "Please expand the introduction section.",
   },
+  "notification-mention": { name: "Chima", preview: "Hey @Chima, check this out!" },
+  "notification-group-activity": {
+    name: "Chima",
+    title: "You have been approved to join the group",
+    body: "Welcome to Igbo Diaspora!",
+  },
 };
 
 const ALL_TEMPLATE_IDS = Object.keys(minData);
 
 describe("renderTemplate registry", () => {
-  it("has all 18 templates registered", () => {
-    expect(ALL_TEMPLATE_IDS).toHaveLength(18);
+  it("has all 20 templates registered", () => {
+    expect(ALL_TEMPLATE_IDS).toHaveLength(20); // +2: notification-mention, notification-group-activity (Story 9.5)
   });
 
   it.each(ALL_TEMPLATE_IDS)("template '%s' renders without throwing (en)", (id) => {
@@ -141,5 +147,87 @@ describe("renderTemplate registry", () => {
     const result = renderTemplate("email-otp", { name: "Chima", otp: "999999" }, "en");
     expect(result.html).toContain("10");
     expect(result.text).toContain("10");
+  });
+
+  // ─── Story 9.5: B3 — notification-mention template ───────────────────────────
+
+  it("notification-mention (en): includes preview text and name", () => {
+    const result = renderTemplate(
+      "notification-mention",
+      { name: "Chima", preview: "Hey @Chima, check this out!", link: "/chat?conversation=abc" },
+      "en",
+    );
+    expect(result.subject).toContain("mentioned");
+    expect(result.html).toContain("Chima");
+    expect(result.html).toContain("Hey @Chima, check this out!");
+    expect(result.text).toContain("Hey @Chima, check this out!");
+    expect(result.html).toContain("/chat?conversation=abc");
+    expect(result.text).toContain("/chat?conversation=abc");
+  });
+
+  it("notification-mention (en): falls back to /chat when no link provided", () => {
+    const result = renderTemplate(
+      "notification-mention",
+      { name: "Chima", preview: "Hello" },
+      "en",
+    );
+    expect(result.html).toContain('href="/chat"');
+    expect(result.text).toContain("/chat");
+  });
+
+  it("notification-mention (ig): subject is Igbo", () => {
+    const result = renderTemplate(
+      "notification-mention",
+      { name: "Chima", preview: "Ọ bụ gị" },
+      "ig",
+    );
+    expect(result.subject).not.toContain("mentioned"); // Igbo subject
+    expect(result.html).toContain("Ndewo");
+  });
+
+  // ─── Story 9.5: B3 — notification-group-activity template ────────────────────
+
+  it("notification-group-activity (en): includes title, body, and link", () => {
+    const result = renderTemplate(
+      "notification-group-activity",
+      {
+        name: "Chima",
+        title: "You have been approved to join the group",
+        body: "Welcome to Igbo Diaspora!",
+        link: "/groups/abc",
+      },
+      "en",
+    );
+    expect(result.subject).toContain("Group activity");
+    expect(result.html).toContain("approved to join");
+    expect(result.html).toContain("Welcome to Igbo Diaspora!");
+    expect(result.text).toContain("approved to join");
+    expect(result.html).toContain("/groups/abc");
+    expect(result.text).toContain("/groups/abc");
+  });
+
+  it("notification-group-activity (en): falls back to /dashboard when no link", () => {
+    const result = renderTemplate(
+      "notification-group-activity",
+      { name: "Chima", title: "Test", body: "Body" },
+      "en",
+    );
+    expect(result.html).toContain('href="/dashboard"');
+    expect(result.text).toContain("/dashboard");
+  });
+
+  it("notification-group-activity (ig): subject is Igbo", () => {
+    const result = renderTemplate(
+      "notification-group-activity",
+      {
+        name: "Chima",
+        title: "Ewepụtara gị",
+        body: "Nno na otu!",
+      },
+      "ig",
+    );
+    expect(result.subject).not.toContain("Group activity"); // Igbo subject
+    expect(result.html).toContain("Ndewo");
+    expect(result.html).toContain("Ewepụtara gị");
   });
 });
