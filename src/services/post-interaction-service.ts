@@ -9,9 +9,10 @@ import {
   type ToggleReactionResult,
   type PostComment,
 } from "@/db/queries/post-interactions";
-import { insertPost, getPostGroupId } from "@/db/queries/posts";
+import { insertPost, getPostGroupId, getPostAuthorId } from "@/db/queries/posts";
 import { getGroupMemberFull } from "@/db/queries/groups";
 import { eventBus } from "@/services/event-bus";
+import { ApiError } from "@/lib/api-error";
 import type { PostReactionType } from "@/db/schema/post-interactions";
 
 export type { ToggleReactionResult, PostComment };
@@ -23,15 +24,26 @@ export interface ReactToPostResult {
   countDelta: number; // +1 added, 0 changed, -1 removed
 }
 
-// TODO (Story 8.1): Block self-reactions (post.authorId === userId → return error)
 export async function reactToPost(
   postId: string,
   userId: string,
   reactionType: PostReactionType,
 ): Promise<ReactToPostResult> {
+  // 1. Fetch authorId FIRST (needed for self-block and event emit)
+  const authorId = await getPostAuthorId(postId);
+  if (!authorId) {
+    throw new ApiError({ title: "Post not found", status: 404 });
+  }
+  // 2. Block self-reactions (FR28 anti-gaming)
+  if (userId === authorId) {
+    throw new ApiError({ title: "You cannot react to your own content", status: 403 });
+  }
+
+  // 3. Toggle the reaction
   const result = await toggleReaction(postId, userId, reactionType);
 
-  // Emit post.reacted only when reaction is added or changed (not removed)
+  // 4. Emit post.reacted only when reaction is added or changed (not removed)
+  // authorId already in scope — no second DB query needed
   if (result.newReactionType !== null) {
     try {
       await eventBus.emit("post.reacted", {
@@ -39,6 +51,7 @@ export async function reactToPost(
         userId,
         reaction: result.newReactionType,
         timestamp: new Date().toISOString(),
+        authorId,
       });
     } catch {
       // Non-critical — EventBus failure must not roll back the reaction

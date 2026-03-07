@@ -25,3 +25,7 @@ registerOnboardingCompletionSubscriber();
 // (article.submitted, article.published, article.rejected, article.revision_requested,
 //  member.approved, message.mentioned, group events, account.status_changed)
 import "@/services/notification-service";
+
+// Side-effect import: registers all eventBus.on() handlers for points engine
+// (post.reacted, event.attended, article.published, account.status_changed)
+import "@/services/points-engine";

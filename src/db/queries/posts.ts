@@ -153,6 +153,33 @@ export async function softDeleteGroupPost(
 }
 
 /**
+ * Get the character length of a post's content.
+ * Returns null if the post is not found or has been deleted.
+ * Uses PostgreSQL LENGTH() which counts characters (not bytes) — correct for multi-byte Igbo text.
+ */
+export async function getPostContentLength(postId: string): Promise<number | null> {
+  const [row] = await db
+    .select({ len: sql<number>`LENGTH(REGEXP_REPLACE(${communityPosts.content}, '\\s', '', 'g'))` })
+    .from(communityPosts)
+    .where(and(eq(communityPosts.id, postId), sql`${communityPosts.deletedAt} IS NULL`))
+    .limit(1);
+  return row?.len ?? null;
+}
+
+/**
+ * Get the authorId (creatorId) of a post.
+ * Returns null if the post is not found.
+ */
+export async function getPostAuthorId(postId: string): Promise<string | null> {
+  const [row] = await db
+    .select({ authorId: communityPosts.authorId })
+    .from(communityPosts)
+    .where(and(eq(communityPosts.id, postId), sql`${communityPosts.deletedAt} IS NULL`))
+    .limit(1);
+  return row?.authorId ?? null;
+}
+
+/**
  * Get a post's groupId (or null for general feed posts).
  * Returns null if post not found.
  */

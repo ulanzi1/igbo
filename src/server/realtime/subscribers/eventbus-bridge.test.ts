@@ -369,6 +369,7 @@ describe("startEventBusBridge", () => {
     const payload = {
       eventId: "event-1",
       userId: USER_ID,
+      hostId: "host-user-1",
       timestamp: ts,
     };
 

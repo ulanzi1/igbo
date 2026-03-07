@@ -179,6 +179,7 @@ describe("markAttendance", () => {
       expect.objectContaining({
         eventId: EVENT_ID,
         userId: USER_ID,
+        hostId: HOST_ID, // AC 4: hostId = event.creatorId
       }),
     );
   });
