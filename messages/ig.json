@@ -1620,7 +1620,15 @@
       "next": "Ọzọ",
       "pageOf": "{page} / {total}"
     },
-    "pointUnit": "{count, plural, one {pt} other {pts}}"
+    "pointUnit": "{count, plural, one {pt} other {pts}}",
+    "articleLimit": {
+      "title": "Oke Nkwupụta Akwụkwọ",
+      "canPublish": "Ị nwere ike ibipụta {limit} akwụkwọ n'izu a.",
+      "earnMore": "Nweta {points} ọnụọgụ ọzọ iji mepee {next} akwụkwọ.",
+      "atMax": "Ị eruo oke nkwupụta kasị elu.",
+      "notEligible": "Kwalite ọnọdụ onye otu gị iji bipụta akwụkwọ.",
+      "used": "Ojiji {used} n'ime {limit} n'izu a"
+    }
   },
   "Badges": {
     "blue": "Nke Obodo Nyochara",

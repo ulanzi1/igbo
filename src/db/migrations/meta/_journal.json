@@ -260,6 +260,13 @@
       "when": 1708000036000,
       "tag": "0036_verification_badges",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1708000037000,
+      "tag": "0037_posting_limits",
+      "breakpoints": true
     }
   ]
 }

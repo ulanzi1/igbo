@@ -8,6 +8,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { PointsSummaryCard } from "@/components/points/PointsSummaryCard";
 import { PointsHistoryFilter } from "@/components/points/PointsHistoryFilter";
 import { PointsHistoryList } from "@/components/points/PointsHistoryList";
+import { ArticleLimitProgress } from "@/features/dashboard/components/ArticleLimitProgress";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { LedgerHistoryRow } from "@/db/queries/points";
@@ -111,6 +112,10 @@ export default function PointsPage() {
           thisWeek={summary.thisWeek}
           thisMonth={summary.thisMonth}
         />
+      </div>
+
+      <div className="mb-6">
+        <ArticleLimitProgress />
       </div>
 
       {balance === 0 && !loadingBalance && (

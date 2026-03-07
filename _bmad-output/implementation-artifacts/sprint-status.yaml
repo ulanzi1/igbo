@@ -126,7 +126,7 @@ development_status:
   8-1-points-engine-earning-rules: done # review: 7 findings (1H/3M/3L) all fixed, +6 tests — 2026-03-07
   8-2-points-dashboard-history: done
   8-3-verification-badges-display: done # review: 8 findings (3H/3M/2L), 6 fixed — chat badge wiring, cache type safety, DELETE 404, test naming — 2026-03-07
-  8-4-points-based-posting-limits: backlog
+  8-4-points-based-posting-limits: done # review: 3 fixes (F1/F3 redundant DB call, F2 drift comment, F4 nextBonusLimit→nextEffectiveLimit rename), +1 test — 2026-03-07
   epic-8-retrospective: optional
 
   # Epic 9: Notifications & Communication Preferences

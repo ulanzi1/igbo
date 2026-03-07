@@ -1620,7 +1620,15 @@
       "next": "Next",
       "pageOf": "{page} / {total}"
     },
-    "pointUnit": "{count, plural, one {pt} other {pts}}"
+    "pointUnit": "{count, plural, one {pt} other {pts}}",
+    "articleLimit": {
+      "title": "Article Publishing Limit",
+      "canPublish": "You can publish {limit} {limit, plural, one {article} other {articles}} this week.",
+      "earnMore": "Earn {points} more {points, plural, one {point} other {points}} to unlock {next} {next, plural, one {article} other {articles}}.",
+      "atMax": "You have reached the maximum publishing limit.",
+      "notEligible": "Upgrade your membership to publish articles.",
+      "used": "{used} of {limit} used this week"
+    }
   },
   "Badges": {
     "blue": "Community Verified",
