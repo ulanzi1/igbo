@@ -42,8 +42,7 @@ export interface AwardPointsInput {
 declare module "ioredis" {
   interface Redis {
     awardPoints(
-      numberOfKeys: number,
-      // KEYS (numberOfKeys = 6)
+      // KEYS (numberOfKeys = 6, set in defineCommand — do NOT pass at call time)
       idempotencyKey: string,
       rapidKey: string,
       repeatKey: string,
@@ -123,7 +122,6 @@ export async function awardPoints(input: AwardPointsInput): Promise<AwardPointsR
     buildPointsKeys(input);
 
   const result = await redis.awardPoints(
-    6,
     idempotencyKey,
     rapidKey,
     repeatKey,
