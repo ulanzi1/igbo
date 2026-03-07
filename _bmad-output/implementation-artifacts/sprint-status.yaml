@@ -131,16 +131,17 @@ development_status:
   8-5-points-how-to-earn-page: done # review: 6 findings (2H/2M/2L) all fixed — orderBy test, ArticleLimitProgress mock, link test, Igbo colors, t.has fallback, Tailwind classes — 2026-03-07
 
   # Epic 9: Notifications & Communication Preferences
-  epic-9: in-progress
+  epic-9: done
   9-1-notification-routing-channel-delivery: done
   9-2-email-notifications: done
   9-3-push-notifications-web-push-api: done
   9-4-notification-preferences-digest: done
-  epic-9-retrospective: optional
+  epic-9-retrospective: done # AI-1–AI-4 captured; Story 9.5 bug-fix+UX-polish story added; end-to-end delivery verification gap documented — 2026-03-07
+  9-5-notification-bug-fixes-ux-polish: done
 
   # Epic 10: Search & Discovery Platform
-  epic-10: backlog
-  10-1-global-search-autocomplete: backlog
+  epic-10: in-progress
+  10-1-global-search-autocomplete: done
   10-2-filtered-search-results: backlog
   10-3-recommended-groups: backlog
   epic-10-retrospective: optional

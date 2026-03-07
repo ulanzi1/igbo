@@ -375,6 +375,44 @@ export function useRealTimersForReactQuery() {
  */
 
 /**
+ * ✅ Notification critical path resilience — any service in the notification critical path
+ * calling external deps (DB, Redis) MUST have try/catch + fallback to defaults.
+ *
+ * Root cause: `NotificationRouter.route()` calls `getNotificationPreferences(userId)` which
+ * hits the DB. If the DB is down or the query throws, the uncaught exception propagates
+ * through the EventBus handler — which swallows exceptions silently. The user receives NO
+ * notifications (complete blackout) rather than graceful degradation to default prefs.
+ *
+ * Rule: Any service in the notification critical path that calls an external dep must:
+ * 1. Wrap the external call in try/catch
+ * 2. Log a structured error JSON with `console.error`
+ * 3. Fall back to safe defaults (e.g. empty prefs → DEFAULT_PREFERENCES govern all channels)
+ * 4. Continue delivery — never re-throw from the router
+ *
+ * ✅ CORRECT — graceful degradation pattern in NotificationRouter:
+ * ```ts
+ * let prefs: Awaited<ReturnType<typeof getNotificationPreferences>>;
+ * try {
+ *   prefs = await getNotificationPreferences(userId);
+ * } catch (err: unknown) {
+ *   console.error(JSON.stringify({ level: "error", message: "notification_router.preferences_fetch_failed", userId, error: String(err) }));
+ *   prefs = {}; // DEFAULT_PREFERENCES governs every channel fallback below
+ * }
+ * ```
+ *
+ * ❌ WRONG — uncaught DB error causes silent notification blackout:
+ * ```ts
+ * const prefs = await getNotificationPreferences(userId); // throws → EventBus swallows → no notifications
+ * ```
+ *
+ * Test pattern: mock `getNotificationPreferences` to throw, assert `route()` resolves
+ * with a valid RouteResult (inApp.suppressed === false for default-enabled types).
+ *
+ * First hit: Epic 9 retrospective — identified as critical path failure mode.
+ * Fixed: Story 9.5 (NotificationRouter graceful degradation).
+ */
+
+/**
  * ✅ Additive permission audit — every new access path requires explicit regression tests.
  *
  * Root cause: When a new permission path is added (admin, creator, top-tier, etc.), existing

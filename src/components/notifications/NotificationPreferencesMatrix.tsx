@@ -3,6 +3,8 @@ import { useTranslations } from "next-intl";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { ChannelPrefs } from "@/lib/notification-constants";
 import { DEFAULT_PREFERENCES } from "@/lib/notification-constants";
+import { usePushSubscription } from "@/hooks/use-push-subscription";
+import { PushSubscriptionToggle } from "@/components/notifications/PushSubscriptionToggle";
 
 const CONFIGURABLE_TYPES = [
   "message",
@@ -73,6 +75,8 @@ function Toggle({
 export function NotificationPreferencesMatrix() {
   const t = useTranslations("Notifications");
   const queryClient = useQueryClient();
+  const { status: pushStatus } = usePushSubscription();
+  const pushSubscribed = pushStatus === "subscribed";
 
   const { data: prefs = {}, isLoading } = useQuery({
     queryKey: ["notification-preferences"],
@@ -151,7 +155,21 @@ export function NotificationPreferencesMatrix() {
               <th className="py-2 text-left font-medium w-40">{/* type column */}</th>
               <th className="py-2 text-center font-medium px-4">{t("channels.in_app")}</th>
               <th className="py-2 text-center font-medium px-4">{t("channels.email")}</th>
-              <th className="py-2 text-center font-medium px-4">{t("channels.push")}</th>
+              <th className="py-2 text-center font-medium px-4">
+                <div className="flex flex-col items-center gap-1">
+                  <span>{t("channels.push")}</span>
+                  {/* B2/U4+U5: PushSubscriptionToggle as Push column gate */}
+                  <PushSubscriptionToggle />
+                  {!pushSubscribed &&
+                    pushStatus !== "unsupported" &&
+                    pushStatus !== "denied" &&
+                    pushStatus !== "loading" && (
+                      <span className="text-xs text-muted-foreground">
+                        {t("push.enableToConfigurePush")}
+                      </span>
+                    )}
+                </div>
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -196,13 +214,14 @@ export function NotificationPreferencesMatrix() {
                     </select>
                   </div>
                 </td>
-                {/* Push */}
+                {/* Push — disabled when not subscribed (B2/U4+U5) */}
                 <td className="py-3 text-center px-4">
                   <Toggle
                     checked={getPushEnabled(type)}
                     onChange={(val) =>
                       mutation.mutate({ notificationType: type, channelPush: val })
                     }
+                    disabled={!pushSubscribed}
                     label={`${t(`types.${type}`)} ${t("channels.push")}`}
                   />
                 </td>

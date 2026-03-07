@@ -103,6 +103,7 @@ vi.mock("@/db/queries/events", () => ({
 
 // Import module once — listeners are registered at load time and captured by handlerRef
 import { markNotificationAsRead, markAllNotificationsAsRead } from "./notification-service";
+import { getNotificationPreferences } from "@/db/queries/notification-preferences";
 
 // ─── Tests ───────────────────────────────────────────────────────────────────
 
@@ -1294,5 +1295,95 @@ describe("push delivery (Story 9.3)", () => {
     });
 
     expect(mockSendPushNotifications).not.toHaveBeenCalled();
+  });
+});
+
+// ─── Story 9.5: B3 — emailData wiring for mention and group_activity ──────────
+
+describe("B3 email wiring (Story 9.5)", () => {
+  const PREFS_EMAIL_ENABLED_MENTION = {
+    mention: {
+      channelInApp: true,
+      channelEmail: true,
+      channelPush: true,
+      digestMode: "none" as const,
+      quietHoursStart: null,
+      quietHoursEnd: null,
+      quietHoursTimezone: "UTC",
+      lastDigestAt: null,
+    },
+  };
+
+  const PREFS_EMAIL_ENABLED_GROUP = {
+    group_activity: {
+      channelInApp: true,
+      channelEmail: true,
+      channelPush: false,
+      digestMode: "none" as const,
+      quietHoursStart: null,
+      quietHoursEnd: null,
+      quietHoursTimezone: "UTC",
+      lastDigestAt: null,
+    },
+  };
+
+  beforeEach(() => {
+    mockRedisExists.mockResolvedValue(0); // no DnD
+    mockFilterNotificationRecipients.mockResolvedValue(["recipient-001"]);
+    mockCreateNotification.mockResolvedValue({
+      id: "notif-b3",
+      createdAt: new Date(),
+    });
+    mockFindUserById.mockResolvedValue({
+      id: "recipient-001",
+      email: "recipient@example.com",
+      name: "Chima",
+      languagePreference: "en",
+    });
+  });
+
+  it("B3.1: enqueueEmailJob called when message.mentioned fires + user has channelEmail:true", async () => {
+    vi.mocked(getNotificationPreferences).mockResolvedValue(PREFS_EMAIL_ENABLED_MENTION);
+    const handler = handlerRef.current.get("message.mentioned");
+
+    await handler?.({
+      conversationId: "conv-001",
+      senderId: "sender-001",
+      mentionedUserIds: ["recipient-001"],
+      contentPreview: "Hey @Chima, check this!",
+      timestamp: new Date().toISOString(),
+    });
+
+    expect(mockEnqueueEmailJob).toHaveBeenCalledWith(
+      expect.stringContaining("notif-mention"),
+      expect.objectContaining({
+        to: "recipient@example.com",
+        templateId: "notification-mention",
+        data: expect.objectContaining({
+          preview: "Hey @Chima, check this!",
+          link: "/chat?conversation=conv-001",
+        }),
+      }),
+    );
+  });
+
+  it("B3.2: enqueueEmailJob called when group.join_approved fires + user has channelEmail:true", async () => {
+    vi.mocked(getNotificationPreferences).mockResolvedValue(PREFS_EMAIL_ENABLED_GROUP);
+    const handler = handlerRef.current.get("group.join_approved");
+
+    await handler?.({
+      userId: "recipient-001",
+      approvedBy: "leader-001",
+      groupId: "group-001",
+      timestamp: new Date().toISOString(),
+    });
+
+    expect(mockEnqueueEmailJob).toHaveBeenCalledWith(
+      expect.stringContaining("notif-group_activity"),
+      expect.objectContaining({
+        to: "recipient@example.com",
+        templateId: "notification-group-activity",
+      }),
+    );
   });
 });

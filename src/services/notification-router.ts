@@ -40,9 +40,12 @@ const EMAIL_ELIGIBLE_TYPES = new Set<string>([
   "event_reminder",
   "admin_announcement",
   "message", // first DM only — handler filters by messageCount===1 and conversationType==="direct"
+  "mention", // Story 9.5: notification-mention template added
+  "group_activity", // Story 9.5: notification-group-activity template added
 ]);
 // NOTE: article_* events send email directly in notification-service.ts handlers (4 events)
-// NOTE: post_interaction removed — no email template exists for this type
+// NOTE: post_interaction deferred — no event handlers exist yet (Epic 4 post-interaction story
+//   will add emailData when post.reacted/post.commented handlers are implemented)
 
 /**
  * NotificationRouter evaluates each notification against delivery rules and returns
@@ -73,7 +76,22 @@ export class NotificationRouter {
     }
 
     // 3. Load DB preferences for this user (fall back to defaults if no row)
-    const prefs = await getNotificationPreferences(userId);
+    // CRITICAL: wrap in try/catch — a DB error must never black out all notifications.
+    // If preferences fetch fails, use empty prefs so DEFAULT_PREFERENCES govern all channels.
+    let prefs: Awaited<ReturnType<typeof getNotificationPreferences>>;
+    try {
+      prefs = await getNotificationPreferences(userId);
+    } catch (err: unknown) {
+      console.error(
+        JSON.stringify({
+          level: "error",
+          message: "notification_router.preferences_fetch_failed",
+          userId,
+          error: String(err),
+        }),
+      );
+      prefs = {}; // DEFAULT_PREFERENCES governs every channel fallback below
+    }
     const typePref = prefs[type];
     const defaults = DEFAULT_PREFERENCES[type as NotificationTypeKey] ?? {
       inApp: true,

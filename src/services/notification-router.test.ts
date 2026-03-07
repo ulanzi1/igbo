@@ -324,6 +324,44 @@ describe("NotificationRouter", () => {
     expect(result.email.reason).toContain("digest mode");
   });
 
+  // ─── Story 9.5: B1 — Graceful degradation when getNotificationPreferences throws ───
+
+  it("20. falls back to DEFAULT_PREFERENCES when getNotificationPreferences throws (B1)", async () => {
+    mockGetNotificationPreferences.mockRejectedValue(new Error("DB connection refused"));
+    mockFilterNotificationRecipients.mockResolvedValue([USER_ID]);
+    mockRedisExists.mockResolvedValue(0);
+
+    // Should not throw — resolves with valid RouteResult
+    const result = await router.route({ userId: USER_ID, actorId: ACTOR_ID, type: "message" });
+
+    // DEFAULT_PREFERENCES.message.inApp = true → in-app should proceed
+    expect(result.inApp.suppressed).toBe(false);
+    expect(result.inApp.reason).toBe("in-app always delivered");
+  });
+
+  it("21. route() does not re-throw when getNotificationPreferences throws (B1)", async () => {
+    mockGetNotificationPreferences.mockRejectedValue(new Error("DB timeout"));
+
+    // Must resolve without throwing
+    await expect(
+      router.route({ userId: USER_ID, actorId: ACTOR_ID, type: "event_reminder" }),
+    ).resolves.not.toThrow();
+  });
+
+  it("22. email delivered with default prefs when getNotificationPreferences throws (B1)", async () => {
+    mockGetNotificationPreferences.mockRejectedValue(new Error("DB down"));
+    mockRedisExists.mockResolvedValue(0); // no DnD
+
+    const result = await router.route({
+      userId: USER_ID,
+      actorId: ACTOR_ID,
+      type: "event_reminder",
+    });
+
+    // DEFAULT_PREFERENCES.event_reminder.email = true AND event_reminder is EMAIL_ELIGIBLE
+    expect(result.email.suppressed).toBe(false);
+  });
+
   it("19. no DB row → defaults applied (email for eligible event_reminder type)", async () => {
     mockRedisExists.mockResolvedValue(0);
     mockGetNotificationPreferences.mockResolvedValue({}); // no row

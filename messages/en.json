@@ -32,7 +32,8 @@
     "saved": "Saved",
     "viewProfile": "View Profile",
     "logout": "Log out",
-    "points": "Points"
+    "points": "Points",
+    "search": "Search"
   },
   "Shell": {
     "appName": "Igbo Community Platform",
@@ -997,7 +998,8 @@
       "sectionTitle": "Push Notifications",
       "enableLabel": "Enable push notifications",
       "unsupportedBrowser": "Your browser does not support push notifications",
-      "permissionDenied": "Push notifications are blocked. Update your browser settings to enable them."
+      "permissionDenied": "Push notifications are blocked. Update your browser settings to enable them.",
+      "enableToConfigurePush": "Enable push notifications to configure"
     },
     "preferences": {
       "pageTitle": "Notification Preferences",
@@ -1037,7 +1039,9 @@
       "saveButton": "Save quiet hours",
       "saveError": "Failed to save quiet hours",
       "disableError": "Failed to disable quiet hours",
-      "dndIndicator": "Do not disturb"
+      "dndIndicator": "Do not disturb",
+      "savedSummary": "Active",
+      "editButton": "Edit"
     }
   },
   "Dashboard": {
@@ -1719,5 +1723,30 @@
     "purple": "Elite",
     "tooltipLabel": "{level} Verified Member — {multiplier}x points on likes",
     "ariaLabel": "{level} verification badge"
+  },
+  "GlobalSearch": {
+    "placeholder": "Search members, posts, groups…",
+    "ariaLabel": "Global search",
+    "clearAriaLabel": "Clear search",
+    "sections": {
+      "members": "Members",
+      "posts": "Posts",
+      "articles": "Articles",
+      "groups": "Groups",
+      "events": "Events",
+      "documents": "Documents"
+    },
+    "seeAll": "See all {section}",
+    "noResults": "No results for \u201c{query}\u201d",
+    "noResultsHint": "Try a different search term or browse the {discover} page.",
+    "noResultsDiscoverLink": "Discover",
+    "loading": "Searching…",
+    "minChars": "Type at least 3 characters to search",
+    "errorTitle": "Search failed",
+    "errorHint": "Please try again.",
+    "resultsPage": {
+      "title": "Search results for \u201c{query}\u201d",
+      "backToSearch": "Back to search"
+    }
   }
 }

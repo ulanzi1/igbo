@@ -32,7 +32,8 @@
     "saved": "Echekwaa",
     "viewProfile": "Hụ profaịlụ gị",
     "logout": "Pụọ",
-    "points": "Ọnụọgụ"
+    "points": "Ọnụọgụ",
+    "search": "Chọọ"
   },
   "Shell": {
     "appName": "Ụlọ Ọha Igbo",
@@ -997,7 +998,8 @@
       "sectionTitle": "Push Notifications",
       "enableLabel": "Enable push notifications",
       "unsupportedBrowser": "Your browser does not support push notifications",
-      "permissionDenied": "Push notifications are blocked. Update your browser settings to enable them."
+      "permissionDenied": "Push notifications are blocked. Update your browser settings to enable them.",
+      "enableToConfigurePush": "Gbaa push notifications ka ị hazie"
     },
     "preferences": {
       "pageTitle": "Nhọrọ Ọkwa",
@@ -1037,7 +1039,9 @@
       "saveButton": "Chekwaa oge ọcichọ",
       "saveError": "Enweghi ike ichekwa oge ọcichọ",
       "disableError": "Enweghi ike imebi oge ọcichọ",
-      "dndIndicator": "Emela ọkwa"
+      "dndIndicator": "Emela ọkwa",
+      "savedSummary": "Ọ na-arụ ọrụ",
+      "editButton": "Gbanwee"
     }
   },
   "Dashboard": {
@@ -1719,5 +1723,30 @@
     "purple": "Onye Isi",
     "tooltipLabel": "{level} Onye Ọha — {multiplier}x isi ihe na-amasị",
     "ariaLabel": "{level} ododo nyochara"
+  },
+  "GlobalSearch": {
+    "placeholder": "Chọọ ndị otu, ozi, otu…",
+    "ariaLabel": "Ọchọchọ izugbe",
+    "clearAriaLabel": "Hichapụ ọchọchọ",
+    "sections": {
+      "members": "Ndị otu",
+      "posts": "Ozi",
+      "articles": "Akwụkwọ",
+      "groups": "Otu",
+      "events": "Mmemme",
+      "documents": "Akwụkwọ ọchọchọ"
+    },
+    "seeAll": "Hụ niile {section}",
+    "noResults": "Enweghị nsonaazụ maka \u201c{query}\u201d",
+    "noResultsHint": "Nwaa okwu ọchọchọ ọzọ ma ọ bụ lelee ibe {discover}.",
+    "noResultsDiscoverLink": "Chọpụta",
+    "loading": "Na-achọ…",
+    "minChars": "Pịnye ihe ruru ọnụọgụ 3 iji chọọ",
+    "errorTitle": "Ọchọchọ enweghị ike",
+    "errorHint": "Biko nwaa ọzọ.",
+    "resultsPage": {
+      "title": "Nsonaazụ ọchọchọ maka \u201c{query}\u201d",
+      "backToSearch": "Laghachi na ọchọchọ"
+    }
   }
 }
