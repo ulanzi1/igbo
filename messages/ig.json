@@ -997,6 +997,46 @@
       "enableLabel": "Enable push notifications",
       "unsupportedBrowser": "Your browser does not support push notifications",
       "permissionDenied": "Push notifications are blocked. Update your browser settings to enable them."
+    },
+    "preferences": {
+      "pageTitle": "Nhọrọ Ọkwa",
+      "matrixDescription": "Họrọ ọkwa ndị ị na-ata na etu a ga-enye ha.",
+      "saveSuccess": "Ahaziri nhọrọ",
+      "saveError": "Ọ daghị nke ọma ichekwa nhọrọ"
+    },
+    "channels": {
+      "in_app": "N'ime App",
+      "email": "Email",
+      "push": "Push",
+      "in_app_always": "Nke ọ bụla oge"
+    },
+    "digest": {
+      "label": "Digest",
+      "none": "Real-time",
+      "daily": "Digest kwa ụbọchị",
+      "weekly": "Digest kwa izu",
+      "emailSubject": "Ndekọ OBIGBO gị – ọkwa {count}",
+      "emailHeading": "Nke ị hapụrụ",
+      "typeLabel": {
+        "message": "Ozi",
+        "mention": "Ọkpụkpụ",
+        "group_activity": "Ọrụ Otu",
+        "event_reminder": "Mmemme",
+        "post_interaction": "Mmekọrịta Ifiokwu",
+        "admin_announcement": "Mkpọsa"
+      }
+    },
+    "quietHours": {
+      "title": "Emela Ọkwa",
+      "enableLabel": "Jide oge ọcichọ",
+      "description": "Enweghị ọkwa push ma ọ bụ email n'oge a.",
+      "startLabel": "Oge mmalite",
+      "endLabel": "Oge ngwụcha",
+      "timezoneLabel": "Oge mpaghara",
+      "saveButton": "Chekwaa oge ọcichọ",
+      "saveError": "Enweghi ike ichekwa oge ọcichọ",
+      "disableError": "Enweghi ike imebi oge ọcichọ",
+      "dndIndicator": "Emela ọkwa"
     }
   },
   "Dashboard": {

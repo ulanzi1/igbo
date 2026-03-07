@@ -997,6 +997,46 @@
       "enableLabel": "Enable push notifications",
       "unsupportedBrowser": "Your browser does not support push notifications",
       "permissionDenied": "Push notifications are blocked. Update your browser settings to enable them."
+    },
+    "preferences": {
+      "pageTitle": "Notification Preferences",
+      "matrixDescription": "Choose which notifications you receive and how.",
+      "saveSuccess": "Preferences saved",
+      "saveError": "Failed to save preferences"
+    },
+    "channels": {
+      "in_app": "In-App",
+      "email": "Email",
+      "push": "Push",
+      "in_app_always": "Always on"
+    },
+    "digest": {
+      "label": "Digest",
+      "none": "Real-time",
+      "daily": "Daily digest",
+      "weekly": "Weekly digest",
+      "emailSubject": "Your OBIGBO digest – {count} notifications",
+      "emailHeading": "Here's what you missed",
+      "typeLabel": {
+        "message": "Messages",
+        "mention": "Mentions",
+        "group_activity": "Group Activity",
+        "event_reminder": "Events",
+        "post_interaction": "Post Interactions",
+        "admin_announcement": "Announcements"
+      }
+    },
+    "quietHours": {
+      "title": "Do Not Disturb",
+      "enableLabel": "Enable quiet hours",
+      "description": "No push or email notifications during this window.",
+      "startLabel": "Start time",
+      "endLabel": "End time",
+      "timezoneLabel": "Timezone",
+      "saveButton": "Save quiet hours",
+      "saveError": "Failed to save quiet hours",
+      "disableError": "Failed to disable quiet hours",
+      "dndIndicator": "Do not disturb"
     }
   },
   "Dashboard": {
