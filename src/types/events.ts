@@ -125,6 +125,13 @@ export interface PointsAwardedEvent extends BaseEvent {
   reason: string;
 }
 
+export interface PointsThrottledEvent extends BaseEvent {
+  userId: string; // reactor who receives the toast notification
+  actionType: string; // e.g., "rapid_fire"
+  eventType: string; // e.g., "post.reacted"
+  eventId: string; // e.g., postId
+}
+
 // --- Member Events ---
 
 export interface MemberBannedEvent extends BaseEvent {
@@ -541,6 +548,7 @@ export type EventName =
   | "message.deleted"
   | "message.mentioned"
   | "points.awarded"
+  | "points.throttled"
   | "member.banned"
   | "member.approved"
   | "member.info_requested"
@@ -625,6 +633,7 @@ export interface EventMap {
   "message.deleted": MessageDeletedEvent;
   "message.mentioned": MessageMentionedEvent;
   "points.awarded": PointsAwardedEvent;
+  "points.throttled": PointsThrottledEvent;
   "member.banned": MemberBannedEvent;
   "member.approved": MemberApprovedEvent;
   "member.info_requested": MemberInfoRequestedEvent;

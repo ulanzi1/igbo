@@ -46,6 +46,7 @@ vi.mock("@/services/block-service", () => ({
 
 vi.mock("@/lib/redis", () => ({
   getRedisPublisher: () => mockGetRedisPublisher(),
+  getRedisClient: () => mockGetRedisPublisher(), // router uses getRedisClient for DnD check
 }));
 
 vi.mock("@/db/queries/chat-conversations", () => ({
@@ -341,14 +342,20 @@ describe("message.mentioned handler (Story 2.7)", () => {
     );
   });
 
-  it("suppresses notification when DnD is active (redis.exists returns 1)", async () => {
+  it("DnD active — in-app still delivered (behavior change: DnD now only suppresses email/push)", async () => {
+    // Story 9.1: DnD (quiet hours) moved into NotificationRouter. Router suppresses email/push
+    // but in-app is ALWAYS delivered (AC3). Previously, DnD suppressed all delivery.
     mockGetConversationNotificationPreference.mockResolvedValue("all");
+    mockFilterNotificationRecipients.mockResolvedValue([RECIPIENT_1]);
     mockRedisExists.mockResolvedValue(1); // DnD active
     const handler = handlerRef.current.get("message.mentioned");
 
     await handler?.(makeMentionPayload([RECIPIENT_1]));
 
-    expect(mockCreateNotification).not.toHaveBeenCalled();
+    // In-app notification IS created even when DnD is active (silent accumulation)
+    expect(mockCreateNotification).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: RECIPIENT_1, type: "mention" }),
+    );
   });
 
   it("handles 2 mentioned users: one muted, one not — only unmuted receives notification", async () => {
@@ -411,8 +418,10 @@ describe("article.published handler", () => {
     );
   });
 
-  it("uses actorId === userId (self-notify pattern bypasses block/mute)", async () => {
-    mockFilterNotificationRecipients.mockResolvedValue([AUTHOR_ID]);
+  it("uses actorId === userId (self-notify pattern bypasses block/mute — router skips filter)", async () => {
+    // Story 9.1: self-notify bypass now happens inside NotificationRouter.
+    // When actorId === userId, filterNotificationRecipients is NOT called at all.
+    mockFilterNotificationRecipients.mockResolvedValue([]);
     const handler = handlerRef.current.get("article.published");
 
     await handler?.({
@@ -423,7 +432,11 @@ describe("article.published handler", () => {
       timestamp: new Date().toISOString(),
     });
 
-    expect(mockFilterNotificationRecipients).toHaveBeenCalledWith([AUTHOR_ID], AUTHOR_ID);
+    // Block filter is bypassed entirely for self-notify — notification still created
+    expect(mockFilterNotificationRecipients).not.toHaveBeenCalled();
+    expect(mockCreateNotification).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: AUTHOR_ID }),
+    );
   });
 });
 
@@ -781,5 +794,91 @@ describe("recording.expiring_warning handler", () => {
       timestamp: new Date().toISOString(),
     });
     expect(mockCreateNotification).not.toHaveBeenCalled();
+  });
+});
+
+// ─── Story 9.1 Regression Tests (NotificationRouter integration) ──────────────
+
+describe("Story 9.1 regression — NotificationRouter integration", () => {
+  const CONV_ID = "00000000-0000-4000-8000-000000000030";
+  const SENDER_ID = "00000000-0000-4000-8000-000000000002";
+  const RECIPIENT_1 = "00000000-0000-4000-8000-000000000003";
+
+  const makeMentionPayload = (mentionedUserIds: string[]) => ({
+    messageId: "00000000-0000-4000-8000-000000000010",
+    conversationId: CONV_ID,
+    senderId: SENDER_ID,
+    mentionedUserIds,
+    contentPreview: "Hey @Alice check this out",
+    timestamp: new Date().toISOString(),
+  });
+
+  it("R1. DnD suppresses email but in-app still created for message.mentioned", async () => {
+    mockGetConversationNotificationPreference.mockResolvedValue("all");
+    mockFilterNotificationRecipients.mockResolvedValue([RECIPIENT_1]);
+    mockRedisExists.mockResolvedValue(1); // DnD active
+    const handler = handlerRef.current.get("message.mentioned");
+
+    await handler?.(makeMentionPayload([RECIPIENT_1]));
+
+    // In-app: always delivered (createNotification called)
+    expect(mockCreateNotification).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: RECIPIENT_1, type: "mention" }),
+    );
+    expect(mockPublish).toHaveBeenCalledWith("eventbus:notification.created", expect.any(String));
+  });
+
+  it("R2. per-conversation 'muted' suppresses in-app AND email for message.mentioned", async () => {
+    mockGetConversationNotificationPreference.mockResolvedValue("muted");
+    mockFilterNotificationRecipients.mockResolvedValue([RECIPIENT_1]);
+    const handler = handlerRef.current.get("message.mentioned");
+
+    await handler?.(makeMentionPayload([RECIPIENT_1]));
+
+    // All channels suppressed — no notification created
+    expect(mockCreateNotification).not.toHaveBeenCalled();
+    expect(mockPublish).not.toHaveBeenCalledWith(
+      "eventbus:notification.created",
+      expect.any(String),
+    );
+  });
+
+  it("R3. block filter still suppresses in-app for deliverNotification() (regression guard)", async () => {
+    mockFilterNotificationRecipients.mockResolvedValue([]); // blocked
+    const approvedHandler = handlerRef.current.get("member.approved");
+
+    await approvedHandler?.({
+      userId: "00000000-0000-4000-8000-000000000001",
+      approvedBy: "00000000-0000-4000-8000-000000000002",
+      timestamp: new Date().toISOString(),
+    });
+
+    expect(mockCreateNotification).not.toHaveBeenCalled();
+  });
+
+  it("R4. points.throttled EventBus event triggers notification delivery through router", async () => {
+    mockFilterNotificationRecipients.mockResolvedValue([RECIPIENT_1]);
+    const handler = handlerRef.current.get("points.throttled");
+
+    // Handler must be registered (inside HMR guard block)
+    expect(handler).toBeDefined();
+
+    await handler?.({
+      userId: RECIPIENT_1,
+      actionType: "rapid_fire",
+      eventType: "post.reacted",
+      eventId: "post-abc",
+      timestamp: new Date().toISOString(),
+    });
+
+    expect(mockCreateNotification).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: RECIPIENT_1,
+        type: "system",
+        title: "notifications.points_throttled.title",
+        body: "notifications.points_throttled.body",
+        link: "/points",
+      }),
+    );
   });
 });
