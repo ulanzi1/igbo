@@ -134,7 +134,7 @@ development_status:
   epic-9: in-progress
   9-1-notification-routing-channel-delivery: done
   9-2-email-notifications: done
-  9-3-push-notifications-web-push-api: backlog
+  9-3-push-notifications-web-push-api: done
   9-4-notification-preferences-digest: backlog
   epic-9-retrospective: optional
 

@@ -142,11 +142,50 @@ describe("NotificationRouter", () => {
     expect(result.inApp.suppressed).toBe(false);
   });
 
-  it("9. push channel always suppressed with correct reason string", async () => {
+  it("9. push channel suppressed for non-eligible type (system)", async () => {
+    mockRedisExists.mockResolvedValue(0); // no DnD
+
     const result = await router.route({ userId: USER_ID, actorId: ACTOR_ID, type: "system" });
 
     expect(result.push.suppressed).toBe(true);
-    expect(result.push.reason).toBe("push not yet implemented (Story 9.3)");
+    expect(result.push.reason).toBe("type not in push allowlist");
+  });
+
+  // ─── Story 9.3: Push channel decision ───────────────────────────────────────
+
+  it("13. push channel delivered for eligible type + no DnD (message)", async () => {
+    mockRedisExists.mockResolvedValue(0); // no DnD
+
+    const result = await router.route({ userId: USER_ID, actorId: ACTOR_ID, type: "message" });
+
+    expect(result.push.suppressed).toBe(false);
+    expect(result.push.reason).toContain("push eligible type");
+  });
+
+  it("14. push channel suppressed when DnD active (even for eligible type)", async () => {
+    mockRedisExists.mockResolvedValue(1); // DnD active
+
+    const result = await router.route({
+      userId: USER_ID,
+      actorId: ACTOR_ID,
+      type: "event_reminder",
+    });
+
+    expect(result.push.suppressed).toBe(true);
+    expect(result.push.reason).toContain("quiet hours");
+  });
+
+  it("15. push channel suppressed for non-eligible type (group_activity)", async () => {
+    mockRedisExists.mockResolvedValue(0); // no DnD
+
+    const result = await router.route({
+      userId: USER_ID,
+      actorId: ACTOR_ID,
+      type: "group_activity",
+    });
+
+    expect(result.push.suppressed).toBe(true);
+    expect(result.push.reason).toBe("type not in push allowlist");
   });
 
   it("10. RouteResult shape contains all three channel decisions", async () => {

@@ -22,6 +22,14 @@ export interface RouteParams {
   conversationId?: string; // for per-conv preference check
 }
 
+// Push-eligible types (Story 9.3)
+const PUSH_ELIGIBLE_TYPES = new Set<string>([
+  "message",
+  "mention",
+  "event_reminder",
+  "admin_announcement",
+]);
+
 // High-priority types that warrant email delivery (defaults — overridden by Story 9.4 prefs)
 const EMAIL_ELIGIBLE_TYPES = new Set<string>([
   "event_reminder",
@@ -74,11 +82,15 @@ export class NotificationRouter {
       email = { suppressed: true, reason: "type not in email allowlist (Story 9.2)" };
     }
 
-    // 5. Push: not yet implemented (Story 9.3)
-    const push: ChannelDecision = {
-      suppressed: true,
-      reason: "push not yet implemented (Story 9.3)",
-    };
+    // 5. Push: check DnD + type eligibility (Story 9.3)
+    let push: ChannelDecision;
+    if (isDnd) {
+      push = { suppressed: true, reason: "quiet hours (dnd key set)" };
+    } else if (PUSH_ELIGIBLE_TYPES.has(type)) {
+      push = { suppressed: false, reason: `push eligible type: ${type}` };
+    } else {
+      push = { suppressed: true, reason: "type not in push allowlist" };
+    }
 
     const result: RouteResult = { inApp, email, push };
     // eslint-disable-next-line no-console -- AC2: routing decision logged at debug level (no DB write)
