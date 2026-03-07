@@ -9,6 +9,7 @@ import { PointsSummaryCard } from "@/components/points/PointsSummaryCard";
 import { PointsHistoryFilter } from "@/components/points/PointsHistoryFilter";
 import { PointsHistoryList } from "@/components/points/PointsHistoryList";
 import { ArticleLimitProgress } from "@/features/dashboard/components/ArticleLimitProgress";
+import { Link } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { LedgerHistoryRow } from "@/db/queries/points";
@@ -104,7 +105,12 @@ export default function PointsPage() {
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-2xl">
-      <h1 className="text-2xl font-bold mb-6">{t("history.title")}</h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold">{t("history.title")}</h1>
+        <Link href="/points/how-to-earn" className="text-sm text-muted-foreground hover:underline">
+          {t("howToEarn.linkLabel")}
+        </Link>
+      </div>
 
       <div className="mb-6">
         <PointsSummaryCard

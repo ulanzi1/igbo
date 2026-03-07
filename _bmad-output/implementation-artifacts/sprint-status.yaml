@@ -127,7 +127,8 @@ development_status:
   8-2-points-dashboard-history: done
   8-3-verification-badges-display: done # review: 8 findings (3H/3M/2L), 6 fixed — chat badge wiring, cache type safety, DELETE 404, test naming — 2026-03-07
   8-4-points-based-posting-limits: done # review: 3 fixes (F1/F3 redundant DB call, F2 drift comment, F4 nextBonusLimit→nextEffectiveLimit rename), +1 test — 2026-03-07
-  epic-8-retrospective: optional
+  epic-8-retrospective: done # AI-1–AI-4 captured; /points/how-to-earn story added; Epic 11 stories 11.6–11.8 added; verification workflow deferred — 2026-03-07
+  8-5-points-how-to-earn-page: done # review: 6 findings (2H/2M/2L) all fixed — orderBy test, ArticleLimitProgress mock, link test, Igbo colors, t.has fallback, Tailwind classes — 2026-03-07
 
   # Epic 9: Notifications & Communication Preferences
   epic-9: backlog

@@ -1,12 +1,15 @@
 // No "server-only" — follows posts.ts / feed.ts pattern (imported by server-only services).
-import { eq, and, sum, count, desc } from "drizzle-orm";
+import { eq, and, sum, count, desc, asc } from "drizzle-orm";
 import { sql } from "drizzle-orm";
 import { db } from "@/db";
 import { auditLogs } from "@/db/schema/audit-logs";
 import { platformPointsLedger, platformPointsRules } from "@/db/schema/platform-points";
 import type { PlatformPointsRule } from "@/db/schema/platform-points";
 import { platformPostingLimits } from "@/db/schema/platform-posting-limits";
+import type { PlatformPostingLimit } from "@/db/schema/platform-posting-limits";
 import type { MembershipTier } from "@/db/queries/auth-permissions";
+
+export type { PlatformPostingLimit };
 
 // Tier baselines — mirrors PERMISSION_MATRIX.maxArticlesPerWeek without circular import.
 // WARNING: If PERMISSION_MATRIX.maxArticlesPerWeek values change, update these too.
@@ -38,6 +41,13 @@ export async function insertPointsLedgerEntry(data: InsertLedgerEntryData): Prom
 
 export async function getActivePointsRules(): Promise<PlatformPointsRule[]> {
   return db.select().from(platformPointsRules).where(eq(platformPointsRules.isActive, true));
+}
+
+export async function getAllPostingLimits(): Promise<PlatformPostingLimit[]> {
+  return db
+    .select()
+    .from(platformPostingLimits)
+    .orderBy(asc(platformPostingLimits.tier), asc(platformPostingLimits.pointsThreshold));
 }
 
 export async function getPointsRuleByActivityType(
