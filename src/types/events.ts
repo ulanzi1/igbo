@@ -59,6 +59,16 @@ export interface MessageSentEvent extends BaseEvent {
     fileType: string | null;
     fileSize: number | null;
   }>;
+  /** Story 9.2: recipient of the message (direct conversations only) */
+  recipientId?: string;
+  /** Story 9.2: first 100 chars of content for email preview */
+  messagePreview?: string;
+  /** Story 9.2: total message count in conversation after insert (used to detect first message) */
+  messageCount?: number;
+  /** Story 9.2: conversation type — handler filters on "direct" only */
+  conversationType?: "direct" | "group" | "channel";
+  /** Story 9.2: display name of the sender */
+  senderName?: string;
 }
 
 export interface MessageEditedEvent extends BaseEvent {

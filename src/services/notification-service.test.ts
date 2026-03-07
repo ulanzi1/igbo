@@ -129,8 +129,8 @@ describe("notification-service module loading", () => {
     expect(handlerRef.current.has("post.commented")).toBe(false);
   });
 
-  it("does NOT register message.sent listener (deferred until chat exists)", () => {
-    expect(handlerRef.current.has("message.sent")).toBe(false);
+  it("registers message.sent listener (Story 9.2 — first-DM email)", () => {
+    expect(handlerRef.current.has("message.sent")).toBe(true);
   });
 
   it("registers member.followed listener", () => {
@@ -880,5 +880,361 @@ describe("Story 9.1 regression — NotificationRouter integration", () => {
         link: "/points",
       }),
     );
+  });
+});
+
+// ─── Story 9.2: Email dispatch in deliverNotification() ────────────────────────
+
+describe("Story 9.2 — email dispatch via deliverNotification()", () => {
+  const USER_ID = "00000000-0000-4000-8000-000000000001";
+  const ACTOR_ID = "00000000-0000-4000-8000-000000000002";
+  const EVENT_ID = "00000000-0000-4000-8000-000000000088";
+
+  it("E1. enqueues email when router says email not suppressed AND user has email AND template exists", async () => {
+    mockFilterNotificationRecipients.mockResolvedValue([USER_ID]);
+    mockRedisExists.mockResolvedValue(0); // no DnD
+    mockFindUserById.mockResolvedValue({
+      id: USER_ID,
+      email: "test@example.com",
+      name: "Test User",
+      languagePreference: "en",
+    });
+    const handler = handlerRef.current.get("event.reminder");
+
+    await handler?.({
+      eventId: EVENT_ID,
+      userId: USER_ID,
+      title: "Igbo Language Class",
+      startTime: "2026-03-15T14:00:00Z",
+      reminderType: "24h",
+      timestamp: new Date().toISOString(),
+    });
+
+    expect(mockEnqueueEmailJob).toHaveBeenCalledWith(
+      expect.stringContaining(`notif-event_reminder-${USER_ID}`),
+      expect.objectContaining({
+        to: "test@example.com",
+        templateId: "notification-event-reminder",
+        data: expect.objectContaining({ name: "Test User" }) as unknown,
+        locale: "en",
+      }),
+    );
+  });
+
+  it("E2. does NOT enqueue email when router says email suppressed (DnD active)", async () => {
+    mockFilterNotificationRecipients.mockResolvedValue([USER_ID]);
+    mockRedisExists.mockResolvedValue(1); // DnD active
+    const handler = handlerRef.current.get("event.reminder");
+
+    await handler?.({
+      eventId: EVENT_ID,
+      userId: USER_ID,
+      title: "Igbo Language Class",
+      startTime: "2026-03-15T14:00:00Z",
+      reminderType: "24h",
+      timestamp: new Date().toISOString(),
+    });
+
+    // email suppressed by DnD — enqueueEmailJob NOT called for the notification channel
+    // (may be called for article direct-sends but not for this event_reminder via deliverNotification)
+    const notifEmailCalls = mockEnqueueEmailJob.mock.calls.filter((args) =>
+      String(args[0]).startsWith("notif-"),
+    );
+    expect(notifEmailCalls).toHaveLength(0);
+  });
+
+  it("E3. does NOT enqueue email when user has no email (null)", async () => {
+    mockFilterNotificationRecipients.mockResolvedValue([USER_ID]);
+    mockRedisExists.mockResolvedValue(0);
+    mockFindUserById.mockResolvedValue({
+      id: USER_ID,
+      email: null,
+      name: "Test User",
+      languagePreference: "en",
+    });
+    const handler = handlerRef.current.get("event.reminder");
+
+    await handler?.({
+      eventId: EVENT_ID,
+      userId: USER_ID,
+      title: "Igbo Language Class",
+      startTime: "2026-03-15T14:00:00Z",
+      reminderType: "24h",
+      timestamp: new Date().toISOString(),
+    });
+
+    const notifEmailCalls = mockEnqueueEmailJob.mock.calls.filter((args) =>
+      String(args[0]).startsWith("notif-"),
+    );
+    expect(notifEmailCalls).toHaveLength(0);
+  });
+
+  it("E4. does NOT enqueue email when type has no mapped template (system type)", async () => {
+    mockFilterNotificationRecipients.mockResolvedValue([USER_ID]);
+    mockRedisExists.mockResolvedValue(0);
+    mockFindUserById.mockResolvedValue({
+      id: USER_ID,
+      email: "test@example.com",
+      name: "Test User",
+      languagePreference: "en",
+    });
+    // 'system' type is not in EMAIL_ELIGIBLE_TYPES — router suppresses email for it
+    const handler = handlerRef.current.get("points.throttled");
+
+    await handler?.({
+      userId: USER_ID,
+      actionType: "rapid_fire",
+      eventType: "post.reacted",
+      eventId: "post-abc",
+      timestamp: new Date().toISOString(),
+    });
+
+    const notifEmailCalls = mockEnqueueEmailJob.mock.calls.filter((args) =>
+      String(args[0]).startsWith("notif-"),
+    );
+    expect(notifEmailCalls).toHaveLength(0);
+  });
+
+  it("E5. email uses user's languagePreference ('ig') for locale", async () => {
+    mockFilterNotificationRecipients.mockResolvedValue([USER_ID]);
+    mockRedisExists.mockResolvedValue(0);
+    mockFindUserById.mockResolvedValue({
+      id: USER_ID,
+      email: "test@example.com",
+      name: "Test User",
+      languagePreference: "ig",
+    });
+    const handler = handlerRef.current.get("event.reminder");
+
+    await handler?.({
+      eventId: EVENT_ID,
+      userId: USER_ID,
+      title: "Igbo Language Class",
+      startTime: "2026-03-15T14:00:00Z",
+      reminderType: "24h",
+      timestamp: new Date().toISOString(),
+    });
+
+    const notifEmailCalls = mockEnqueueEmailJob.mock.calls.filter((args) =>
+      String(args[0]).startsWith("notif-"),
+    );
+    expect(notifEmailCalls[0]?.[1]).toMatchObject({ locale: "ig" });
+  });
+
+  it("E6. emailData is merged with { name } in enqueueEmailJob data", async () => {
+    mockFilterNotificationRecipients.mockResolvedValue([USER_ID]);
+    mockRedisExists.mockResolvedValue(0);
+    mockFindUserById.mockResolvedValue({
+      id: USER_ID,
+      email: "test@example.com",
+      name: "Chidi",
+      languagePreference: "en",
+    });
+    const handler = handlerRef.current.get("event.reminder");
+
+    await handler?.({
+      eventId: EVENT_ID,
+      userId: USER_ID,
+      title: "Community Night",
+      startTime: "2026-03-15T18:00:00Z",
+      reminderType: "1h",
+      timestamp: new Date().toISOString(),
+    });
+
+    const notifEmailCalls = mockEnqueueEmailJob.mock.calls.filter((args) =>
+      String(args[0]).startsWith("notif-"),
+    );
+    expect(notifEmailCalls[0]?.[1]).toMatchObject({
+      data: expect.objectContaining({
+        name: "Chidi",
+        eventTitle: "Community Night",
+        startTime: "2026-03-15T18:00:00Z",
+        eventUrl: `/events/${EVENT_ID}`,
+      }) as unknown,
+    });
+  });
+});
+
+// ─── Story 9.2: message.sent handler ──────────────────────────────────────────
+
+describe("Story 9.2 — message.sent handler (first-DM email)", () => {
+  const SENDER_ID = "00000000-0000-4000-8000-000000000011";
+  const RECIPIENT_ID = "00000000-0000-4000-8000-000000000012";
+  const CONV_ID = "00000000-0000-4000-8000-000000000020";
+
+  const makeFirstDmPayload = (overrides: Record<string, unknown> = {}) => ({
+    messageId: "msg-001",
+    senderId: SENDER_ID,
+    conversationId: CONV_ID,
+    content: "Hello!",
+    contentType: "text",
+    createdAt: new Date().toISOString(),
+    timestamp: new Date().toISOString(),
+    recipientId: RECIPIENT_ID,
+    messagePreview: "Hello!",
+    messageCount: 1,
+    conversationType: "direct" as const,
+    senderName: "Emeka",
+    ...overrides,
+  });
+
+  beforeEach(() => {
+    mockFilterNotificationRecipients.mockResolvedValue([RECIPIENT_ID]);
+    mockRedisExists.mockResolvedValue(0);
+    mockFindUserById.mockResolvedValue({
+      id: RECIPIENT_ID,
+      email: "recipient@example.com",
+      name: "Adaeze",
+      languagePreference: "en",
+    });
+  });
+
+  it("M1. first DM (messageCount===1, conversationType==='direct') triggers deliverNotification with type 'message'", async () => {
+    const handler = handlerRef.current.get("message.sent");
+
+    await handler?.(makeFirstDmPayload());
+
+    expect(mockCreateNotification).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: RECIPIENT_ID,
+        type: "message",
+        title: "notifications.new_message.title",
+        body: "notifications.new_message.body",
+        link: `/chat/${CONV_ID}`,
+      }),
+    );
+  });
+
+  it("M2. subsequent messages (messageCount > 1) do NOT trigger deliverNotification", async () => {
+    const handler = handlerRef.current.get("message.sent");
+
+    await handler?.(makeFirstDmPayload({ messageCount: 2 }));
+
+    expect(mockCreateNotification).not.toHaveBeenCalled();
+  });
+
+  it("M3. group channel message (conversationType==='channel') does NOT trigger deliverNotification even if messageCount===1", async () => {
+    const handler = handlerRef.current.get("message.sent");
+
+    await handler?.(makeFirstDmPayload({ conversationType: "channel" }));
+
+    expect(mockCreateNotification).not.toHaveBeenCalled();
+  });
+
+  it("M4. missing recipientId silently skips delivery", async () => {
+    const handler = handlerRef.current.get("message.sent");
+
+    await handler?.(makeFirstDmPayload({ recipientId: undefined }));
+
+    expect(mockCreateNotification).not.toHaveBeenCalled();
+  });
+});
+
+// ─── Story 9.2 Review Fixes ──────────────────────────────────────────────────
+
+describe("Story 9.2 review — F3: article handlers do NOT trigger router email", () => {
+  const AUTHOR_ID = "00000000-0000-4000-8000-000000000050";
+  const ARTICLE_ID = "00000000-0000-4000-8000-000000000060";
+
+  it("article.published does NOT enqueue notification-member-approved email (only direct article-published email)", async () => {
+    mockFilterNotificationRecipients.mockResolvedValue([AUTHOR_ID]);
+    mockRedisExists.mockResolvedValue(0);
+    mockFindUserById.mockResolvedValue({
+      id: AUTHOR_ID,
+      email: "author@example.com",
+      name: "Test Author",
+      languagePreference: "en",
+    });
+    const handler = handlerRef.current.get("article.published");
+
+    await handler?.({
+      articleId: ARTICLE_ID,
+      authorId: AUTHOR_ID,
+      title: "My Article",
+      slug: "my-article",
+      timestamp: new Date().toISOString(),
+    });
+
+    // Should only have the direct article-published email, NOT a notif-admin_announcement email
+    const notifEmailCalls = mockEnqueueEmailJob.mock.calls.filter((args) =>
+      String(args[0]).startsWith("notif-"),
+    );
+    expect(notifEmailCalls).toHaveLength(0);
+
+    // The direct article email SHOULD still fire
+    const articleEmailCalls = mockEnqueueEmailJob.mock.calls.filter((args) =>
+      String(args[0]).startsWith("article-published-"),
+    );
+    expect(articleEmailCalls).toHaveLength(1);
+  });
+
+  it("article.rejected does NOT enqueue notification-member-approved email (only direct article-rejected email)", async () => {
+    mockFilterNotificationRecipients.mockResolvedValue([AUTHOR_ID]);
+    mockRedisExists.mockResolvedValue(0);
+    mockFindUserById.mockResolvedValue({
+      id: AUTHOR_ID,
+      email: "author@example.com",
+      name: "Test Author",
+      languagePreference: "en",
+    });
+    const handler = handlerRef.current.get("article.rejected");
+
+    await handler?.({
+      articleId: ARTICLE_ID,
+      authorId: AUTHOR_ID,
+      title: "My Article",
+      feedback: "Needs work",
+      timestamp: new Date().toISOString(),
+    });
+
+    const notifEmailCalls = mockEnqueueEmailJob.mock.calls.filter((args) =>
+      String(args[0]).startsWith("notif-"),
+    );
+    expect(notifEmailCalls).toHaveLength(0);
+
+    const articleEmailCalls = mockEnqueueEmailJob.mock.calls.filter((args) =>
+      String(args[0]).startsWith("article-rejected-"),
+    );
+    expect(articleEmailCalls).toHaveLength(1);
+  });
+});
+
+describe("Story 9.2 review — F6: event.waitlist_promoted email dispatch", () => {
+  const PROMOTED_USER_ID = "00000000-0000-4000-8000-000000000099";
+  const EVENT_ID = "00000000-0000-4000-8000-000000000088";
+
+  it("enqueues notification-event-reminder email with startTime for waitlist_promoted", async () => {
+    mockFilterNotificationRecipients.mockResolvedValue([PROMOTED_USER_ID]);
+    mockRedisExists.mockResolvedValue(0);
+    mockFindUserById.mockResolvedValue({
+      id: PROMOTED_USER_ID,
+      email: "promoted@example.com",
+      name: "Lucky Member",
+      languagePreference: "en",
+    });
+    const handler = handlerRef.current.get("event.waitlist_promoted");
+
+    await handler?.({
+      eventId: EVENT_ID,
+      promotedUserId: PROMOTED_USER_ID,
+      title: "Community Night Out",
+      startTime: "2030-06-15T18:00:00Z",
+      timestamp: new Date().toISOString(),
+    });
+
+    const notifEmailCalls = mockEnqueueEmailJob.mock.calls.filter((args) =>
+      String(args[0]).startsWith("notif-"),
+    );
+    expect(notifEmailCalls).toHaveLength(1);
+    expect(notifEmailCalls[0]?.[1]).toMatchObject({
+      to: "promoted@example.com",
+      templateId: "notification-event-reminder",
+      data: expect.objectContaining({
+        name: "Lucky Member",
+        eventTitle: "Community Night Out",
+        startTime: "2030-06-15T18:00:00Z",
+        eventUrl: `/events/${EVENT_ID}`,
+      }) as unknown,
+    });
   });
 });

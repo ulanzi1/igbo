@@ -42,10 +42,13 @@ vi.mock("@/db/queries/file-uploads", () => ({
   getFileUploadById: (...args: unknown[]) => mockGetFileUploadById(...args),
 }));
 
+const mockDbSelect = vi.hoisted(() => vi.fn());
+
 vi.mock("@/db", () => ({
   db: {
     transaction: (...args: unknown[]) => mockDbTransaction(...args),
     update: (...args: unknown[]) => mockDbUpdate(...args),
+    select: (...args: unknown[]) => mockDbSelect(...args),
   },
 }));
 
@@ -62,7 +65,12 @@ vi.mock("@/db/schema/chat-messages", () => ({
 }));
 
 vi.mock("@/db/schema/chat-conversations", () => ({
-  chatConversations: { id: {}, updatedAt: {} },
+  chatConversations: { id: {}, type: {}, updatedAt: {} },
+  chatConversationMembers: { conversationId: {}, userId: {} },
+}));
+
+vi.mock("@/db/schema/auth-users", () => ({
+  authUsers: { id: {}, name: {} },
 }));
 
 vi.mock("@/db/schema/chat-message-attachments", () => ({
@@ -115,6 +123,25 @@ const mockReadyUpload = {
   createdAt: new Date(),
 };
 
+// Fluent select chain helper: db.select().from().where().limit() resolves to given value
+function makeSelectChain(result: unknown[]) {
+  const chain = {
+    from: vi.fn(),
+    where: vi.fn(),
+    innerJoin: vi.fn(),
+    limit: vi.fn().mockResolvedValue(result),
+  };
+  chain.from.mockReturnValue(chain);
+  chain.where.mockReturnValue(chain);
+  chain.innerJoin.mockReturnValue(chain);
+  // Also make `.where()` directly awaitable (for count query without .limit())
+  chain.where.mockImplementation((..._args: unknown[]) => {
+    const awaitable = Object.assign(Promise.resolve(result), chain);
+    return awaitable;
+  });
+  return chain;
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
   // Default: getMessages returns empty
@@ -126,6 +153,8 @@ beforeEach(() => {
       where: vi.fn().mockResolvedValue([]),
     }),
   });
+  // Default: db.select() chain — conversation type = "group" (safe default; doesn't trigger DM email path)
+  mockDbSelect.mockImplementation(() => makeSelectChain([{ type: "group" }]));
 });
 
 describe("messageService.sendMessage", () => {

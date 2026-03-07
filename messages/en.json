@@ -1316,6 +1316,10 @@
     "points_throttled": {
       "title": "Reaction Limit Reached",
       "body": "Slow down — your reactions are going too fast"
+    },
+    "new_message": {
+      "title": "New message",
+      "body": "You received a new message from {senderName}"
     }
   },
   "Feed": {

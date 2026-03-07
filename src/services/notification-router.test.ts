@@ -162,4 +162,32 @@ describe("NotificationRouter", () => {
     expect(result.push).toHaveProperty("suppressed");
     expect(result.push).toHaveProperty("reason");
   });
+
+  // ─── Story 9.2: Updated EMAIL_ELIGIBLE_TYPES ────────────────────────────────
+
+  it("11. 'post_interaction' type is now suppressed (removed from EMAIL_ELIGIBLE_TYPES in Story 9.2)", async () => {
+    mockRedisExists.mockResolvedValue(0); // no DnD
+
+    const result = await router.route({
+      userId: USER_ID,
+      actorId: ACTOR_ID,
+      type: "post_interaction",
+    });
+
+    expect(result.email.suppressed).toBe(true);
+    expect(result.email.reason).toContain("allowlist");
+  });
+
+  it("12. 'message' type is now eligible for email (added to EMAIL_ELIGIBLE_TYPES in Story 9.2)", async () => {
+    mockRedisExists.mockResolvedValue(0); // no DnD
+
+    const result = await router.route({
+      userId: USER_ID,
+      actorId: ACTOR_ID,
+      type: "message",
+    });
+
+    expect(result.email.suppressed).toBe(false);
+    expect(result.email.reason).toContain("eligible type");
+  });
 });

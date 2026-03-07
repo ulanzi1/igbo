@@ -1,5 +1,5 @@
 // NOTE: No "server-only" — used by both Next.js and the standalone realtime server
-import { eq } from "drizzle-orm";
+import { and, count, eq } from "drizzle-orm";
 import { eventBus } from "@/services/event-bus";
 import {
   createMessage,
@@ -17,8 +17,9 @@ import {
 import { getFileUploadById } from "@/db/queries/file-uploads";
 import { db } from "@/db";
 import { chatMessages } from "@/db/schema/chat-messages";
-import { chatConversations } from "@/db/schema/chat-conversations";
+import { chatConversations, chatConversationMembers } from "@/db/schema/chat-conversations";
 import { chatMessageAttachments } from "@/db/schema/chat-message-attachments";
+import { authUsers } from "@/db/schema/auth-users";
 import type { ChatMessage, MessageContentType } from "@/db/schema/chat-messages";
 import type { ChatMessageAttachment } from "@/db/schema/chat-message-attachments";
 
@@ -134,6 +135,40 @@ class PlaintextMessageService implements MessageService {
     // Emit from service (never from routes or namespace handlers)
     // Note: use ?? null (not ?? undefined) — undefined is dropped by JSON.stringify
     // which would lose parentMessageId when passing through Redis pub/sub.
+
+    // Story 9.2: Gather extra fields for first-DM email notification.
+    // Only fetch conversation details for direct messages to avoid unnecessary DB queries.
+    const [conversationRow] = await db
+      .select({ type: chatConversations.type })
+      .from(chatConversations)
+      .where(eq(chatConversations.id, conversationId))
+      .limit(1);
+    const conversationType = conversationRow?.type ?? "direct";
+
+    let recipientId: string | undefined;
+    let senderName: string | undefined;
+    let messageCount: number | undefined;
+
+    if (conversationType === "direct") {
+      const members = await db
+        .select({
+          userId: chatConversationMembers.userId,
+          name: authUsers.name,
+        })
+        .from(chatConversationMembers)
+        .innerJoin(authUsers, eq(authUsers.id, chatConversationMembers.userId))
+        .where(eq(chatConversationMembers.conversationId, conversationId));
+
+      recipientId = members.find((m) => m.userId !== senderId)?.userId;
+      senderName = members.find((m) => m.userId === senderId)?.name ?? undefined;
+
+      const [countRow] = await db
+        .select({ count: count() })
+        .from(chatMessages)
+        .where(and(eq(chatMessages.conversationId, conversationId)));
+      messageCount = Number(countRow?.count ?? 1);
+    }
+
     eventBus.emit("message.sent", {
       messageId: message.id,
       senderId: message.senderId,
@@ -143,6 +178,11 @@ class PlaintextMessageService implements MessageService {
       createdAt: message.createdAt.toISOString(),
       parentMessageId: message.parentMessageId ?? null,
       timestamp: message.createdAt.toISOString(),
+      conversationType,
+      recipientId,
+      messagePreview: content.slice(0, 100),
+      messageCount,
+      senderName,
     });
 
     // Detect and emit mentions
@@ -227,6 +267,38 @@ class PlaintextMessageService implements MessageService {
       fileSize: a.fileSize ?? null,
     }));
 
+    // Story 9.2: Gather extra fields for first-DM email notification (same as sendMessage).
+    const [convRow] = await db
+      .select({ type: chatConversations.type })
+      .from(chatConversations)
+      .where(eq(chatConversations.id, conversationId))
+      .limit(1);
+    const convType = convRow?.type ?? "direct";
+
+    let recipientId: string | undefined;
+    let senderName: string | undefined;
+    let msgCount: number | undefined;
+
+    if (convType === "direct") {
+      const members = await db
+        .select({
+          userId: chatConversationMembers.userId,
+          name: authUsers.name,
+        })
+        .from(chatConversationMembers)
+        .innerJoin(authUsers, eq(authUsers.id, chatConversationMembers.userId))
+        .where(eq(chatConversationMembers.conversationId, conversationId));
+
+      recipientId = members.find((m) => m.userId !== senderId)?.userId;
+      senderName = members.find((m) => m.userId === senderId)?.name ?? undefined;
+
+      const [countRow] = await db
+        .select({ count: count() })
+        .from(chatMessages)
+        .where(and(eq(chatMessages.conversationId, conversationId)));
+      msgCount = Number(countRow?.count ?? 1);
+    }
+
     // Emit with attachments so bridge can include them in message:new without a DB query
     // Note: use ?? null (not ?? undefined) — undefined is dropped by JSON.stringify
     eventBus.emit("message.sent", {
@@ -239,6 +311,11 @@ class PlaintextMessageService implements MessageService {
       parentMessageId: message.parentMessageId ?? null,
       timestamp: message.createdAt.toISOString(),
       attachments: attachmentPayload,
+      conversationType: convType,
+      recipientId,
+      messagePreview: content.slice(0, 100),
+      messageCount: msgCount,
+      senderName,
     });
 
     // Detect and emit mentions
@@ -261,6 +338,7 @@ class PlaintextMessageService implements MessageService {
     });
 
     // Emit so the EventBus bridge broadcasts to the conversation room
+    // conversationType: "group" prevents first-DM handler from firing (F4 review fix)
     eventBus.emit("message.sent", {
       messageId: message.id,
       senderId: message.senderId,
@@ -269,6 +347,7 @@ class PlaintextMessageService implements MessageService {
       contentType: message.contentType,
       createdAt: message.createdAt.toISOString(),
       timestamp: message.createdAt.toISOString(),
+      conversationType: "group",
     });
 
     return message;

@@ -12,8 +12,14 @@ const FOOTER_TEXT = {
   ig: "Ị na-enweta email a n'ihi na ị bụ onye otu OBIGBO.",
 };
 
-export function renderBase(content: string, lang: "en" | "ig"): string {
+const UNSUBSCRIBE_TEXT = {
+  en: "Unsubscribe from these emails",
+  ig: "Kagbuo ozi email ndị a",
+};
+
+export function renderBase(content: string, lang: "en" | "ig", unsubscribeUrl?: string): string {
   const year = new Date().getFullYear();
+  const unsubscribeHref = unsubscribeUrl ?? "#";
   return `<!DOCTYPE html>
 <html lang="${lang}">
 <head>
@@ -41,7 +47,7 @@ export function renderBase(content: string, lang: "en" | "ig"): string {
         <tr>
           <td style="background:#F5F0EB;padding:20px 32px;border-radius:0 0 8px 8px;font-size:13px;color:#666;line-height:1.5">
             <p style="margin:0 0 8px">${FOOTER_TEXT[lang]}</p>
-            <p style="margin:0">© ${year} OBIGBO · <a href="#" style="color:#D4631F;text-decoration:none">Unsubscribe</a></p>
+            <p style="margin:0">© ${year} OBIGBO · <a href="${unsubscribeHref}" style="color:#D4631F;text-decoration:none">${UNSUBSCRIBE_TEXT[lang]}</a></p>
           </td>
         </tr>
       </table>
