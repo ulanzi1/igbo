@@ -14,6 +14,7 @@ import {
 } from "@/db/schema/community-groups";
 import { communityProfiles } from "@/db/schema/community-profiles";
 import { authUsers } from "@/db/schema/auth-users";
+import { communityUserBadges } from "@/db/schema/community-badges";
 
 // ─── Interfaces ────────────────────────────────────────────────────────────────
 
@@ -445,6 +446,7 @@ export interface GroupMemberItem {
   role: GroupMemberRole;
   joinedAt: Date;
   mutedUntil: Date | null;
+  badgeType?: "blue" | "red" | "purple" | null;
 }
 
 /**
@@ -465,9 +467,11 @@ export async function listActiveGroupMembers(
       role: communityGroupMembers.role,
       joinedAt: communityGroupMembers.joinedAt,
       mutedUntil: communityGroupMembers.mutedUntil,
+      badgeType: communityUserBadges.badgeType,
     })
     .from(communityGroupMembers)
     .innerJoin(communityProfiles, eq(communityProfiles.userId, communityGroupMembers.userId))
+    .leftJoin(communityUserBadges, eq(communityUserBadges.userId, communityGroupMembers.userId))
     .where(
       and(
         eq(communityGroupMembers.groupId, groupId),
@@ -485,6 +489,7 @@ export async function listActiveGroupMembers(
     role: r.role,
     joinedAt: r.joinedAt,
     mutedUntil: r.mutedUntil ?? null,
+    badgeType: r.badgeType ?? null,
   }));
 }
 

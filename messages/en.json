@@ -1621,5 +1621,12 @@
       "pageOf": "{page} / {total}"
     },
     "pointUnit": "{count, plural, one {pt} other {pts}}"
+  },
+  "Badges": {
+    "blue": "Community Verified",
+    "red": "Highly Trusted",
+    "purple": "Elite",
+    "tooltipLabel": "{level} Verified Member — {multiplier}x points on likes",
+    "ariaLabel": "{level} verification badge"
   }
 }

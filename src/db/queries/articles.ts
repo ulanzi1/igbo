@@ -4,6 +4,7 @@ import { eq, and, gte, inArray, sql, count, asc, desc } from "drizzle-orm";
 import { db } from "@/db";
 import { communityArticles, communityArticleTags } from "@/db/schema/community-articles";
 import { communityProfiles } from "@/db/schema/community-profiles";
+import { communityUserBadges } from "@/db/schema/community-badges";
 import type { ArticleCategory, ArticleVisibility } from "@/db/schema/community-articles";
 
 export interface CreateArticleData {
@@ -413,6 +414,7 @@ export interface PublicArticleFull {
   updatedAt: Date;
   authorName: string | null;
   authorId: string;
+  authorBadgeType: "blue" | "red" | "purple" | null;
 }
 
 export async function getPublishedArticleBySlug(slug: string): Promise<PublicArticleFull | null> {
@@ -436,9 +438,11 @@ export async function getPublishedArticleBySlug(slug: string): Promise<PublicArt
       updatedAt: communityArticles.updatedAt,
       authorName: communityProfiles.displayName,
       authorId: communityArticles.authorId,
+      authorBadgeType: communityUserBadges.badgeType,
     })
     .from(communityArticles)
     .leftJoin(communityProfiles, eq(communityProfiles.userId, communityArticles.authorId))
+    .leftJoin(communityUserBadges, eq(communityUserBadges.userId, communityArticles.authorId))
     .where(
       and(
         eq(communityArticles.slug, slug),

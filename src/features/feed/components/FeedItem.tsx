@@ -10,6 +10,7 @@ import { ReactionBar } from "./ReactionBar";
 import { CommentSection } from "./CommentSection";
 import { ShareDialog } from "./ShareDialog";
 import { BookmarkButton } from "./BookmarkButton";
+import { VerificationBadge } from "@/components/shared/VerificationBadge";
 import type { FeedPost, FeedPostOriginal } from "@/features/feed/types";
 import type { FeedSortMode, FeedFilter } from "@/config/feed";
 
@@ -137,8 +138,12 @@ export function FeedItem({
           </Avatar>
         </Link>
         <div className="min-w-0 flex-1">
-          <Link href={`/profiles/${post.authorId}`} className="text-sm font-medium hover:underline">
+          <Link
+            href={`/profiles/${post.authorId}`}
+            className="inline-flex items-center gap-1 text-sm font-medium hover:underline"
+          >
             {post.authorDisplayName}
+            <VerificationBadge badgeType={post.authorBadgeType} />
           </Link>
           <p className="text-xs text-muted-foreground">{relativeTime}</p>
         </div>

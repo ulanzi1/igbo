@@ -6,6 +6,7 @@ import { useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { VerificationBadge } from "@/components/shared/VerificationBadge";
 import type { GroupMemberRole } from "@/db/schema/community-groups";
 
 interface GroupMemberItem {
@@ -15,6 +16,7 @@ interface GroupMemberItem {
   role: "member" | "leader" | "creator";
   joinedAt: string;
   mutedUntil: string | null;
+  badgeType?: "blue" | "red" | "purple" | null;
 }
 
 interface PageData {
@@ -154,7 +156,10 @@ export function GroupMembersTab({ groupId, viewerRole, viewerId }: GroupMembersT
               <AvatarFallback className="text-xs">{initials}</AvatarFallback>
             </Avatar>
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium truncate">{member.displayName}</p>
+              <p className="flex items-center gap-1 text-sm font-medium truncate">
+                {member.displayName}
+                <VerificationBadge badgeType={member.badgeType} />
+              </p>
               <p className="text-xs text-muted-foreground">
                 {t("members.joinedDate", { date: new Date(member.joinedAt).toLocaleDateString() })}
               </p>

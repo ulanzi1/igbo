@@ -133,11 +133,14 @@ describe("listEventAttendees", () => {
       { userId: "user-2", displayName: "Emeka Obi", status: "attended", joinedAt: JOINED_AT },
     ];
 
+    const fakeRowsWithBadge = fakeRows.map((r) => ({ ...r, badgeType: null }));
     vi.mocked(db.select).mockReturnValue({
       from: vi.fn().mockReturnValue({
         innerJoin: vi.fn().mockReturnValue({
-          where: vi.fn().mockReturnValue({
-            orderBy: vi.fn().mockResolvedValue(fakeRows),
+          leftJoin: vi.fn().mockReturnValue({
+            where: vi.fn().mockReturnValue({
+              orderBy: vi.fn().mockResolvedValue(fakeRowsWithBadge),
+            }),
           }),
         }),
       }),

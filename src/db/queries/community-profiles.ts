@@ -3,6 +3,8 @@ import { and, eq, isNull, isNotNull, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { communityProfiles, communitySocialLinks } from "@/db/schema/community-profiles";
 import type { NewCommunityProfile, CommunitySocialLink } from "@/db/schema/community-profiles";
+import { communityUserBadges } from "@/db/schema/community-badges";
+import type { BadgeType } from "@/db/schema/community-badges";
 
 /** Retrieve a profile by user ID (excludes soft-deleted records). */
 export async function getProfileByUserId(userId: string) {
@@ -192,14 +194,17 @@ export async function getPublicProfileForViewer(
 ): Promise<{
   profile: typeof communityProfiles.$inferSelect | null;
   socialLinks: CommunitySocialLink[];
+  badgeType: BadgeType | null;
 }> {
   const rows = await db
     .select({
       profile: communityProfiles,
       socialLink: communitySocialLinks,
+      badgeType: communityUserBadges.badgeType,
     })
     .from(communityProfiles)
     .leftJoin(communitySocialLinks, eq(communitySocialLinks.userId, communityProfiles.userId))
+    .leftJoin(communityUserBadges, eq(communityUserBadges.userId, communityProfiles.userId))
     .where(
       and(
         eq(communityProfiles.userId, targetUserId),
@@ -209,17 +214,18 @@ export async function getPublicProfileForViewer(
     );
 
   if (rows.length === 0 || !rows[0]) {
-    return { profile: null, socialLinks: [] };
+    return { profile: null, socialLinks: [], badgeType: null };
   }
 
   const profile = rows[0].profile;
+  const badgeType = rows[0].badgeType ?? null;
 
   // Owner always sees their own profile
   if (viewerUserId !== targetUserId) {
     // Enforce visibility rules
     if (profile.profileVisibility === "PRIVATE") {
       if (viewerRole !== "ADMIN" && viewerRole !== "MODERATOR") {
-        return { profile: null, socialLinks: [] };
+        return { profile: null, socialLinks: [], badgeType: null };
       }
     }
     // TODO(Epic 5): enforce group-shared check for LIMITED visibility
@@ -243,5 +249,5 @@ export async function getPublicProfileForViewer(
     .map((r) => r.socialLink)
     .filter((s): s is CommunitySocialLink => s !== null);
 
-  return { profile: finalProfile, socialLinks };
+  return { profile: finalProfile, socialLinks, badgeType };
 }

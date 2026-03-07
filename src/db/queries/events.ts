@@ -3,6 +3,7 @@
 import { db } from "@/db";
 import { communityEvents, communityEventAttendees } from "@/db/schema/community-events";
 import { communityProfiles } from "@/db/schema/community-profiles";
+import { communityUserBadges } from "@/db/schema/community-badges";
 import { eq, and, ne, isNull, asc, lte, sql, inArray } from "drizzle-orm";
 import type { CommunityEvent, NewCommunityEvent, EventStatus } from "@/db/schema/community-events";
 
@@ -578,6 +579,7 @@ export interface AttendeeWithProfile {
   displayName: string;
   status: "registered" | "waitlisted" | "attended" | "cancelled";
   joinedAt: Date | null;
+  badgeType?: "blue" | "red" | "purple" | null;
 }
 
 /**
@@ -636,13 +638,21 @@ export async function listEventAttendees(eventId: string): Promise<AttendeeWithP
       displayName: communityProfiles.displayName,
       status: communityEventAttendees.status,
       joinedAt: communityEventAttendees.joinedAt,
+      badgeType: communityUserBadges.badgeType,
     })
     .from(communityEventAttendees)
     .innerJoin(communityProfiles, eq(communityProfiles.userId, communityEventAttendees.userId))
+    .leftJoin(communityUserBadges, eq(communityUserBadges.userId, communityEventAttendees.userId))
     .where(eq(communityEventAttendees.eventId, eventId))
     .orderBy(asc(communityEventAttendees.registeredAt));
 
-  return rows as AttendeeWithProfile[];
+  return rows.map((r) => ({
+    userId: r.userId,
+    displayName: r.displayName,
+    status: r.status,
+    joinedAt: r.joinedAt,
+    badgeType: r.badgeType ?? null,
+  }));
 }
 
 /**

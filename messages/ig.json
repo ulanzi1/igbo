@@ -1621,5 +1621,12 @@
       "pageOf": "{page} / {total}"
     },
     "pointUnit": "{count, plural, one {pt} other {pts}}"
+  },
+  "Badges": {
+    "blue": "Nke Obodo Nyochara",
+    "red": "Nke A Tụkwasịrị Obi Nke Ọma",
+    "purple": "Onye Isi",
+    "tooltipLabel": "{level} Onye Ọha — {multiplier}x isi ihe na-amasị",
+    "ariaLabel": "{level} ododo nyochara"
   }
 }

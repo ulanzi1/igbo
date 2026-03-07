@@ -44,7 +44,7 @@ export default async function ProfilePage({ params }: Props) {
   }
 
   const viewerRole = isViewerRole(session.user.role) ? session.user.role : "MEMBER";
-  const { profile, socialLinks } = await getPublicProfileForViewer(
+  const { profile, socialLinks, badgeType } = await getPublicProfileForViewer(
     session.user.id,
     userId,
     viewerRole,
@@ -56,7 +56,12 @@ export default async function ProfilePage({ params }: Props) {
 
   return (
     <main className="mx-auto max-w-2xl px-4 py-8">
-      <ProfileView profile={profile} socialLinks={socialLinks} viewerUserId={session.user.id} />
+      <ProfileView
+        profile={profile}
+        socialLinks={socialLinks}
+        viewerUserId={session.user.id}
+        badgeType={badgeType}
+      />
     </main>
   );
 }
