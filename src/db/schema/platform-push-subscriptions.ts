@@ -5,7 +5,7 @@ export const platformPushSubscriptions = pgTable(
   "platform_push_subscriptions",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    userId: text("user_id")
+    userId: uuid("user_id")
       .notNull()
       .references(() => authUsers.id, { onDelete: "cascade" }),
     endpoint: text("endpoint").notNull().unique(),

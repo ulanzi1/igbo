@@ -1,5 +1,5 @@
 CREATE TABLE IF NOT EXISTS "platform_notification_preferences" (
-  "user_id" text NOT NULL REFERENCES "auth_users"("id") ON DELETE CASCADE,
+  "user_id" uuid NOT NULL REFERENCES "auth_users"("id") ON DELETE CASCADE,
   "notification_type" text NOT NULL,
   "channel_in_app" boolean NOT NULL DEFAULT true,
   "channel_email" boolean NOT NULL DEFAULT false,

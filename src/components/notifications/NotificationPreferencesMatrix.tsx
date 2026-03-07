@@ -1,8 +1,8 @@
 "use client";
 import { useTranslations } from "next-intl";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import type { ChannelPrefs } from "@/db/queries/notification-preferences";
-import { DEFAULT_PREFERENCES } from "@/db/queries/notification-preferences";
+import type { ChannelPrefs } from "@/lib/notification-constants";
+import { DEFAULT_PREFERENCES } from "@/lib/notification-constants";
 
 const CONFIGURABLE_TYPES = [
   "message",
