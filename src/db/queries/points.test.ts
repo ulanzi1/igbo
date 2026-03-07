@@ -50,6 +50,17 @@ vi.mock("drizzle-orm", () => ({
   eq: vi.fn((col, val) => ({ type: "eq", col, val })),
   and: vi.fn((...args) => ({ type: "and", args })),
   sum: vi.fn((col) => ({ type: "sum", col })),
+  count: vi.fn(() => ({ type: "count" })),
+  desc: vi.fn((col) => ({ type: "desc", col })),
+  sql: new Proxy(
+    (strings: TemplateStringsArray, ...values: unknown[]) => ({ type: "sql", strings, values }),
+    {
+      get: (_target, prop) => {
+        if (prop === "raw") return (s: string) => ({ type: "sql-raw", s });
+        return undefined;
+      },
+    },
+  ),
 }));
 
 import {
@@ -58,6 +69,8 @@ import {
   getPointsRuleByActivityType,
   getUserPointsTotal,
   logPointsThrottle,
+  getPointsLedgerHistory,
+  getPointsSummaryStats,
 } from "./points";
 
 beforeEach(() => {
@@ -232,5 +245,112 @@ describe("logPointsThrottle", () => {
         details: expect.objectContaining({ reason: "repeat_pair" }),
       }),
     );
+  });
+});
+
+// ─── getPointsLedgerHistory ───────────────────────────────────────────────────
+
+describe("getPointsLedgerHistory", () => {
+  /** Build a data-query chain: select→from→where→orderBy→limit→offset */
+  function makeDataChain(result: unknown[]) {
+    const mockOffset = vi.fn().mockResolvedValue(result);
+    const mockLimit = vi.fn().mockReturnValue({ offset: mockOffset });
+    const mockOrderBy = vi.fn().mockReturnValue({ limit: mockLimit });
+    const mockWhere = vi.fn().mockReturnValue({ orderBy: mockOrderBy });
+    const mockFrom = vi.fn().mockReturnValue({ where: mockWhere });
+    return { from: mockFrom, offset: mockOffset };
+  }
+
+  /** Build a count-query chain: select→from→where (resolves directly) */
+  function makeCountChain(total: number) {
+    const mockWhere = vi.fn().mockResolvedValue([{ total }]);
+    const mockFrom = vi.fn().mockReturnValue({ where: mockWhere });
+    return { from: mockFrom };
+  }
+
+  it("returns entries and total for a user with ledger entries", async () => {
+    const entry = {
+      id: "e1",
+      points: 1,
+      reason: "like_received",
+      sourceType: "like_received",
+      sourceId: "post-1",
+      multiplierApplied: "1.00",
+      createdAt: new Date(),
+    };
+    const data = makeDataChain([entry]);
+    const cnt = makeCountChain(1);
+    mockSelect.mockReturnValueOnce({ from: data.from }).mockReturnValueOnce({ from: cnt.from });
+
+    const result = await getPointsLedgerHistory("user-1", { page: 1, limit: 20 });
+
+    expect(result.entries).toHaveLength(1);
+    expect(result.total).toBe(1);
+  });
+
+  it("returns empty entries and total 0 when user has no ledger entries", async () => {
+    const data = makeDataChain([]);
+    const cnt = makeCountChain(0);
+    mockSelect.mockReturnValueOnce({ from: data.from }).mockReturnValueOnce({ from: cnt.from });
+
+    const result = await getPointsLedgerHistory("user-no-points", { page: 1, limit: 20 });
+
+    expect(result.entries).toHaveLength(0);
+    expect(result.total).toBe(0);
+  });
+
+  it("applies activityType filter — uses and() for compound where clause", async () => {
+    const data = makeDataChain([]);
+    const cnt = makeCountChain(0);
+    mockSelect.mockReturnValueOnce({ from: data.from }).mockReturnValueOnce({ from: cnt.from });
+
+    const { and: andMock } = await import("drizzle-orm");
+    (andMock as ReturnType<typeof vi.fn>).mockClear();
+
+    await getPointsLedgerHistory("user-1", {
+      page: 1,
+      limit: 20,
+      activityType: "like_received",
+    });
+
+    expect(andMock).toHaveBeenCalled();
+  });
+
+  it("handles page 2 with correct offset (offset = (page-1) * limit)", async () => {
+    const data = makeDataChain([]);
+    const cnt = makeCountChain(25);
+    mockSelect.mockReturnValueOnce({ from: data.from }).mockReturnValueOnce({ from: cnt.from });
+
+    await getPointsLedgerHistory("user-1", { page: 2, limit: 10 });
+
+    expect(data.offset).toHaveBeenCalledWith(10);
+  });
+});
+
+// ─── getPointsSummaryStats ────────────────────────────────────────────────────
+
+describe("getPointsSummaryStats", () => {
+  it("returns parsed summary stats when data exists", async () => {
+    mockExecute.mockResolvedValue([{ total: "50", this_week: "10", this_month: "30" }]);
+
+    const result = await getPointsSummaryStats("user-1");
+
+    expect(result).toEqual({ total: 50, thisWeek: 10, thisMonth: 30 });
+  });
+
+  it("returns all zeros when user has no ledger entries", async () => {
+    mockExecute.mockResolvedValue([{ total: "0", this_week: "0", this_month: "0" }]);
+
+    const result = await getPointsSummaryStats("user-no-points");
+
+    expect(result).toEqual({ total: 0, thisWeek: 0, thisMonth: 0 });
+  });
+
+  it("handles empty result set gracefully", async () => {
+    mockExecute.mockResolvedValue([]);
+
+    const result = await getPointsSummaryStats("user-empty");
+
+    expect(result).toEqual({ total: 0, thisWeek: 0, thisMonth: 0 });
   });
 });

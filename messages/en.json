@@ -31,7 +31,8 @@
     "feed": "Feed",
     "saved": "Saved",
     "viewProfile": "View Profile",
-    "logout": "Log out"
+    "logout": "Log out",
+    "points": "Points"
   },
   "Shell": {
     "appName": "Igbo Community Platform",
@@ -1017,6 +1018,7 @@
       "error": "Something went wrong loading this section"
     },
     "upcomingEvents": "Upcoming Events",
+    "points": "Your Points",
     "peopleNear": {
       "title": "People near you",
       "seeAll": "See all",
@@ -1585,5 +1587,39 @@
       "permissionDenied": "You do not have permission to create groups",
       "fetchFailed": "Failed to load groups. Please try again."
     }
+  },
+  "Points": {
+    "nav": "Points",
+    "widget": {
+      "title": "Your Points",
+      "zeroState": "React to posts and attend events to start earning points."
+    },
+    "summary": {
+      "total": "Total Points",
+      "thisWeek": "This Week",
+      "thisMonth": "This Month"
+    },
+    "history": {
+      "title": "Earning History",
+      "emptyState": "No points earned yet. React to posts and attend events to start earning points.",
+      "multiplierLabel": "×{multiplier}",
+      "sourceTypes": {
+        "like_received": "Like received",
+        "event_attended": "Event attended",
+        "article_published": "Article published"
+      }
+    },
+    "filter": {
+      "all": "All",
+      "like_received": "Like Received",
+      "event_attended": "Event Attended",
+      "article_published": "Article Published"
+    },
+    "pagination": {
+      "previous": "Previous",
+      "next": "Next",
+      "pageOf": "{page} / {total}"
+    },
+    "pointUnit": "{count, plural, one {pt} other {pts}}"
   }
 }

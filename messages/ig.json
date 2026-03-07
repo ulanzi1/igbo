@@ -31,7 +31,8 @@
     "feed": "Akụkọ",
     "saved": "Echekwaa",
     "viewProfile": "Hụ profaịlụ gị",
-    "logout": "Pụọ"
+    "logout": "Pụọ",
+    "points": "Ọnụọgụ"
   },
   "Shell": {
     "appName": "Ụlọ Ọha Igbo",
@@ -1017,6 +1018,7 @@
       "error": "Ihe adaghị nke ọma n'ibugo akụkụ a"
     },
     "upcomingEvents": "Ihe Omume Na-abịa",
+    "points": "Ọnụọgụ Gị",
     "peopleNear": {
       "title": "Ndị nọ n'ógbè gị",
       "seeAll": "Lee ha nile",
@@ -1585,5 +1587,39 @@
       "permissionDenied": "Enweghị gị ikike iji mepụta otu",
       "fetchFailed": "Enweghị ike ịnweta otu. Biko nwaa ọzọ."
     }
+  },
+  "Points": {
+    "nav": "Ọnụọgụ",
+    "widget": {
+      "title": "Ọnụọgụ Gị",
+      "zeroState": "Mezie mmesi na ọzụzụ ihe iji malite inweta ọnụọgụ."
+    },
+    "summary": {
+      "total": "Ọnụọgụ Niile",
+      "thisWeek": "Izu A",
+      "thisMonth": "Ọnwa A"
+    },
+    "history": {
+      "title": "Akụkọ Ọnụọgụ",
+      "emptyState": "Ọ dịghị ọnụọgụ ewetara. Mezie mmesi na ọzụzụ ihe iji malite.",
+      "multiplierLabel": "×{multiplier}",
+      "sourceTypes": {
+        "like_received": "Mmesi nwetara",
+        "event_attended": "Ihe omume gara",
+        "article_published": "Akwụkwọ edepụtara"
+      }
+    },
+    "filter": {
+      "all": "Niile",
+      "like_received": "Mmesi Nwetara",
+      "event_attended": "Ihe Omume Gara",
+      "article_published": "Akwụkwọ Edepụtara"
+    },
+    "pagination": {
+      "previous": "Azụ",
+      "next": "Ọzọ",
+      "pageOf": "{page} / {total}"
+    },
+    "pointUnit": "{count, plural, one {pt} other {pts}}"
   }
 }
