@@ -2,9 +2,8 @@ import "server-only";
 import { eventBus } from "@/services/event-bus";
 import { awardPoints } from "@/lib/points-lua-runner";
 import { POINTS_CONFIG, BADGE_MULTIPLIERS } from "@/config/points";
-import { getRedisClient, getRedisPublisher } from "@/lib/redis";
+import { getRedisClient } from "@/lib/redis";
 import { getUserBadgeWithCache } from "@/db/queries/badges";
-import { createNotification } from "@/db/queries/notifications";
 import {
   insertPointsLedgerEntry,
   getPointsRuleByActivityType,
@@ -97,30 +96,14 @@ export async function handlePostReacted(payload: PostReactedEvent): Promise<void
       eventId: payload.postId,
     });
 
-    // Deliver throttle notification directly (not via notification-service.ts to avoid circular dep)
-    try {
-      const notification = await createNotification({
-        userId: payload.userId, // reactor gets the toast
-        type: "system",
-        title: "notifications.points_throttled.title",
-        body: "notifications.points_throttled.body",
-        link: undefined,
-      });
-      const publisher = getRedisPublisher();
-      await publisher.publish(
-        "eventbus:notification.created",
-        JSON.stringify({
-          userId: payload.userId,
-          notificationId: notification.id,
-          type: "system",
-          title: "notifications.points_throttled.title",
-          body: "notifications.points_throttled.body",
-          timestamp: notification.createdAt.toISOString(),
-        }),
-      );
-    } catch {
-      // Non-critical — swallow
-    }
+    // Emit EventBus event — notification-service.ts picks this up and routes through NotificationRouter
+    eventBus.emit("points.throttled", {
+      userId: payload.userId, // reactor gets the toast
+      actionType: "rapid_fire",
+      eventType: "post.reacted",
+      eventId: payload.postId,
+      timestamp: new Date().toISOString(),
+    });
   } else if (reason === "repeat_pair") {
     // Audit log only — no user notification (admin review)
     await logPointsThrottle({

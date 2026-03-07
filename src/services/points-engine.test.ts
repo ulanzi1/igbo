@@ -4,10 +4,9 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 vi.mock("server-only", () => ({}));
 
 // Capture event handlers at module-load time
-const { handlerRef, captureHandler } = vi.hoisted(() => {
+const { captureHandler } = vi.hoisted(() => {
   const m = new Map<string, (payload: unknown) => unknown>();
   return {
-    handlerRef: { current: m },
     captureHandler: (e: string, h: unknown) => m.set(e, h as (p: unknown) => unknown),
   };
 });
@@ -41,21 +40,13 @@ vi.mock("@/db/queries/posts", () => ({
 const mockRedisGet = vi.hoisted(() => vi.fn().mockResolvedValue(null));
 const mockRedisSet = vi.hoisted(() => vi.fn().mockResolvedValue("OK"));
 const mockRedisZrem = vi.hoisted(() => vi.fn().mockResolvedValue(1));
-const mockRedisPublish = vi.hoisted(() => vi.fn().mockResolvedValue(1));
 vi.mock("@/lib/redis", () => ({
   getRedisClient: () => ({ get: mockRedisGet, set: mockRedisSet, zrem: mockRedisZrem }),
-  getRedisPublisher: () => ({ publish: mockRedisPublish }),
 }));
 
-const mockCreateNotification = vi.hoisted(() =>
-  vi.fn().mockResolvedValue({ id: "notif-1", createdAt: new Date() }),
-);
-vi.mock("@/db/queries/notifications", () => ({
-  createNotification: (...args: unknown[]) => mockCreateNotification(...args),
-}));
-
+const mockEventBusEmit = vi.hoisted(() => vi.fn());
 vi.mock("@/services/event-bus", () => ({
-  eventBus: { on: vi.fn(captureHandler), emit: vi.fn() },
+  eventBus: { on: vi.fn(captureHandler), emit: mockEventBusEmit },
 }));
 
 const mockGetUserBadgeWithCache = vi.hoisted(() => vi.fn().mockResolvedValue(null));
@@ -87,6 +78,7 @@ beforeEach(() => {
   mockRedisGet.mockResolvedValue(null);
   mockGetUserPointsTotal.mockResolvedValue(10);
   mockGetUserBadgeWithCache.mockResolvedValue(null);
+  mockEventBusEmit.mockReturnValue(true);
 });
 
 // ─── handlePostReacted ────────────────────────────────────────────────────────
@@ -161,21 +153,24 @@ describe("handlePostReacted", () => {
     );
   });
 
-  it("7. rapid_fire block — createNotification called for reactor userId", async () => {
+  it("7. rapid_fire block — eventBus.emit('points.throttled') called for reactor userId", async () => {
     mockAwardPoints.mockResolvedValue([0, "rapid_fire", 100, 150]);
 
     await handlePostReacted(basePayload);
 
-    expect(mockCreateNotification).toHaveBeenCalledWith(
+    // Story 9.1: replaced direct createNotification() with EventBus emit (Epic 8 retro AI-4)
+    expect(mockEventBusEmit).toHaveBeenCalledWith(
+      "points.throttled",
       expect.objectContaining({
         userId: "reactor-1",
-        type: "system",
-        title: "notifications.points_throttled.title",
+        actionType: "rapid_fire",
+        eventType: "post.reacted",
+        eventId: "post-1",
       }),
     );
   });
 
-  it("8. repeat_pair block — logPointsThrottle called, createNotification NOT called", async () => {
+  it("8. repeat_pair block — logPointsThrottle called, no notification emitted", async () => {
     mockAwardPoints.mockResolvedValue([0, "repeat_pair", 100, 150]);
 
     await handlePostReacted(basePayload);
@@ -183,7 +178,8 @@ describe("handlePostReacted", () => {
     expect(mockLogPointsThrottle).toHaveBeenCalledWith(
       expect.objectContaining({ reason: "repeat_pair" }),
     );
-    expect(mockCreateNotification).not.toHaveBeenCalled();
+    expect(mockEventBusEmit).not.toHaveBeenCalledWith("points.throttled", expect.anything());
+    expect(mockEventBusEmit).not.toHaveBeenCalledWith("points.throttled", expect.anything());
   });
 
   it("9. daily_cap block — neither logThrottle nor notification (silent)", async () => {
@@ -192,7 +188,7 @@ describe("handlePostReacted", () => {
     await handlePostReacted(basePayload);
 
     expect(mockLogPointsThrottle).not.toHaveBeenCalled();
-    expect(mockCreateNotification).not.toHaveBeenCalled();
+    expect(mockEventBusEmit).not.toHaveBeenCalledWith("points.throttled", expect.anything());
     expect(mockInsertLedgerEntry).not.toHaveBeenCalled();
   });
 

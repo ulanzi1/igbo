@@ -5,12 +5,11 @@ import {
   markNotificationRead,
   markAllNotificationsRead,
 } from "@/db/queries/notifications";
-import { filterNotificationRecipients } from "@/services/block-service";
-import { getConversationNotificationPreference } from "@/db/queries/chat-conversations";
 import { getRedisPublisher } from "@/lib/redis";
 import { listGroupLeaders } from "@/db/queries/groups";
 import { findUserById } from "@/db/queries/auth-queries";
 import { enqueueEmailJob } from "@/services/email-service";
+import { notificationRouter } from "@/services/notification-router";
 import type {
   MemberApprovedEvent,
   MemberFollowedEvent,
@@ -33,6 +32,7 @@ import type {
   EventReminderEvent,
   RecordingMirrorFailedEvent,
   RecordingExpiringWarningEvent,
+  PointsThrottledEvent,
 } from "@/types/events";
 import type { NotificationType } from "@/db/schema/platform-notifications";
 
@@ -40,9 +40,9 @@ import type { NotificationType } from "@/db/schema/platform-notifications";
  * NotificationService — listens to EventBus events, creates notification
  * records, and delivers them via Redis pub/sub for the realtime container.
  *
- * Block/mute filtering: notifications from blocked or muted actors are suppressed.
- * Real-time delivery: uses Redis publish to `eventbus:notification.created`
- * so the realtime container's EventBus bridge forwards to Socket.IO rooms.
+ * Routing: NotificationRouter evaluates each notification against channel
+ * delivery rules (in-app, email, push) before any channel is invoked.
+ * Block/mute filtering and DnD (quiet hours) are handled inside the router.
  *
  * i18n: Notification titles and bodies use message keys (e.g., "notifications.member_approved.title")
  * which are resolved at render time by the client using the user's locale preference.
@@ -55,46 +55,61 @@ async function deliverNotification(params: {
   title: string;
   body: string;
   link?: string;
+  conversationId?: string; // NEW: for per-conv pref check via router
 }): Promise<void> {
-  const { userId, actorId, type, title, body, link } = params;
+  const { userId, actorId, type, title, body, link, conversationId } = params;
 
-  // Filter: skip if recipient has blocked or muted the actor
-  const allowed = await filterNotificationRecipients([userId], actorId);
-  if (allowed.length === 0) return;
+  // Route through NotificationRouter — evaluates block/mute, DnD, per-conv prefs
+  const routeResult = await notificationRouter.route({ userId, actorId, type, conversationId });
 
-  const notification = await createNotification({ userId, type, title, body, link });
+  // In-app channel: create notification + deliver via Redis pub/sub
+  if (!routeResult.inApp.suppressed) {
+    const notification = await createNotification({ userId, type, title, body, link });
 
-  // Publish to Redis for realtime delivery via eventbus bridge
-  const payload: NotificationCreatedEvent = {
-    userId,
-    notificationId: notification.id,
-    type,
-    title,
-    body,
-    link,
-    timestamp: notification.createdAt.toISOString(),
-  };
+    // Publish to Redis for realtime delivery via eventbus bridge
+    const payload: NotificationCreatedEvent = {
+      userId,
+      notificationId: notification.id,
+      type,
+      title,
+      body,
+      link,
+      timestamp: notification.createdAt.toISOString(),
+    };
 
-  try {
-    const publisher = getRedisPublisher();
-    await publisher
-      .publish("eventbus:notification.created", JSON.stringify(payload))
-      .catch((err: unknown) => {
-        console.warn(
-          JSON.stringify({
-            level: "warn",
-            message: "notification.redis_publish_failed",
-            error: String(err),
-          }),
-        );
-      });
-  } catch (err: unknown) {
-    console.warn(
-      JSON.stringify({
-        level: "warn",
-        message: "notification.redis_connect_failed",
-        error: String(err),
-      }),
+    try {
+      const publisher = getRedisPublisher();
+      await publisher
+        .publish("eventbus:notification.created", JSON.stringify(payload))
+        .catch((err: unknown) => {
+          console.warn(
+            JSON.stringify({
+              level: "warn",
+              message: "notification.redis_publish_failed",
+              error: String(err),
+            }),
+          );
+        });
+    } catch (err: unknown) {
+      console.warn(
+        JSON.stringify({
+          level: "warn",
+          message: "notification.redis_connect_failed",
+          error: String(err),
+        }),
+      );
+    }
+  }
+
+  // Email channel: stub — eligible types identified by router but no enqueueEmailJob() call yet.
+  // Story 9.2 adds per-type email templates and wires enqueueEmailJob() here.
+  // Article events (submitted/published/rejected/revision_requested) send email directly
+  // in their handlers above — they are NOT routed through this email channel.
+  if (!routeResult.email.suppressed) {
+    // eslint-disable-next-line no-console -- AC5: email stub logs at debug level until Story 9.2
+    console.debug(
+      "[NotificationService] email channel: not yet implemented for type=%s (Story 9.2)",
+      type,
     );
   }
 }
@@ -138,23 +153,12 @@ if (globalForNotif.__notifHandlersRegistered) {
 
   eventBus.on("message.mentioned", async (payload: MessageMentionedEvent) => {
     const { conversationId, senderId, mentionedUserIds, contentPreview } = payload;
-    const redis = getRedisPublisher();
 
     for (const recipientId of mentionedUserIds) {
-      // Check per-conversation notification preference
-      const pref = await getConversationNotificationPreference(conversationId, recipientId);
-      if (pref === "muted") {
-        continue; // suppress — user has muted this conversation
-      }
-      // "mentions" preference allows message.mentioned through (it IS a mention)
-      // "all" also allows through
-
-      // Check global DnD
-      const isDnd = await redis.exists(`dnd:${recipientId}`);
-      if (isDnd) {
-        continue; // suppress — DnD active
-      }
-
+      // Router handles per-conversation pref check (muted/mentions/all) and DnD.
+      // NOTE: DnD behavior change (Epic 9 retro AI-4): previously suppressed ALL delivery
+      // (including in-app) for message.mentioned. After this refactoring, DnD only suppresses
+      // email/push — in-app is always delivered per AC3 (silent accumulation, no toast/sound).
       await deliverNotification({
         userId: recipientId,
         actorId: senderId,
@@ -162,6 +166,7 @@ if (globalForNotif.__notifHandlersRegistered) {
         title: "notifications.mention.title",
         body: contentPreview,
         link: `/chat?conversation=${conversationId}`,
+        conversationId, // router checks per-conv pref + DnD
       });
     }
   });
@@ -266,6 +271,9 @@ if (globalForNotif.__notifHandlersRegistered) {
 
   // ─── Article Publication Notifications (Story 6.2) ───────────────────────────
 
+  // Email sent directly (not via NotificationRouter email channel) —
+  // article events use custom templates. NotificationRouter email stub would no-op here.
+  // NOTE: article.submitted only sends email — no in-app notification (author already sees submission UX).
   eventBus.on("article.submitted", async (payload: ArticleSubmittedEvent) => {
     const user = await findUserById(payload.authorId);
     if (user?.email) {
@@ -291,7 +299,8 @@ if (globalForNotif.__notifHandlersRegistered) {
       body: "notifications.article_published.body",
       link: `/articles/${payload.slug}`,
     });
-    // Email notification
+    // Email sent directly (not via NotificationRouter email channel) —
+    // article events use custom templates. NotificationRouter email stub would no-op here.
     const user = await findUserById(payload.authorId);
     if (user?.email) {
       enqueueEmailJob(`article-published-${payload.articleId}-${Date.now()}`, {
@@ -316,7 +325,8 @@ if (globalForNotif.__notifHandlersRegistered) {
       body: payload.feedback ?? "notifications.article_rejected.body",
       link: `/articles/${payload.articleId}/edit`,
     });
-    // Email notification
+    // Email sent directly (not via NotificationRouter email channel) —
+    // article events use custom templates. NotificationRouter email stub would no-op here.
     const user = await findUserById(payload.authorId);
     if (user?.email) {
       enqueueEmailJob(`article-rejected-${payload.articleId}-${Date.now()}`, {
@@ -342,6 +352,8 @@ if (globalForNotif.__notifHandlersRegistered) {
       body: payload.feedback,
       link: `/articles/${payload.articleId}/edit`,
     });
+    // Email sent directly (not via NotificationRouter email channel) —
+    // article events use custom templates. NotificationRouter email stub would no-op here.
     const user = await findUserById(payload.authorId);
     if (user?.email) {
       enqueueEmailJob(`article-revision-${payload.articleId}-${Date.now()}`, {
@@ -448,6 +460,21 @@ if (globalForNotif.__notifHandlersRegistered) {
       title: "notifications.recording_expiring.title",
       body: payload.title,
       link: `/events/${payload.eventId}`,
+    });
+  });
+
+  // ─── Points Throttled Notification (Epic 8 retro AI-4 — Story 9.1) ────────────
+  // points-engine.ts emits this via EventBus instead of calling createNotification()
+  // directly (avoids circular dep). Routed through NotificationRouter like all others.
+
+  eventBus.on("points.throttled", async (payload: PointsThrottledEvent) => {
+    await deliverNotification({
+      userId: payload.userId,
+      actorId: payload.userId, // self-notify — bypasses block filter
+      type: "system",
+      title: "notifications.points_throttled.title",
+      body: "notifications.points_throttled.body",
+      link: "/points",
     });
   });
 } // end of hot-reload guard (globalForNotif.__notifHandlersRegistered)
