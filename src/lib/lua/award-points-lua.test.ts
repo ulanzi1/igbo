@@ -71,7 +71,6 @@ describe.skipIf(!process.env.REDIS_URL)("award-points.lua integration", () => {
   ): Promise<import("../points-lua-runner").AwardPointsResult> {
     const keys = buildPointsKeys(input);
     return redis.awardPoints(
-      6,
       keys.idempotencyKey,
       keys.rapidKey,
       keys.repeatKey,
@@ -120,7 +119,6 @@ describe.skipIf(!process.env.REDIS_URL)("award-points.lua integration", () => {
     const keys = buildPointsKeys(selfInput);
 
     const result = await redis.awardPoints(
-      6,
       keys.idempotencyKey,
       keys.rapidKey,
       keys.repeatKey,
@@ -272,8 +270,10 @@ describe.skipIf(!process.env.REDIS_URL)("award-points.lua integration", () => {
     await callAwardPoints(input);
 
     const ttl = await redis.ttl(fullDailyKey(keys.dailyBaseKey));
+    // Script uses EXPIREAT next-UTC-midnight, so TTL is time-of-day-dependent (0–86400).
+    // Verify: key exists (not immediately expired) and expires within one calendar day.
+    expect(ttl).toBeGreaterThan(0);
     expect(ttl).toBeLessThanOrEqual(86400);
-    expect(ttl).toBeGreaterThan(86400 - 120); // allows 2min test execution slack
 
     await redis.del(keys.idempotencyKey);
   });

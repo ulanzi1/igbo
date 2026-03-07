@@ -68,8 +68,20 @@ end
 redis.call('ZADD', KEYS[3], now, tostring(now) .. ":" .. us)
 redis.call('EXPIRE', KEYS[3], ARGV[7])
 
--- Step 5: Daily cap check (UTC date — requires Redis >= 7.0)
-local utcDate = os.date("!%Y-%m-%d")
+-- Step 5: Daily cap check
+-- Compute UTC date string from TIME seconds (os.date is unavailable in Redis Lua sandbox).
+-- Civil calendar algorithm (valid for all dates after 1970-03-01).
+local z = math.floor(now / 86400) + 719468
+local era = math.floor((z >= 0 and z or z - 146096) / 146097)
+local doe = z - era * 146097
+local yoe = math.floor((doe - math.floor(doe/1460) + math.floor(doe/36524) - math.floor(doe/146096)) / 365)
+local y = yoe + era * 400
+local doy = doe - (365 * yoe + math.floor(yoe/4) - math.floor(yoe/100))
+local mp = math.floor((5 * doy + 2) / 153)
+local calDay = doy - math.floor((153 * mp + 2) / 5) + 1
+local calMonth = mp + (mp < 10 and 3 or -9)
+local calYear = y + (calMonth <= 2 and 1 or 0)
+local utcDate = string.format("%04d-%02d-%02d", calYear, calMonth, calDay)
 local dailyKey = KEYS[4] .. ":" .. utcDate
 local dailyCount = tonumber(redis.call('GET', dailyKey) or 0)
 local dailyCap = tonumber(ARGV[8])
