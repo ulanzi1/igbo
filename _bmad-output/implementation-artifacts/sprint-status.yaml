@@ -135,7 +135,7 @@ development_status:
   9-1-notification-routing-channel-delivery: done
   9-2-email-notifications: done
   9-3-push-notifications-web-push-api: done
-  9-4-notification-preferences-digest: backlog
+  9-4-notification-preferences-digest: done
   epic-9-retrospective: optional
 
   # Epic 10: Search & Discovery Platform

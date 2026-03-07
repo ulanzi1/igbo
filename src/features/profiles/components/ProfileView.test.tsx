@@ -52,6 +52,10 @@ vi.mock("./FollowButton", () => ({
   FollowButton: () => <div data-testid="follow-button" />,
 }));
 
+vi.mock("@/components/notifications/DndIndicator", () => ({
+  DndIndicator: () => null,
+}));
+
 vi.mock("./FollowList", () => ({
   FollowList: ({ type }: { type: string }) => <div data-testid={`follow-list-${type}`} />,
 }));

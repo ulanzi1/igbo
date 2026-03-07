@@ -73,6 +73,19 @@ vi.mock("@/services/push-service", () => ({
   sendPushNotifications: (...args: unknown[]) => mockSendPushNotifications(...args),
 }));
 
+vi.mock("@/db/queries/notification-preferences", () => ({
+  getNotificationPreferences: vi.fn().mockResolvedValue({}),
+  DEFAULT_PREFERENCES: {
+    message: { inApp: true, email: true, push: true },
+    mention: { inApp: true, email: false, push: true },
+    group_activity: { inApp: true, email: false, push: false },
+    event_reminder: { inApp: true, email: true, push: true },
+    post_interaction: { inApp: true, email: false, push: false },
+    admin_announcement: { inApp: true, email: true, push: true },
+    system: { inApp: true, email: false, push: false },
+  },
+}));
+
 const mockGetEventById = vi.hoisted(() => vi.fn());
 
 vi.mock("@/db/queries/events", () => ({

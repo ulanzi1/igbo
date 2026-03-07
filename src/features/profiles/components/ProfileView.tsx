@@ -10,6 +10,7 @@ import { createOrFindDirectConversation } from "@/features/chat/actions/create-c
 import { FollowButton } from "./FollowButton";
 import { FollowList } from "./FollowList";
 import { VerificationBadge } from "@/components/shared/VerificationBadge";
+import { DndIndicator } from "@/components/notifications/DndIndicator";
 
 interface Props {
   profile: CommunityProfile;
@@ -85,6 +86,7 @@ export function ProfileView({ profile, socialLinks, viewerUserId, badgeType }: P
           <h1 className="flex items-center gap-2 text-xl font-bold text-gray-900">
             {profile.displayName}
             <VerificationBadge badgeType={badgeType} size="md" />
+            <DndIndicator userId={profile.userId} />
           </h1>
           {/* Follow counts */}
           <div className="flex gap-3 text-sm text-muted-foreground mt-1">

@@ -29,6 +29,20 @@ vi.mock("@/env", () => ({
   },
 }));
 
+const mockGetNotificationPreferences = vi.hoisted(() => vi.fn().mockResolvedValue({}));
+vi.mock("@/db/queries/notification-preferences", () => ({
+  getNotificationPreferences: (...args: unknown[]) => mockGetNotificationPreferences(...args),
+  DEFAULT_PREFERENCES: {
+    message: { inApp: true, email: true, push: true },
+    mention: { inApp: true, email: false, push: true },
+    group_activity: { inApp: true, email: false, push: false },
+    event_reminder: { inApp: true, email: true, push: true },
+    post_interaction: { inApp: true, email: false, push: false },
+    admin_announcement: { inApp: true, email: true, push: true },
+    system: { inApp: true, email: false, push: false },
+  },
+}));
+
 import { NotificationRouter } from "./notification-router";
 
 const USER_ID = "user-123";
@@ -43,6 +57,7 @@ beforeEach(() => {
   mockGetConversationNotificationPreference.mockResolvedValue("all");
   mockRedisExists.mockResolvedValue(0);
   mockGetRedisClient.mockReturnValue({ exists: mockRedisExists });
+  mockGetNotificationPreferences.mockResolvedValue({});
   router = new NotificationRouter();
 });
 
@@ -101,7 +116,8 @@ describe("NotificationRouter", () => {
     const result = await router.route({ userId: USER_ID, actorId: ACTOR_ID, type: "system" });
 
     expect(result.email.suppressed).toBe(true);
-    expect(result.email.reason).toContain("allowlist");
+    // Story 9.4: default prefs suppress email for system (email=false default)
+    expect(result.email.reason).toMatch(/user preference|allowlist/);
   });
 
   it("6. ALL channels suppressed when filterNotificationRecipients returns empty (blocked)", async () => {
@@ -148,7 +164,8 @@ describe("NotificationRouter", () => {
     const result = await router.route({ userId: USER_ID, actorId: ACTOR_ID, type: "system" });
 
     expect(result.push.suppressed).toBe(true);
-    expect(result.push.reason).toBe("type not in push allowlist");
+    // Story 9.4: default prefs suppress push for system (push=false default)
+    expect(result.push.reason).toMatch(/user preference|push allowlist/);
   });
 
   // ─── Story 9.3: Push channel decision ───────────────────────────────────────
@@ -185,7 +202,8 @@ describe("NotificationRouter", () => {
     });
 
     expect(result.push.suppressed).toBe(true);
-    expect(result.push.reason).toBe("type not in push allowlist");
+    // Story 9.4: default prefs suppress push for group_activity (push=false default)
+    expect(result.push.reason).toMatch(/user preference|push allowlist/);
   });
 
   it("10. RouteResult shape contains all three channel decisions", async () => {
@@ -214,7 +232,8 @@ describe("NotificationRouter", () => {
     });
 
     expect(result.email.suppressed).toBe(true);
-    expect(result.email.reason).toContain("allowlist");
+    // Story 9.4: default prefs suppress email for post_interaction (email=false default)
+    expect(result.email.reason).toMatch(/user preference|allowlist/);
   });
 
   it("12. 'message' type is now eligible for email (added to EMAIL_ELIGIBLE_TYPES in Story 9.2)", async () => {
@@ -226,6 +245,96 @@ describe("NotificationRouter", () => {
       type: "message",
     });
 
+    expect(result.email.suppressed).toBe(false);
+    expect(result.email.reason).toContain("eligible type");
+  });
+
+  // ─── Story 9.4: DB preference integration ───────────────────────────────────
+
+  it("16. email suppressed when channel_email=false in DB prefs", async () => {
+    mockRedisExists.mockResolvedValue(0);
+    mockGetNotificationPreferences.mockResolvedValue({
+      event_reminder: {
+        channelInApp: true,
+        channelEmail: false,
+        channelPush: true,
+        digestMode: "none",
+        quietHoursStart: null,
+        quietHoursEnd: null,
+        quietHoursTimezone: "UTC",
+        lastDigestAt: null,
+      },
+    });
+
+    const result = await router.route({
+      userId: USER_ID,
+      actorId: ACTOR_ID,
+      type: "event_reminder",
+    });
+
+    expect(result.email.suppressed).toBe(true);
+    expect(result.email.reason).toContain("user preference");
+    expect(result.email.reason).toContain("email disabled");
+  });
+
+  it("17. push suppressed when channel_push=false in DB prefs", async () => {
+    mockRedisExists.mockResolvedValue(0);
+    mockGetNotificationPreferences.mockResolvedValue({
+      message: {
+        channelInApp: true,
+        channelEmail: true,
+        channelPush: false,
+        digestMode: "none",
+        quietHoursStart: null,
+        quietHoursEnd: null,
+        quietHoursTimezone: "UTC",
+        lastDigestAt: null,
+      },
+    });
+
+    const result = await router.route({ userId: USER_ID, actorId: ACTOR_ID, type: "message" });
+
+    expect(result.push.suppressed).toBe(true);
+    expect(result.push.reason).toContain("user preference");
+    expect(result.push.reason).toContain("push disabled");
+  });
+
+  it("18. email suppressed with digest mode reason when digestMode != none", async () => {
+    mockRedisExists.mockResolvedValue(0);
+    mockGetNotificationPreferences.mockResolvedValue({
+      event_reminder: {
+        channelInApp: true,
+        channelEmail: true,
+        channelPush: true,
+        digestMode: "daily",
+        quietHoursStart: null,
+        quietHoursEnd: null,
+        quietHoursTimezone: "UTC",
+        lastDigestAt: null,
+      },
+    });
+
+    const result = await router.route({
+      userId: USER_ID,
+      actorId: ACTOR_ID,
+      type: "event_reminder",
+    });
+
+    expect(result.email.suppressed).toBe(true);
+    expect(result.email.reason).toContain("digest mode");
+  });
+
+  it("19. no DB row → defaults applied (email for eligible event_reminder type)", async () => {
+    mockRedisExists.mockResolvedValue(0);
+    mockGetNotificationPreferences.mockResolvedValue({}); // no row
+
+    const result = await router.route({
+      userId: USER_ID,
+      actorId: ACTOR_ID,
+      type: "event_reminder",
+    });
+
+    // Default for event_reminder: email=true → should deliver
     expect(result.email.suppressed).toBe(false);
     expect(result.email.reason).toContain("eligible type");
   });

@@ -3,6 +3,11 @@ import { filterNotificationRecipients } from "@/services/block-service";
 import { getConversationNotificationPreference } from "@/db/queries/chat-conversations";
 import { getRedisClient } from "@/lib/redis";
 import type { NotificationType } from "@/db/schema/platform-notifications";
+import {
+  getNotificationPreferences,
+  DEFAULT_PREFERENCES,
+  type NotificationTypeKey,
+} from "@/db/queries/notification-preferences";
 
 export interface ChannelDecision {
   suppressed: boolean;
@@ -67,29 +72,53 @@ export class NotificationRouter {
       }
     }
 
-    // 3. In-app: always delivered
-    const inApp: ChannelDecision = { suppressed: false, reason: "in-app always delivered" };
+    // 3. Load DB preferences for this user (fall back to defaults if no row)
+    const prefs = await getNotificationPreferences(userId);
+    const typePref = prefs[type];
+    const defaults = DEFAULT_PREFERENCES[type as NotificationTypeKey] ?? {
+      inApp: true,
+      email: false,
+      push: false,
+    };
 
-    // 4. Email: check DnD + type eligibility
+    // 4. In-app: always delivered unless explicitly disabled in preferences
+    const inAppEnabled = typePref?.channelInApp ?? defaults.inApp;
+    const inApp: ChannelDecision = inAppEnabled
+      ? { suppressed: false, reason: "in-app always delivered" }
+      : { suppressed: true, reason: `user preference: in-app disabled for type ${type}` };
+
+    // 5. Email: check DnD + type eligibility + DB preference + digest mode
     const redis = getRedisClient();
     const isDnd = await redis.exists(`dnd:${userId}`);
     let email: ChannelDecision;
     if (isDnd) {
       email = { suppressed: true, reason: "quiet hours (dnd key set)" };
-    } else if (EMAIL_ELIGIBLE_TYPES.has(type)) {
-      email = { suppressed: false, reason: `eligible type: ${type}` };
+    } else if (typePref?.digestMode && typePref.digestMode !== "none") {
+      email = { suppressed: true, reason: `digest mode: email batched for type ${type}` };
     } else {
-      email = { suppressed: true, reason: "type not in email allowlist (Story 9.2)" };
+      const emailEnabled = typePref?.channelEmail ?? defaults.email;
+      if (!emailEnabled) {
+        email = { suppressed: true, reason: `user preference: email disabled for type ${type}` };
+      } else if (EMAIL_ELIGIBLE_TYPES.has(type)) {
+        email = { suppressed: false, reason: `eligible type: ${type}` };
+      } else {
+        email = { suppressed: true, reason: "type not in email allowlist (Story 9.2)" };
+      }
     }
 
-    // 5. Push: check DnD + type eligibility (Story 9.3)
+    // 6. Push: check DnD + type eligibility + DB preference
     let push: ChannelDecision;
     if (isDnd) {
       push = { suppressed: true, reason: "quiet hours (dnd key set)" };
-    } else if (PUSH_ELIGIBLE_TYPES.has(type)) {
-      push = { suppressed: false, reason: `push eligible type: ${type}` };
     } else {
-      push = { suppressed: true, reason: "type not in push allowlist" };
+      const pushEnabled = typePref?.channelPush ?? defaults.push;
+      if (!pushEnabled) {
+        push = { suppressed: true, reason: `user preference: push disabled for type ${type}` };
+      } else if (PUSH_ELIGIBLE_TYPES.has(type)) {
+        push = { suppressed: false, reason: `push eligible type: ${type}` };
+      } else {
+        push = { suppressed: true, reason: "type not in push allowlist" };
+      }
     }
 
     const result: RouteResult = { inApp, email, push };
