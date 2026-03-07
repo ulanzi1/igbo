@@ -991,6 +991,12 @@
     },
     "recording_failed": {
       "title": "Recording could not be saved: {title}"
+    },
+    "push": {
+      "sectionTitle": "Push Notifications",
+      "enableLabel": "Enable push notifications",
+      "unsupportedBrowser": "Your browser does not support push notifications",
+      "permissionDenied": "Push notifications are blocked. Update your browser settings to enable them."
     }
   },
   "Dashboard": {

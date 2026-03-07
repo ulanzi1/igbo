@@ -9,6 +9,7 @@ import { getRedisPublisher } from "@/lib/redis";
 import { listGroupLeaders } from "@/db/queries/groups";
 import { findUserById } from "@/db/queries/auth-queries";
 import { enqueueEmailJob } from "@/services/email-service";
+import { sendPushNotifications } from "@/services/push-service";
 import { notificationRouter } from "@/services/notification-router";
 import type {
   MemberApprovedEvent,
@@ -121,6 +122,17 @@ async function deliverNotification(params: {
         }),
       );
     }
+  }
+
+  // Push channel: send via push-service when router says not suppressed (Story 9.3)
+  if (!routeResult.push.suppressed) {
+    await sendPushNotifications(userId, {
+      title,
+      body,
+      icon: "/icon-192.png",
+      link: link ?? "/",
+      tag: `${type}:${conversationId ?? "general"}`,
+    });
   }
 
   // Email channel: dispatch via enqueueEmailJob() when router says not suppressed.

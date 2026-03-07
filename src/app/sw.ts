@@ -44,4 +44,36 @@ const serwist = new Serwist({
   },
 });
 
+// Push event: display notification when a push message is received (Story 9.3)
+// Must be registered BEFORE serwist.addEventListeners()
+self.addEventListener("push", (event) => {
+  const e = event as PushEvent;
+  const data = e.data?.json() as
+    | {
+        title: string;
+        body: string;
+        icon: string;
+        link: string;
+        tag?: string;
+      }
+    | undefined;
+  if (!data) return;
+  e.waitUntil(
+    self.registration.showNotification(data.title, {
+      body: data.body,
+      icon: data.icon ?? "/icon-192.png",
+      tag: data.tag,
+      data: { url: data.link },
+    }),
+  );
+});
+
+// Notification click: close notification and navigate to relevant content (Story 9.3)
+// Must be registered BEFORE serwist.addEventListeners()
+self.addEventListener("notificationclick", (event) => {
+  const e = event as NotificationEvent;
+  e.notification.close();
+  e.waitUntil(clients.openWindow((e.notification.data?.url as string | undefined) ?? "/"));
+});
+
 serwist.addEventListeners();

@@ -68,6 +68,11 @@ vi.mock("@/services/email-service", () => ({
   emailService: { send: vi.fn() },
 }));
 
+const mockSendPushNotifications = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
+vi.mock("@/services/push-service", () => ({
+  sendPushNotifications: (...args: unknown[]) => mockSendPushNotifications(...args),
+}));
+
 const mockGetEventById = vi.hoisted(() => vi.fn());
 
 vi.mock("@/db/queries/events", () => ({
@@ -114,6 +119,7 @@ beforeEach(() => {
     languagePreference: "en",
   });
   mockEnqueueEmailJob.mockReturnValue(undefined);
+  mockSendPushNotifications.mockResolvedValue(undefined);
 });
 
 describe("notification-service module loading", () => {
@@ -1236,5 +1242,44 @@ describe("Story 9.2 review — F6: event.waitlist_promoted email dispatch", () =
         eventUrl: `/events/${EVENT_ID}`,
       }) as unknown,
     });
+  });
+});
+
+// ─── Story 9.3: Push delivery via deliverNotification ────────────────────────
+
+describe("push delivery (Story 9.3)", () => {
+  it("sendPushNotifications called when push not suppressed (eligible type, no DnD)", async () => {
+    // member.approved → type: admin_announcement → push eligible, no DnD
+    mockRedisExists.mockResolvedValue(0);
+    const approvedHandler = handlerRef.current.get("member.approved");
+
+    await approvedHandler?.({
+      userId: "00000000-0000-4000-8000-000000000001",
+      approvedBy: "00000000-0000-4000-8000-000000000002",
+      timestamp: new Date().toISOString(),
+    });
+
+    expect(mockSendPushNotifications).toHaveBeenCalledWith(
+      "00000000-0000-4000-8000-000000000001",
+      expect.objectContaining({
+        title: "notifications.member_approved.title",
+        body: "notifications.member_approved.body",
+        icon: "/icon-192.png",
+        link: "/dashboard",
+      }),
+    );
+  });
+
+  it("sendPushNotifications NOT called when push suppressed (DnD active)", async () => {
+    mockRedisExists.mockResolvedValue(1); // DnD active
+    const approvedHandler = handlerRef.current.get("member.approved");
+
+    await approvedHandler?.({
+      userId: "00000000-0000-4000-8000-000000000001",
+      approvedBy: "00000000-0000-4000-8000-000000000002",
+      timestamp: new Date().toISOString(),
+    });
+
+    expect(mockSendPushNotifications).not.toHaveBeenCalled();
   });
 });

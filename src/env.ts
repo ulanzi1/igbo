@@ -51,10 +51,14 @@ export const env = createEnv({
     DAILY_API_KEY: z.string().optional().default(""),
     DAILY_API_URL: z.string().url().default("https://api.daily.co/v1"),
     DAILY_WEBHOOK_SECRET: z.string().optional().default(""),
+    // Web Push / VAPID (Story 9.3) — optional so dev envs without VAPID keys start normally
+    VAPID_PRIVATE_KEY: z.string().optional().default(""),
+    VAPID_CONTACT_EMAIL: z.string().optional().default(""),
   },
   client: {
     NEXT_PUBLIC_APP_URL: z.url(),
     NEXT_PUBLIC_REALTIME_URL: z.url(),
+    NEXT_PUBLIC_VAPID_PUBLIC_KEY: z.string().optional().default(""),
   },
   runtimeEnv: {
     DATABASE_URL: process.env.DATABASE_URL,
@@ -100,5 +104,8 @@ export const env = createEnv({
     DAILY_API_KEY: process.env.DAILY_API_KEY,
     DAILY_API_URL: process.env.DAILY_API_URL,
     DAILY_WEBHOOK_SECRET: process.env.DAILY_WEBHOOK_SECRET,
+    VAPID_PRIVATE_KEY: process.env.VAPID_PRIVATE_KEY,
+    VAPID_CONTACT_EMAIL: process.env.VAPID_CONTACT_EMAIL,
+    NEXT_PUBLIC_VAPID_PUBLIC_KEY: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
   },
 });
