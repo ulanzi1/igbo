@@ -124,7 +124,7 @@ development_status:
   epic-8: in-progress
   tech-spec-redis-lua-spike-points-engine: done # EventBus payload patch + Lua script + defineCommand prototype + CI setup + adversarial review F1–F12 applied — 2026-03-07
   8-1-points-engine-earning-rules: done # review: 7 findings (1H/3M/3L) all fixed, +6 tests — 2026-03-07
-  8-2-points-dashboard-history: backlog
+  8-2-points-dashboard-history: done
   8-3-verification-badges-display: backlog
   8-4-points-based-posting-limits: backlog
   epic-8-retrospective: optional
