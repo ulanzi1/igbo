@@ -5,6 +5,16 @@ import { db } from "@/db";
 import { auditLogs } from "@/db/schema/audit-logs";
 import { platformPointsLedger, platformPointsRules } from "@/db/schema/platform-points";
 import type { PlatformPointsRule } from "@/db/schema/platform-points";
+import { platformPostingLimits } from "@/db/schema/platform-posting-limits";
+import type { MembershipTier } from "@/db/queries/auth-permissions";
+
+// Tier baselines — mirrors PERMISSION_MATRIX.maxArticlesPerWeek without circular import.
+// WARNING: If PERMISSION_MATRIX.maxArticlesPerWeek values change, update these too.
+const TIER_ARTICLE_BASELINE: Record<string, number> = {
+  BASIC: 0,
+  PROFESSIONAL: 1,
+  TOP_TIER: 2,
+};
 
 export interface InsertLedgerEntryData {
   userId: string;
@@ -129,6 +139,29 @@ export async function getPointsSummaryStats(
     thisWeek: parseInt(row?.this_week ?? "0", 10),
     thisMonth: parseInt(row?.this_month ?? "0", 10),
   };
+}
+
+export async function getEffectiveArticleLimit(
+  userId: string,
+  tier: MembershipTier,
+  preloadedPoints?: number,
+): Promise<number> {
+  const totalPoints = preloadedPoints ?? (await getUserPointsTotal(userId));
+  const tierStr = tier as string;
+
+  const rows = await db
+    .select()
+    .from(platformPostingLimits)
+    .where(eq(platformPostingLimits.tier, tierStr))
+    .orderBy(desc(platformPostingLimits.pointsThreshold));
+
+  for (const row of rows) {
+    if (totalPoints >= row.pointsThreshold) {
+      return row.baseLimit + row.bonusLimit;
+    }
+  }
+
+  return TIER_ARTICLE_BASELINE[tierStr] ?? 0;
 }
 
 export async function logPointsThrottle(params: {

@@ -13,6 +13,15 @@ vi.mock("@/db", () => ({
   },
 }));
 
+vi.mock("@/db/schema/platform-posting-limits", () => ({
+  platformPostingLimits: {
+    tier: "tier",
+    baseLimit: "base_limit",
+    pointsThreshold: "points_threshold",
+    bonusLimit: "bonus_limit",
+  },
+}));
+
 vi.mock("@/db/schema/platform-points", () => ({
   platformPointsLedger: {
     id: "id",
@@ -71,6 +80,7 @@ import {
   logPointsThrottle,
   getPointsLedgerHistory,
   getPointsSummaryStats,
+  getEffectiveArticleLimit,
 } from "./points";
 
 beforeEach(() => {
@@ -324,6 +334,119 @@ describe("getPointsLedgerHistory", () => {
     await getPointsLedgerHistory("user-1", { page: 2, limit: 10 });
 
     expect(data.offset).toHaveBeenCalledWith(10);
+  });
+});
+
+// ─── getEffectiveArticleLimit ─────────────────────────────────────────────────
+
+describe("getEffectiveArticleLimit", () => {
+  /**
+   * getEffectiveArticleLimit makes two db.select calls:
+   *   1. getUserPointsTotal → select().from().where() resolves to [{total: N}]
+   *   2. posting limits    → select().from().where().orderBy() resolves to rows[]
+   */
+  function makeEffectiveLimitMocks(totalPoints: number, limitRows: unknown[]) {
+    // Call 1: getUserPointsTotal
+    const whereTotal = vi.fn().mockResolvedValue([{ total: String(totalPoints) }]);
+    const fromTotal = vi.fn().mockReturnValue({ where: whereTotal });
+
+    // Call 2: posting limits query
+    const mockOrderBy = vi.fn().mockResolvedValue(limitRows);
+    const mockWhere = vi.fn().mockReturnValue({ orderBy: mockOrderBy });
+    const fromLimits = vi.fn().mockReturnValue({ where: mockWhere });
+
+    mockSelect.mockReturnValueOnce({ from: fromTotal }).mockReturnValueOnce({ from: fromLimits });
+  }
+
+  it("Professional/0pts → 1 (matches threshold-0 row, base=1+bonus=0)", async () => {
+    makeEffectiveLimitMocks(0, [
+      { tier: "PROFESSIONAL", baseLimit: 1, pointsThreshold: 2000, bonusLimit: 2 },
+      { tier: "PROFESSIONAL", baseLimit: 1, pointsThreshold: 500, bonusLimit: 1 },
+      { tier: "PROFESSIONAL", baseLimit: 1, pointsThreshold: 0, bonusLimit: 0 },
+    ]);
+    const result = await getEffectiveArticleLimit("user-1", "PROFESSIONAL");
+    expect(result).toBe(1); // 1+0
+  });
+
+  it("Professional/500pts → 2 (matches threshold-500 row, base=1+bonus=1)", async () => {
+    makeEffectiveLimitMocks(500, [
+      { tier: "PROFESSIONAL", baseLimit: 1, pointsThreshold: 2000, bonusLimit: 2 },
+      { tier: "PROFESSIONAL", baseLimit: 1, pointsThreshold: 500, bonusLimit: 1 },
+      { tier: "PROFESSIONAL", baseLimit: 1, pointsThreshold: 0, bonusLimit: 0 },
+    ]);
+    const result = await getEffectiveArticleLimit("user-1", "PROFESSIONAL");
+    expect(result).toBe(2); // 1+1
+  });
+
+  it("Professional/2000pts → 3 (matches threshold-2000 row, base=1+bonus=2)", async () => {
+    makeEffectiveLimitMocks(2000, [
+      { tier: "PROFESSIONAL", baseLimit: 1, pointsThreshold: 2000, bonusLimit: 2 },
+      { tier: "PROFESSIONAL", baseLimit: 1, pointsThreshold: 500, bonusLimit: 1 },
+      { tier: "PROFESSIONAL", baseLimit: 1, pointsThreshold: 0, bonusLimit: 0 },
+    ]);
+    const result = await getEffectiveArticleLimit("user-1", "PROFESSIONAL");
+    expect(result).toBe(3); // 1+2
+  });
+
+  it("Top-tier/0pts → 2 (matches threshold-0 row, base=2+bonus=0)", async () => {
+    makeEffectiveLimitMocks(0, [
+      { tier: "TOP_TIER", baseLimit: 2, pointsThreshold: 30000, bonusLimit: 5 },
+      { tier: "TOP_TIER", baseLimit: 2, pointsThreshold: 15000, bonusLimit: 4 },
+      { tier: "TOP_TIER", baseLimit: 2, pointsThreshold: 7500, bonusLimit: 3 },
+      { tier: "TOP_TIER", baseLimit: 2, pointsThreshold: 3000, bonusLimit: 2 },
+      { tier: "TOP_TIER", baseLimit: 2, pointsThreshold: 1000, bonusLimit: 1 },
+      { tier: "TOP_TIER", baseLimit: 2, pointsThreshold: 0, bonusLimit: 0 },
+    ]);
+    const result = await getEffectiveArticleLimit("user-1", "TOP_TIER");
+    expect(result).toBe(2); // 2+0
+  });
+
+  it("Top-tier/1000pts → 3 (matches threshold-1000 row, base=2+bonus=1)", async () => {
+    makeEffectiveLimitMocks(1000, [
+      { tier: "TOP_TIER", baseLimit: 2, pointsThreshold: 30000, bonusLimit: 5 },
+      { tier: "TOP_TIER", baseLimit: 2, pointsThreshold: 15000, bonusLimit: 4 },
+      { tier: "TOP_TIER", baseLimit: 2, pointsThreshold: 7500, bonusLimit: 3 },
+      { tier: "TOP_TIER", baseLimit: 2, pointsThreshold: 3000, bonusLimit: 2 },
+      { tier: "TOP_TIER", baseLimit: 2, pointsThreshold: 1000, bonusLimit: 1 },
+      { tier: "TOP_TIER", baseLimit: 2, pointsThreshold: 0, bonusLimit: 0 },
+    ]);
+    const result = await getEffectiveArticleLimit("user-1", "TOP_TIER");
+    expect(result).toBe(3); // 2+1
+  });
+
+  it("Top-tier/30000pts → 7 (matches threshold-30000 row, base=2+bonus=5)", async () => {
+    makeEffectiveLimitMocks(30000, [
+      { tier: "TOP_TIER", baseLimit: 2, pointsThreshold: 30000, bonusLimit: 5 },
+      { tier: "TOP_TIER", baseLimit: 2, pointsThreshold: 15000, bonusLimit: 4 },
+      { tier: "TOP_TIER", baseLimit: 2, pointsThreshold: 7500, bonusLimit: 3 },
+      { tier: "TOP_TIER", baseLimit: 2, pointsThreshold: 3000, bonusLimit: 2 },
+      { tier: "TOP_TIER", baseLimit: 2, pointsThreshold: 1000, bonusLimit: 1 },
+      { tier: "TOP_TIER", baseLimit: 2, pointsThreshold: 0, bonusLimit: 0 },
+    ]);
+    const result = await getEffectiveArticleLimit("user-1", "TOP_TIER");
+    expect(result).toBe(7); // 2+5
+  });
+
+  it("falls back to tier baseline when no posting limit rows exist", async () => {
+    makeEffectiveLimitMocks(9999, []);
+    const result = await getEffectiveArticleLimit("user-1", "PROFESSIONAL");
+    expect(result).toBe(1); // TIER_ARTICLE_BASELINE["PROFESSIONAL"]
+  });
+
+  it("skips getUserPointsTotal when preloadedPoints is provided", async () => {
+    // Only set up the posting limits query (call 1) — no getUserPointsTotal call
+    const mockOrderBy = vi.fn().mockResolvedValue([
+      { tier: "PROFESSIONAL", baseLimit: 1, pointsThreshold: 500, bonusLimit: 1 },
+      { tier: "PROFESSIONAL", baseLimit: 1, pointsThreshold: 0, bonusLimit: 0 },
+    ]);
+    const mockWhere = vi.fn().mockReturnValue({ orderBy: mockOrderBy });
+    const fromLimits = vi.fn().mockReturnValue({ where: mockWhere });
+    mockSelect.mockReturnValueOnce({ from: fromLimits });
+
+    const result = await getEffectiveArticleLimit("user-1", "PROFESSIONAL", 500);
+    expect(result).toBe(2); // 1+1 (500pts matches threshold-500)
+    // Only 1 db.select call (posting limits), not 2 (no getUserPointsTotal)
+    expect(mockSelect).toHaveBeenCalledTimes(1);
   });
 });
 

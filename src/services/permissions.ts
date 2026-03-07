@@ -97,8 +97,9 @@ export async function canPublishArticle(userId: string): Promise<PermissionResul
     return result;
   }
   const { countWeeklyArticleSubmissions } = await import("@/db/queries/articles");
+  const { getEffectiveArticleLimit } = await import("@/db/queries/points");
   const weeklyCount = await countWeeklyArticleSubmissions(userId);
-  const maxPerWeek = PERMISSION_MATRIX[tier].maxArticlesPerWeek;
+  const maxPerWeek = await getEffectiveArticleLimit(userId, tier);
   if (weeklyCount >= maxPerWeek) {
     const result: PermissionResult = {
       allowed: false,
