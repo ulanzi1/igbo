@@ -69,6 +69,7 @@ import {
   insertPostMedia,
   resolveFileUploadUrls,
   listPendingGroupPosts,
+  getPostContentLength,
 } from "./posts";
 
 // Helper to build fluent DB query chain mocks
@@ -388,5 +389,32 @@ describe("listPendingGroupPosts", () => {
 
     await listPendingGroupPosts(GROUP_ID);
     expect(mockDbSelect).toHaveBeenCalledTimes(1);
+  });
+});
+
+// ─── getPostContentLength ──────────────────────────────────────────────────────
+
+describe("getPostContentLength", () => {
+  it("returns character length (whitespace-stripped) when post exists", async () => {
+    const mockLimit = vi.fn().mockResolvedValue([{ len: 42 }]);
+    const mockWhere = vi.fn().mockReturnValue({ limit: mockLimit });
+    const mockFrom = vi.fn().mockReturnValue({ where: mockWhere });
+    mockDbSelect.mockReturnValue({ from: mockFrom });
+
+    const result = await getPostContentLength("post-1");
+
+    expect(result).toBe(42);
+    expect(mockDbSelect).toHaveBeenCalled();
+  });
+
+  it("returns null when post not found or deleted", async () => {
+    const mockLimit = vi.fn().mockResolvedValue([]);
+    const mockWhere = vi.fn().mockReturnValue({ limit: mockLimit });
+    const mockFrom = vi.fn().mockReturnValue({ where: mockWhere });
+    mockDbSelect.mockReturnValue({ from: mockFrom });
+
+    const result = await getPostContentLength("deleted-post");
+
+    expect(result).toBeNull();
   });
 });

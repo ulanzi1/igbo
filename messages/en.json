@@ -1310,6 +1310,10 @@
     "article_rejected": {
       "title": "Article Rejected",
       "body": "Your article submission has been rejected."
+    },
+    "points_throttled": {
+      "title": "Reaction Limit Reached",
+      "body": "Slow down — your reactions are going too fast"
     }
   },
   "Feed": {

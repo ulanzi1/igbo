@@ -121,8 +121,9 @@ development_status:
   epic-7-retro-action-items: done # AI-1 (locale hardcoding vi-patterns) + AI-2 (skipCsrf middleware) + AI-3 (permission audit vi-patterns) + AI-5 (daily-co pre-launch doc) completed 2026-03-06; AI-4 (mutation test story template) is SM/Bob process item — no codebase artifact
 
   # Epic 8: Engagement & Gamification
-  epic-8: backlog
-  8-1-points-engine-earning-rules: backlog
+  epic-8: in-progress
+  tech-spec-redis-lua-spike-points-engine: done # EventBus payload patch + Lua script + defineCommand prototype + CI setup + adversarial review F1–F12 applied — 2026-03-07
+  8-1-points-engine-earning-rules: done # review: 7 findings (1H/3M/3L) all fixed, +6 tests — 2026-03-07
   8-2-points-dashboard-history: backlog
   8-3-verification-badges-display: backlog
   8-4-points-based-posting-limits: backlog

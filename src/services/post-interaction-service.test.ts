@@ -20,6 +20,7 @@ vi.mock("@/db/queries/post-interactions", () => ({
 vi.mock("@/db/queries/posts", () => ({
   insertPost: vi.fn(),
   getPostGroupId: vi.fn(),
+  getPostAuthorId: vi.fn().mockResolvedValue("author-user-id"),
 }));
 vi.mock("@/db/queries/groups", () => ({
   getGroupMemberFull: vi.fn(),
@@ -35,9 +36,10 @@ import {
   incrementShareCount,
   getOriginalPostEmbed,
 } from "@/db/queries/post-interactions";
-import { insertPost, getPostGroupId } from "@/db/queries/posts";
+import { insertPost, getPostGroupId, getPostAuthorId } from "@/db/queries/posts";
 import { getGroupMemberFull } from "@/db/queries/groups";
 import { eventBus } from "@/services/event-bus";
+import { ApiError } from "@/lib/api-error";
 
 const mockToggleReaction = vi.mocked(toggleReaction);
 const mockInsertComment = vi.mocked(insertComment);
@@ -46,6 +48,7 @@ const mockIncrementShareCount = vi.mocked(incrementShareCount);
 const mockGetOriginalPostEmbed = vi.mocked(getOriginalPostEmbed);
 const mockInsertPost = vi.mocked(insertPost);
 const mockGetPostGroupId = vi.mocked(getPostGroupId);
+const mockGetPostAuthorId = vi.mocked(getPostAuthorId);
 const mockGetGroupMemberFull = vi.mocked(getGroupMemberFull);
 const mockEventBusEmit = vi.mocked(eventBus.emit);
 
@@ -57,11 +60,14 @@ beforeEach(() => {
   mockGetOriginalPostEmbed.mockReset();
   mockInsertPost.mockReset();
   mockGetPostGroupId.mockReset();
+  mockGetPostAuthorId.mockReset();
   mockGetGroupMemberFull.mockReset();
   mockEventBusEmit.mockReset();
 
   // Default: non-group post (skip muted/banned check)
   mockGetPostGroupId.mockResolvedValue(null);
+  // Default: post author found
+  mockGetPostAuthorId.mockResolvedValue("author-user-id");
 });
 
 // ─── reactToPost ──────────────────────────────────────────────────────────────
@@ -114,6 +120,55 @@ describe("reactToPost", () => {
       newReactionType: "like",
       countDelta: 1,
     });
+  });
+
+  it("throws ApiError 404 when post not found (getPostAuthorId returns null)", async () => {
+    mockGetPostAuthorId.mockResolvedValue(null);
+
+    await expect(reactToPost("post-1", "user-1", "like")).rejects.toMatchObject({
+      status: 404,
+    });
+    expect(mockToggleReaction).not.toHaveBeenCalled();
+  });
+
+  it("includes authorId in post.reacted payload when getPostAuthorId returns a value (AC 3)", async () => {
+    mockToggleReaction.mockResolvedValue({ newReactionType: "like", countDelta: 1 });
+    mockGetPostAuthorId.mockResolvedValue("post-author-id");
+    mockEventBusEmit.mockResolvedValue(undefined);
+
+    await reactToPost("post-1", "user-1", "like");
+
+    expect(mockEventBusEmit).toHaveBeenCalledWith(
+      "post.reacted",
+      expect.objectContaining({ authorId: "post-author-id" }),
+    );
+  });
+
+  it("propagates DB error from getPostAuthorId", async () => {
+    mockGetPostAuthorId.mockRejectedValue(new Error("DB connection failed"));
+
+    await expect(reactToPost("post-1", "user-1", "like")).rejects.toThrow("DB connection failed");
+    expect(mockToggleReaction).not.toHaveBeenCalled();
+  });
+
+  it("throws ApiError 403 when reactor is the post author (self-reaction)", async () => {
+    mockGetPostAuthorId.mockResolvedValue("user-1"); // same as userId
+
+    await expect(reactToPost("post-1", "user-1", "like")).rejects.toMatchObject({
+      status: 403,
+    });
+    expect(mockToggleReaction).not.toHaveBeenCalled();
+  });
+
+  it("allows reaction when reactor is different user than author", async () => {
+    mockToggleReaction.mockResolvedValue({ newReactionType: "like", countDelta: 1 });
+    mockGetPostAuthorId.mockResolvedValue("author-user-id"); // different from userId "user-1"
+    mockEventBusEmit.mockResolvedValue(undefined);
+
+    const result = await reactToPost("post-1", "user-1", "like");
+
+    expect(result).toEqual({ newReactionType: "like", countDelta: 1 });
+    expect(mockToggleReaction).toHaveBeenCalledWith("post-1", "user-1", "like");
   });
 });
 

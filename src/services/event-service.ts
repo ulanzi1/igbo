@@ -426,6 +426,7 @@ export async function markAttendance(
     await eventBus.emit("event.attended", {
       eventId,
       userId,
+      hostId: event.creatorId,
       timestamp: new Date().toISOString(),
     });
   }

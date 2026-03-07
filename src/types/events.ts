@@ -30,6 +30,7 @@ export interface PostReactedEvent extends BaseEvent {
   postId: string;
   userId: string;
   reaction: string;
+  authorId: string; // post author who earns points (not the reactor)
 }
 
 export interface PostCommentedEvent extends BaseEvent {
@@ -387,6 +388,7 @@ export interface EventDateChangedEvent extends BaseEvent {
 export interface EventAttendedEvent extends BaseEvent {
   eventId: string;
   userId: string;
+  hostId: string; // event creator who earns points
 }
 
 // --- Event RSVP Events ---
