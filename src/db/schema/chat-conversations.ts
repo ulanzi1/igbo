@@ -10,7 +10,7 @@ export const chatConversations = pgTable("chat_conversations", {
   id: uuid("id").primaryKey().defaultRandom(),
   type: conversationTypeEnum("type").notNull(),
   channelId: uuid("channel_id").references(() => communityGroupChannels.id, {
-    onDelete: "setNull",
+    onDelete: "set null",
   }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),

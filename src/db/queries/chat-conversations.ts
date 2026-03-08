@@ -335,6 +335,7 @@ export type ConversationWithMembers = {
     displayName: string;
     photoUrl: string | null;
     lastReadAt: Date | null;
+    badgeType: "blue" | "red" | "purple" | null;
   }>;
   memberCount: number;
 };
