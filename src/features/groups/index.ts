@@ -9,6 +9,7 @@ export { GroupFilesTab } from "./components/GroupFilesTab";
 export { GroupHeader } from "./components/GroupHeader";
 export { GroupList } from "./components/GroupList";
 export { GroupSettings } from "./components/GroupSettings";
+export { RecommendedGroupsWidget } from "./components/RecommendedGroupsWidget";
 
 // Hooks
 export { useGroups } from "./hooks/use-groups";

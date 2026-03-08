@@ -1070,6 +1070,7 @@
     },
     "upcomingEvents": "Upcoming Events",
     "points": "Your Points",
+    "recommendedGroups": "Recommended Groups",
     "peopleNear": {
       "title": "People near you",
       "seeAll": "See all",
@@ -1547,6 +1548,12 @@
     "searchPlaceholder": "Search groups...",
     "joinButton": "Join",
     "requestToJoin": "Request to Join",
+    "recommendations": {
+      "widgetTitle": "Recommended Groups",
+      "empty": "No recommendations right now. Explore the group directory to find groups.",
+      "dismiss": "Dismiss",
+      "dismissAriaLabel": "Dismiss recommendation for {name}"
+    },
     "pendingRequest": "Pending",
     "joined": "Joined",
     "leaveGroup": "Leave Group",

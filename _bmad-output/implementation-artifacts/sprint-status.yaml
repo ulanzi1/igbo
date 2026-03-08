@@ -143,7 +143,7 @@ development_status:
   epic-10: in-progress
   10-1-global-search-autocomplete: done
   10-2-filtered-search-results: done
-  10-3-recommended-groups: backlog
+  10-3-recommended-groups: done
   epic-10-retrospective: optional
 
   # Epic 11: Administration & Moderation

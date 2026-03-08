@@ -288,6 +288,13 @@
       "when": 1708000040000,
       "tag": "0040_global_search_fts",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1708000041000,
+      "tag": "0041_dismissed_group_recommendations",
+      "breakpoints": true
     }
   ]
 }

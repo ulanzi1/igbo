@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { auth } from "@/server/auth/config";
 import { GroupList } from "@/features/groups";
+import { RecommendedGroupsWidget } from "@/features/groups";
 
 export const dynamic = "force-dynamic"; // Personalized — never cache at SSR level
 
@@ -19,6 +20,7 @@ export default async function GroupsPage() {
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-8">
+      <RecommendedGroupsWidget />
       <GroupList canCreateGroup={isTopTier} />
     </main>
   );
