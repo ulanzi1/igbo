@@ -720,22 +720,20 @@ export function SearchResultsContent({
         )}
       </div>
 
-      {/* Filter bar — only in filtered mode */}
+      {/* Filter bar — always visible */}
+      <FilterBar
+        type={activeType}
+        filters={filters}
+        onTypeChange={handleTypeChange}
+        onFilterChange={handleFilterChange}
+      />
       {isFilteredMode && (
-        <>
-          <FilterBar
-            type={activeType}
-            filters={filters}
-            onTypeChange={handleTypeChange}
-            onFilterChange={handleFilterChange}
-          />
-          <ActiveChips
-            type={activeType}
-            filters={filters}
-            onRemove={handleRemoveFilter}
-            onClearAll={handleClearAllFilters}
-          />
-        </>
+        <ActiveChips
+          type={activeType}
+          filters={filters}
+          onRemove={handleRemoveFilter}
+          onClearAll={handleClearAllFilters}
+        />
       )}
 
       {/* Results heading */}

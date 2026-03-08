@@ -107,8 +107,9 @@ function sanitizeHighlight(raw: string | null): string | null {
   });
 }
 
-const TS_HEADLINE_OPTIONS =
-  "StartSel=<mark>, StopSel=</mark>, MaxFragments=2, MaxWords=30, MinWords=15";
+const TS_HEADLINE_OPTIONS = sql.raw(
+  `'StartSel=<mark>, StopSel=</mark>, MaxFragments=2, MaxWords=30, MinWords=15'`,
+);
 
 // ── Row types ─────────────────────────────────────────────────────────────────
 
@@ -129,7 +130,7 @@ type PostRow = {
   author_name: string | null;
   category: string;
   created_at: string;
-  reaction_count: string | number;
+  like_count: string | number;
   comment_count: string | number;
   rank: string;
   highlight: string | null;
@@ -139,7 +140,7 @@ type ArticleRow = {
   id: string;
   title: string;
   title_igbo: string | null;
-  featured_image_url: string | null;
+  cover_image_url: string | null;
   author_name: string | null;
   created_at: string;
   rank: string;
@@ -273,9 +274,7 @@ async function searchArticles(query: string, limit: number): Promise<SearchSecti
       ts_rank(
         to_tsvector('english',
           COALESCE(a.title, '') || ' ' ||
-          COALESCE(a.title_igbo, '') || ' ' ||
-          COALESCE(a.content, '') || ' ' ||
-          COALESCE(a.content_igbo, '')
+          COALESCE(a.title_igbo, '')
         ),
         plainto_tsquery('english', ${query})
       )::text AS rank
@@ -284,11 +283,9 @@ async function searchArticles(query: string, limit: number): Promise<SearchSecti
       AND a.deleted_at IS NULL
       AND to_tsvector('english',
             COALESCE(a.title, '') || ' ' ||
-            COALESCE(a.title_igbo, '') || ' ' ||
-            COALESCE(a.content, '') || ' ' ||
-            COALESCE(a.content_igbo, '')
+            COALESCE(a.title_igbo, '')
           ) @@ plainto_tsquery('english', ${query})
-    ORDER BY rank DESC, a.published_at DESC
+    ORDER BY rank DESC, a.created_at DESC
     LIMIT ${fetchLimit}
   `)) as ArticleRow[];
 
@@ -550,7 +547,7 @@ async function searchPostsFiltered(
       p.content,
       p.category,
       p.created_at::text,
-      COALESCE(p.reaction_count, 0) AS reaction_count,
+      COALESCE(p.like_count, 0) AS like_count,
       COALESCE(p.comment_count, 0) AS comment_count,
       cp.display_name AS author_name,
       ts_rank(
@@ -634,15 +631,13 @@ async function searchArticlesFiltered(
       a.id::text,
       a.title,
       a.title_igbo,
-      a.featured_image_url,
+      a.cover_image_url,
       a.created_at::text,
       cp.display_name AS author_name,
       ts_rank(
         to_tsvector('english',
           COALESCE(a.title, '') || ' ' ||
-          COALESCE(a.title_igbo, '') || ' ' ||
-          COALESCE(a.content, '') || ' ' ||
-          COALESCE(a.content_igbo, '')
+          COALESCE(a.title_igbo, '')
         ),
         ${tsQuery}
       )::text AS rank,
@@ -653,9 +648,7 @@ async function searchArticlesFiltered(
       AND a.deleted_at IS NULL
       AND to_tsvector('english',
             COALESCE(a.title, '') || ' ' ||
-            COALESCE(a.title_igbo, '') || ' ' ||
-            COALESCE(a.content, '') || ' ' ||
-            COALESCE(a.content_igbo, '')
+            COALESCE(a.title_igbo, '')
           ) @@ ${tsQuery}
       ${dateFilter}
       ${authorFilter}
@@ -681,7 +674,7 @@ async function searchArticlesFiltered(
     type: "articles" as const,
     title: row.title,
     subtitle: row.title_igbo ?? null,
-    imageUrl: row.featured_image_url ?? null,
+    imageUrl: row.cover_image_url ?? null,
     href: `/articles/${row.id}`,
     rank: parseFloat(row.rank),
     highlight: sanitizeHighlight(row.highlight),
