@@ -1070,6 +1070,7 @@
     },
     "upcomingEvents": "Ihe Omume Na-abịa",
     "points": "Ọnụọgụ Gị",
+    "recommendedGroups": "Otu A Na-atụ Aro",
     "peopleNear": {
       "title": "Ndị nọ n'ógbè gị",
       "seeAll": "Lee ha nile",
@@ -1547,6 +1548,12 @@
     "searchPlaceholder": "Chọọ otu...",
     "joinButton": "Banye",
     "requestToJoin": "Rịọ ịbanye",
+    "recommendations": {
+      "widgetTitle": "Otu A Na-atụ Aro",
+      "empty": "Enweghị atụmanya ugbu a. Chọọ otu ndị ọzọ na ndepụta otu.",
+      "dismiss": "Mebie",
+      "dismissAriaLabel": "Mebie atụmanya maka {name}"
+    },
     "pendingRequest": "Na-echere",
     "joined": "Ejirila otu",
     "leaveGroup": "Hapụ Otu",
