@@ -1,6 +1,7 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import type { Metadata } from "next";
 import { MemberManagement } from "@/features/admin";
+import { AdminPageHeader } from "@/components/layout/AdminShell";
 
 export async function generateMetadata({
   params,
@@ -16,5 +17,18 @@ export default async function MembersPage({ params }: { params: Promise<{ locale
   const { locale } = await params;
   setRequestLocale(locale);
 
-  return <MemberManagement />;
+  const t = await getTranslations("Admin");
+
+  return (
+    <>
+      <AdminPageHeader
+        title={t("members.title")}
+        breadcrumbs={[
+          { label: t("sidebar.dashboard"), href: "/admin" },
+          { label: t("sidebar.members") },
+        ]}
+      />
+      <MemberManagement />
+    </>
+  );
 }

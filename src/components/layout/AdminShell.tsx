@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import { Link, usePathname } from "@/i18n/navigation";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { signOut } from "next-auth/react";
-import { LogOutIcon } from "lucide-react";
+import { ChevronRightIcon, LogOutIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const NAV_LINKS = [
@@ -21,7 +21,7 @@ const NAV_LINKS = [
 
 type NavKey = (typeof NAV_LINKS)[number]["key"];
 
-function AdminSidebar() {
+export function AdminSidebar() {
   const t = useTranslations("Admin");
   const pathname = usePathname();
 
@@ -65,6 +65,48 @@ function AdminSidebar() {
         </button>
       </div>
     </aside>
+  );
+}
+
+export interface Breadcrumb {
+  label: string;
+  href?: string;
+}
+
+interface AdminPageHeaderProps {
+  title: string;
+  breadcrumbs?: Breadcrumb[];
+  actions?: React.ReactNode;
+}
+
+export function AdminPageHeader({ title, breadcrumbs, actions }: AdminPageHeaderProps) {
+  return (
+    <div className="border-b border-zinc-800 bg-zinc-950 px-6 py-5">
+      {breadcrumbs && breadcrumbs.length > 0 && (
+        <nav aria-label="Breadcrumb" className="mb-2">
+          <ol className="flex items-center gap-1 text-sm text-zinc-400">
+            {breadcrumbs.map((crumb, idx) => (
+              <li key={idx} className="flex items-center gap-1">
+                {idx > 0 && <ChevronRightIcon className="size-3" aria-hidden="true" />}
+                {crumb.href ? (
+                  <Link href={crumb.href} className="hover:text-white transition-colors">
+                    {crumb.label}
+                  </Link>
+                ) : (
+                  <span aria-current="page" className="text-zinc-300">
+                    {crumb.label}
+                  </span>
+                )}
+              </li>
+            ))}
+          </ol>
+        </nav>
+      )}
+      <div className="flex items-center justify-between gap-4">
+        <h1 className="text-2xl font-bold text-white">{title}</h1>
+        {actions && <div className="flex items-center gap-2">{actions}</div>}
+      </div>
+    </div>
   );
 }
 
