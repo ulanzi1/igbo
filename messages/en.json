@@ -1747,6 +1747,44 @@
     "resultsPage": {
       "title": "Search results for \u201c{query}\u201d",
       "backToSearch": "Back to search"
-    }
+    },
+    "filters": {
+      "label": "Filters",
+      "type": "Content type",
+      "dateRange": "Date",
+      "dateRangeOptions": {
+        "today": "Today",
+        "week": "This week",
+        "month": "This month",
+        "custom": "Custom range"
+      },
+      "dateFrom": "From",
+      "dateTo": "To",
+      "authorId": "Author ID",
+      "category": "Category",
+      "categoryOptions": {
+        "discussion": "Discussion",
+        "event": "Event",
+        "announcement": "Announcement"
+      },
+      "location": "Location",
+      "locationPlaceholder": "City, state, or country",
+      "membershipTier": "Membership tier",
+      "membershipTierOptions": {
+        "BASIC": "Basic",
+        "PROFESSIONAL": "Professional",
+        "TOP_TIER": "Top Tier"
+      },
+      "clearAll": "Clear all",
+      "clear": "Remove filter",
+      "apply": "Apply",
+      "collapse": "Collapse filters",
+      "expand": "Expand filters"
+    },
+    "loadMore": "Load more",
+    "loadingMore": "Loading more results\u2026",
+    "endOfResults": "No more results",
+    "allTypes": "All types",
+    "typeSelector": "Filter by type"
   }
 }

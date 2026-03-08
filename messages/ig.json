@@ -1747,6 +1747,44 @@
     "resultsPage": {
       "title": "Nsonaazụ ọchọchọ maka \u201c{query}\u201d",
       "backToSearch": "Laghachi na ọchọchọ"
-    }
+    },
+    "filters": {
+      "label": "Nhọrọ",
+      "type": "Ụdị ọdịnaya",
+      "dateRange": "Ụbọchị",
+      "dateRangeOptions": {
+        "today": "Taa",
+        "week": "Izu a",
+        "month": "Ọnwa a",
+        "custom": "Oge nhọrọ"
+      },
+      "dateFrom": "Site",
+      "dateTo": "Ruo",
+      "authorId": "ID onye edemede",
+      "category": "Ụdị",
+      "categoryOptions": {
+        "discussion": "Mkparịta ụka",
+        "event": "Mmemme",
+        "announcement": "Mkọba"
+      },
+      "location": "Ọnọdụ",
+      "locationPlaceholder": "Obodo, steeti, ma ọ bụ mba",
+      "membershipTier": "Ọkwa otu",
+      "membershipTierOptions": {
+        "BASIC": "Ntọala",
+        "PROFESSIONAL": "Ọkachamara",
+        "TOP_TIER": "Kachasị elu"
+      },
+      "clearAll": "Hichapụ niile",
+      "clear": "Wepu nhọrọ",
+      "apply": "Tinye",
+      "collapse": "Mechie nhọrọ",
+      "expand": "Mepee nhọrọ"
+    },
+    "loadMore": "Buru ihe ndị ọzọ",
+    "loadingMore": "Na-ebu ihe ndị ọzọ…",
+    "endOfResults": "Enweghị ihe ndị ọzọ",
+    "allTypes": "Ụdị niile",
+    "typeSelector": "Họrọ ụdị"
   }
 }

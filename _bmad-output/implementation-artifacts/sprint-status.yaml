@@ -142,7 +142,7 @@ development_status:
   # Epic 10: Search & Discovery Platform
   epic-10: in-progress
   10-1-global-search-autocomplete: done
-  10-2-filtered-search-results: backlog
+  10-2-filtered-search-results: done
   10-3-recommended-groups: backlog
   epic-10-retrospective: optional
 
