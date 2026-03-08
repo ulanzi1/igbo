@@ -167,6 +167,19 @@ export async function getPostContentLength(postId: string): Promise<number | nul
 }
 
 /**
+ * Get the raw text content of a post for moderation scanning.
+ * Returns null if the post is not found or has been deleted.
+ */
+export async function getPostContent(postId: string): Promise<string | null> {
+  const [row] = await db
+    .select({ content: communityPosts.content })
+    .from(communityPosts)
+    .where(and(eq(communityPosts.id, postId), sql`${communityPosts.deletedAt} IS NULL`))
+    .limit(1);
+  return row?.content ?? null;
+}
+
+/**
  * Get the authorId (creatorId) of a post.
  * Returns null if the post is not found.
  */

@@ -96,3 +96,27 @@ export function tiptapJsonToHtml(json: string): string {
     return "";
   }
 }
+
+/** Recursively extract plain text from a Tiptap node tree. */
+function nodeToPlainText(node: TiptapNode): string {
+  if (node.type === "text") return node.text ?? "";
+  if (node.type === "hardBreak") return " ";
+  return (node.content ?? []).map(nodeToPlainText).join(" ");
+}
+
+/**
+ * Extract plain text from a Tiptap JSON string.
+ * Falls back to the raw input if parsing fails (handles plain-text posts).
+ * Used by moderation scanning to avoid running regex against raw JSON tokens.
+ */
+export function tiptapJsonToPlainText(json: string): string {
+  try {
+    const doc = JSON.parse(json) as TiptapNode;
+    // Verify it looks like a Tiptap doc (has a "type" field)
+    if (typeof doc?.type !== "string") return json;
+    return nodeToPlainText(doc);
+  } catch {
+    // Not JSON — treat as plain text (community_post_content_type = "text")
+    return json;
+  }
+}
