@@ -46,7 +46,7 @@ export const communityPosts = pgTable(
     contentType: postContentTypeEnum("content_type").notNull().default("text"),
     visibility: postVisibilityEnum("visibility").notNull().default("members_only"),
     category: postCategoryEnum("category").notNull().default("discussion"),
-    groupId: uuid("group_id").references(() => communityGroups.id, { onDelete: "setNull" }), // FK added Story 5.1
+    groupId: uuid("group_id").references(() => communityGroups.id, { onDelete: "set null" }), // FK added Story 5.1
     status: postStatusEnum("status").notNull().default("active"), // 'pending_approval' for moderated groups
     isPinned: boolean("is_pinned").notNull().default(false),
     pinnedAt: timestamp("pinned_at", { withTimezone: true }), // Set when admin pins; null = not pinned

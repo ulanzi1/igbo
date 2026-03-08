@@ -1,4 +1,3 @@
-import { type NextRequest } from "next/server";
 import { z } from "zod/v4";
 import { withApiHandler } from "@/server/api/middleware";
 import { requireAuthenticatedSession } from "@/services/permissions";
@@ -24,13 +23,13 @@ const upsertSchema = z.object({
   digestMode: z.enum(["none", "daily", "weekly"]).optional(),
 });
 
-export const GET = withApiHandler(async (_req: NextRequest) => {
+export const GET = withApiHandler(async (_req: Request) => {
   const session = await requireAuthenticatedSession();
   const preferences = await getNotificationPreferences(session.userId);
   return successResponse({ preferences });
 });
 
-export const PUT = withApiHandler(async (req: NextRequest) => {
+export const PUT = withApiHandler(async (req: Request) => {
   const session = await requireAuthenticatedSession();
   const body: unknown = await req.json();
   const parsed = upsertSchema.safeParse(body);

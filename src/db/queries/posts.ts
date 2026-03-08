@@ -271,7 +271,7 @@ export async function listPendingGroupPosts(
     })),
   }));
 
-  const nextCursor = hasMore ? pageRows[pageRows.length - 1].createdAt.toISOString() : null;
+  const nextCursor = hasMore ? pageRows[pageRows.length - 1]!.createdAt.toISOString() : null;
   return { posts, nextCursor };
 }
 
