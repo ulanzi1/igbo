@@ -33,7 +33,6 @@ import { cn } from "@/lib/utils";
 import { GlobalSearchBar } from "./GlobalSearchBar";
 
 const navLinks = [
-  { key: "home" as const, href: "/dashboard" },
   { key: "feed" as const, href: "/feed" },
   { key: "articles" as const, href: "/articles" },
   { key: "chat" as const, href: "/chat" },
