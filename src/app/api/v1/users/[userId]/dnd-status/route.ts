@@ -1,10 +1,9 @@
-import { type NextRequest } from "next/server";
 import { withApiHandler } from "@/server/api/middleware";
 import { successResponse } from "@/lib/api-response";
 import { isUserInQuietHours } from "@/db/queries/notification-preferences";
 import { ApiError } from "@/lib/api-error";
 
-export const GET = withApiHandler(async (req: NextRequest) => {
+export const GET = withApiHandler(async (req: Request) => {
   // Extract userId from URL path (withApiHandler doesn't pass Next.js params)
   const userId = new URL(req.url).pathname.split("/").at(-2);
   if (!userId) {

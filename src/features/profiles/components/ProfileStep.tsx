@@ -134,7 +134,12 @@ export function ProfileStep({
         />
       </div>
 
-      <ProfilePhotoUpload photoUrl={photoUrl} onPhotoUrl={setPhotoUrl} />
+      <ProfilePhotoUpload
+        photoUrl={photoUrl}
+        onPhotoUrl={setPhotoUrl}
+        showSkip
+        disabled={loading}
+      />
 
       <fieldset className="flex flex-col gap-3">
         <legend className="text-sm font-medium text-gray-700">{t("locationHeading")}</legend>

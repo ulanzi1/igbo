@@ -61,7 +61,7 @@ export function MyArticlesList({ articles }: MyArticlesListProps) {
         <section key={status}>
           <h2 className="text-lg font-semibold mb-3">{sectionLabels[status]}</h2>
           <div className="space-y-2">
-            {grouped[status].map((article) => (
+            {grouped[status]!.map((article) => (
               <div
                 key={article.id}
                 className="flex items-center justify-between gap-4 rounded-md border border-border px-4 py-3 bg-card"

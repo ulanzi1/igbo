@@ -17,7 +17,11 @@ export const GET = withApiHandler(async (request) => {
   const activityType = rawType && VALID_ACTIVITY_TYPES.has(rawType) ? rawType : undefined;
 
   if (rawType && !activityType) {
-    return errorResponse({ status: 400, title: "Invalid activity type filter" });
+    return errorResponse({
+      type: "about:blank",
+      status: 400,
+      title: "Invalid activity type filter",
+    });
   }
 
   const { entries, total } = await getPointsLedgerHistory(userId, { page, limit, activityType });

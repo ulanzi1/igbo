@@ -552,3 +552,25 @@ export async function upsertArticleTags(articleId: string, tags: string[]): Prom
     }
   });
 }
+
+/**
+ * Get all scannable text content of an article for moderation scanning.
+ * Returns EN content + Igbo content concatenated (F3: bilingual scan coverage).
+ * Returns null if the article is not found or has been deleted.
+ * Note: content columns store Tiptap JSON — caller must extract plain text before scanning.
+ */
+export async function getArticleContent(articleId: string): Promise<string | null> {
+  const [row] = await db
+    .select({
+      content: communityArticles.content,
+      contentIgbo: communityArticles.contentIgbo,
+      titleIgbo: communityArticles.titleIgbo,
+    })
+    .from(communityArticles)
+    .where(and(eq(communityArticles.id, articleId), sql`${communityArticles.deletedAt} IS NULL`))
+    .limit(1);
+  if (!row) return null;
+  // Concatenate all text fields; nullish fields are skipped
+  const parts = [row.content, row.contentIgbo, row.titleIgbo].filter(Boolean);
+  return parts.join(" ");
+}

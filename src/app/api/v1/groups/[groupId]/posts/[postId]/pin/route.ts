@@ -27,7 +27,7 @@ function extractIds(url: string): { groupId: string; postId: string } {
 }
 
 const patchHandler = async (request: Request) => {
-  const session = await requireAuthenticatedSession(request);
+  const session = await requireAuthenticatedSession();
   const userId = session.userId;
   const { groupId, postId } = extractIds(request.url);
 
@@ -72,7 +72,7 @@ const patchHandler = async (request: Request) => {
 export const PATCH = withApiHandler(patchHandler, {
   rateLimit: {
     key: async (request: Request) => {
-      const session = await requireAuthenticatedSession(request);
+      const session = await requireAuthenticatedSession();
       return `group-manage:${session.userId}`;
     },
     ...RATE_LIMIT_PRESETS.GROUP_MANAGE,

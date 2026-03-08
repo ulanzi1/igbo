@@ -12,13 +12,16 @@ import {
   BookOpenIcon,
   StarIcon,
   SearchIcon,
+  BookmarkIcon,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useSession, signOut } from "next-auth/react";
+import Image from "next/image";
 import { Link } from "@/i18n/navigation";
 import { ContrastToggle } from "@/components/shared/ContrastToggle";
 import { LanguageToggle } from "@/components/shared/LanguageToggle";
 import { NotificationBell } from "@/features/notifications";
+import { useMyProfilePhoto } from "@/features/profiles";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -31,9 +34,8 @@ import { cn } from "@/lib/utils";
 import { GlobalSearchBar } from "./GlobalSearchBar";
 
 const navLinks = [
-  { key: "home" as const, href: "/" },
   { key: "feed" as const, href: "/feed" },
-  { key: "saved" as const, href: "/saved" },
+  { key: "articles" as const, href: "/articles" },
   { key: "chat" as const, href: "/chat" },
   { key: "discover" as const, href: "/discover" },
   { key: "events" as const, href: "/events" },
@@ -45,6 +47,9 @@ function TopNav({ className }: { className?: string }) {
   const tArticles = useTranslations("Articles");
   const { data: session } = useSession();
   const displayName = session?.user?.name ?? "";
+  const { data: fetchedPhoto } = useMyProfilePhoto();
+  // Prefer the freshly-fetched photo; fall back to what's in the JWT (set at login)
+  const photoUrl = fetchedPhoto ?? session?.user?.image ?? null;
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
@@ -57,11 +62,19 @@ function TopNav({ className }: { className?: string }) {
       >
         {/* Logo */}
         <Link
-          href="/"
+          href="/dashboard"
           className="flex items-center gap-2 min-h-[44px] min-w-[44px] font-semibold text-foreground"
           aria-label={tShell("appName")}
         >
-          <span className="text-primary font-bold">Igbo</span>
+          <Image
+            src="/obigbo-logo.png"
+            alt="OBIGBO"
+            width={36}
+            height={36}
+            className="rounded-full"
+            priority
+          />
+          <span className="text-primary font-bold">OBIGBO</span>
         </Link>
 
         {/* Hamburger button — visible only on mobile */}
@@ -122,10 +135,19 @@ function TopNav({ className }: { className?: string }) {
               <button
                 type="button"
                 aria-label={t("profile")}
-                className="flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-border bg-muted text-muted-foreground hover:bg-accent transition-colors"
+                className="flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-border bg-muted text-muted-foreground hover:bg-accent transition-colors overflow-hidden"
                 suppressHydrationWarning
               >
-                <UserCircleIcon className="size-6" aria-hidden="true" />
+                {photoUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={photoUrl}
+                    alt={displayName || t("profile")}
+                    className="h-full w-full object-cover rounded-full"
+                  />
+                ) : (
+                  <UserCircleIcon className="size-6" aria-hidden="true" />
+                )}
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
@@ -144,6 +166,12 @@ function TopNav({ className }: { className?: string }) {
                 >
                   <UserIcon className="size-4" aria-hidden="true" />
                   {t("viewProfile")}
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/saved" className="flex items-center gap-2 cursor-pointer">
+                  <BookmarkIcon className="size-4" aria-hidden="true" />
+                  {t("savedFeed")}
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>

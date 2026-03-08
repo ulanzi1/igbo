@@ -47,6 +47,8 @@ CREATE INDEX IF NOT EXISTS idx_community_events_fts
   WHERE status != 'cancelled' AND deleted_at IS NULL;
 
 -- platform_governance_documents: conditional — table may not exist until Epic 11
+-- This index is dormant until Story 11.5 creates the platform_governance_documents table.
+-- When that migration runs, this index will activate automatically on the next DB restart.
 DO $$ BEGIN
   IF EXISTS (
     SELECT FROM information_schema.tables

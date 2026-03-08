@@ -22,12 +22,18 @@ const postHandler = async (request: Request) => {
   try {
     body = await request.json();
   } catch {
-    return errorResponse({ title: "Bad Request", status: 400, detail: "Invalid JSON body" });
+    return errorResponse({
+      type: "about:blank",
+      title: "Bad Request",
+      status: 400,
+      detail: "Invalid JSON body",
+    });
   }
 
   const parsed = subscribeBodySchema.safeParse(body);
   if (!parsed.success) {
     return errorResponse({
+      type: "about:blank",
       title: "Bad Request",
       status: 400,
       detail: parsed.error.issues[0]?.message ?? "Invalid body",

@@ -32,7 +32,7 @@ const getHandler = async (request: Request) => {
 
   if (view === "my-rsvps") {
     if (!userId) {
-      return errorResponse({ status: 401, title: "Authentication required" });
+      return errorResponse({ type: "about:blank", status: 401, title: "Authentication required" });
     }
     const events = await listMyRsvps(userId, { limit, offset });
     return successResponse({ events, total: events.length, page, limit });

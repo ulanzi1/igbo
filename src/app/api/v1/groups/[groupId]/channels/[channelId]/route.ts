@@ -22,7 +22,7 @@ function extractIds(url: string): { groupId: string; channelId: string } {
 }
 
 const deleteHandler = async (request: Request) => {
-  const session = await requireAuthenticatedSession(request);
+  const session = await requireAuthenticatedSession();
   const userId = session.userId;
   const { groupId, channelId } = extractIds(request.url);
 
@@ -34,7 +34,7 @@ const deleteHandler = async (request: Request) => {
 export const DELETE = withApiHandler(deleteHandler, {
   rateLimit: {
     key: async (request: Request) => {
-      const session = await requireAuthenticatedSession(request);
+      const session = await requireAuthenticatedSession();
       return `group-channel-delete:${session.userId}`;
     },
     ...RATE_LIMIT_PRESETS.GROUP_CHANNEL,

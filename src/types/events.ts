@@ -260,6 +260,25 @@ export interface ArticleCommentedEvent extends BaseEvent {
   userId: string;
 }
 
+// --- Content Moderation Events ---
+
+export interface ContentFlaggedEvent extends BaseEvent {
+  contentType: "post" | "article" | "message";
+  contentId: string;
+  contentAuthorId: string;
+  contentPreview: string | null;
+  flagReason: string;
+  severity: "low" | "medium" | "high";
+  moderationActionId: string;
+}
+
+export interface ContentUnflaggedEvent extends BaseEvent {
+  contentType: "post" | "article" | "message";
+  contentId: string;
+  moderationActionId: string;
+  moderatorId: string;
+}
+
 // --- Group Leadership & Moderation Events ---
 
 export interface GroupLeaderAssignedEvent extends BaseEvent {
@@ -627,7 +646,9 @@ export type EventName =
   | "conversation.member_added"
   | "conversation.member_left"
   | "reaction.added"
-  | "reaction.removed";
+  | "reaction.removed"
+  | "content.flagged"
+  | "content.unflagged";
 
 // --- Event Map ---
 
@@ -713,4 +734,6 @@ export interface EventMap {
   "conversation.member_left": ConversationMemberLeftEvent;
   "reaction.added": ReactionAddedEvent;
   "reaction.removed": ReactionRemovedEvent;
+  "content.flagged": ContentFlaggedEvent;
+  "content.unflagged": ContentUnflaggedEvent;
 }

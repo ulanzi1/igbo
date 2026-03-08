@@ -37,19 +37,20 @@ const postHandler = async (request: Request) => {
   const signature = request.headers.get("x-webhook-signature") ?? "";
 
   if (!verifyDailySignature(rawBody, signature, env.DAILY_WEBHOOK_SECRET)) {
-    return errorResponse({ title: "Invalid webhook signature", status: 401 });
+    return errorResponse({ type: "about:blank", title: "Invalid webhook signature", status: 401 });
   }
 
   let parsedBody: unknown;
   try {
     parsedBody = JSON.parse(rawBody);
   } catch {
-    return errorResponse({ title: "Invalid JSON body", status: 400 });
+    return errorResponse({ type: "about:blank", title: "Invalid JSON body", status: 400 });
   }
 
   const parsed = WebhookPayloadSchema.safeParse(parsedBody);
   if (!parsed.success) {
     return errorResponse({
+      type: "about:blank",
       title: parsed.error.issues[0]?.message ?? "Invalid payload",
       status: 400,
     });
@@ -63,13 +64,17 @@ const postHandler = async (request: Request) => {
   }
 
   if (!download_link) {
-    return errorResponse({ title: "Missing download_link in payload", status: 400 });
+    return errorResponse({
+      type: "about:blank",
+      title: "Missing download_link in payload",
+      status: 400,
+    });
   }
 
   // Reverse-map room_name to event
   const event = await getEventByRoomName(room_name);
   if (!event) {
-    return errorResponse({ title: "Event not found for room", status: 404 });
+    return errorResponse({ type: "about:blank", title: "Event not found for room", status: 404 });
   }
 
   // Idempotency: if recording_url already set, skip re-enqueue
