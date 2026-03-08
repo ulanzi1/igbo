@@ -448,3 +448,31 @@ export function useRealTimersForReactQuery() {
  * Second hit: Story 7.4 preserveRecording — duplicate guard on outer/inner condition made
  * admin preservation dead code; no regression test caught it.
  */
+
+/**
+ * 🔗 next-intl router — `useRouter().push()` accepts strings only, NOT objects.
+ *
+ * Root cause: `useRouter()` from `next-intl` is NOT the standard Next.js router.
+ * Passing a `{ pathname, query }` object to `.push()` results in navigation to
+ * `[object Object]` — the URL is silently stringified.
+ *
+ * Rule: Always build a URL string before calling `router.push()` from `next-intl`.
+ * Use `URLSearchParams` to construct query strings.
+ *
+ * ✅ CORRECT — build string with URLSearchParams:
+ * ```ts
+ * import { useRouter } from "next-intl/client";
+ *
+ * const router = useRouter();
+ * const params = new URLSearchParams({ q: query, type: "posts" });
+ * router.push(`/search?${params.toString()}`);
+ * ```
+ *
+ * ❌ WRONG — object form silently navigates to `[object Object]`:
+ * ```ts
+ * router.push({ pathname: "/search", query: { q: query } });
+ * ```
+ *
+ * First hit: Story 10.2 F5 — FilteredSearchResults `handleTypeChange` navigated to
+ * `[object Object]` instead of `/search?type=posts`.
+ */

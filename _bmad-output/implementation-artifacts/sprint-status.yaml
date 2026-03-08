@@ -144,7 +144,7 @@ development_status:
   10-1-global-search-autocomplete: done
   10-2-filtered-search-results: done
   10-3-recommended-groups: done
-  epic-10-retrospective: optional
+  epic-10-retrospective: done # AI-1–AI-3 captured; Epic 11 prep tasks defined; moderation architecture spike + admin UI layout + test template + event contract all critical path — 2026-03-08
 
   # Epic 11: Administration & Moderation
   epic-11: backlog
