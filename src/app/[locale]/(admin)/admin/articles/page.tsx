@@ -1,5 +1,6 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { ArticleReviewQueue } from "@/features/admin/components/ArticleReviewQueue";
+import { AdminPageHeader } from "@/components/layout/AdminShell";
 
 export default async function AdminArticlesPage({
   params,
@@ -12,9 +13,17 @@ export default async function AdminArticlesPage({
   const t = await getTranslations("Admin");
 
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold text-white mb-6">{t("articles.title")}</h1>
-      <ArticleReviewQueue />
-    </div>
+    <>
+      <AdminPageHeader
+        title={t("articles.title")}
+        breadcrumbs={[
+          { label: t("sidebar.dashboard"), href: "/admin" },
+          { label: t("sidebar.articles") },
+        ]}
+      />
+      <div className="p-6">
+        <ArticleReviewQueue />
+      </div>
+    </>
   );
 }

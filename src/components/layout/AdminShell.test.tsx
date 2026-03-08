@@ -32,7 +32,7 @@ vi.mock("@/lib/utils", () => ({
   cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
 }));
 
-import { AdminShell } from "./AdminShell";
+import { AdminShell, AdminSidebar, AdminPageHeader } from "./AdminShell";
 
 describe("AdminShell", () => {
   it("renders sidebar with OBIGBO Admin branding", () => {
@@ -107,5 +107,45 @@ describe("AdminShell", () => {
     );
     fireEvent.click(screen.getByText("Admin.signOut"));
     expect(mockSignOut).toHaveBeenCalled();
+  });
+});
+
+describe("AdminSidebar", () => {
+  it("is exported and renders independently", () => {
+    render(<AdminSidebar />);
+    expect(screen.getByText("OBIGBO Admin")).toBeInTheDocument();
+    expect(screen.getByRole("navigation", { name: "Admin navigation" })).toBeInTheDocument();
+  });
+});
+
+describe("AdminPageHeader", () => {
+  it("renders title", () => {
+    render(<AdminPageHeader title="Test Page" />);
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Test Page");
+  });
+
+  it("renders breadcrumbs with links", () => {
+    render(
+      <AdminPageHeader
+        title="Members"
+        breadcrumbs={[{ label: "Dashboard", href: "/admin" }, { label: "Members" }]}
+      />,
+    );
+    expect(screen.getByRole("navigation", { name: "Breadcrumb" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Dashboard" })).toHaveAttribute("href", "/admin");
+    expect(screen.getByText("Members", { selector: "span" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+  });
+
+  it("does not render breadcrumb nav when no breadcrumbs provided", () => {
+    render(<AdminPageHeader title="Test" />);
+    expect(screen.queryByRole("navigation", { name: "Breadcrumb" })).not.toBeInTheDocument();
+  });
+
+  it("renders action slot", () => {
+    render(<AdminPageHeader title="Test" actions={<button type="button">Add New</button>} />);
+    expect(screen.getByRole("button", { name: "Add New" })).toBeInTheDocument();
   });
 });
