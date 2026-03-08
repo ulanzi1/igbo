@@ -1,9 +1,11 @@
+import { z } from "zod/v4";
 import { withApiHandler } from "@/server/api/middleware";
 import { successResponse } from "@/lib/api-response";
 import { ApiError } from "@/lib/api-error";
 import { requireAuthenticatedSession } from "@/services/permissions";
 import { RATE_LIMIT_PRESETS } from "@/services/rate-limiter";
 import { runGlobalSearch } from "@/db/queries/search";
+import type { SearchFilters } from "@/db/queries/search";
 
 const VALID_TYPES = [
   "members",
@@ -15,6 +17,20 @@ const VALID_TYPES = [
   "all",
 ] as const;
 type SearchType = (typeof VALID_TYPES)[number];
+
+const FilterSchema = z.object({
+  type: z.enum(["members", "posts", "articles", "groups", "events", "documents", "all"]).optional(),
+  dateRange: z.enum(["today", "week", "month", "custom"]).optional(),
+  dateFrom: z.string().optional(),
+  dateTo: z.string().optional(),
+  authorId: z.string().optional(),
+  category: z.enum(["discussion", "event", "announcement"]).optional(),
+  location: z.string().max(200).optional(),
+  membershipTier: z.enum(["BASIC", "PROFESSIONAL", "TOP_TIER"]).optional(),
+  cursor: z.string().optional(),
+  limit: z.string().optional(),
+  q: z.string().optional(),
+});
 
 const getHandler = async (request: Request) => {
   const { userId } = await requireAuthenticatedSession();
@@ -41,7 +57,7 @@ const getHandler = async (request: Request) => {
     });
   }
 
-  let limit = 5;
+  let limit = 10;
   if (limitParam) {
     const parsed = parseInt(limitParam, 10);
     if (isNaN(parsed) || parsed < 1 || parsed > 20) {
@@ -54,12 +70,52 @@ const getHandler = async (request: Request) => {
     limit = parsed;
   }
 
+  // Parse filter params
+  const rawParams: Record<string, string> = {};
+  url.searchParams.forEach((value, key) => {
+    rawParams[key] = value;
+  });
+  const parsed = FilterSchema.safeParse(rawParams);
+  if (!parsed.success) {
+    throw new ApiError({
+      title: "Bad Request",
+      status: 400,
+      detail: parsed.error.issues[0]?.message ?? "Invalid filter parameters",
+    });
+  }
+
+  const { dateRange, dateFrom, dateTo, authorId, category, location, membershipTier } = parsed.data;
+
+  // dateRange=custom requires both dateFrom and dateTo
+  if (dateRange === "custom" && (!dateFrom || !dateTo)) {
+    throw new ApiError({
+      title: "Bad Request",
+      status: 400,
+      detail: "dateRange=custom requires both dateFrom and dateTo",
+    });
+  }
+
+  const filters: SearchFilters = {
+    dateRange,
+    dateFrom,
+    dateTo,
+    authorId,
+    category,
+    location,
+    membershipTier,
+  };
+
+  // Only pass filters object when in filtered mode (single type, not "all")
+  const isFilteredMode = typeParam !== "all" && typeParam !== "documents";
+  const filtersToPass = isFilteredMode ? filters : undefined;
+
   const result = await runGlobalSearch({
     query: q,
     type: typeParam as SearchType,
     viewerUserId: userId,
     limit,
     cursor: cursorParam,
+    filters: filtersToPass,
   });
 
   return successResponse({

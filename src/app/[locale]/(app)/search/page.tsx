@@ -2,6 +2,7 @@ import { setRequestLocale, getTranslations } from "next-intl/server";
 import { auth } from "@/server/auth/config";
 import { redirect } from "next/navigation";
 import { SearchResultsContent } from "@/features/discover/components/SearchResultsContent";
+import type { SearchFilters } from "@/db/queries/search";
 
 export async function generateMetadata({
   params,
@@ -23,7 +24,17 @@ export default async function SearchPage({
   searchParams,
 }: {
   params: Promise<{ locale: string }>;
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<{
+    q?: string;
+    type?: string;
+    dateRange?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    authorId?: string;
+    category?: string;
+    location?: string;
+    membershipTier?: string;
+  }>;
 }) {
   const { locale } = await params;
   setRequestLocale(locale);
@@ -34,12 +45,28 @@ export default async function SearchPage({
     return null;
   }
 
-  const { q } = await searchParams;
-  const query = q?.trim() ?? "";
+  const sp = await searchParams;
+  const query = sp.q?.trim() ?? "";
+  const type = sp.type;
+
+  const filters: SearchFilters = {};
+  if (sp.dateRange && ["today", "week", "month", "custom"].includes(sp.dateRange)) {
+    filters.dateRange = sp.dateRange as SearchFilters["dateRange"];
+  }
+  if (sp.dateFrom) filters.dateFrom = sp.dateFrom;
+  if (sp.dateTo) filters.dateTo = sp.dateTo;
+  if (sp.authorId) filters.authorId = sp.authorId;
+  if (sp.category && ["discussion", "event", "announcement"].includes(sp.category)) {
+    filters.category = sp.category as SearchFilters["category"];
+  }
+  if (sp.location) filters.location = sp.location;
+  if (sp.membershipTier && ["BASIC", "PROFESSIONAL", "TOP_TIER"].includes(sp.membershipTier)) {
+    filters.membershipTier = sp.membershipTier as SearchFilters["membershipTier"];
+  }
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
-      <SearchResultsContent initialQuery={query} />
+      <SearchResultsContent initialQuery={query} initialType={type} initialFilters={filters} />
     </div>
   );
 }
