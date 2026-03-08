@@ -1,7 +1,6 @@
 // GET /api/v1/articles/[articleId]/comments — list comments (public)
 // POST /api/v1/articles/[articleId]/comments — add comment (authenticated)
 import { z } from "zod/v4";
-import { type NextRequest } from "next/server";
 import { withApiHandler } from "@/server/api/middleware";
 import { successResponse } from "@/lib/api-response";
 import { ApiError } from "@/lib/api-error";
@@ -15,7 +14,7 @@ function extractArticleId(url: string): string {
   return parts.at(-2) ?? "";
 }
 
-const getHandler = async (request: NextRequest) => {
+const getHandler = async (request: Request) => {
   const articleId = extractArticleId(request.url);
   const searchParams = new URL(request.url).searchParams;
   const page = parseInt(searchParams.get("page") ?? "1", 10);
@@ -30,7 +29,7 @@ const postSchema = z.object({
   parentCommentId: z.string().uuid().optional(),
 });
 
-const postHandler = async (request: NextRequest) => {
+const postHandler = async (request: Request) => {
   const { userId } = await requireAuthenticatedSession();
 
   const articleId = extractArticleId(request.url);
