@@ -18,7 +18,7 @@ function extractGroupId(url: string): string {
 }
 
 const getHandler = async (request: Request) => {
-  const session = await requireAuthenticatedSession(request);
+  const session = await requireAuthenticatedSession();
   const userId = session.userId;
   const groupId = extractGroupId(request.url);
 
@@ -60,7 +60,7 @@ const getHandler = async (request: Request) => {
 export const GET = withApiHandler(getHandler, {
   rateLimit: {
     key: async (request: Request) => {
-      const session = await requireAuthenticatedSession(request);
+      const session = await requireAuthenticatedSession();
       return `group-files:${session.userId}`;
     },
     ...RATE_LIMIT_PRESETS.GROUP_DETAIL,

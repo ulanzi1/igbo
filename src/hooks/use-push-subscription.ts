@@ -67,7 +67,9 @@ export function usePushSubscription() {
       const vapidKey = env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: vapidKey ? urlBase64ToUint8Array(vapidKey) : undefined,
+        applicationServerKey: vapidKey
+          ? (urlBase64ToUint8Array(vapidKey) as BufferSource)
+          : undefined,
       });
 
       subscriptionRef.current = subscription;

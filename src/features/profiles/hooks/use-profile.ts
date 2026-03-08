@@ -1,5 +1,6 @@
 "use client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useSession } from "next-auth/react";
 import { updateProfileAction } from "@/features/profiles/actions/update-profile";
 import { updatePrivacySettingsAction } from "@/features/profiles/actions/update-privacy-settings";
 import type { UpdateProfileInput } from "@/features/profiles/actions/update-profile";
@@ -20,12 +21,32 @@ export function useProfile(userId?: string) {
   });
 }
 
+export function useMyProfilePhoto() {
+  return useQuery({
+    queryKey: ["profile", "me", "photo"],
+    queryFn: async () => {
+      const res = await fetch("/api/v1/profiles/me");
+      if (!res.ok) return null;
+      const json = (await res.json()) as {
+        data: { profile: { photoUrl?: string | null } };
+      };
+      return json.data.profile.photoUrl ?? null;
+    },
+    staleTime: 5 * 60 * 1000, // 5 min
+  });
+}
+
 export function useUpdateProfile() {
   const queryClient = useQueryClient();
+  const { update } = useSession();
   return useMutation({
     mutationFn: (input: UpdateProfileInput) => updateProfileAction(input),
-    onSuccess: () => {
+    onSuccess: (_data, input) => {
       void queryClient.invalidateQueries({ queryKey: ["profile"] });
+      // Refresh session so TopNav avatar reflects the new photo immediately
+      void update({ picture: input.photoUrl ?? null });
+      // Also refresh the TopNav photo query directly
+      void queryClient.invalidateQueries({ queryKey: ["profile", "me", "photo"] });
     },
   });
 }

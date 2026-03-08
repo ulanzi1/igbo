@@ -81,7 +81,7 @@ export function EditProfileForm({ initialProfile }: Props) {
         />
       </div>
 
-      <ProfilePhotoUpload photoUrl={photoUrl} onPhotoUrl={setPhotoUrl} />
+      <ProfilePhotoUpload photoUrl={photoUrl} onPhotoUrl={setPhotoUrl} disabled={isPending} />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="flex flex-col gap-1">

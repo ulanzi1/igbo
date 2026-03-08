@@ -21,7 +21,9 @@ export default async function GroupsPage() {
   return (
     <main className="mx-auto max-w-5xl px-4 py-8">
       <RecommendedGroupsWidget />
-      <GroupList canCreateGroup={isTopTier} />
+      <div className="mt-6">
+        <GroupList canCreateGroup={isTopTier} />
+      </div>
     </main>
   );
 }

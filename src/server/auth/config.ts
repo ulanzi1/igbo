@@ -214,7 +214,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
         // Check if the user has completed their profile (single indexed lookup, only at login)
         const [profile] = await db
-          .select({ profileCompletedAt: communityProfiles.profileCompletedAt })
+          .select({
+            profileCompletedAt: communityProfiles.profileCompletedAt,
+            photoUrl: communityProfiles.photoUrl,
+          })
           .from(communityProfiles)
           .where(eq(communityProfiles.userId, user.id))
           .limit(1);
@@ -237,6 +240,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           id: user.id,
           email: user.email,
           name: user.name ?? null,
+          image: profile?.photoUrl ?? null,
           role: user.role,
           accountStatus: user.accountStatus,
           profileCompleted,
@@ -255,13 +259,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.membershipTier =
           (user as { membershipTier?: "BASIC" | "PROFESSIONAL" | "TOP_TIER" }).membershipTier ??
           "BASIC";
+        token.picture = (user as { image?: string | null }).image ?? null;
       }
-      // Allow client-side session update to refresh profileCompleted in JWT
-      if (
-        trigger === "update" &&
-        (session as { profileCompleted?: boolean })?.profileCompleted !== undefined
-      ) {
-        token.profileCompleted = (session as { profileCompleted: boolean }).profileCompleted;
+      // Allow client-side session update to refresh profileCompleted or picture in JWT
+      if (trigger === "update") {
+        const s = session as { profileCompleted?: boolean; picture?: string | null };
+        if (s?.profileCompleted !== undefined) token.profileCompleted = s.profileCompleted;
+        if (s?.picture !== undefined) token.picture = s.picture;
       }
       return token;
     },
@@ -271,6 +275,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       session.user.accountStatus = token.accountStatus;
       session.user.profileCompleted = token.profileCompleted;
       session.user.membershipTier = token.membershipTier ?? "BASIC";
+      session.user.image = (token.picture as string | null | undefined) ?? null;
       // Create a short-lived JWT for Socket.IO auth (realtime server verifies with same AUTH_SECRET)
       const secret = new TextEncoder().encode(env.AUTH_SECRET);
       session.sessionToken = await new SignJWT({ id: token.id })

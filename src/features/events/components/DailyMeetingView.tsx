@@ -26,7 +26,14 @@ function MeetingInner({ onLeave, onNetworkQualityChange, onJoinedMeeting }: Meet
   const callObject = useDaily();
   const participantIds = useParticipantIds();
   const { isSharingScreen, startScreenShare, stopScreenShare } = useScreenShare();
-  const { quality } = useNetwork();
+  useNetwork({
+    onNetworkQualityChange: (ev) => {
+      onNetworkQualityChange(ev.threshold as "good" | "low" | "very-low");
+      if (callObject && ev.threshold === "very-low") {
+        callObject.setLocalVideo(false);
+      }
+    },
+  });
 
   // Fire attendance mark on join
   useEffect(() => {
@@ -42,21 +49,6 @@ function MeetingInner({ onLeave, onNetworkQualityChange, onJoinedMeeting }: Meet
     };
   }, [callObject, onJoinedMeeting]);
 
-  // Network quality badge
-  useEffect(() => {
-    if (quality?.threshold) {
-      onNetworkQualityChange(quality.threshold as "good" | "low" | "very-low");
-    }
-  }, [quality, onNetworkQualityChange]);
-
-  // Auto-disable video on very-low quality
-  useEffect(() => {
-    if (!callObject) return;
-    if (quality?.threshold === "very-low") {
-      callObject.setLocalVideo(false);
-    }
-  }, [callObject, quality]);
-
   const handleLeave = () => {
     callObject?.leave();
     onLeave();
@@ -71,7 +63,9 @@ function MeetingInner({ onLeave, onNetworkQualityChange, onJoinedMeeting }: Meet
   };
 
   const handlePromoteCoHost = (sessionId: string) => {
-    callObject?.updateParticipant(sessionId, { setIsOwner: true });
+    callObject?.updateParticipant(sessionId, {
+      setIsOwner: true,
+    } as unknown as import("@daily-co/daily-js").DailyParticipantUpdateOptions);
   };
 
   const localParticipant = callObject?.participants()?.local;

@@ -73,7 +73,7 @@ self.addEventListener("push", (event) => {
 self.addEventListener("notificationclick", (event) => {
   const e = event as NotificationEvent;
   e.notification.close();
-  e.waitUntil(clients.openWindow((e.notification.data?.url as string | undefined) ?? "/"));
+  e.waitUntil(self.clients.openWindow((e.notification.data?.url as string | undefined) ?? "/"));
 });
 
 serwist.addEventListeners();

@@ -30,3 +30,7 @@ import "@/services/notification-service";
 // Side-effect import: registers all eventBus.on() handlers for points engine
 // (post.reacted, event.attended, article.published, account.status_changed)
 import "@/services/points-engine";
+
+// Side-effect import: registers all eventBus.on() handlers for content moderation
+// (post.published, article.published, message.sent)
+import "@/services/moderation-service";

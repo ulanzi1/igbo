@@ -58,6 +58,10 @@ vi.mock("@/features/notifications", () => ({
   ),
 }));
 
+vi.mock("@/features/profiles", () => ({
+  useMyProfilePhoto: () => ({ data: null }),
+}));
+
 // Mock DropdownMenu to always render content (no open/close in jsdom)
 vi.mock("@/components/ui/dropdown-menu", () => ({
   DropdownMenu: ({ children }: { children: React.ReactNode }) => <>{children}</>,
@@ -119,13 +123,13 @@ describe("TopNav", () => {
     expect(logo).toBeInTheDocument();
   });
 
-  it("renders desktop nav links including Feed and Saved", () => {
+  it("renders desktop nav links including Feed and Articles", () => {
     render(<TopNav />);
     // Mobile nav is closed by default — only desktop nav visible
     const navs = screen.getAllByRole("navigation", { name: "Main navigation" });
     const desktopNav = navs[0]!;
     expect(desktopNav.querySelector('a[href="/feed"]')).toBeInTheDocument();
-    expect(desktopNav.querySelector('a[href="/saved"]')).toBeInTheDocument();
+    expect(desktopNav.querySelector('a[href="/articles"]')).toBeInTheDocument();
   });
 
   it("renders hamburger button on mobile", () => {

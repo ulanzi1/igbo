@@ -5,6 +5,7 @@ import { db } from "@/db";
 import { communityPostBookmarks } from "@/db/schema/bookmarks";
 import { communityPosts, communityPostMedia } from "@/db/schema/community-posts";
 import { communityProfiles } from "@/db/schema/community-profiles";
+import { communityUserBadges } from "@/db/schema/community-badges";
 import type { FeedPost } from "@/db/queries/feed";
 
 /**
@@ -115,9 +116,12 @@ export async function getUserBookmarks(
       originalPostId: communityPosts.originalPostId,
       createdAt: communityPosts.createdAt,
       updatedAt: communityPosts.updatedAt,
+      // Post status
+      status: communityPosts.status,
       // Author profile
       authorDisplayName: communityProfiles.displayName,
       authorPhotoUrl: communityProfiles.photoUrl,
+      authorBadgeType: communityUserBadges.badgeType,
       // Bookmark metadata
       bookmarkedAt: communityPostBookmarks.createdAt,
       // isBookmarked is always true on this page
@@ -133,6 +137,7 @@ export async function getUserBookmarks(
         sql`${communityProfiles.deletedAt} IS NULL`,
       ),
     )
+    .leftJoin(communityUserBadges, eq(communityUserBadges.userId, communityPosts.authorId))
     .where(
       and(
         eq(communityPostBookmarks.userId, userId),
@@ -255,6 +260,8 @@ export async function getUserBookmarks(
     authorId: r.authorId,
     authorDisplayName: r.authorDisplayName,
     authorPhotoUrl: r.authorPhotoUrl,
+    authorBadgeType: r.authorBadgeType ?? null,
+    status: r.status as "active" | "pending_approval",
     content: r.content,
     contentType: r.contentType as FeedPost["contentType"],
     visibility: r.visibility as FeedPost["visibility"],

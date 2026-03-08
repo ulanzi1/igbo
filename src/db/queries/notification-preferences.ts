@@ -5,6 +5,7 @@ import { db } from "@/db";
 import { platformNotificationPreferences } from "@/db/schema/platform-notification-preferences";
 import { platformNotifications } from "@/db/schema/platform-notifications";
 export type { NotificationTypeKey, ChannelPrefs } from "@/lib/notification-constants";
+import type { ChannelPrefs } from "@/lib/notification-constants";
 import { NOTIFICATION_TYPES, DEFAULT_PREFERENCES } from "@/lib/notification-constants";
 export { NOTIFICATION_TYPES, DEFAULT_PREFERENCES };
 

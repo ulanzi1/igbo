@@ -1,4 +1,3 @@
-import { type NextRequest } from "next/server";
 import { z } from "zod/v4";
 import { withApiHandler } from "@/server/api/middleware";
 import { requireAuthenticatedSession } from "@/services/permissions";
@@ -19,7 +18,7 @@ const quietHoursSchema = z.object({
   quietHoursTimezone: z.string().min(1).max(64),
 });
 
-export const PUT = withApiHandler(async (req: NextRequest) => {
+export const PUT = withApiHandler(async (req: Request) => {
   const session = await requireAuthenticatedSession();
   const body: unknown = await req.json();
   const parsed = quietHoursSchema.safeParse(body);
@@ -37,7 +36,7 @@ export const PUT = withApiHandler(async (req: NextRequest) => {
   const nowInQh = await isUserInQuietHours(session.userId, new Date());
   const redis = getRedisClient();
   if (nowInQh) {
-    await redis.set(`dnd:${session.userId}`, "1", { ex: 5400 }); // 90 min TTL
+    await redis.set(`dnd:${session.userId}`, "1", "EX", 5400); // 90 min TTL
   } else {
     await redis.del(`dnd:${session.userId}`);
   }
@@ -45,7 +44,7 @@ export const PUT = withApiHandler(async (req: NextRequest) => {
   return successResponse({ ok: true });
 });
 
-export const DELETE = withApiHandler(async (_req: NextRequest) => {
+export const DELETE = withApiHandler(async (_req: Request) => {
   const session = await requireAuthenticatedSession();
   await setQuietHours(session.userId, null, null, "UTC");
 

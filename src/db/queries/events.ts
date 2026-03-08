@@ -571,7 +571,7 @@ export async function listPastEvents(opts: {
     ORDER BY e.start_time DESC
     LIMIT ${limit} OFFSET ${offset}`,
   );
-  return Array.from(rows) as EventListItem[];
+  return Array.from(rows) as unknown as EventListItem[];
 }
 
 export interface AttendeeWithProfile {
@@ -702,7 +702,7 @@ export async function listMyRsvps(
     ORDER BY CASE WHEN e.status = 'cancelled' THEN 1 ELSE 0 END ASC, e.start_time ASC
     LIMIT ${limit} OFFSET ${offset}`,
   );
-  return Array.from(rows) as MyRsvpEventListItem[];
+  return Array.from(rows) as unknown as MyRsvpEventListItem[];
 }
 
 // ─── Recording Query Functions (Story 7.4) ───────────────────────────────────

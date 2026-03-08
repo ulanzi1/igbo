@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@/test/test-utils";
 import { GuestNav } from "./GuestNav";
 
@@ -36,11 +36,18 @@ vi.mock("@/hooks/use-contrast-mode", () => ({
   }),
 }));
 
+const mockSignOut = vi.fn();
+let mockSession: { data: { user: { id: string; name: string } } | null } = { data: null };
 vi.mock("next-auth/react", () => ({
-  useSession: () => ({ data: null }),
+  useSession: () => mockSession,
+  signOut: () => mockSignOut(),
 }));
 
 describe("GuestNav", () => {
+  beforeEach(() => {
+    mockSession = { data: null };
+  });
+
   it("renders as a header element", () => {
     render(<GuestNav />);
     expect(screen.getByRole("banner")).toBeInTheDocument();
@@ -87,5 +94,28 @@ describe("GuestNav", () => {
   it("renders hamburger menu button for mobile", () => {
     render(<GuestNav />);
     expect(screen.getByLabelText("Shell.menuOpen")).toBeInTheDocument();
+  });
+
+  it("shows Join CTA when unauthenticated", () => {
+    render(<GuestNav />);
+    expect(screen.getAllByText("Navigation.join").length).toBeGreaterThanOrEqual(1);
+  });
+
+  describe("when authenticated", () => {
+    beforeEach(() => {
+      mockSession = { data: { user: { id: "user-123", name: "Ada Okafor" } } };
+    });
+
+    it("shows profile button instead of Join CTA", () => {
+      render(<GuestNav />);
+      expect(screen.getByLabelText("Navigation.profile")).toBeInTheDocument();
+      expect(screen.queryByText("Navigation.join")).toBeNull();
+    });
+
+    it("logo links to /dashboard for authenticated users", () => {
+      render(<GuestNav />);
+      const logo = screen.getByLabelText("Shell.appName");
+      expect(logo.closest("a")).toHaveAttribute("href", "/dashboard");
+    });
   });
 });

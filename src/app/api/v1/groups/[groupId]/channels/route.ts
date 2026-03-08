@@ -25,7 +25,7 @@ const createChannelBodySchema = z.object({
 });
 
 const getHandler = async (request: Request) => {
-  const session = await requireAuthenticatedSession(request);
+  const session = await requireAuthenticatedSession();
   const userId = session.userId;
   const groupId = extractGroupId(request.url);
 
@@ -43,7 +43,7 @@ const getHandler = async (request: Request) => {
 };
 
 const postHandler = async (request: Request) => {
-  const session = await requireAuthenticatedSession(request);
+  const session = await requireAuthenticatedSession();
   const userId = session.userId;
   const groupId = extractGroupId(request.url);
 
@@ -68,7 +68,7 @@ const postHandler = async (request: Request) => {
 export const GET = withApiHandler(getHandler, {
   rateLimit: {
     key: async (request: Request) => {
-      const session = await requireAuthenticatedSession(request);
+      const session = await requireAuthenticatedSession();
       return `group-channels:${session.userId}`;
     },
     ...RATE_LIMIT_PRESETS.GROUP_DETAIL,
@@ -78,7 +78,7 @@ export const GET = withApiHandler(getHandler, {
 export const POST = withApiHandler(postHandler, {
   rateLimit: {
     key: async (request: Request) => {
-      const session = await requireAuthenticatedSession(request);
+      const session = await requireAuthenticatedSession();
       return `group-channel-create:${session.userId}`;
     },
     ...RATE_LIMIT_PRESETS.GROUP_CHANNEL,

@@ -924,8 +924,8 @@ export async function runGlobalSearch(params: GlobalSearchParams): Promise<Globa
         query,
         limit,
         hasNextPage: sectionWithCursor.hasMore,
-        cursor: sectionWithCursor.nextCursor,
-        nextCursor: sectionWithCursor.nextCursor,
+        cursor: sectionWithCursor.nextCursor ?? null,
+        nextCursor: sectionWithCursor.nextCursor ?? null,
       },
     };
   }
