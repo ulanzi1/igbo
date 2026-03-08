@@ -11,6 +11,8 @@ interface FileUploadProps {
   onError?: (error: string) => void;
   accept?: string; // e.g. "image/*" — fallback to UPLOAD_CATEGORY_MIME_TYPES[category]
   disabled?: boolean;
+  /** Override the idle button label (defaults to t("selectFile")) */
+  triggerLabel?: string;
 }
 
 export function FileUpload({
@@ -19,6 +21,7 @@ export function FileUpload({
   onError,
   accept,
   disabled,
+  triggerLabel,
 }: FileUploadProps) {
   const t = useTranslations("fileUpload");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -115,9 +118,9 @@ export function FileUpload({
             ? "cursor-not-allowed opacity-50 bg-muted"
             : "cursor-pointer bg-background hover:bg-accent"
         }`}
-        aria-label={t("selectFile")}
+        aria-label={triggerLabel ?? t("selectFile")}
       >
-        <span>{status === "uploading" ? t("uploading") : t("selectFile")}</span>
+        <span>{status === "uploading" ? t("uploading") : (triggerLabel ?? t("selectFile"))}</span>
         <input
           ref={inputRef}
           type="file"

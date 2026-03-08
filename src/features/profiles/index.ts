@@ -11,6 +11,7 @@ export { ProfileView } from "./components/ProfileView";
 export { useOnboardingState } from "./hooks/use-onboarding-state";
 export {
   useProfile,
+  useMyProfilePhoto,
   useUpdateProfile,
   useUpdatePrivacySettings,
   useUnlinkSocialAccount,
