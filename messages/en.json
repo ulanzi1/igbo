@@ -31,6 +31,7 @@
     "chatUnread": "{count} unread messages",
     "feed": "Feed",
     "saved": "Saved",
+    "savedFeed": "Saved Feed",
     "viewProfile": "View Profile",
     "logout": "Log out",
     "points": "Points"

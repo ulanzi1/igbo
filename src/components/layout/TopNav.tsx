@@ -12,6 +12,7 @@ import {
   BookOpenIcon,
   StarIcon,
   SearchIcon,
+  BookmarkIcon,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useSession, signOut } from "next-auth/react";
@@ -34,7 +35,7 @@ import { GlobalSearchBar } from "./GlobalSearchBar";
 const navLinks = [
   { key: "home" as const, href: "/dashboard" },
   { key: "feed" as const, href: "/feed" },
-  { key: "saved" as const, href: "/saved" },
+  { key: "articles" as const, href: "/articles" },
   { key: "chat" as const, href: "/chat" },
   { key: "discover" as const, href: "/discover" },
   { key: "events" as const, href: "/events" },
@@ -153,6 +154,12 @@ function TopNav({ className }: { className?: string }) {
                 >
                   <UserIcon className="size-4" aria-hidden="true" />
                   {t("viewProfile")}
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/saved" className="flex items-center gap-2 cursor-pointer">
+                  <BookmarkIcon className="size-4" aria-hidden="true" />
+                  {t("savedFeed")}
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
