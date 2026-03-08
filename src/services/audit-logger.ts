@@ -15,7 +15,11 @@ export type AdminAction =
   | "RESET_2FA"
   | "MEMBER_TIER_CHANGED"
   | "RECORDING_LOST"
-  | "RECORDING_EXPIRED_CLEANUP";
+  | "RECORDING_EXPIRED_CLEANUP"
+  | "FLAG_CONTENT"
+  | "UNFLAG_CONTENT"
+  | "HIDE_CONTENT"
+  | "UNHIDE_CONTENT";
 
 interface AuditParams {
   actorId: string;

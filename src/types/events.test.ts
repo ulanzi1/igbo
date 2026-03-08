@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, it, expect, expectTypeOf } from "vitest";
-import type { EventMap, EventName } from "./events";
+import type { EventMap, EventName, ContentFlaggedEvent, ContentUnflaggedEvent } from "./events";
 
 describe("Event type definitions", () => {
   it("defines all required event names as string literals", () => {
@@ -49,5 +49,35 @@ describe("Event type definitions", () => {
     expectTypeOf<EventMap["member.banned"]>().toHaveProperty("userId");
     expectTypeOf<EventMap["job.failed"]>().toHaveProperty("jobName");
     expectTypeOf<EventMap["job.failed"]>().toHaveProperty("error");
+  });
+
+  it("defines ContentFlaggedEvent with required moderation fields", () => {
+    expectTypeOf<ContentFlaggedEvent>().toHaveProperty("contentType");
+    expectTypeOf<ContentFlaggedEvent>().toHaveProperty("contentId");
+    expectTypeOf<ContentFlaggedEvent>().toHaveProperty("contentAuthorId");
+    expectTypeOf<ContentFlaggedEvent>().toHaveProperty("flagReason");
+    expectTypeOf<ContentFlaggedEvent>().toHaveProperty("severity");
+    expectTypeOf<ContentFlaggedEvent>().toHaveProperty("moderationActionId");
+    expectTypeOf<ContentFlaggedEvent>().toHaveProperty("timestamp");
+  });
+
+  it("defines ContentUnflaggedEvent with required moderation fields", () => {
+    expectTypeOf<ContentUnflaggedEvent>().toHaveProperty("contentType");
+    expectTypeOf<ContentUnflaggedEvent>().toHaveProperty("contentId");
+    expectTypeOf<ContentUnflaggedEvent>().toHaveProperty("moderationActionId");
+    expectTypeOf<ContentUnflaggedEvent>().toHaveProperty("moderatorId");
+    expectTypeOf<ContentUnflaggedEvent>().toHaveProperty("timestamp");
+  });
+
+  it("maps content.flagged and content.unflagged in EventMap", () => {
+    expectTypeOf<EventMap["content.flagged"]>().toHaveProperty("moderationActionId");
+    expectTypeOf<EventMap["content.unflagged"]>().toHaveProperty("moderatorId");
+  });
+
+  it("includes content.flagged and content.unflagged in EventName union", () => {
+    const flaggedName: EventName = "content.flagged";
+    const unflaggedName: EventName = "content.unflagged";
+    expect(flaggedName).toBe("content.flagged");
+    expect(unflaggedName).toBe("content.unflagged");
   });
 });
