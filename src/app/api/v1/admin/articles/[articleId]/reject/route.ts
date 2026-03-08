@@ -18,7 +18,7 @@ export const POST = withApiHandler(async (request: Request) => {
     throw new ApiError({
       title: "Unprocessable Entity",
       status: 422,
-      detail: parsed.error.issues[0].message,
+      detail: parsed.error?.issues[0]?.message ?? "Invalid input",
     });
   }
 
