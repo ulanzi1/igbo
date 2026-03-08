@@ -26,14 +26,14 @@
     "articles": "Articles",
     "blog": "Blog",
     "login": "Members Login",
+    "dashboard": "Dashboard",
     "search": "Search",
     "chatUnread": "{count} unread messages",
     "feed": "Feed",
     "saved": "Saved",
     "viewProfile": "View Profile",
     "logout": "Log out",
-    "points": "Points",
-    "search": "Search"
+    "points": "Points"
   },
   "Shell": {
     "appName": "Igbo Community Platform",
@@ -1744,7 +1744,7 @@
       "documents": "Documents"
     },
     "seeAll": "See all {section}",
-    "noResults": "No results for \u201c{query}\u201d",
+    "noResults": "No results for “{query}”",
     "noResultsHint": "Try a different search term or browse the {discover} page.",
     "noResultsDiscoverLink": "Discover",
     "loading": "Searching…",
@@ -1752,7 +1752,7 @@
     "errorTitle": "Search failed",
     "errorHint": "Please try again.",
     "resultsPage": {
-      "title": "Search results for \u201c{query}\u201d",
+      "title": "Search results for “{query}”",
       "backToSearch": "Back to search"
     },
     "filters": {
@@ -1789,7 +1789,7 @@
       "expand": "Expand filters"
     },
     "loadMore": "Load more",
-    "loadingMore": "Loading more results\u2026",
+    "loadingMore": "Loading more results…",
     "endOfResults": "No more results",
     "allTypes": "All types",
     "typeSelector": "Filter by type"

@@ -26,14 +26,14 @@
     "articles": "Akụkọ",
     "blog": "Blọgụ",
     "login": "Ndeere ndị otu",
+    "dashboard": "Njụọ ụlọ",
     "search": "Chọọ",
     "chatUnread": "Ozi {count} a gụghị",
     "feed": "Akụkọ",
     "saved": "Echekwaa",
     "viewProfile": "Hụ profaịlụ gị",
     "logout": "Pụọ",
-    "points": "Ọnụọgụ",
-    "search": "Chọọ"
+    "points": "Ọnụọgụ"
   },
   "Shell": {
     "appName": "Ụlọ Ọha Igbo",
@@ -1744,7 +1744,7 @@
       "documents": "Akwụkwọ ọchọchọ"
     },
     "seeAll": "Hụ niile {section}",
-    "noResults": "Enweghị nsonaazụ maka \u201c{query}\u201d",
+    "noResults": "Enweghị nsonaazụ maka “{query}”",
     "noResultsHint": "Nwaa okwu ọchọchọ ọzọ ma ọ bụ lelee ibe {discover}.",
     "noResultsDiscoverLink": "Chọpụta",
     "loading": "Na-achọ…",
@@ -1752,7 +1752,7 @@
     "errorTitle": "Ọchọchọ enweghị ike",
     "errorHint": "Biko nwaa ọzọ.",
     "resultsPage": {
-      "title": "Nsonaazụ ọchọchọ maka \u201c{query}\u201d",
+      "title": "Nsonaazụ ọchọchọ maka “{query}”",
       "backToSearch": "Laghachi na ọchọchọ"
     },
     "filters": {

@@ -15,8 +15,12 @@ const jetbrainsMono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "https://obigbo.com"),
-  title: "Igbo Community Platform",
+  title: "OBIGBO Community Platform",
   description: "A platform connecting the Igbo community worldwide",
+  icons: {
+    icon: "/obigbo-logo.png",
+    apple: "/obigbo-logo.png",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",

@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useSession, signOut } from "next-auth/react";
+import Image from "next/image";
 import { Link } from "@/i18n/navigation";
 import { ContrastToggle } from "@/components/shared/ContrastToggle";
 import { LanguageToggle } from "@/components/shared/LanguageToggle";
@@ -31,7 +32,7 @@ import { cn } from "@/lib/utils";
 import { GlobalSearchBar } from "./GlobalSearchBar";
 
 const navLinks = [
-  { key: "home" as const, href: "/" },
+  { key: "home" as const, href: "/dashboard" },
   { key: "feed" as const, href: "/feed" },
   { key: "saved" as const, href: "/saved" },
   { key: "chat" as const, href: "/chat" },
@@ -57,11 +58,19 @@ function TopNav({ className }: { className?: string }) {
       >
         {/* Logo */}
         <Link
-          href="/"
+          href="/dashboard"
           className="flex items-center gap-2 min-h-[44px] min-w-[44px] font-semibold text-foreground"
           aria-label={tShell("appName")}
         >
-          <span className="text-primary font-bold">Igbo</span>
+          <Image
+            src="/obigbo-logo.png"
+            alt="OBIGBO"
+            width={36}
+            height={36}
+            className="rounded-full"
+            priority
+          />
+          <span className="text-primary font-bold">OBIGBO</span>
         </Link>
 
         {/* Hamburger button — visible only on mobile */}
