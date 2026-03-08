@@ -95,10 +95,8 @@ const nextConfig: NextConfig = {
   output: "standalone",
   reactStrictMode: true,
   poweredByHeader: false,
-  experimental: {
-    outputFileTracingIncludes: {
-      "/**": ["./src/lib/lua/*.lua"],
-    },
+  outputFileTracingIncludes: {
+    "/**": ["./src/lib/lua/*.lua"],
   },
   images: {
     remotePatterns: [
