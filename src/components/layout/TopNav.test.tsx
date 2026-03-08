@@ -58,6 +58,10 @@ vi.mock("@/features/notifications", () => ({
   ),
 }));
 
+vi.mock("@/features/profiles", () => ({
+  useMyProfilePhoto: () => ({ data: null }),
+}));
+
 // Mock DropdownMenu to always render content (no open/close in jsdom)
 vi.mock("@/components/ui/dropdown-menu", () => ({
   DropdownMenu: ({ children }: { children: React.ReactNode }) => <>{children}</>,
