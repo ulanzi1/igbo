@@ -4,12 +4,14 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 const mockInsert = vi.hoisted(() => vi.fn());
 const mockSelect = vi.hoisted(() => vi.fn());
 const mockExecute = vi.hoisted(() => vi.fn());
+const mockUpdate = vi.hoisted(() => vi.fn());
 
 vi.mock("@/db", () => ({
   db: {
     insert: mockInsert,
     select: mockSelect,
     execute: mockExecute,
+    update: mockUpdate,
   },
 }));
 
@@ -83,6 +85,9 @@ import {
   getPointsLedgerHistory,
   getPointsSummaryStats,
   getEffectiveArticleLimit,
+  getAllPointsRules,
+  updatePointsRule,
+  updatePostingLimit,
 } from "./points";
 
 beforeEach(() => {
@@ -548,5 +553,110 @@ describe("getPointsSummaryStats", () => {
     const result = await getPointsSummaryStats("user-empty");
 
     expect(result).toEqual({ total: 0, thisWeek: 0, thisMonth: 0 });
+  });
+});
+
+// ─── getAllPointsRules ─────────────────────────────────────────────────────────
+
+describe("getAllPointsRules", () => {
+  it("returns all rules including inactive ones", async () => {
+    const rules = [
+      { id: "r1", activityType: "like_received", basePoints: 1, isActive: true },
+      { id: "r2", activityType: "event_attended", basePoints: 5, isActive: false },
+    ];
+    const mockFrom = vi.fn().mockResolvedValue(rules);
+    mockSelect.mockReturnValue({ from: mockFrom });
+
+    const result = await getAllPointsRules();
+
+    expect(result).toEqual(rules);
+    expect(mockSelect).toHaveBeenCalled();
+    // Does NOT filter by isActive — all rules returned
+    expect(mockFrom).toHaveBeenCalled();
+  });
+
+  it("returns empty array when no rules exist", async () => {
+    const mockFrom = vi.fn().mockResolvedValue([]);
+    mockSelect.mockReturnValue({ from: mockFrom });
+
+    const result = await getAllPointsRules();
+
+    expect(result).toHaveLength(0);
+  });
+});
+
+// ─── updatePointsRule ─────────────────────────────────────────────────────────
+
+describe("updatePointsRule", () => {
+  it("returns updated rule when row found", async () => {
+    const updated = { id: "r1", activityType: "like_received", basePoints: 3, isActive: true };
+    const mockReturning = vi.fn().mockResolvedValue([updated]);
+    const mockWhere = vi.fn().mockReturnValue({ returning: mockReturning });
+    const mockSet = vi.fn().mockReturnValue({ where: mockWhere });
+    mockUpdate.mockReturnValue({ set: mockSet });
+
+    const result = await updatePointsRule("r1", { basePoints: 3 });
+
+    expect(mockUpdate).toHaveBeenCalledTimes(1);
+    expect(mockSet).toHaveBeenCalledWith(expect.objectContaining({ basePoints: 3 }));
+    expect(result).toEqual(updated);
+  });
+
+  it("returns null when rule id not found", async () => {
+    const mockReturning = vi.fn().mockResolvedValue([]);
+    const mockWhere = vi.fn().mockReturnValue({ returning: mockReturning });
+    const mockSet = vi.fn().mockReturnValue({ where: mockWhere });
+    mockUpdate.mockReturnValue({ set: mockSet });
+
+    const result = await updatePointsRule("nonexistent", { isActive: false });
+
+    expect(result).toBeNull();
+  });
+
+  it("passes isActive update correctly", async () => {
+    const updated = { id: "r1", activityType: "like_received", basePoints: 1, isActive: false };
+    const mockReturning = vi.fn().mockResolvedValue([updated]);
+    const mockWhere = vi.fn().mockReturnValue({ returning: mockReturning });
+    const mockSet = vi.fn().mockReturnValue({ where: mockWhere });
+    mockUpdate.mockReturnValue({ set: mockSet });
+
+    await updatePointsRule("r1", { isActive: false });
+
+    expect(mockSet).toHaveBeenCalledWith(expect.objectContaining({ isActive: false }));
+  });
+});
+
+// ─── updatePostingLimit ───────────────────────────────────────────────────────
+
+describe("updatePostingLimit", () => {
+  it("returns updated posting limit row when found", async () => {
+    const updated = {
+      id: "l1",
+      tier: "PROFESSIONAL",
+      baseLimit: 2,
+      bonusLimit: 1,
+      pointsThreshold: 500,
+    };
+    const mockReturning = vi.fn().mockResolvedValue([updated]);
+    const mockWhere = vi.fn().mockReturnValue({ returning: mockReturning });
+    const mockSet = vi.fn().mockReturnValue({ where: mockWhere });
+    mockUpdate.mockReturnValue({ set: mockSet });
+
+    const result = await updatePostingLimit("l1", { baseLimit: 2, bonusLimit: 1 });
+
+    expect(mockUpdate).toHaveBeenCalledTimes(1);
+    expect(mockSet).toHaveBeenCalledWith(expect.objectContaining({ baseLimit: 2, bonusLimit: 1 }));
+    expect(result).toEqual(updated);
+  });
+
+  it("returns null when posting limit id not found", async () => {
+    const mockReturning = vi.fn().mockResolvedValue([]);
+    const mockWhere = vi.fn().mockReturnValue({ returning: mockReturning });
+    const mockSet = vi.fn().mockReturnValue({ where: mockWhere });
+    mockUpdate.mockReturnValue({ set: mockSet });
+
+    const result = await updatePostingLimit("nonexistent", { pointsThreshold: 100 });
+
+    expect(result).toBeNull();
   });
 });
