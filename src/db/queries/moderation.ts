@@ -1,7 +1,36 @@
-import { eq } from "drizzle-orm";
+import { eq, desc, sql, and } from "drizzle-orm";
 import { db } from "@/db";
 import { platformModerationKeywords, platformModerationActions } from "@/db/schema/moderation";
+import { authUsers } from "@/db/schema/auth-users";
 import type { Keyword } from "@/lib/moderation-scanner";
+import type { PlatformModerationKeyword } from "@/db/schema/moderation";
+import { ApiError } from "@/lib/api-error";
+import { getRedisClient } from "@/lib/redis";
+
+export type { PlatformModerationKeyword };
+
+export interface ModerationQueueItem {
+  id: string;
+  contentType: "post" | "article" | "message";
+  contentId: string;
+  contentPreview: string | null;
+  contentAuthorId: string;
+  authorName: string | null;
+  flagReason: string;
+  keywordMatched: string | null;
+  autoFlagged: boolean;
+  flaggedAt: Date;
+  status: "pending" | "reviewed" | "dismissed";
+  visibilityOverride: "visible" | "hidden";
+}
+
+async function invalidateKeywordCache(): Promise<void> {
+  try {
+    await getRedisClient().del("moderation:keywords:active");
+  } catch {
+    // Non-critical — cache invalidation failure should not throw
+  }
+}
 
 /**
  * Fetch all active keywords for content scanning.
@@ -52,4 +81,169 @@ export async function insertModerationAction(
     .returning({ id: platformModerationActions.id });
 
   return rows[0] ?? null;
+}
+
+// ──────────────────────────────────────────────
+// Admin moderation queue CRUD
+// ──────────────────────────────────────────────
+
+export async function listFlaggedContent(filters: {
+  status?: "pending" | "reviewed" | "dismissed";
+  contentType?: "post" | "article" | "message";
+  page: number;
+  pageSize: number;
+}): Promise<{ items: ModerationQueueItem[]; total: number }> {
+  const { status = "pending", contentType, page, pageSize } = filters;
+  const offset = (page - 1) * pageSize;
+
+  const conditions = [eq(platformModerationActions.status, status)];
+  if (contentType) {
+    conditions.push(eq(platformModerationActions.contentType, contentType));
+  }
+  const where = and(...conditions);
+
+  const [rows, countRows] = await Promise.all([
+    db
+      .select({
+        id: platformModerationActions.id,
+        contentType: platformModerationActions.contentType,
+        contentId: platformModerationActions.contentId,
+        contentPreview: platformModerationActions.contentPreview,
+        contentAuthorId: platformModerationActions.contentAuthorId,
+        authorName: authUsers.name,
+        flagReason: platformModerationActions.flagReason,
+        keywordMatched: platformModerationActions.keywordMatched,
+        autoFlagged: platformModerationActions.autoFlagged,
+        flaggedAt: platformModerationActions.flaggedAt,
+        status: platformModerationActions.status,
+        visibilityOverride: platformModerationActions.visibilityOverride,
+      })
+      .from(platformModerationActions)
+      .leftJoin(
+        authUsers,
+        sql`${platformModerationActions.contentAuthorId}::uuid = ${authUsers.id}`,
+      )
+      .where(where)
+      .orderBy(desc(platformModerationActions.flaggedAt))
+      .limit(pageSize)
+      .offset(offset),
+    db
+      .select({ count: sql<number>`count(*)` })
+      .from(platformModerationActions)
+      .where(where),
+  ]);
+
+  const total = Number(countRows[0]?.count ?? 0);
+  return { items: rows as ModerationQueueItem[], total };
+}
+
+export async function getModerationActionById(id: string): Promise<ModerationQueueItem | null> {
+  const rows = await db
+    .select({
+      id: platformModerationActions.id,
+      contentType: platformModerationActions.contentType,
+      contentId: platformModerationActions.contentId,
+      contentPreview: platformModerationActions.contentPreview,
+      contentAuthorId: platformModerationActions.contentAuthorId,
+      authorName: authUsers.name,
+      flagReason: platformModerationActions.flagReason,
+      keywordMatched: platformModerationActions.keywordMatched,
+      autoFlagged: platformModerationActions.autoFlagged,
+      flaggedAt: platformModerationActions.flaggedAt,
+      status: platformModerationActions.status,
+      visibilityOverride: platformModerationActions.visibilityOverride,
+    })
+    .from(platformModerationActions)
+    .leftJoin(authUsers, sql`${platformModerationActions.contentAuthorId}::uuid = ${authUsers.id}`)
+    .where(eq(platformModerationActions.id, id))
+    .limit(1);
+
+  return (rows[0] as ModerationQueueItem) ?? null;
+}
+
+export async function updateModerationAction(
+  id: string,
+  update: {
+    status: "pending" | "reviewed" | "dismissed";
+    moderatorId: string;
+    visibilityOverride?: "visible" | "hidden";
+    actionedAt: Date;
+  },
+): Promise<void> {
+  await db
+    .update(platformModerationActions)
+    .set({
+      status: update.status,
+      moderatorId: update.moderatorId,
+      ...(update.visibilityOverride ? { visibilityOverride: update.visibilityOverride } : {}),
+      actionedAt: update.actionedAt,
+    })
+    .where(eq(platformModerationActions.id, id));
+}
+
+export async function listModerationKeywords(filters?: {
+  isActive?: boolean;
+}): Promise<PlatformModerationKeyword[]> {
+  if (filters?.isActive !== undefined) {
+    return db
+      .select()
+      .from(platformModerationKeywords)
+      .where(eq(platformModerationKeywords.isActive, filters.isActive));
+  }
+  return db.select().from(platformModerationKeywords);
+}
+
+export async function addModerationKeyword(params: {
+  keyword: string;
+  category: "hate_speech" | "explicit" | "spam" | "harassment" | "other";
+  severity: "low" | "medium" | "high";
+  notes?: string;
+  createdBy: string;
+}): Promise<{ id: string }> {
+  try {
+    const rows = await db
+      .insert(platformModerationKeywords)
+      .values({
+        keyword: params.keyword,
+        category: params.category,
+        severity: params.severity,
+        notes: params.notes ?? null,
+        createdBy: params.createdBy,
+      })
+      .returning({ id: platformModerationKeywords.id });
+
+    const id = rows[0]?.id;
+    if (!id) throw new Error("Insert returned no id");
+    await invalidateKeywordCache();
+    return { id };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "";
+    const code = (err as { code?: string }).code;
+    if (code === "23505" || msg.toLowerCase().includes("unique")) {
+      throw new ApiError({ title: "Conflict", status: 409, detail: "Keyword already exists" });
+    }
+    throw err;
+  }
+}
+
+export async function updateModerationKeyword(
+  id: string,
+  update: Partial<{
+    keyword: string;
+    category: "hate_speech" | "explicit" | "spam" | "harassment" | "other";
+    severity: "low" | "medium" | "high";
+    notes: string;
+    isActive: boolean;
+  }>,
+): Promise<void> {
+  await db
+    .update(platformModerationKeywords)
+    .set(update)
+    .where(eq(platformModerationKeywords.id, id));
+  await invalidateKeywordCache();
+}
+
+export async function deleteModerationKeyword(id: string): Promise<void> {
+  await db.delete(platformModerationKeywords).where(eq(platformModerationKeywords.id, id));
+  await invalidateKeywordCache();
 }
