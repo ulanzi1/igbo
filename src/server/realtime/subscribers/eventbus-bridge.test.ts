@@ -13,6 +13,24 @@ vi.mock("@/db/queries/group-channels", () => ({
   listGroupChannels: vi.fn().mockResolvedValue([]),
 }));
 
+const mockDbSelect = vi.hoisted(() => vi.fn());
+vi.mock("@/db", () => ({
+  db: { select: (...args: unknown[]) => mockDbSelect(...args) },
+}));
+
+vi.mock("@/db/schema/chat-messages", () => ({
+  chatMessages: { id: "id", conversationId: "conversation_id" },
+}));
+
+const mockCreateNotification = vi.hoisted(() => vi.fn().mockResolvedValue({}));
+vi.mock("@/db/queries/notifications", () => ({
+  createNotification: (...args: unknown[]) => mockCreateNotification(...args),
+}));
+
+vi.mock("drizzle-orm", () => ({
+  eq: vi.fn((a, b) => ({ type: "eq", a, b })),
+}));
+
 import { startEventBusBridge, stopEventBusBridge } from "./eventbus-bridge";
 import type { Server } from "socket.io";
 import type Redis from "ioredis";
@@ -621,6 +639,175 @@ describe("startEventBusBridge", () => {
       expect.objectContaining({
         parentMessageId: PARENT_ID,
       }),
+    );
+  });
+});
+
+describe("content.flagged bridge (message type)", () => {
+  const MSG_ID_FLAG = "00000000-0000-4000-8000-000000000020";
+  const CONV_ID_FLAG = "00000000-0000-4000-8000-000000000021";
+
+  beforeEach(() => {
+    mockDbSelect.mockReturnValue({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({
+          limit: vi.fn().mockResolvedValue([{ conversationId: CONV_ID_FLAG }]),
+        }),
+      }),
+    });
+  });
+
+  it("emits message:flagged to conversation room when contentType=message", async () => {
+    const chatEmit = vi.fn();
+    const { subscriber, pmessageCallbacks } = makeSubscriber();
+    const io = makeIo(vi.fn(), chatEmit);
+
+    await startEventBusBridge(io, subscriber);
+
+    const payload = {
+      contentType: "message",
+      contentId: MSG_ID_FLAG,
+      contentAuthorId: "user-1",
+      contentPreview: "bad",
+      flagReason: "spam",
+      severity: "low",
+      moderationActionId: "action-1",
+      timestamp: new Date().toISOString(),
+    };
+
+    pmessageCallbacks[0]?.("eventbus:*", "eventbus:content.flagged", JSON.stringify(payload));
+
+    // Async — wait for promise to resolve
+    await new Promise((r) => setTimeout(r, 10));
+
+    expect(chatEmit).toHaveBeenCalledWith(
+      "message:flagged",
+      expect.objectContaining({ messageId: MSG_ID_FLAG, conversationId: CONV_ID_FLAG }),
+    );
+  });
+
+  it("does not emit for non-message contentType", async () => {
+    const chatEmit = vi.fn();
+    const { subscriber, pmessageCallbacks } = makeSubscriber();
+    const io = makeIo(vi.fn(), chatEmit);
+
+    await startEventBusBridge(io, subscriber);
+
+    const payload = {
+      contentType: "post",
+      contentId: "post-1",
+      contentAuthorId: "user-1",
+      contentPreview: "bad",
+      flagReason: "spam",
+      severity: "low",
+      moderationActionId: "action-1",
+      timestamp: new Date().toISOString(),
+    };
+
+    pmessageCallbacks[0]?.("eventbus:*", "eventbus:content.flagged", JSON.stringify(payload));
+    await new Promise((r) => setTimeout(r, 10));
+
+    expect(chatEmit).not.toHaveBeenCalledWith("message:flagged", expect.anything());
+  });
+});
+
+describe("content.moderated bridge (message type)", () => {
+  const MSG_ID_MOD = "00000000-0000-4000-8000-000000000030";
+  const CONV_ID_MOD = "00000000-0000-4000-8000-000000000031";
+
+  beforeEach(() => {
+    mockDbSelect.mockReturnValue({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({
+          limit: vi.fn().mockResolvedValue([{ conversationId: CONV_ID_MOD }]),
+        }),
+      }),
+    });
+    mockCreateNotification.mockResolvedValue({});
+  });
+
+  it("approve → emits message:unflagged", async () => {
+    const chatEmit = vi.fn();
+    const { subscriber, pmessageCallbacks } = makeSubscriber();
+    const io = makeIo(vi.fn(), chatEmit);
+
+    await startEventBusBridge(io, subscriber);
+
+    const payload = {
+      contentType: "message",
+      contentId: MSG_ID_MOD,
+      contentAuthorId: "user-1",
+      action: "approve",
+      moderatorId: "admin-1",
+      timestamp: new Date().toISOString(),
+    };
+
+    pmessageCallbacks[0]?.("eventbus:*", "eventbus:content.moderated", JSON.stringify(payload));
+    await new Promise((r) => setTimeout(r, 10));
+
+    expect(chatEmit).toHaveBeenCalledWith(
+      "message:unflagged",
+      expect.objectContaining({ messageId: MSG_ID_MOD, conversationId: CONV_ID_MOD }),
+    );
+    expect(mockCreateNotification).not.toHaveBeenCalled();
+  });
+
+  it("remove → emits message:removed and sends notification to author", async () => {
+    const chatEmit = vi.fn();
+    const { subscriber, pmessageCallbacks } = makeSubscriber();
+    const io = makeIo(vi.fn(), chatEmit);
+
+    await startEventBusBridge(io, subscriber);
+
+    const payload = {
+      contentType: "message",
+      contentId: MSG_ID_MOD,
+      contentAuthorId: "user-1",
+      action: "remove",
+      moderatorId: "admin-1",
+      reason: "Violation",
+      timestamp: new Date().toISOString(),
+    };
+
+    pmessageCallbacks[0]?.("eventbus:*", "eventbus:content.moderated", JSON.stringify(payload));
+    await new Promise((r) => setTimeout(r, 10));
+
+    expect(chatEmit).toHaveBeenCalledWith(
+      "message:removed",
+      expect.objectContaining({
+        messageId: MSG_ID_MOD,
+        conversationId: CONV_ID_MOD,
+        replacementText: "[This message was removed by a moderator]",
+      }),
+    );
+    expect(mockCreateNotification).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: "user-1", type: "admin_announcement" }),
+    );
+  });
+
+  it("dismiss → emits message:unflagged (false positive restore)", async () => {
+    const chatEmit = vi.fn();
+    const { subscriber, pmessageCallbacks } = makeSubscriber();
+    const io = makeIo(vi.fn(), chatEmit);
+
+    await startEventBusBridge(io, subscriber);
+
+    const payload = {
+      contentType: "message",
+      contentId: MSG_ID_MOD,
+      contentAuthorId: "user-1",
+      action: "dismiss",
+      moderatorId: "admin-1",
+      timestamp: new Date().toISOString(),
+    };
+
+    pmessageCallbacks[0]?.("eventbus:*", "eventbus:content.moderated", JSON.stringify(payload));
+    await new Promise((r) => setTimeout(r, 10));
+
+    expect(chatEmit).not.toHaveBeenCalledWith("message:removed", expect.anything());
+    expect(chatEmit).toHaveBeenCalledWith(
+      "message:unflagged",
+      expect.objectContaining({ messageId: MSG_ID_MOD, conversationId: CONV_ID_MOD }),
     );
   });
 });

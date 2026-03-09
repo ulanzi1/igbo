@@ -440,6 +440,63 @@
       "revisionSuccess": "Revision request sent",
       "revisionError": "Failed to send revision request",
       "revisionConfirm": "Request Revisions?"
+    },
+    "moderation": {
+      "title": "Content Moderation",
+      "emptyQueue": "No flagged content to review.",
+      "filter": {
+        "status": "Status",
+        "contentType": "Content Type",
+        "all": "All"
+      },
+      "table": {
+        "content": "Content",
+        "author": "Author",
+        "type": "Type",
+        "reason": "Reason",
+        "flaggedAt": "Flagged",
+        "actions": "Actions"
+      },
+      "action": {
+        "approve": "Approve",
+        "remove": "Remove",
+        "dismiss": "Dismiss",
+        "confirmRemove": "Are you sure you want to remove this content?",
+        "reason": "Reason (optional)",
+        "whitelistKeyword": "Whitelist this keyword",
+        "cancel": "Cancel"
+      },
+      "contentTypes": {
+        "post": "Post",
+        "article": "Article",
+        "message": "Message"
+      },
+      "pagination": {
+        "previous": "Previous",
+        "next": "Next"
+      },
+      "status": {
+        "pending": "Pending",
+        "reviewed": "Reviewed",
+        "dismissed": "Dismissed"
+      },
+      "keywords": {
+        "title": "Keyword Management",
+        "addKeyword": "Add Keyword",
+        "keyword": "Keyword",
+        "category": "Category",
+        "severity": "Severity",
+        "notes": "Notes",
+        "active": "Active",
+        "inactive": "Inactive",
+        "confirmDelete": "Delete this keyword?",
+        "activeCount": "{count} active keywords",
+        "edit": "Edit",
+        "delete": "Delete",
+        "save": "Save",
+        "add": "Add",
+        "editTitle": "Edit Keyword"
+      }
     }
   },
   "Events": {

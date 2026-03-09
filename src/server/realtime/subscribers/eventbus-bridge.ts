@@ -8,7 +8,11 @@ import {
   NAMESPACE_NOTIFICATIONS,
   NAMESPACE_CHAT,
 } from "@/config/realtime";
+import { db } from "@/db";
+import { chatMessages } from "@/db/schema/chat-messages";
+import { eq } from "drizzle-orm";
 import { listGroupChannels } from "@/db/queries/group-channels";
+import { createNotification } from "@/db/queries/notifications";
 import type {
   NotificationCreatedEvent,
   NotificationReadEvent,
@@ -26,6 +30,8 @@ import type {
   EventRsvpEvent,
   EventRsvpCancelledEvent,
   EventAttendedEvent,
+  ContentFlaggedEvent,
+  ContentModeratedEvent,
 } from "@/types/events";
 
 const CHANNEL_PREFIX = "eventbus:";
@@ -283,6 +289,77 @@ function routeToNamespace(io: Server, eventName: string, payload: unknown): void
         status: "attended",
         timestamp: attendedPayload.timestamp,
       });
+      break;
+    }
+    case "content.flagged": {
+      const flaggedPayload = payload as ContentFlaggedEvent;
+      if (flaggedPayload?.contentType !== "message" || !flaggedPayload?.contentId) break;
+      void (async () => {
+        try {
+          const rows = await db
+            .select({ conversationId: chatMessages.conversationId })
+            .from(chatMessages)
+            .where(eq(chatMessages.id, flaggedPayload.contentId))
+            .limit(1);
+          const conversationId = rows[0]?.conversationId;
+          if (!conversationId) return;
+          chatNs.to(ROOM_CONVERSATION(conversationId)).emit("message:flagged", {
+            messageId: flaggedPayload.contentId,
+            conversationId,
+            replacementText: "[This message is under review]",
+          });
+        } catch (err) {
+          console.error("[eventbus-bridge] content.flagged error:", err);
+        }
+      })();
+      break;
+    }
+    case "content.moderated": {
+      const moderatedPayload = payload as ContentModeratedEvent;
+      if (moderatedPayload?.contentType !== "message" || !moderatedPayload?.contentId) break;
+      void (async () => {
+        try {
+          const rows = await db
+            .select({ conversationId: chatMessages.conversationId })
+            .from(chatMessages)
+            .where(eq(chatMessages.id, moderatedPayload.contentId))
+            .limit(1);
+          const conversationId = rows[0]?.conversationId;
+          if (!conversationId) return;
+          if (moderatedPayload.action === "dismiss") {
+            // Dismiss = false positive — restore content (same as approve)
+            chatNs.to(ROOM_CONVERSATION(conversationId)).emit("message:unflagged", {
+              messageId: moderatedPayload.contentId,
+              conversationId,
+            });
+          } else if (moderatedPayload.action === "remove") {
+            chatNs.to(ROOM_CONVERSATION(conversationId)).emit("message:removed", {
+              messageId: moderatedPayload.contentId,
+              conversationId,
+              replacementText: "[This message was removed by a moderator]",
+            });
+            try {
+              await createNotification({
+                userId: moderatedPayload.contentAuthorId,
+                type: "admin_announcement",
+                title: "Content Removed",
+                body: moderatedPayload.reason
+                  ? `Your message was removed: ${moderatedPayload.reason}`
+                  : "Your message was removed by a moderator.",
+              });
+            } catch (notifErr) {
+              console.error("[eventbus-bridge] content.moderated notification error:", notifErr);
+            }
+          } else if (moderatedPayload.action === "approve") {
+            chatNs.to(ROOM_CONVERSATION(conversationId)).emit("message:unflagged", {
+              messageId: moderatedPayload.contentId,
+              conversationId,
+            });
+          }
+        } catch (err) {
+          console.error("[eventbus-bridge] content.moderated error:", err);
+        }
+      })();
       break;
     }
     default:

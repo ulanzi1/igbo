@@ -4,5 +4,8 @@ export { QueueSummaryCard } from "@/features/admin/components/QueueSummaryCard";
 export { TwoFactorResetButton } from "@/features/admin/components/TwoFactorResetButton";
 export { MemberManagement } from "@/features/admin/components/MemberManagement";
 export { TierChangeDialog } from "@/features/admin/components/TierChangeDialog";
+export { ModerationQueue } from "@/features/admin/components/ModerationQueue";
+export { ModerationActionDialog } from "@/features/admin/components/ModerationActionDialog";
+export { KeywordManager } from "@/features/admin/components/KeywordManager";
 export * from "@/features/admin/hooks/use-approvals";
 export * from "@/features/admin/hooks/use-members";

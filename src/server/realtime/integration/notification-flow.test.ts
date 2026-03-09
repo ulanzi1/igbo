@@ -28,6 +28,25 @@ vi.mock("@/db/queries/group-channels", () => ({
   listGroupChannels: vi.fn().mockResolvedValue([]),
 }));
 
+// ── Moderation bridge mocks (eventbus-bridge now imports db + chat-messages for content events) ──
+vi.mock("@/db", () => ({
+  db: {
+    select: vi.fn().mockReturnValue({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({ limit: vi.fn().mockResolvedValue([]) }),
+      }),
+    }),
+  },
+}));
+
+vi.mock("@/db/schema/chat-messages", () => ({
+  chatMessages: { id: "id", conversationId: "conversation_id" },
+}));
+
+vi.mock("drizzle-orm", () => ({
+  eq: vi.fn((a, b) => ({ type: "eq", a, b })),
+}));
+
 // ── Config mock ────────────────────────────────────────────────────────────────
 vi.mock("@/config/realtime", () => ({
   ROOM_USER: (id: string) => `user:${id}`,

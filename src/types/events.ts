@@ -279,6 +279,15 @@ export interface ContentUnflaggedEvent extends BaseEvent {
   moderatorId: string;
 }
 
+export interface ContentModeratedEvent extends BaseEvent {
+  contentType: "post" | "article" | "message";
+  contentId: string;
+  contentAuthorId: string;
+  action: "approve" | "remove" | "dismiss";
+  moderatorId: string;
+  reason?: string;
+}
+
 // --- Group Leadership & Moderation Events ---
 
 export interface GroupLeaderAssignedEvent extends BaseEvent {
@@ -648,7 +657,8 @@ export type EventName =
   | "reaction.added"
   | "reaction.removed"
   | "content.flagged"
-  | "content.unflagged";
+  | "content.unflagged"
+  | "content.moderated";
 
 // --- Event Map ---
 
@@ -736,4 +746,5 @@ export interface EventMap {
   "reaction.removed": ReactionRemovedEvent;
   "content.flagged": ContentFlaggedEvent;
   "content.unflagged": ContentUnflaggedEvent;
+  "content.moderated": ContentModeratedEvent;
 }

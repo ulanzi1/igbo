@@ -440,6 +440,63 @@
       "revisionSuccess": "Ezigara arịọ mgbanwe",
       "revisionError": "Ezighị ike iziga arịọ mgbanwe",
       "revisionConfirm": "Rịọọ Mgbanwe?"
+    },
+    "moderation": {
+      "title": "Nlekọta Ọdịnaya",
+      "emptyQueue": "Ọ nweghị ọdịnaya a chọọ nyocha.",
+      "filter": {
+        "status": "Ọnọdụ",
+        "contentType": "Udi Ọdịnaya",
+        "all": "Niile"
+      },
+      "table": {
+        "content": "Ọdịnaya",
+        "author": "Onye Dere",
+        "type": "Udi",
+        "reason": "Ihe Kpatara",
+        "flaggedAt": "Akọwapụtara",
+        "actions": "Omume"
+      },
+      "action": {
+        "approve": "Kwado",
+        "remove": "Wepu",
+        "dismiss": "Haa Ka O Bụrụ",
+        "confirmRemove": "Ị dara anya ị chọọ iwepụ ọdịnaya a?",
+        "reason": "Ihe Kpatara (ọ dịghị mkpa)",
+        "whitelistKeyword": "Tinye okwu a na ndepụta ọcha",
+        "cancel": "Kagbuo"
+      },
+      "contentTypes": {
+        "post": "Ozi",
+        "article": "Akụkọ",
+        "message": "Ozi Ịde"
+      },
+      "pagination": {
+        "previous": "Nke Gara Aga",
+        "next": "Nke Ọzọ"
+      },
+      "status": {
+        "pending": "Na-atọ anya",
+        "reviewed": "Anyọchara",
+        "dismissed": "Hapụrụ"
+      },
+      "keywords": {
+        "title": "Njikwa Okwu",
+        "addKeyword": "Tinye Okwu",
+        "keyword": "Okwu",
+        "category": "Udi",
+        "severity": "Ogo",
+        "notes": "Ndetu",
+        "active": "Na-arụ ọrụ",
+        "inactive": "Anọghị na-arụ ọrụ",
+        "confirmDelete": "Ihichapụ okwu a?",
+        "activeCount": "Okwu {count} na-arụ ọrụ",
+        "edit": "Dezie",
+        "delete": "Hichapụ",
+        "save": "Chekwaa",
+        "add": "Tinye",
+        "editTitle": "Dezie Okwu"
+      }
     }
   },
   "Events": {
