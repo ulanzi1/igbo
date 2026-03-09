@@ -287,6 +287,9 @@
     "lastUpdated": "Last updated: February 2026"
   },
   "Admin": {
+    "Common": {
+      "loading": "Loading…"
+    },
     "approvals": {
       "title": "Membership Applications",
       "empty": "No pending applications",

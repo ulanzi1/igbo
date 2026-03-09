@@ -220,9 +220,9 @@ export async function getEngagementMetrics(toDate: string): Promise<{
 
 /** Count currently online users: sessions updated within the last 5 minutes that haven't expired. */
 export async function currentlyOnlineUsers(): Promise<number> {
-  const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+  const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
   const rows = await db.execute(
-    sql`SELECT COUNT(DISTINCT user_id)::int AS cnt FROM auth_sessions WHERE expires > NOW() AND updated_at > ${fiveMinutesAgo}`,
+    sql`SELECT COUNT(DISTINCT user_id)::int AS cnt FROM auth_sessions WHERE expires > NOW() AND last_active_at > ${fiveMinutesAgo}`,
   );
   const result = Array.from(rows);
   return (result[0] as { cnt: number } | undefined)?.cnt ?? 0;
@@ -233,7 +233,7 @@ export async function todayPartialDau(): Promise<number> {
   const startOfToday = new Date();
   startOfToday.setUTCHours(0, 0, 0, 0);
   const rows = await db.execute(
-    sql`SELECT COUNT(DISTINCT user_id)::int AS cnt FROM auth_sessions WHERE updated_at >= ${startOfToday}`,
+    sql`SELECT COUNT(DISTINCT user_id)::int AS cnt FROM auth_sessions WHERE last_active_at >= ${startOfToday.toISOString()}`,
   );
   const result = Array.from(rows);
   return (result[0] as { cnt: number } | undefined)?.cnt ?? 0;
