@@ -24,14 +24,28 @@ export type AdminAction =
   | "SUSPEND_MEMBER"
   | "BAN_MEMBER"
   | "LIFT_SUSPENSION"
-  | "VIEW_DISPUTE_CONVERSATION";
+  | "VIEW_DISPUTE_CONVERSATION"
+  | "BADGE_ASSIGNED"
+  | "BADGE_REVOKED"
+  | "SETTINGS_UPDATED"
+  | "GOVERNANCE_CREATED"
+  | "GOVERNANCE_PUBLISHED"
+  | "GOVERNANCE_UPDATED"
+  | "ARTICLE_REJECTED"
+  | "ARTICLE_REVISION_REQUESTED";
 
 interface AuditParams {
   actorId: string;
   action: AdminAction;
-  targetUserId: string;
+  /** Legacy alias; maps to targetId. At least one of targetUserId or targetId should be provided. */
+  targetUserId?: string;
+  /** Generic target ID (UUID or string). Takes precedence over targetUserId when provided. */
+  targetId?: string;
+  /** Discriminator for the target entity (e.g. "user", "article", "governance_document"). */
+  targetType?: string;
   details?: Record<string, unknown>; // IDs only — no PII
   ipAddress?: string;
+  traceId?: string;
 }
 
 /**
@@ -39,10 +53,13 @@ interface AuditParams {
  * Never logs PII: only IDs in details.
  */
 export async function logAdminAction(params: AuditParams): Promise<void> {
+  const resolvedTargetId = params.targetId ?? params.targetUserId ?? null;
   await db.insert(auditLogs).values({
     actorId: params.actorId,
     action: params.action,
-    targetUserId: params.targetUserId,
+    targetUserId: resolvedTargetId,
+    targetType: params.targetType ?? null,
+    traceId: params.traceId ?? null,
     details: params.details ?? null,
     ipAddress: params.ipAddress ?? null,
   });

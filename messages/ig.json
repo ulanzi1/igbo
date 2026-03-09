@@ -69,20 +69,6 @@
     "stat3": "Na-echebe omenala, na-ewu ihe nkwado",
     "socialProofHeading": "Obodo anyị"
   },
-  "About": {
-    "title": "Banyere OBIGBO",
-    "mission": "Ebumnobi anyị",
-    "missionText": "OBIGBO bụ ụlọ dijitalụ maka ọha Igbo n'ụwa nile. Anyị na-ejikọta ndị Igbo n'ụwa nile, na-echebe ihe nketa omenala anyị dị ịma aka n'oge anyị na-ewu ihe nkwado n'oge gara aga na ebe dị iche iche.",
-    "vision": "Echiche anyị",
-    "visionText": "Ụwa nke onye Igbo ọ bụla, n'ebe ọ bụla ọ nọ, nọ njikọ na mgbọrọgwụ ya ma nwee ike site n'obodo ya.",
-    "culture": "Ọnọdụ Omenala",
-    "cultureText": "Ndị Igbo bụ otu n'ime ìgwè ụyọkọ ndị obi ukwuu n'Afrịka, nwee ndị diaspora dị mma gbasara kontinent ọ bụla. OBIGBO na-akpakọta anyị na ebe na-asọpụrụ asụsụ anyị, omenala, na uru anyị nkpa n'obodo, azụmahịa, na ọnọdụ.",
-    "founding": "Akụkọ anyị",
-    "foundingText": "OBIGBO pụtara site n'ihe ọchọchọ dị mfe: n'oge ndị Igbo na-eto eto n'onwe ha n'ụwa nile, anyị enweghị ebe dijitalụ nke anyị iji jikọọ, kesaa, ma too ọnụ dị ka obodo. Ọlọlọ a bụ nzaghachi anyị n'mkpa ahụ.",
-    "ctaHeading": "Sonyere Obodo anyị",
-    "ctaText": "Bụrụ akụkụ nke netwọk Igbo na-eto eto na-ejikọta, na-ekesa, na-echebe omenala anyị ọnụ.",
-    "ctaButton": "Rịọọ Ọnụ otu"
-  },
   "Articles": {
     "title": "Akụkọ",
     "description": "Chọpụta akụkọ, echiche, na ihe gbasara omenala site n'ọha Igbo.",
@@ -580,6 +566,45 @@
         "add": "Tinye",
         "editTitle": "Dezie Okwu"
       }
+    },
+    "auditLog": {
+      "title": "Ndekọ Ọrụ Ndị Isi",
+      "filterAction": "Ụdị Ọrụ",
+      "filterTargetType": "Ụdị Ebumnuche",
+      "filterDateFrom": "Ọbọchị Mmalite",
+      "filterDateTo": "Ọbọchị Njedebe",
+      "allActions": "Ọrụ Nile",
+      "allTargetTypes": "Ụdị Ebumnuche Nile",
+      "colTimestamp": "Oge",
+      "colAdmin": "Onye Isi",
+      "colAction": "Ọrụ",
+      "colTargetType": "Ụdị Ebumnuche",
+      "colTargetId": "ID Ebumnuche",
+      "colDetails": "Nkọwa",
+      "colTraceId": "ID Ịchopụta",
+      "loading": "Na-ebugharị ndekọ ọrụ...",
+      "error": "Ọnweghị ike ịbugharị ndekọ ọrụ.",
+      "empty": "Ọdịghị ndekọ ọrụ.",
+      "pagination": "Peeji {page} nke {total}",
+      "prev": "Gaba N'ihu",
+      "next": "Gaba N'azụ"
+    },
+    "governance": {
+      "title": "Akwụkwọ Ọchịchọ",
+      "createNew": "Akwụkwọ Ọhụrụ",
+      "loading": "Na-ebugharị akwụkwọ...",
+      "error": "Ọnweghị ike ịbugharị akwụkwọ.",
+      "empty": "Ọdịghị akwụkwọ ọchịchọ ugbu a.",
+      "fieldTitle": "Aha",
+      "fieldSlug": "Slug (e.g. about-us)",
+      "fieldContentEn": "Ọdịnaya (Bekee)",
+      "fieldContentIg": "Ọdịnaya (Igbo, ọ dịghị mkpa)",
+      "visibilityPublic": "Ọha",
+      "visibilityAdminOnly": "Ndị Isi Naanị",
+      "save": "Chekwaa",
+      "cancel": "Kagbuo",
+      "edit": "Dezie",
+      "publish": "Bipute"
     }
   },
   "Events": {
@@ -1977,5 +2002,14 @@
     "action": {
       "report": "Kọọ"
     }
+  },
+  "Governance": {
+    "title": "Akwụkwọ Ọchịchọ",
+    "subtitle": "Gụọ iwu na nduzi obodo anyị.",
+    "empty": "Ọdịghị akwụkwọ ọchịchọ ugbu a.",
+    "lastUpdated": "Emezigharịrị: {date}",
+    "download": "Budata",
+    "contentUnavailable": "Ọdịnaya adịghị ugbu a. Biko lọghachi ka e mesịa.",
+    "applyButton": "Rịọọ Ọnụ otu"
   }
 }

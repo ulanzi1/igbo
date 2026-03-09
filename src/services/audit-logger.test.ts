@@ -41,6 +41,8 @@ describe("logAdminAction", () => {
       actorId: "admin-1",
       action: "APPROVE_APPLICATION",
       targetUserId: "user-1",
+      targetType: null,
+      traceId: null,
       details: { targetUserId: "user-1" },
       ipAddress: "1.2.3.4",
     });
@@ -57,6 +59,8 @@ describe("logAdminAction", () => {
       actorId: "admin-1",
       action: "REJECT_APPLICATION",
       targetUserId: "user-1",
+      targetType: null,
+      traceId: null,
       details: null,
       ipAddress: null,
     });

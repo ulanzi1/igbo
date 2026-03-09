@@ -69,20 +69,6 @@
     "stat3": "Preserving traditions, building bridges",
     "socialProofHeading": "Our Community"
   },
-  "About": {
-    "title": "About OBIGBO",
-    "mission": "Our Mission",
-    "missionText": "OBIGBO is a digital home for the global Igbo community. We connect Igbo people worldwide, preserving our rich cultural heritage while building bridges across generations and geographies.",
-    "vision": "Our Vision",
-    "visionText": "A world where every Igbo person, no matter where they are, feels connected to their roots and empowered by their community.",
-    "culture": "Cultural Context",
-    "cultureText": "The Igbo people are one of the largest ethnic groups in Africa, with a vibrant diaspora spanning every continent. OBIGBO brings us together in a space that celebrates our language, traditions, and shared values of community, enterprise, and resilience.",
-    "founding": "Our Story",
-    "foundingText": "OBIGBO was born from a simple observation: while Igbo people thrive individually across the globe, we lack a dedicated digital space to connect, share, and grow together as a community. This platform is our answer to that need.",
-    "ctaHeading": "Join Our Community",
-    "ctaText": "Be part of a growing network of Igbo people connecting, sharing, and preserving our culture together.",
-    "ctaButton": "Apply for Membership"
-  },
   "Articles": {
     "title": "Articles",
     "description": "Discover stories, insights, and cultural perspectives from the Igbo community.",
@@ -580,6 +566,45 @@
         "add": "Add",
         "editTitle": "Edit Keyword"
       }
+    },
+    "auditLog": {
+      "title": "Audit Log",
+      "filterAction": "Action Type",
+      "filterTargetType": "Target Type",
+      "filterDateFrom": "From Date",
+      "filterDateTo": "To Date",
+      "allActions": "All Actions",
+      "allTargetTypes": "All Target Types",
+      "colTimestamp": "Timestamp",
+      "colAdmin": "Admin",
+      "colAction": "Action",
+      "colTargetType": "Target Type",
+      "colTargetId": "Target ID",
+      "colDetails": "Details",
+      "colTraceId": "Trace ID",
+      "loading": "Loading audit logs...",
+      "error": "Failed to load audit logs.",
+      "empty": "No audit log entries found.",
+      "pagination": "Page {page} of {total}",
+      "prev": "Previous",
+      "next": "Next"
+    },
+    "governance": {
+      "title": "Governance Documents",
+      "createNew": "New Document",
+      "loading": "Loading documents...",
+      "error": "Failed to load documents.",
+      "empty": "No governance documents yet.",
+      "fieldTitle": "Title",
+      "fieldSlug": "Slug (URL-safe, e.g. about-us)",
+      "fieldContentEn": "Content (English, HTML or plain text)",
+      "fieldContentIg": "Content (Igbo, optional)",
+      "visibilityPublic": "Public",
+      "visibilityAdminOnly": "Admin Only",
+      "save": "Save",
+      "cancel": "Cancel",
+      "edit": "Edit",
+      "publish": "Publish"
     }
   },
   "Events": {
@@ -1977,5 +2002,14 @@
     "action": {
       "report": "Report"
     }
+  },
+  "Governance": {
+    "title": "Governance Documents",
+    "subtitle": "Read our official community policies and guidelines.",
+    "empty": "No governance documents are currently available.",
+    "lastUpdated": "Last updated: {date}",
+    "download": "Download",
+    "contentUnavailable": "Content is temporarily unavailable. Please check back later.",
+    "applyButton": "Apply for Membership"
   }
 }

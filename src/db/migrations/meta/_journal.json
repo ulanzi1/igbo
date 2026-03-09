@@ -323,6 +323,27 @@
       "when": 1708000045000,
       "tag": "0045_analytics_snapshots",
       "breakpoints": true
+    },
+    {
+      "idx": 46,
+      "version": "7",
+      "when": 1708000046000,
+      "tag": "0046_audit_logs_extend",
+      "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1708000047000,
+      "tag": "0047_governance_documents",
+      "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1708000048000,
+      "tag": "0048_seed_governance_documents",
+      "breakpoints": true
     }
   ]
 }
