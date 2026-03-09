@@ -46,6 +46,7 @@ import {
   getMaxFeedPostsPerWeek,
   checkPermission,
   getTierUpgradeMessage,
+  requireAuthenticatedSession,
 } from "./permissions";
 
 beforeEach(() => {
@@ -349,5 +350,43 @@ describe("canCreateEvent", () => {
     const { canCreateEvent } = await import("./permissions");
     const result = await canCreateEvent("user-1");
     expect(result.allowed).toBe(true);
+  });
+});
+
+describe("requireAuthenticatedSession — account status enforcement", () => {
+  const USER_ID = "user-uuid-1";
+
+  it("returns userId and role for APPROVED user", async () => {
+    mockAuth.mockResolvedValue({ user: { id: USER_ID, role: "MEMBER" } });
+    mockFindUserById.mockResolvedValue({ id: USER_ID, accountStatus: "APPROVED" });
+
+    const result = await requireAuthenticatedSession();
+    expect(result).toEqual({ userId: USER_ID, role: "MEMBER" });
+  });
+
+  it("throws 401 when session is missing", async () => {
+    mockAuth.mockResolvedValue(null);
+    const { ApiError } = await import("@/lib/api-error");
+    await expect(requireAuthenticatedSession()).rejects.toMatchObject({ status: 401 });
+  });
+
+  it("throws 403 with account_banned type when user is BANNED", async () => {
+    mockAuth.mockResolvedValue({ user: { id: USER_ID, role: "MEMBER" } });
+    mockFindUserById.mockResolvedValue({ id: USER_ID, accountStatus: "BANNED" });
+
+    await expect(requireAuthenticatedSession()).rejects.toMatchObject({
+      status: 403,
+      type: "account_banned",
+    });
+  });
+
+  it("throws 403 with account_suspended type when user is SUSPENDED", async () => {
+    mockAuth.mockResolvedValue({ user: { id: USER_ID, role: "MEMBER" } });
+    mockFindUserById.mockResolvedValue({ id: USER_ID, accountStatus: "SUSPENDED" });
+
+    await expect(requireAuthenticatedSession()).rejects.toMatchObject({
+      status: 403,
+      type: "account_suspended",
+    });
   });
 });

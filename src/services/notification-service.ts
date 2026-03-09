@@ -573,6 +573,43 @@ if (globalForNotif.__notifHandlersRegistered) {
       link: "/points",
     });
   });
+
+  // ─── Discipline Notifications (Story 11.3) ───────────────────────────────────
+  // System-generated notifications for warnings, suspensions, and bans.
+  // actorId = userId (self-notification pattern) so block/mute filters don't suppress them.
+
+  eventBus.on(
+    "account.discipline_issued",
+    async (payload: {
+      userId: string;
+      disciplineType: string;
+      reason: string;
+      disciplineId: string;
+      suspensionEndsAt?: string;
+      timestamp: string;
+    }) => {
+      if (payload.disciplineType === "warning") {
+        await deliverNotification({
+          userId: payload.userId,
+          actorId: payload.userId,
+          type: "admin_announcement",
+          title: "notifications.discipline.warning.title",
+          body: "notifications.discipline.warning.body",
+          link: "/dashboard",
+        });
+      } else if (payload.disciplineType === "suspension") {
+        await deliverNotification({
+          userId: payload.userId,
+          actorId: payload.userId,
+          type: "admin_announcement",
+          title: "notifications.discipline.suspension.title",
+          body: "notifications.discipline.suspension.body",
+          link: "/dashboard",
+        });
+      }
+      // ban: no in-app notification — member is locked out immediately
+    },
+  );
 } // end of hot-reload guard (globalForNotif.__notifHandlersRegistered)
 
 // ─── Service Functions (called by API routes) ─────────────────────────────────

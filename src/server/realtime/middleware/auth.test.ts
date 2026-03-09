@@ -3,6 +3,12 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { SignJWT } from "jose";
 import type { Socket } from "socket.io";
 
+const mockFindUserById = vi.hoisted(() => vi.fn());
+
+vi.mock("@/db/queries/auth-queries", () => ({
+  findUserById: mockFindUserById,
+}));
+
 const TEST_SECRET = "test-auth-secret-for-jwt-signing";
 const TEST_USER_ID = "00000000-0000-4000-8000-000000000001";
 
@@ -35,6 +41,8 @@ describe("authMiddleware", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.resetModules();
+    // Default: user is approved (not banned/suspended)
+    mockFindUserById.mockResolvedValue({ id: TEST_USER_ID, accountStatus: "APPROVED" });
   });
 
   // AUTH_SECRET is captured at module load time, so we must set process.env
@@ -140,5 +148,31 @@ describe("authMiddleware", () => {
     expect(socket.data.userId).toBe(TEST_USER_ID);
     expect(next).toHaveBeenCalledWith();
     expect(next.mock.calls[0]).toHaveLength(0);
+  });
+
+  it("calls next() with error for BANNED user (Story 11.3)", async () => {
+    mockFindUserById.mockResolvedValue({ id: TEST_USER_ID, accountStatus: "BANNED" });
+    const authMiddleware = await getAuthMiddleware(TEST_SECRET);
+    const validToken = await makeValidToken();
+    const socket = makeSocket(validToken);
+    const next = vi.fn();
+
+    await authMiddleware(socket, next);
+
+    expect(next).toHaveBeenCalledWith(expect.any(Error));
+    expect(next.mock.calls[0][0]?.message).toContain("banned");
+  });
+
+  it("calls next() with error for SUSPENDED user (Story 11.3)", async () => {
+    mockFindUserById.mockResolvedValue({ id: TEST_USER_ID, accountStatus: "SUSPENDED" });
+    const authMiddleware = await getAuthMiddleware(TEST_SECRET);
+    const validToken = await makeValidToken();
+    const socket = makeSocket(validToken);
+    const next = vi.fn();
+
+    await authMiddleware(socket, next);
+
+    expect(next).toHaveBeenCalledWith(expect.any(Error));
+    expect(next.mock.calls[0][0]?.message).toContain("suspended");
   });
 });

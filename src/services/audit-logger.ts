@@ -19,7 +19,12 @@ export type AdminAction =
   | "FLAG_CONTENT"
   | "UNFLAG_CONTENT"
   | "HIDE_CONTENT"
-  | "UNHIDE_CONTENT";
+  | "UNHIDE_CONTENT"
+  | "WARN_MEMBER"
+  | "SUSPEND_MEMBER"
+  | "BAN_MEMBER"
+  | "LIFT_SUSPENSION"
+  | "VIEW_DISPUTE_CONVERSATION";
 
 interface AuditParams {
   actorId: string;

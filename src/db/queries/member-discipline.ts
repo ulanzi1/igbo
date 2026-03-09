@@ -1,0 +1,90 @@
+import { eq, desc, and, lt } from "drizzle-orm";
+import { db } from "@/db";
+import { memberDisciplineActions } from "@/db/schema/member-discipline";
+
+export type {
+  MemberDisciplineAction,
+  NewMemberDisciplineAction,
+} from "@/db/schema/member-discipline";
+
+export interface CreateDisciplineActionParams {
+  userId: string;
+  moderationActionId?: string | null;
+  sourceType: "moderation_action" | "report" | "manual";
+  actionType: "warning" | "suspension" | "ban";
+  reason: string;
+  notes?: string | null;
+  suspensionEndsAt?: Date | null;
+  issuedBy: string;
+}
+
+export async function createDisciplineAction(
+  params: CreateDisciplineActionParams,
+): Promise<{ id: string }> {
+  const rows = await db
+    .insert(memberDisciplineActions)
+    .values({
+      userId: params.userId,
+      moderationActionId: params.moderationActionId ?? null,
+      sourceType: params.sourceType,
+      actionType: params.actionType,
+      reason: params.reason,
+      notes: params.notes ?? null,
+      suspensionEndsAt: params.suspensionEndsAt ?? null,
+      issuedBy: params.issuedBy,
+      status: "active",
+    })
+    .returning({ id: memberDisciplineActions.id });
+
+  const id = rows[0]?.id;
+  if (!id) throw new Error("Insert returned no id");
+  return { id };
+}
+
+export async function listMemberDisciplineHistory(userId: string) {
+  return db
+    .select()
+    .from(memberDisciplineActions)
+    .where(eq(memberDisciplineActions.userId, userId))
+    .orderBy(desc(memberDisciplineActions.createdAt));
+}
+
+export async function getActiveSuspension(userId: string) {
+  const [row] = await db
+    .select()
+    .from(memberDisciplineActions)
+    .where(
+      and(
+        eq(memberDisciplineActions.userId, userId),
+        eq(memberDisciplineActions.actionType, "suspension"),
+        eq(memberDisciplineActions.status, "active"),
+      ),
+    )
+    .orderBy(desc(memberDisciplineActions.createdAt))
+    .limit(1);
+  return row ?? null;
+}
+
+export async function expireDisciplineAction(id: string, liftedBy?: string): Promise<void> {
+  await db
+    .update(memberDisciplineActions)
+    .set({
+      status: liftedBy ? "lifted" : "expired",
+      liftedAt: new Date(),
+      ...(liftedBy ? { liftedBy } : {}),
+    })
+    .where(eq(memberDisciplineActions.id, id));
+}
+
+export async function listSuspensionsExpiringBefore(date: Date) {
+  return db
+    .select()
+    .from(memberDisciplineActions)
+    .where(
+      and(
+        eq(memberDisciplineActions.actionType, "suspension"),
+        eq(memberDisciplineActions.status, "active"),
+        lt(memberDisciplineActions.suspensionEndsAt, date),
+      ),
+    );
+}

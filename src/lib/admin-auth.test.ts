@@ -8,11 +8,18 @@ vi.mock("@/server/auth/config", () => ({
   auth: () => mockAuth(),
 }));
 
+const mockFindUserById = vi.hoisted(() => vi.fn());
+vi.mock("@/db/queries/auth-queries", () => ({
+  findUserById: mockFindUserById,
+}));
+
 import { requireAdminSession } from "./admin-auth";
 import { ApiError } from "@/lib/api-error";
 
 beforeEach(() => {
   vi.clearAllMocks();
+  // Default: admin account is active
+  mockFindUserById.mockResolvedValue({ id: "admin-1", accountStatus: "APPROVED" });
 });
 
 describe("requireAdminSession", () => {
@@ -41,6 +48,20 @@ describe("requireAdminSession", () => {
     mockAuth.mockResolvedValue({ user: { id: "user-1", role: "MEMBER" } });
 
     await expect(requireAdminSession()).rejects.toThrow(ApiError);
+    await expect(requireAdminSession()).rejects.toMatchObject({ status: 403 });
+  });
+
+  it("throws 403 when admin account is BANNED", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "admin-1", role: "ADMIN" } });
+    mockFindUserById.mockResolvedValue({ id: "admin-1", accountStatus: "BANNED" });
+
+    await expect(requireAdminSession()).rejects.toMatchObject({ status: 403 });
+  });
+
+  it("throws 403 when admin account is SUSPENDED", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "admin-1", role: "ADMIN" } });
+    mockFindUserById.mockResolvedValue({ id: "admin-1", accountStatus: "SUSPENDED" });
+
     await expect(requireAdminSession()).rejects.toMatchObject({ status: 403 });
   });
 });

@@ -3,13 +3,21 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ModerationActionDialog } from "./ModerationActionDialog";
+import { ModerationActionDialog, type DisciplineAction } from "./ModerationActionDialog";
+
+interface DisciplineRecord {
+  id: string;
+  actionType: "warning" | "suspension" | "ban";
+  reason: string;
+  createdAt: string;
+}
 
 interface ModerationItem {
   id: string;
   contentType: "post" | "article" | "message";
   contentPreview: string | null;
   authorName: string | null;
+  contentAuthorId: string;
   flagReason: string;
   keywordMatched: string | null;
   autoFlagged: boolean;
@@ -21,6 +29,10 @@ interface ModerationItem {
 interface ModerationResponse {
   data: { items: ModerationItem[] };
   meta: { page: number; pageSize: number; total: number };
+}
+
+interface ModerationDetailResponse {
+  data: { action: ModerationItem; disciplineHistory: DisciplineRecord[] | null };
 }
 
 function highlightKeyword(text: string, keyword: string): React.ReactNode {
@@ -43,7 +55,8 @@ export function ModerationQueue() {
   const [page, setPage] = useState(1);
   const [dialogItem, setDialogItem] = useState<{
     id: string;
-    action: "remove" | "dismiss";
+    action: DisciplineAction;
+    disciplineHistory?: DisciplineRecord[];
   } | null>(null);
 
   const queryKey = ["admin", "moderation", { status, contentType, page }];
@@ -63,12 +76,28 @@ export function ModerationQueue() {
   });
 
   const mutation = useMutation({
-    mutationFn: async ({ id, action, reason }: { id: string; action: string; reason?: string }) => {
+    mutationFn: async ({
+      id,
+      action,
+      reason,
+      durationHours,
+      confirmed,
+    }: {
+      id: string;
+      action: string;
+      reason?: string;
+      durationHours?: number;
+      confirmed?: boolean;
+    }) => {
+      const body: Record<string, unknown> = { action };
+      if (reason) body.reason = reason;
+      if (durationHours !== undefined) body.durationHours = durationHours;
+      if (confirmed !== undefined) body.confirmed = confirmed;
       const res = await fetch(`/api/v1/admin/moderation/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ action, reason }),
+        body: JSON.stringify(body),
       });
       if (!res.ok) throw new Error("Moderation action failed");
     },
@@ -79,6 +108,25 @@ export function ModerationQueue() {
   });
 
   const handleApprove = (id: string) => mutation.mutate({ id, action: "approve" });
+
+  async function openDisciplineDialog(itemId: string, action: DisciplineAction) {
+    // Fetch discipline history for this item's author
+    try {
+      const res = await fetch(`/api/v1/admin/moderation/${itemId}`, { credentials: "include" });
+      if (res.ok) {
+        const detail = (await res.json()) as ModerationDetailResponse;
+        setDialogItem({
+          id: itemId,
+          action,
+          disciplineHistory: detail.data.disciplineHistory ?? undefined,
+        });
+        return;
+      }
+    } catch {
+      // Fall through to open dialog without history
+    }
+    setDialogItem({ id: itemId, action });
+  }
 
   const items = data?.data?.items ?? [];
   const meta = data?.meta;
@@ -183,11 +231,11 @@ export function ModerationQueue() {
                     {new Date(item.flaggedAt).toLocaleDateString()}
                   </td>
                   <td className="py-3">
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-1">
                       <button
                         type="button"
                         onClick={() => handleApprove(item.id)}
-                        className="bg-green-700 hover:bg-green-600 text-white text-xs px-2 py-1 rounded"
+                        className="bg-green-700 hover:bg-green-600 text-white text-xs px-2 py-1 rounded min-h-[28px]"
                         aria-label={t("moderation.action.approve")}
                       >
                         {t("moderation.action.approve")}
@@ -195,7 +243,7 @@ export function ModerationQueue() {
                       <button
                         type="button"
                         onClick={() => setDialogItem({ id: item.id, action: "remove" })}
-                        className="bg-red-700 hover:bg-red-600 text-white text-xs px-2 py-1 rounded"
+                        className="bg-red-700 hover:bg-red-600 text-white text-xs px-2 py-1 rounded min-h-[28px]"
                         aria-label={t("moderation.action.remove")}
                       >
                         {t("moderation.action.remove")}
@@ -203,11 +251,44 @@ export function ModerationQueue() {
                       <button
                         type="button"
                         onClick={() => setDialogItem({ id: item.id, action: "dismiss" })}
-                        className="bg-zinc-600 hover:bg-zinc-500 text-white text-xs px-2 py-1 rounded"
+                        className="bg-zinc-600 hover:bg-zinc-500 text-white text-xs px-2 py-1 rounded min-h-[28px]"
                         aria-label={t("moderation.action.dismiss")}
                       >
                         {t("moderation.action.dismiss")}
                       </button>
+                      <button
+                        type="button"
+                        onClick={() => void openDisciplineDialog(item.id, "warn")}
+                        className="bg-yellow-700 hover:bg-yellow-600 text-white text-xs px-2 py-1 rounded min-h-[28px]"
+                        aria-label={t("moderation.action.warn")}
+                      >
+                        {t("moderation.action.warn")}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void openDisciplineDialog(item.id, "suspend")}
+                        className="bg-orange-700 hover:bg-orange-600 text-white text-xs px-2 py-1 rounded min-h-[28px]"
+                        aria-label={t("moderation.action.suspend")}
+                      >
+                        {t("moderation.action.suspend")}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void openDisciplineDialog(item.id, "ban")}
+                        className="bg-red-900 hover:bg-red-800 text-white text-xs px-2 py-1 rounded min-h-[28px]"
+                        aria-label={t("moderation.action.ban")}
+                      >
+                        {t("moderation.action.ban")}
+                      </button>
+                      {item.contentType === "message" && (
+                        <a
+                          href={`/admin/moderation/${item.id}/conversation`}
+                          className="bg-blue-800 hover:bg-blue-700 text-white text-xs px-2 py-1 rounded min-h-[28px] flex items-center"
+                          aria-label={t("moderation.action.viewContext")}
+                        >
+                          {t("moderation.action.viewContext")}
+                        </a>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -246,8 +327,15 @@ export function ModerationQueue() {
       {dialogItem && (
         <ModerationActionDialog
           action={dialogItem.action}
-          onConfirm={(reason) =>
-            mutation.mutate({ id: dialogItem.id, action: dialogItem.action, reason })
+          disciplineHistory={dialogItem.disciplineHistory}
+          onConfirm={({ reason, durationHours, confirmed }) =>
+            mutation.mutate({
+              id: dialogItem.id,
+              action: dialogItem.action,
+              reason,
+              durationHours,
+              confirmed,
+            })
           }
           onCancel={() => setDialogItem(null)}
           isPending={mutation.isPending}

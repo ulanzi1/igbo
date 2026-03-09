@@ -309,6 +309,13 @@
       "when": 1708000043000,
       "tag": "0043_platform_reports",
       "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "7",
+      "when": 1708000044000,
+      "tag": "0044_member_discipline",
+      "breakpoints": true
     }
   ]
 }

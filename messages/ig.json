@@ -466,10 +466,24 @@
         "approve": "Kwado",
         "remove": "Wepu",
         "dismiss": "Haa Ka O Bụrụ",
+        "warn": "Dọ Aka N'ọtọ",
+        "suspend": "Kwụsị Oge Nta",
+        "ban": "Machibido Mgbe Niile",
+        "viewContext": "Lelee Ihe Nkuzi",
         "confirmRemove": "Ị dara anya ị chọọ iwepụ ọdịnaya a?",
+        "warnTitle": "Nye Ịdọ Aka N'ọtọ",
+        "suspendTitle": "Kwụsị Onye Otu",
+        "banTitle": "Machibido Onye Otu Mgbe Niile",
         "reason": "Ihe Kpatara (ọ dịghị mkpa)",
+        "reasonRequired": "Dị mkpa — kọọ mwakpo ahụ",
+        "reasonOptional": "Ọ dịghị mkpa — tinye ihe kpatara",
         "whitelistKeyword": "Tinye okwu a na ndepụta ọcha",
-        "cancel": "Kagbuo"
+        "cancel": "Kagbuo",
+        "suspendDuration": "Oge kwụsị",
+        "banConfirmCheck": "Aghọtara m na nke a bụ mgbe niile ma enwekwara ike ịtụgharị ya"
+      },
+      "discipline": {
+        "priorActions": "{count} ihe ndịmakwa ọchịchọ emechara n'onye otu a"
       },
       "contentTypes": {
         "post": "Ozi",
@@ -730,6 +744,13 @@
       "cantAccess": "Ịnweghị ike ịbata n'ngwa nkwenye gị?",
       "invalidCode": "Koodu ezighi ezi. Biko nwaa ọzọ.",
       "emailSent": "Anyị ezigoro koodu nkwenye gaa n'email gị."
+    },
+    "suspended": {
+      "title": "A Kwụsị Akanta Gị",
+      "description": "A kwụsị akanta gị nwa oge. Biko lelee ihe kpatara n'okpuru.",
+      "expiresLabel": "Oge kwụsị ga-agwụ",
+      "reasonLabel": "Ihe kpatara",
+      "contactSupport": "Kpọtụrụ Nkwado"
     },
     "twoFactorSetup": {
       "title": "Dozie Nkwenye Abụọ-Ihe",
@@ -1438,6 +1459,16 @@
     "new_message": {
       "title": "Ozi ọhụrụ",
       "body": "Ị natara ozi ọhụrụ sitere n'aka {senderName}"
+    },
+    "discipline": {
+      "warning": {
+        "title": "Ịdọ Aka N'ọtọ Akanta",
+        "body": "Ị natara ịdọ aka n'ọtọ sitere n'otu ndị nlekọta. Biko lelee iwu obodo."
+      },
+      "suspension": {
+        "title": "A Kwụsị Akanta Gị",
+        "body": "A kwụsị akanta gị nwa oge. Biko lelee ọnọdụ akanta gị maka nkọwa."
+      }
     }
   },
   "Feed": {

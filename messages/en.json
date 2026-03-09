@@ -466,10 +466,24 @@
         "approve": "Approve",
         "remove": "Remove",
         "dismiss": "Dismiss",
+        "warn": "Warn",
+        "suspend": "Suspend",
+        "ban": "Ban",
+        "viewContext": "View Context",
         "confirmRemove": "Are you sure you want to remove this content?",
+        "warnTitle": "Issue Warning",
+        "suspendTitle": "Suspend Member",
+        "banTitle": "Permanently Ban Member",
         "reason": "Reason (optional)",
+        "reasonRequired": "Required — describe the violation",
+        "reasonOptional": "Optional — describe reason",
         "whitelistKeyword": "Whitelist this keyword",
-        "cancel": "Cancel"
+        "cancel": "Cancel",
+        "suspendDuration": "Suspension duration",
+        "banConfirmCheck": "I understand this is permanent and cannot be undone"
+      },
+      "discipline": {
+        "priorActions": "{count} prior disciplinary action(s) on this member"
       },
       "contentTypes": {
         "post": "Post",
@@ -730,6 +744,13 @@
       "cantAccess": "Can't access your authenticator?",
       "invalidCode": "Invalid code. Please try again.",
       "emailSent": "A verification code has been sent to your email."
+    },
+    "suspended": {
+      "title": "Account Suspended",
+      "description": "Your account has been temporarily suspended. Please review the reason below.",
+      "expiresLabel": "Suspension expires",
+      "reasonLabel": "Reason",
+      "contactSupport": "Contact Support"
     },
     "twoFactorSetup": {
       "title": "Set Up Two-Factor Authentication",
@@ -1438,6 +1459,16 @@
     "new_message": {
       "title": "New message",
       "body": "You received a new message from {senderName}"
+    },
+    "discipline": {
+      "warning": {
+        "title": "Account Warning",
+        "body": "You have received a warning from the moderation team. Please review the community guidelines."
+      },
+      "suspension": {
+        "title": "Account Suspended",
+        "body": "Your account has been temporarily suspended. Please check your account status for details."
+      }
     }
   },
   "Feed": {
