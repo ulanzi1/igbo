@@ -111,6 +111,8 @@ export const RATE_LIMIT_PRESETS = {
   EVENT_RSVP: { maxRequests: 10, windowMs: 60_000 }, // 10/min per userId
   // Story 10.1 additions
   GLOBAL_SEARCH: { maxRequests: 30, windowMs: 60_000 }, // 30/min per userId (matches MESSAGE_SEARCH)
+  // Story 11.2 additions
+  REPORT_SUBMIT: { maxRequests: 10, windowMs: 3_600_000 }, // 10 reports/hour per userId (abuse guard)
   // Tier-based API quotas (per hour)
   TIER_BASIC: { maxRequests: 200, windowMs: 3_600_000 },
   TIER_PROFESSIONAL: { maxRequests: 1000, windowMs: 3_600_000 },

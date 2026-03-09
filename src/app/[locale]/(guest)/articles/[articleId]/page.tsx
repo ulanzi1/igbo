@@ -13,6 +13,7 @@ import { ArticleViewTracker } from "@/features/articles/components/ArticleViewTr
 import { ArticleComments } from "@/features/articles/components/ArticleComments";
 import { ArticleRelatedSuggestions } from "@/features/articles/components/ArticleRelatedSuggestions";
 import { VerificationBadge } from "@/components/shared/VerificationBadge";
+import { ArticleReportButton } from "@/features/articles/components/ArticleReportButton";
 
 export const revalidate = 60;
 
@@ -177,6 +178,7 @@ export default async function ArticlePage({
           <MessageCircleIcon className="size-3" aria-hidden="true" />
           {t("reading.commentCount", { count: article.commentCount })}
         </span>
+        <ArticleReportButton articleId={article.id} authorId={article.authorId} />
       </div>
 
       {/* Article content — language toggle for bilingual, direct render otherwise */}

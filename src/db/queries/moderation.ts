@@ -1,6 +1,7 @@
 import { eq, desc, sql, and } from "drizzle-orm";
 import { db } from "@/db";
 import { platformModerationKeywords, platformModerationActions } from "@/db/schema/moderation";
+import { platformReports } from "@/db/schema/reports";
 import { authUsers } from "@/db/schema/auth-users";
 import type { Keyword } from "@/lib/moderation-scanner";
 import type { PlatformModerationKeyword } from "@/db/schema/moderation";
@@ -22,6 +23,7 @@ export interface ModerationQueueItem {
   flaggedAt: Date;
   status: "pending" | "reviewed" | "dismissed";
   visibilityOverride: "visible" | "hidden";
+  reportCount: number;
 }
 
 async function invalidateKeywordCache(): Promise<void> {
@@ -102,6 +104,16 @@ export async function listFlaggedContent(filters: {
   }
   const where = and(...conditions);
 
+  const reportCountSubquery = db
+    .select({
+      contentType: platformReports.contentType,
+      contentId: platformReports.contentId,
+      reportCount: sql<number>`count(*)::int`,
+    })
+    .from(platformReports)
+    .groupBy(platformReports.contentType, platformReports.contentId)
+    .as("report_counts");
+
   const [rows, countRows] = await Promise.all([
     db
       .select({
@@ -117,11 +129,16 @@ export async function listFlaggedContent(filters: {
         flaggedAt: platformModerationActions.flaggedAt,
         status: platformModerationActions.status,
         visibilityOverride: platformModerationActions.visibilityOverride,
+        reportCount: sql<number>`coalesce(${reportCountSubquery.reportCount}, 0)`,
       })
       .from(platformModerationActions)
       .leftJoin(
         authUsers,
         sql`${platformModerationActions.contentAuthorId}::uuid = ${authUsers.id}`,
+      )
+      .leftJoin(
+        reportCountSubquery,
+        sql`${reportCountSubquery.contentType}::text = ${platformModerationActions.contentType}::text AND ${reportCountSubquery.contentId} = ${platformModerationActions.contentId}`,
       )
       .where(where)
       .orderBy(desc(platformModerationActions.flaggedAt))
@@ -138,6 +155,16 @@ export async function listFlaggedContent(filters: {
 }
 
 export async function getModerationActionById(id: string): Promise<ModerationQueueItem | null> {
+  const reportCountSubquery = db
+    .select({
+      contentType: platformReports.contentType,
+      contentId: platformReports.contentId,
+      reportCount: sql<number>`count(*)::int`,
+    })
+    .from(platformReports)
+    .groupBy(platformReports.contentType, platformReports.contentId)
+    .as("report_counts");
+
   const rows = await db
     .select({
       id: platformModerationActions.id,
@@ -152,9 +179,14 @@ export async function getModerationActionById(id: string): Promise<ModerationQue
       flaggedAt: platformModerationActions.flaggedAt,
       status: platformModerationActions.status,
       visibilityOverride: platformModerationActions.visibilityOverride,
+      reportCount: sql<number>`coalesce(${reportCountSubquery.reportCount}, 0)`,
     })
     .from(platformModerationActions)
     .leftJoin(authUsers, sql`${platformModerationActions.contentAuthorId}::uuid = ${authUsers.id}`)
+    .leftJoin(
+      reportCountSubquery,
+      sql`${reportCountSubquery.contentType}::text = ${platformModerationActions.contentType}::text AND ${reportCountSubquery.contentId} = ${platformModerationActions.contentId}`,
+    )
     .where(eq(platformModerationActions.id, id))
     .limit(1);
 

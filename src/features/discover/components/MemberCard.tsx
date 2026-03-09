@@ -1,12 +1,13 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useTransition } from "react";
+import { useTransition, useState } from "react";
 import { useRouter } from "@/i18n/navigation";
 import { createOrFindDirectConversation } from "@/features/chat/actions/create-conversation";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { FollowButton } from "@/features/profiles/components/FollowButton";
 import { VerificationBadge } from "@/components/shared/VerificationBadge";
+import { ReportDialog } from "@/components/shared/ReportDialog";
 import type { MemberCardData } from "../types";
 
 interface MemberCardProps {
@@ -33,8 +34,10 @@ export function MemberCard({
   initialIsFollowing,
 }: MemberCardProps) {
   const t = useTranslations("Discover");
+  const tReports = useTranslations("Reports");
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [showReport, setShowReport] = useState(false);
 
   const sharedCount = member.interests.filter((i) => viewerInterests.includes(i)).length;
   const location = buildLocation(member.locationCity, member.locationCountry);
@@ -120,6 +123,29 @@ export function MemberCard({
       >
         {isPending ? "..." : t("messageButton")}
       </button>
+
+      {/* Report member — only visible for other members */}
+      {member.userId !== viewerUserId && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            setShowReport(true);
+          }}
+          aria-label={tReports("action.report")}
+          className="text-xs text-muted-foreground hover:text-destructive min-h-[44px] transition-colors"
+        >
+          🚩 {tReports("action.report")}
+        </button>
+      )}
+
+      {showReport && (
+        <ReportDialog
+          contentType="member"
+          contentId={member.userId}
+          onClose={() => setShowReport(false)}
+        />
+      )}
     </div>
   );
 }
