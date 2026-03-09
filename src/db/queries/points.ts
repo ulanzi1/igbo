@@ -43,6 +43,34 @@ export async function getActivePointsRules(): Promise<PlatformPointsRule[]> {
   return db.select().from(platformPointsRules).where(eq(platformPointsRules.isActive, true));
 }
 
+export async function getAllPointsRules(): Promise<PlatformPointsRule[]> {
+  return db.select().from(platformPointsRules);
+}
+
+export async function updatePointsRule(
+  id: string,
+  updates: { basePoints?: number; isActive?: boolean },
+): Promise<PlatformPointsRule | null> {
+  const [row] = await db
+    .update(platformPointsRules)
+    .set({ ...updates, updatedAt: new Date() })
+    .where(eq(platformPointsRules.id, id))
+    .returning();
+  return row ?? null;
+}
+
+export async function updatePostingLimit(
+  id: string,
+  updates: { baseLimit?: number; bonusLimit?: number; pointsThreshold?: number },
+): Promise<PlatformPostingLimit | null> {
+  const [row] = await db
+    .update(platformPostingLimits)
+    .set(updates)
+    .where(eq(platformPostingLimits.id, id))
+    .returning();
+  return row ?? null;
+}
+
 export async function getAllPostingLimits(): Promise<PlatformPostingLimit[]> {
   return db
     .select()

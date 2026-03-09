@@ -15,7 +15,7 @@ export const POINTS_CONFIG = {
   REPEAT_PAIR_THRESHOLD: 5, // max reactions per actorId:contentOwnerId pair per window
   // Quality gate — post body chars stripped of whitespace (enforced in TS layer, not Lua)
   QUALITY_GATE_MIN_CHARS: 10,
-  // [REVIEW] validate DAILY_CAP_POINTS value with PO before Story 8.1 ships
+  // Default fallback — runtime value read from platform_settings key "daily_cap_points"
   DAILY_CAP_POINTS: 100, // total points earnable per UTC day (not award count)
 } as const;
 

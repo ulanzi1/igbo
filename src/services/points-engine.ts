@@ -10,7 +10,27 @@ import {
   getUserPointsTotal,
   logPointsThrottle,
 } from "@/db/queries/points";
+import { getPlatformSetting } from "@/db/queries/platform-settings";
 import { getPostContentLength } from "@/db/queries/posts";
+
+// ─── Cached daily cap (avoids DB query per points award) ─────────────────────
+const DAILY_CAP_CACHE_TTL_MS = 60_000; // 60 seconds
+let cachedDailyCap: { value: number; expiresAt: number } | null = null;
+
+async function getDailyCap(): Promise<number> {
+  const now = Date.now();
+  if (cachedDailyCap && now < cachedDailyCap.expiresAt) {
+    return cachedDailyCap.value;
+  }
+  const value = await getPlatformSetting("daily_cap_points", 100);
+  cachedDailyCap = { value, expiresAt: now + DAILY_CAP_CACHE_TTL_MS };
+  return value;
+}
+
+/** @internal — exported for test cleanup only */
+export function resetDailyCapCache(): void {
+  cachedDailyCap = null;
+}
 import type {
   PostReactedEvent,
   EventAttendedEvent,
@@ -65,6 +85,8 @@ export async function handlePostReacted(payload: PostReactedEvent): Promise<void
   const multiplier = await getBadgeMultiplier(payload.authorId);
   const amount = Math.round(rule.basePoints * multiplier);
 
+  const dailyCap = await getDailyCap();
+
   // Award points via Lua (atomic)
   const result = await awardPoints({
     idempotencyKey: `reaction:${payload.postId}:${payload.userId}`,
@@ -72,6 +94,7 @@ export async function handlePostReacted(payload: PostReactedEvent): Promise<void
     earnerUserId: payload.authorId,
     contentOwnerId: payload.authorId,
     amount,
+    dailyCap,
   });
 
   const [awarded, reason] = result;
@@ -131,12 +154,15 @@ export async function handleEventAttended(payload: EventAttendedEvent): Promise<
   const rule = await getPointsRuleByActivityType("event_attended");
   if (!rule) return;
 
+  const dailyCap = await getDailyCap();
+
   const result = await awardPoints({
     idempotencyKey: `attended:${payload.eventId}:${payload.userId}`,
     actorId: payload.userId,
     earnerUserId: payload.hostId,
     contentOwnerId: payload.hostId,
     amount: rule.basePoints,
+    dailyCap,
   });
 
   if (result[0] === 1) {
@@ -154,6 +180,8 @@ export async function handleArticlePublished(payload: ArticlePublishedEvent): Pr
   const rule = await getPointsRuleByActivityType("article_published");
   if (!rule) return;
 
+  const dailyCap = await getDailyCap();
+
   // Synthetic actorId — bypasses Lua self-block + prevents false rapid-fire triggers
   const result = await awardPoints({
     idempotencyKey: `article:${payload.articleId}`,
@@ -161,6 +189,7 @@ export async function handleArticlePublished(payload: ArticlePublishedEvent): Pr
     earnerUserId: payload.authorId,
     contentOwnerId: payload.authorId,
     amount: rule.basePoints,
+    dailyCap,
   });
 
   if (result[0] === 1) {

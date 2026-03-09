@@ -166,4 +166,25 @@ describe("awardPoints", () => {
     expect(typeof result[2]).toBe("number");
     expect(result[2]).toBe(250);
   });
+
+  it("uses input.dailyCap override when provided, not POINTS_CONFIG.DAILY_CAP_POINTS", async () => {
+    mockAwardPoints.mockResolvedValue([1, "ok", 10, 10] as AwardPointsResult);
+
+    await awardPoints({ ...baseInput, dailyCap: 200 });
+
+    const call = mockAwardPoints.mock.calls[0];
+    // ARGV[8] (index 13 in the flat call) is the dailyCap
+    const dailyCapArg = call[call.length - 1];
+    expect(dailyCapArg).toBe(200);
+  });
+
+  it("falls back to POINTS_CONFIG.DAILY_CAP_POINTS when dailyCap is not provided", async () => {
+    mockAwardPoints.mockResolvedValue([1, "ok", 10, 10] as AwardPointsResult);
+
+    await awardPoints(baseInput); // no dailyCap field
+
+    const call = mockAwardPoints.mock.calls[0];
+    const dailyCapArg = call[call.length - 1];
+    expect(dailyCapArg).toBe(POINTS_CONFIG.DAILY_CAP_POINTS);
+  });
 });

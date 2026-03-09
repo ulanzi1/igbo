@@ -589,6 +589,25 @@
       "prev": "Gaba N'ihu",
       "next": "Gaba N'azụ"
     },
+    "gamification": {
+      "title": "Ntọala Egwuregwu Mmemme",
+      "pointsRules": "Iwu Isi Ihe Ntọala",
+      "postingLimits": "Oke Ntinye Ọdịnaya",
+      "dailyCap": "Ọnụ Ọgụgụ Isi Ihe Ụbọchị",
+      "activityType": "Ụdị Ọrụ",
+      "description": "Nkọwa",
+      "basePoints": "Isi Ihe Ntọala",
+      "active": "Na-arụ ọrụ",
+      "tier": "Ọkwa",
+      "baseLimit": "Oke Ntọala",
+      "bonusLimit": "Oke Ọmụma",
+      "pointsThreshold": "Ọkwa Isi Ihe",
+      "save": "Chekwaa",
+      "saved": "Echekwala",
+      "error": "Enweghị ike ichekwaa. Nwalee ọzọ.",
+      "loading": "Na-ebugharị...",
+      "loadError": "Enweghị ike ibugharị ntọala."
+    },
     "governance": {
       "title": "Akwụkwọ Ọchịchọ",
       "createNew": "Akwụkwọ Ọhụrụ",

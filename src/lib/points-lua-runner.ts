@@ -35,6 +35,7 @@ export interface AwardPointsInput {
   earnerUserId: string; // user who earns the points
   contentOwnerId: string; // used for repeat-pair key (authorId or hostId)
   amount: number;
+  dailyCap?: number; // override POINTS_CONFIG.DAILY_CAP_POINTS (read from platform_settings at call site)
 }
 
 // ─── ioredis module augmentation ──────────────────────────────────────────────
@@ -135,7 +136,7 @@ export async function awardPoints(input: AwardPointsInput): Promise<AwardPointsR
     POINTS_CONFIG.RAPID_FIRE_WINDOW_SEC,
     POINTS_CONFIG.REPEAT_PAIR_THRESHOLD,
     POINTS_CONFIG.REPEAT_PAIR_WINDOW_SEC,
-    POINTS_CONFIG.DAILY_CAP_POINTS,
+    input.dailyCap ?? POINTS_CONFIG.DAILY_CAP_POINTS,
   );
 
   return result;

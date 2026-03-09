@@ -589,6 +589,25 @@
       "prev": "Previous",
       "next": "Next"
     },
+    "gamification": {
+      "title": "Gamification Settings",
+      "pointsRules": "Points Earning Rules",
+      "postingLimits": "Posting Limits",
+      "dailyCap": "Daily Points Cap",
+      "activityType": "Activity Type",
+      "description": "Description",
+      "basePoints": "Base Points",
+      "active": "Active",
+      "tier": "Tier",
+      "baseLimit": "Base Limit",
+      "bonusLimit": "Bonus Limit",
+      "pointsThreshold": "Points Threshold",
+      "save": "Save",
+      "saved": "Saved",
+      "error": "Failed to save. Please try again.",
+      "loading": "Loading...",
+      "loadError": "Failed to load settings."
+    },
     "governance": {
       "title": "Governance Documents",
       "createNew": "New Document",

@@ -153,6 +153,9 @@ development_status:
   11-3-progressive-discipline-dispute-resolution: done
   11-4-analytics-dashboard: done
   11-5-audit-logs-governance-documents: done
+  11-6-gamification-rules-admin: done
+  11-7-leaderboard-admin-view: todo
+  11-8-member-points-investigation: todo
   epic-11-retrospective: optional
 
   # Epic 12: Platform Operations & Infrastructure

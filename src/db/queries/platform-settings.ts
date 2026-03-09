@@ -25,3 +25,30 @@ export async function getPlatformSetting<T>(key: string, fallback: T): Promise<T
 
   return fallback;
 }
+
+/**
+ * Upsert a platform setting by key.
+ * When updatedBy is provided, sets the updatedBy and updatedAt fields.
+ */
+export async function upsertPlatformSetting(
+  key: string,
+  value: string | number | boolean | null | object,
+  updatedBy?: string,
+): Promise<void> {
+  await db
+    .insert(platformSettings)
+    .values({
+      key,
+      value,
+      updatedBy: updatedBy ?? null,
+      updatedAt: new Date(),
+    })
+    .onConflictDoUpdate({
+      target: platformSettings.key,
+      set: {
+        value,
+        updatedBy: updatedBy ?? null,
+        updatedAt: new Date(),
+      },
+    });
+}

@@ -54,6 +54,11 @@ vi.mock("@/db/queries/badges", () => ({
   getUserBadgeWithCache: (...args: unknown[]) => mockGetUserBadgeWithCache(...args),
 }));
 
+const mockGetPlatformSetting = vi.hoisted(() => vi.fn().mockResolvedValue(100));
+vi.mock("@/db/queries/platform-settings", () => ({
+  getPlatformSetting: (...args: unknown[]) => mockGetPlatformSetting(...args),
+}));
+
 // Side-effect: registers handlers and captures them in handlerRef
 import "./points-engine";
 import {
@@ -63,10 +68,12 @@ import {
   handleEventAttended,
   handleArticlePublished,
   handleAccountStatusChanged,
+  resetDailyCapCache,
 } from "./points-engine";
 
 beforeEach(() => {
   vi.clearAllMocks();
+  resetDailyCapCache();
   // Reset defaults
   mockGetPostContentLength.mockResolvedValue(50);
   mockGetPointsRule.mockResolvedValue({
@@ -79,6 +86,7 @@ beforeEach(() => {
   mockGetUserPointsTotal.mockResolvedValue(10);
   mockGetUserBadgeWithCache.mockResolvedValue(null);
   mockEventBusEmit.mockReturnValue(true);
+  mockGetPlatformSetting.mockResolvedValue(100);
 });
 
 // ─── handlePostReacted ────────────────────────────────────────────────────────
@@ -424,5 +432,64 @@ describe("getBadgeMultiplier", () => {
     const result = await getBadgeMultiplier("user-1");
 
     expect(result).toBe(10);
+  });
+});
+
+// ─── daily cap injection via getPlatformSetting ───────────────────────────────
+
+describe("daily cap — getPlatformSetting injection", () => {
+  it("25. handlePostReacted passes dailyCap from getPlatformSetting to awardPoints", async () => {
+    mockGetPlatformSetting.mockResolvedValue(150);
+    mockGetPostContentLength.mockResolvedValue(50);
+
+    await handlePostReacted({
+      postId: "post-1",
+      userId: "reactor-1",
+      reaction: "like",
+      authorId: "author-1",
+      timestamp: new Date().toISOString(),
+    });
+
+    expect(mockGetPlatformSetting).toHaveBeenCalledWith("daily_cap_points", 100);
+    expect(mockAwardPoints).toHaveBeenCalledWith(expect.objectContaining({ dailyCap: 150 }));
+  });
+
+  it("26. handleEventAttended passes dailyCap from getPlatformSetting to awardPoints", async () => {
+    mockGetPlatformSetting.mockResolvedValue(200);
+    mockGetPointsRule.mockResolvedValue({
+      basePoints: 5,
+      activityType: "event_attended",
+      isActive: true,
+    });
+
+    await handleEventAttended({
+      eventId: "event-1",
+      userId: "attendee-1",
+      hostId: "host-1",
+      timestamp: new Date().toISOString(),
+    });
+
+    expect(mockGetPlatformSetting).toHaveBeenCalledWith("daily_cap_points", 100);
+    expect(mockAwardPoints).toHaveBeenCalledWith(expect.objectContaining({ dailyCap: 200 }));
+  });
+
+  it("27. handleArticlePublished passes dailyCap from getPlatformSetting to awardPoints", async () => {
+    mockGetPlatformSetting.mockResolvedValue(75);
+    mockGetPointsRule.mockResolvedValue({
+      basePoints: 10,
+      activityType: "article_published",
+      isActive: true,
+    });
+
+    await handleArticlePublished({
+      articleId: "article-1",
+      authorId: "author-1",
+      title: "Test",
+      slug: "test",
+      timestamp: new Date().toISOString(),
+    });
+
+    expect(mockGetPlatformSetting).toHaveBeenCalledWith("daily_cap_points", 100);
+    expect(mockAwardPoints).toHaveBeenCalledWith(expect.objectContaining({ dailyCap: 75 }));
   });
 });
