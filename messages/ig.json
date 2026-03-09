@@ -441,6 +441,70 @@
       "revisionError": "Ezighị ike iziga arịọ mgbanwe",
       "revisionConfirm": "Rịọọ Mgbanwe?"
     },
+    "analytics": {
+      "title": "Ọchịchọ Ọdịnaya",
+      "loadError": "Ezighị ike ibufe data. Biko nwaa ọzọ.",
+      "noData": "Ọ nweghị data maka oge a.",
+      "filters": {
+        "heading": "Nhọpụta oge",
+        "fromDate": "Site n'ụbọchị",
+        "toDate": "Ruo n'ụbọchị"
+      },
+      "live": {
+        "heading": "Ihe Na-eme Ugbu a",
+        "currentlyOnline": "Ndị Online Ugbu a",
+        "todayDau": "Ndị Ọrụ Taa",
+        "todayDauNote": "DAU a fọdụrụ — na-emelite kwa nkeji 60",
+        "refreshNote": "Ihe na-eme ugbu a na-emelite onwe ya kwa nkeji 60."
+      },
+      "summary": {
+        "heading": "Nchịkọta Ikpo okwu",
+        "dau": "Ndị Ọrụ Ụbọchị",
+        "mau": "Ndị Ọrụ Ọnwa",
+        "dauMauRatio": "Ọ Dị DAU / MAU",
+        "dauMauRatioNote": "Njikọ ọrụ",
+        "registrations": "Ndị Edebara Aha Ọhụrụ",
+        "approvals": "Nkwado",
+        "netGrowth": "Uto Net"
+      },
+      "growth": {
+        "heading": "Uto Ndị Otu",
+        "date": "Ụbọchị",
+        "registrations": "Ndebanye Aha",
+        "approvals": "Nkwado",
+        "netGrowth": "Uto Net",
+        "tableLabel": "Uto ndị otu kwa ụbọchị",
+        "tableCaption": "Ndebanye aha, nkwado na uto net kwa ụbọchị"
+      },
+      "geo": {
+        "heading": "Nkewa Mpaghara",
+        "country": "Mba",
+        "count": "Ndị Otu",
+        "topCities": "Obodo Kachasị",
+        "tableLabel": "Nkewa mpaghara ndị otu",
+        "tableCaption": "Ọnụọgụ ndị otu site n'obodo na obodo"
+      },
+      "tier": {
+        "heading": "Nkewa Ọkwa"
+      },
+      "engagement": {
+        "heading": "Ihe Omume",
+        "posts": "Ozi",
+        "postsNote": "Ozi edere (ụbọchị snapshot)",
+        "messages": "Ozi Ọkpụkpọ",
+        "messagesNote": "Ozi ezigara (ụbọchị snapshot)",
+        "articles": "Akụkọ",
+        "articlesNote": "Akụkọ ewepụtara (ụbọchị snapshot)",
+        "events": "Ihe Omume",
+        "eventsNote": "Ihe omume emere (ụbọchị snapshot)",
+        "avgAttendance": "Nọọ Ụzọ Dị Nkezi"
+      },
+      "topContent": {
+        "heading": "Ọdịnaya Kachasị Mma",
+        "engagement": "{count} mmekọrịta",
+        "engagementLabel": "{count} mmekọrịta niile"
+      }
+    },
     "moderation": {
       "title": "Nlekọta Ọdịnaya",
       "emptyQueue": "Ọ nweghị ọdịnaya a chọọ nyocha.",

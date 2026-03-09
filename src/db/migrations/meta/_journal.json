@@ -316,6 +316,13 @@
       "when": 1708000044000,
       "tag": "0044_member_discipline",
       "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "7",
+      "when": 1708000045000,
+      "tag": "0045_analytics_snapshots",
+      "breakpoints": true
     }
   ]
 }

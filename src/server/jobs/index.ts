@@ -17,6 +17,7 @@ import "./recording-cleanup";
 import "./event-reminders";
 import "./notification-digest";
 import "./lift-expired-suspensions";
+import "./analytics-aggregation";
 
 // Register event-driven subscribers
 // TODO: Epic 9 (Story 9.2) — move subscriber registration to a proper server initialization module for the web container
