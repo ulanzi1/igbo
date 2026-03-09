@@ -8,6 +8,7 @@ import type { PlatformPointsRule } from "@/db/schema/platform-points";
 import { platformPostingLimits } from "@/db/schema/platform-posting-limits";
 import type { PlatformPostingLimit } from "@/db/schema/platform-posting-limits";
 import type { MembershipTier } from "@/db/queries/auth-permissions";
+import type { BadgeType } from "@/db/schema/community-badges";
 
 export type { PlatformPostingLimit };
 
@@ -200,6 +201,138 @@ export async function getEffectiveArticleLimit(
   }
 
   return TIER_ARTICLE_BASELINE[tierStr] ?? 0;
+}
+
+export interface TopPointsEarnerRow {
+  userId: string;
+  displayName: string | null;
+  email: string;
+  totalPoints: number;
+  badgeType: BadgeType | null;
+  memberSince: string;
+}
+
+export async function getTopPointsEarners(opts: {
+  page: number;
+  limit: number;
+  dateFrom?: string;
+  dateTo?: string;
+  activityType?: string;
+}): Promise<{ users: TopPointsEarnerRow[]; total: number }> {
+  const { page, limit, dateFrom, dateTo, activityType } = opts;
+
+  // Validate dateFrom <= dateTo; return empty results if invalid
+  if (dateFrom && dateTo && new Date(dateFrom) > new Date(dateTo)) {
+    return { users: [], total: 0 };
+  }
+
+  const offset = (page - 1) * limit;
+
+  const dateFromFilter = dateFrom ? sql`AND ppl.created_at >= ${dateFrom}::timestamptz` : sql``;
+  const dateToFilter = dateTo ? sql`AND ppl.created_at <= ${dateTo}::timestamptz` : sql``;
+  const activityFilter = activityType ? sql`AND ppl.source_type = ${activityType}` : sql``;
+
+  const rows = await db.execute(sql`
+    SELECT
+      au.id AS user_id,
+      cp.display_name,
+      au.email,
+      COALESCE(SUM(ppl.points), 0) AS total_points,
+      cub.badge_type,
+      au.created_at AS member_since,
+      COUNT(*) OVER() AS total_count
+    FROM platform_points_ledger ppl
+    INNER JOIN auth_users au ON au.id = ppl.user_id AND au.deleted_at IS NULL
+    LEFT JOIN community_profiles cp ON cp.user_id = ppl.user_id
+    LEFT JOIN community_user_badges cub ON cub.user_id = ppl.user_id
+    WHERE 1=1
+      ${dateFromFilter}
+      ${dateToFilter}
+      ${activityFilter}
+    GROUP BY au.id, cp.display_name, au.email, cub.badge_type, au.created_at
+    ORDER BY total_points DESC
+    LIMIT ${limit} OFFSET ${offset}
+  `);
+
+  const arr = Array.from(rows) as Array<{
+    user_id: string;
+    display_name: string | null;
+    email: string;
+    total_points: string;
+    badge_type: string | null;
+    member_since: string;
+    total_count: string;
+  }>;
+
+  if (arr.length === 0) return { users: [], total: 0 };
+
+  const total = parseInt(arr[0].total_count, 10);
+  const users: TopPointsEarnerRow[] = arr.map((row) => ({
+    userId: row.user_id,
+    displayName: row.display_name,
+    email: row.email,
+    totalPoints: parseInt(row.total_points, 10),
+    badgeType: row.badge_type as BadgeType | null,
+    memberSince: row.member_since,
+  }));
+
+  return { users, total };
+}
+
+export interface ThrottledUserRow {
+  userId: string;
+  displayName: string | null;
+  throttleCount: number;
+  lastThrottledAt: string;
+  reasons: string[];
+}
+
+export async function getThrottledUsersReport(opts: {
+  page: number;
+  limit: number;
+}): Promise<{ users: ThrottledUserRow[]; total: number }> {
+  const { page, limit } = opts;
+  const offset = (page - 1) * limit;
+
+  const rows = await db.execute(sql`
+    SELECT
+      al.target_user_id AS user_id,
+      cp.display_name,
+      COUNT(*) AS throttle_count,
+      MAX(al.created_at) AS last_throttled_at,
+      array_to_json(array_agg(DISTINCT al.details->>'reason') FILTER (WHERE al.details->>'reason' IS NOT NULL)) AS reasons,
+      COUNT(*) OVER() AS total_count
+    FROM audit_logs al
+    INNER JOIN auth_users au ON au.id = al.target_user_id AND au.deleted_at IS NULL
+    LEFT JOIN community_profiles cp ON cp.user_id = al.target_user_id
+    WHERE al.action = 'points_throttled'
+      AND al.target_user_id IS NOT NULL
+    GROUP BY al.target_user_id, cp.display_name
+    ORDER BY throttle_count DESC
+    LIMIT ${limit} OFFSET ${offset}
+  `);
+
+  const arr = Array.from(rows) as Array<{
+    user_id: string;
+    display_name: string | null;
+    throttle_count: string;
+    last_throttled_at: string;
+    reasons: string[];
+    total_count: string;
+  }>;
+
+  if (arr.length === 0) return { users: [], total: 0 };
+
+  const total = parseInt(arr[0].total_count, 10);
+  const users: ThrottledUserRow[] = arr.map((row) => ({
+    userId: row.user_id,
+    displayName: row.display_name,
+    throttleCount: parseInt(row.throttle_count, 10),
+    lastThrottledAt: row.last_throttled_at,
+    reasons: Array.isArray(row.reasons) ? row.reasons : [],
+  }));
+
+  return { users, total };
 }
 
 export async function logPointsThrottle(params: {
