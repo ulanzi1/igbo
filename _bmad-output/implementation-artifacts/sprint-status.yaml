@@ -155,7 +155,7 @@ development_status:
   11-5-audit-logs-governance-documents: done
   11-6-gamification-rules-admin: done
   11-7-leaderboard-admin-view: done
-  11-8-member-points-investigation: todo
+  11-8-member-points-investigation: done
   epic-11-retrospective: optional
 
   # Epic 12: Platform Operations & Infrastructure

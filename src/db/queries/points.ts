@@ -335,6 +335,148 @@ export async function getThrottledUsersReport(opts: {
   return { users, total };
 }
 
+export interface AdminUserPointsProfile {
+  userId: string;
+  displayName: string | null;
+  email: string;
+  memberSince: string;
+  badgeType: BadgeType | null;
+  badgeAssignedAt: string | null;
+}
+
+export async function getAdminUserPointsProfile(
+  userId: string,
+): Promise<AdminUserPointsProfile | null> {
+  const rows = await db.execute(sql`
+    SELECT
+      au.id AS user_id,
+      cp.display_name,
+      au.email,
+      au.created_at AS member_since,
+      cub.badge_type,
+      cub.assigned_at AS badge_assigned_at
+    FROM auth_users au
+    LEFT JOIN community_profiles cp ON cp.user_id = au.id
+    LEFT JOIN community_user_badges cub ON cub.user_id = au.id
+    WHERE au.id = ${userId}
+      AND au.deleted_at IS NULL
+  `);
+  const arr = Array.from(rows) as Array<{
+    user_id: string;
+    display_name: string | null;
+    email: string;
+    member_since: string;
+    badge_type: string | null;
+    badge_assigned_at: string | null;
+  }>;
+  const row = arr[0];
+  if (!row) return null;
+  return {
+    userId: row.user_id,
+    displayName: row.display_name,
+    email: row.email,
+    memberSince: row.member_since,
+    badgeType: row.badge_type as BadgeType | null,
+    badgeAssignedAt: row.badge_assigned_at,
+  };
+}
+
+export interface ThrottleHistoryEntry {
+  date: string;
+  reason: string | null;
+  eventType: string | null;
+  eventId: string | null;
+  triggeredBy: string | null;
+}
+
+export async function getUserThrottleHistory(
+  userId: string,
+  opts: { page: number; limit: number },
+): Promise<{ entries: ThrottleHistoryEntry[]; total: number }> {
+  const { page, limit } = opts;
+  const offset = (page - 1) * limit;
+
+  const rows = await db.execute(sql`
+    SELECT
+      al.created_at AS date,
+      al.details->>'reason' AS reason,
+      al.details->>'eventType' AS event_type,
+      al.details->>'eventId' AS event_id,
+      cp.display_name AS triggered_by,
+      COUNT(*) OVER() AS total_count
+    FROM audit_logs al
+    LEFT JOIN community_profiles cp ON cp.user_id = al.actor_id
+    WHERE al.action = 'points_throttled'
+      AND al.target_user_id = ${userId}
+    ORDER BY al.created_at DESC
+    LIMIT ${limit} OFFSET ${offset}
+  `);
+
+  const arr = Array.from(rows) as Array<{
+    date: string;
+    reason: string | null;
+    event_type: string | null;
+    event_id: string | null;
+    triggered_by: string | null;
+    total_count: string;
+  }>;
+
+  if (arr.length === 0) return { entries: [], total: 0 };
+
+  const total = parseInt(arr[0].total_count, 10);
+  const entries: ThrottleHistoryEntry[] = arr.map((row) => ({
+    date: row.date,
+    reason: row.reason,
+    eventType: row.event_type,
+    eventId: row.event_id,
+    triggeredBy: row.triggered_by,
+  }));
+
+  return { entries, total };
+}
+
+export interface MemberSearchResult {
+  userId: string;
+  displayName: string | null;
+  email: string;
+}
+
+export async function searchMembersForAdmin(
+  query: string,
+  limit = 10,
+): Promise<MemberSearchResult[]> {
+  const escaped = query.replace(/%/g, "\\%").replace(/_/g, "\\_");
+  const pattern = `%${escaped}%`;
+
+  const rows = await db.execute(sql`
+    SELECT
+      au.id AS user_id,
+      cp.display_name,
+      au.email
+    FROM auth_users au
+    LEFT JOIN community_profiles cp ON cp.user_id = au.id
+    WHERE au.deleted_at IS NULL
+      AND (
+        au.email ILIKE ${pattern}
+        OR cp.display_name ILIKE ${pattern}
+      )
+    ORDER BY cp.display_name ASC NULLS LAST
+    LIMIT ${limit}
+  `);
+
+  const arr = Array.from(rows) as Array<{
+    user_id: string;
+    display_name: string | null;
+    email: string;
+  }>;
+
+  return arr.map((row) => ({
+    userId: row.user_id,
+    displayName: row.display_name,
+    email: row.email,
+  }));
+}
+
 export async function logPointsThrottle(params: {
   actorId: string; // reactor userId (valid UUID FK)
   earnerUserId: string;

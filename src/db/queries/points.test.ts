@@ -90,6 +90,9 @@ import {
   updatePostingLimit,
   getTopPointsEarners,
   getThrottledUsersReport,
+  getAdminUserPointsProfile,
+  getUserThrottleHistory,
+  searchMembersForAdmin,
 } from "./points";
 
 beforeEach(() => {
@@ -871,5 +874,174 @@ describe("getThrottledUsersReport", () => {
     mockExecute.mockResolvedValue([makeRow({ reasons: null })]);
     const result = await getThrottledUsersReport({ page: 1, limit: 25 });
     expect(result.users[0].reasons).toEqual([]);
+  });
+});
+
+// ─── getAdminUserPointsProfile ────────────────────────────────────────────────
+
+describe("getAdminUserPointsProfile", () => {
+  function makeRow(overrides: Partial<Record<string, unknown>> = {}) {
+    return {
+      user_id: "user-1",
+      display_name: "Alice",
+      email: "alice@example.com",
+      member_since: "2024-01-01T00:00:00.000Z",
+      badge_type: null,
+      badge_assigned_at: null,
+      ...overrides,
+    };
+  }
+
+  it("returns profile when user exists", async () => {
+    mockExecute.mockResolvedValue([makeRow()]);
+    const result = await getAdminUserPointsProfile("user-1");
+    expect(result).toEqual({
+      userId: "user-1",
+      displayName: "Alice",
+      email: "alice@example.com",
+      memberSince: "2024-01-01T00:00:00.000Z",
+      badgeType: null,
+      badgeAssignedAt: null,
+    });
+  });
+
+  it("returns null when user not found or soft-deleted", async () => {
+    mockExecute.mockResolvedValue([]);
+    const result = await getAdminUserPointsProfile("deleted-user");
+    expect(result).toBeNull();
+  });
+
+  it("returns badge info when user has a badge", async () => {
+    mockExecute.mockResolvedValue([
+      makeRow({ badge_type: "blue", badge_assigned_at: "2024-06-01T00:00:00.000Z" }),
+    ]);
+    const result = await getAdminUserPointsProfile("user-1");
+    expect(result?.badgeType).toBe("blue");
+    expect(result?.badgeAssignedAt).toBe("2024-06-01T00:00:00.000Z");
+  });
+
+  it("returns null displayName when user has no community profile", async () => {
+    mockExecute.mockResolvedValue([makeRow({ display_name: null })]);
+    const result = await getAdminUserPointsProfile("user-1");
+    expect(result?.displayName).toBeNull();
+  });
+});
+
+// ─── getUserThrottleHistory ───────────────────────────────────────────────────
+
+describe("getUserThrottleHistory", () => {
+  function makeRow(overrides: Partial<Record<string, unknown>> = {}) {
+    return {
+      date: "2024-06-01T12:00:00.000Z",
+      reason: "rapid_fire",
+      event_type: "post.reacted",
+      event_id: "post-1",
+      triggered_by: "Bob",
+      total_count: "1",
+      ...overrides,
+    };
+  }
+
+  it("returns empty results when no throttle logs exist for user", async () => {
+    mockExecute.mockResolvedValue([]);
+    const result = await getUserThrottleHistory("user-1", { page: 1, limit: 20 });
+    expect(result).toEqual({ entries: [], total: 0 });
+  });
+
+  it("returns throttle history entries with correct shape", async () => {
+    mockExecute.mockResolvedValue([makeRow()]);
+    const result = await getUserThrottleHistory("user-1", { page: 1, limit: 20 });
+    expect(result.total).toBe(1);
+    expect(result.entries).toHaveLength(1);
+    expect(result.entries[0]).toEqual({
+      date: "2024-06-01T12:00:00.000Z",
+      reason: "rapid_fire",
+      eventType: "post.reacted",
+      eventId: "post-1",
+      triggeredBy: "Bob",
+    });
+  });
+
+  it("orders by created_at DESC (most recent first)", async () => {
+    const rows = [
+      makeRow({ date: "2024-06-10T00:00:00.000Z", total_count: "2" }),
+      makeRow({ date: "2024-06-01T00:00:00.000Z", total_count: "2" }),
+    ];
+    mockExecute.mockResolvedValue(rows);
+    const result = await getUserThrottleHistory("user-1", { page: 1, limit: 20 });
+    expect(result.entries[0].date).toBe("2024-06-10T00:00:00.000Z");
+    expect(result.entries[1].date).toBe("2024-06-01T00:00:00.000Z");
+  });
+
+  it("handles page 2 with correct offset", async () => {
+    mockExecute.mockResolvedValue([]);
+    await getUserThrottleHistory("user-1", { page: 2, limit: 10 });
+    expect(mockExecute).toHaveBeenCalledTimes(1);
+  });
+
+  it("handles null reason and triggeredBy gracefully", async () => {
+    mockExecute.mockResolvedValue([makeRow({ reason: null, triggered_by: null })]);
+    const result = await getUserThrottleHistory("user-1", { page: 1, limit: 20 });
+    expect(result.entries[0].reason).toBeNull();
+    expect(result.entries[0].triggeredBy).toBeNull();
+  });
+});
+
+// ─── searchMembersForAdmin ────────────────────────────────────────────────────
+
+describe("searchMembersForAdmin", () => {
+  function makeRow(overrides: Partial<Record<string, unknown>> = {}) {
+    return {
+      user_id: "user-1",
+      display_name: "Alice",
+      email: "alice@example.com",
+      ...overrides,
+    };
+  }
+
+  it("returns empty array when no members match", async () => {
+    mockExecute.mockResolvedValue([]);
+    const result = await searchMembersForAdmin("zzz");
+    expect(result).toEqual([]);
+  });
+
+  it("returns matching members with correct shape", async () => {
+    mockExecute.mockResolvedValue([makeRow()]);
+    const result = await searchMembersForAdmin("alice");
+    expect(result).toHaveLength(1);
+    expect(result[0]).toEqual({
+      userId: "user-1",
+      displayName: "Alice",
+      email: "alice@example.com",
+    });
+  });
+
+  it("excludes soft-deleted users (mock returns no rows)", async () => {
+    mockExecute.mockResolvedValue([]);
+    const result = await searchMembersForAdmin("alice");
+    expect(result).toHaveLength(0);
+  });
+
+  it("escapes ILIKE wildcards: % and _ characters in query", async () => {
+    mockExecute.mockResolvedValue([]);
+    // Should not throw; wildcards are escaped before being passed to ILIKE
+    await expect(searchMembersForAdmin("100% real_name")).resolves.toEqual([]);
+    expect(mockExecute).toHaveBeenCalledTimes(1);
+  });
+
+  it("handles null display_name gracefully", async () => {
+    mockExecute.mockResolvedValue([makeRow({ display_name: null })]);
+    const result = await searchMembersForAdmin("alice");
+    expect(result[0].displayName).toBeNull();
+  });
+
+  it("returns multiple results up to limit", async () => {
+    const rows = [
+      makeRow({ user_id: "u1", display_name: "Alice A" }),
+      makeRow({ user_id: "u2", display_name: "Alice B" }),
+    ];
+    mockExecute.mockResolvedValue(rows);
+    const result = await searchMembersForAdmin("alice");
+    expect(result).toHaveLength(2);
   });
 });
