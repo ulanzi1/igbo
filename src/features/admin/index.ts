@@ -7,5 +7,6 @@ export { TierChangeDialog } from "@/features/admin/components/TierChangeDialog";
 export { ModerationQueue } from "@/features/admin/components/ModerationQueue";
 export { ModerationActionDialog } from "@/features/admin/components/ModerationActionDialog";
 export { KeywordManager } from "@/features/admin/components/KeywordManager";
+export { AnalyticsDashboard } from "@/features/admin/components/AnalyticsDashboard";
 export * from "@/features/admin/hooks/use-approvals";
 export * from "@/features/admin/hooks/use-members";

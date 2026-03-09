@@ -441,6 +441,70 @@
       "revisionError": "Failed to send revision request",
       "revisionConfirm": "Request Revisions?"
     },
+    "analytics": {
+      "title": "Analytics Dashboard",
+      "loadError": "Failed to load analytics data. Please try again.",
+      "noData": "No data available for this period.",
+      "filters": {
+        "heading": "Date range filters",
+        "fromDate": "From date",
+        "toDate": "To date"
+      },
+      "live": {
+        "heading": "Live Indicators",
+        "currentlyOnline": "Currently Online",
+        "todayDau": "Today's Active Users",
+        "todayDauNote": "Partial DAU — updates every 60 seconds",
+        "refreshNote": "Live indicators refresh automatically every 60 seconds."
+      },
+      "summary": {
+        "heading": "Platform Summary",
+        "dau": "Daily Active Users",
+        "mau": "Monthly Active Users",
+        "dauMauRatio": "DAU / MAU Ratio",
+        "dauMauRatioNote": "Engagement stickiness",
+        "registrations": "New Registrations",
+        "approvals": "Approvals",
+        "netGrowth": "Net Growth"
+      },
+      "growth": {
+        "heading": "Member Growth",
+        "date": "Date",
+        "registrations": "Registrations",
+        "approvals": "Approvals",
+        "netGrowth": "Net Growth",
+        "tableLabel": "Member growth by date",
+        "tableCaption": "Daily member registrations, approvals and net growth"
+      },
+      "geo": {
+        "heading": "Geographic Distribution",
+        "country": "Country",
+        "count": "Members",
+        "topCities": "Top Cities",
+        "tableLabel": "Member geographic distribution",
+        "tableCaption": "Member counts by country with city breakdown"
+      },
+      "tier": {
+        "heading": "Tier Breakdown"
+      },
+      "engagement": {
+        "heading": "Engagement Metrics",
+        "posts": "Posts",
+        "postsNote": "Posts created (snapshot date)",
+        "messages": "Messages",
+        "messagesNote": "Messages sent (snapshot date)",
+        "articles": "Articles",
+        "articlesNote": "Articles published (snapshot date)",
+        "events": "Events",
+        "eventsNote": "Events created (snapshot date)",
+        "avgAttendance": "Avg Event Attendance"
+      },
+      "topContent": {
+        "heading": "Top Content by Engagement",
+        "engagement": "{count} engagements",
+        "engagementLabel": "{count} total engagements"
+      }
+    },
     "moderation": {
       "title": "Content Moderation",
       "emptyQueue": "No flagged content to review.",
