@@ -15,7 +15,7 @@ const PUBLIC_PATH_PATTERNS = [
   /^\/[^/]+\/?$/, // Root / splash page: /en, /ig, /en/
   /^\/[^/]+\/(about|articles|events|blog|apply|terms|privacy)(\/|$)/,
   // Auth pages
-  /^\/[^/]+\/(login|register|forgot-password|reset-password|verify|2fa-setup)(\/|$)/,
+  /^\/[^/]+\/(login|register|forgot-password|reset-password|verify|2fa-setup|suspended)(\/|$)/,
   // Offline page
   /^\/[^/]+\/~offline(\/|$)/,
 ];
@@ -120,6 +120,20 @@ export async function middleware(request: NextRequest) {
         const response = NextResponse.redirect(loginUrl);
         response.headers.set("X-Request-Id", requestId);
         return response;
+      }
+      if (decoded?.accountStatus === "SUSPENDED") {
+        // Note: JWT only carries accountStatus set at login. suspensionEndsAt/reason
+        // are not in the JWT — the suspended page displays generic info.
+        // The authoritative guard is requireAuthenticatedSession() which does a DB check.
+        // This middleware redirect is defense-in-depth for the rare race window where
+        // the JWT cookie still exists but session eviction hasn't cleared it yet.
+        if (!pathname.includes("/suspended")) {
+          const locale = pathname.split("/")[1];
+          const suspendedUrl = new URL(`/${locale}/suspended`, request.url);
+          const response = NextResponse.redirect(suspendedUrl);
+          response.headers.set("X-Request-Id", requestId);
+          return response;
+        }
       }
       if (decoded?.accountStatus === "APPROVED" && decoded?.profileCompleted === false) {
         const locale = pathname.split("/")[1];

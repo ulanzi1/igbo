@@ -88,6 +88,19 @@ vi.mock("@/db/queries/notification-preferences", () => ({
 
 const mockGetEventById = vi.hoisted(() => vi.fn());
 
+const mockTransferGroupOwnership = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
+const mockDbSelect = vi.hoisted(() => vi.fn());
+
+vi.mock("@/db", () => ({
+  db: {
+    select: (...args: unknown[]) => mockDbSelect(...args),
+  },
+}));
+
+vi.mock("@/services/group-service", () => ({
+  transferGroupOwnership: (...args: unknown[]) => mockTransferGroupOwnership(...args),
+}));
+
 vi.mock("@/db/queries/events", () => ({
   getEventById: (...args: unknown[]) => mockGetEventById(...args),
   getAttendeeStatus: vi.fn(),
@@ -1385,5 +1398,122 @@ describe("B3 email wiring (Story 9.5)", () => {
         templateId: "notification-group-activity",
       }),
     );
+  });
+});
+
+describe("Story 11.3 regression — account.status_changed → group ownership transfer", () => {
+  const USER_ID = "00000000-0000-4000-8000-000000000010";
+  const GROUP_ID = "00000000-0000-4000-8000-000000000020";
+
+  function makeSelectChain(rows: { groupId: string }[]) {
+    const chain = {
+      from: vi.fn().mockReturnThis(),
+      innerJoin: vi.fn().mockReturnThis(),
+      where: vi.fn().mockResolvedValue(rows),
+    };
+    mockDbSelect.mockReturnValue(chain);
+    return chain;
+  }
+
+  it("calls transferGroupOwnership when SUSPENDED user owns a group", async () => {
+    makeSelectChain([{ groupId: GROUP_ID }]);
+    const handler = handlerRef.current.get("account.status_changed");
+    await handler?.({
+      userId: USER_ID,
+      newStatus: "SUSPENDED",
+      oldStatus: "APPROVED",
+      timestamp: new Date().toISOString(),
+    });
+    expect(mockTransferGroupOwnership).toHaveBeenCalledWith(GROUP_ID, USER_ID);
+  });
+
+  it("does NOT call transferGroupOwnership when newStatus is APPROVED", async () => {
+    makeSelectChain([{ groupId: GROUP_ID }]);
+    const handler = handlerRef.current.get("account.status_changed");
+    await handler?.({
+      userId: USER_ID,
+      newStatus: "APPROVED",
+      oldStatus: "SUSPENDED",
+      timestamp: new Date().toISOString(),
+    });
+    expect(mockTransferGroupOwnership).not.toHaveBeenCalled();
+  });
+
+  it("does NOT call transferGroupOwnership when user owns no groups", async () => {
+    makeSelectChain([]);
+    const handler = handlerRef.current.get("account.status_changed");
+    await handler?.({
+      userId: USER_ID,
+      newStatus: "SUSPENDED",
+      oldStatus: "APPROVED",
+      timestamp: new Date().toISOString(),
+    });
+    expect(mockTransferGroupOwnership).not.toHaveBeenCalled();
+  });
+});
+
+// ─── Story 11.3 — account.discipline_issued handler tests ─────────────────────
+
+describe("account.discipline_issued handler", () => {
+  const USER_ID = "00000000-0000-4000-8000-000000000080";
+
+  it("registers account.discipline_issued listener", () => {
+    expect(handlerRef.current.has("account.discipline_issued")).toBe(true);
+  });
+
+  it("delivers notification for warning discipline type", async () => {
+    mockFilterNotificationRecipients.mockResolvedValue([USER_ID]);
+    const handler = handlerRef.current.get("account.discipline_issued");
+    await handler?.({
+      userId: USER_ID,
+      disciplineType: "warning",
+      reason: "Spam content",
+      disciplineId: "disc-1",
+      timestamp: new Date().toISOString(),
+    });
+
+    expect(mockCreateNotification).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: USER_ID,
+        type: "admin_announcement",
+        title: "notifications.discipline.warning.title",
+        body: "notifications.discipline.warning.body",
+      }),
+    );
+  });
+
+  it("delivers notification for suspension discipline type", async () => {
+    mockFilterNotificationRecipients.mockResolvedValue([USER_ID]);
+    const handler = handlerRef.current.get("account.discipline_issued");
+    await handler?.({
+      userId: USER_ID,
+      disciplineType: "suspension",
+      reason: "Harassment",
+      disciplineId: "disc-2",
+      suspensionEndsAt: "2026-03-16T00:00:00.000Z",
+      timestamp: new Date().toISOString(),
+    });
+
+    expect(mockCreateNotification).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: USER_ID,
+        type: "admin_announcement",
+        title: "notifications.discipline.suspension.title",
+        body: "notifications.discipline.suspension.body",
+      }),
+    );
+  });
+
+  it("does NOT deliver in-app notification for ban discipline type", async () => {
+    const handler = handlerRef.current.get("account.discipline_issued");
+    await handler?.({
+      userId: USER_ID,
+      disciplineType: "ban",
+      reason: "Severe violation",
+      disciplineId: "disc-3",
+      timestamp: new Date().toISOString(),
+    });
+
+    expect(mockCreateNotification).not.toHaveBeenCalled();
   });
 });

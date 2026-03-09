@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { platformModerationKeywords, platformModerationActions } from "@/db/schema/moderation";
 import { platformReports } from "@/db/schema/reports";
 import { authUsers } from "@/db/schema/auth-users";
+import { memberDisciplineActions } from "@/db/schema/member-discipline";
 import type { Keyword } from "@/lib/moderation-scanner";
 import type { PlatformModerationKeyword } from "@/db/schema/moderation";
 import { ApiError } from "@/lib/api-error";
@@ -24,6 +25,8 @@ export interface ModerationQueueItem {
   status: "pending" | "reviewed" | "dismissed";
   visibilityOverride: "visible" | "hidden";
   reportCount: number;
+  authorAccountStatus: string | null;
+  disciplineCount: number;
 }
 
 async function invalidateKeywordCache(): Promise<void> {
@@ -114,6 +117,15 @@ export async function listFlaggedContent(filters: {
     .groupBy(platformReports.contentType, platformReports.contentId)
     .as("report_counts");
 
+  const disciplineCountSubquery = db
+    .select({
+      userId: memberDisciplineActions.userId,
+      disciplineCount: sql<number>`count(*)::int`,
+    })
+    .from(memberDisciplineActions)
+    .groupBy(memberDisciplineActions.userId)
+    .as("discipline_counts");
+
   const [rows, countRows] = await Promise.all([
     db
       .select({
@@ -130,6 +142,8 @@ export async function listFlaggedContent(filters: {
         status: platformModerationActions.status,
         visibilityOverride: platformModerationActions.visibilityOverride,
         reportCount: sql<number>`coalesce(${reportCountSubquery.reportCount}, 0)`,
+        authorAccountStatus: authUsers.accountStatus,
+        disciplineCount: sql<number>`coalesce(${disciplineCountSubquery.disciplineCount}, 0)`,
       })
       .from(platformModerationActions)
       .leftJoin(
@@ -139,6 +153,10 @@ export async function listFlaggedContent(filters: {
       .leftJoin(
         reportCountSubquery,
         sql`${reportCountSubquery.contentType}::text = ${platformModerationActions.contentType}::text AND ${reportCountSubquery.contentId} = ${platformModerationActions.contentId}`,
+      )
+      .leftJoin(
+        disciplineCountSubquery,
+        sql`${platformModerationActions.contentAuthorId}::uuid = ${disciplineCountSubquery.userId}`,
       )
       .where(where)
       .orderBy(desc(platformModerationActions.flaggedAt))
@@ -165,6 +183,15 @@ export async function getModerationActionById(id: string): Promise<ModerationQue
     .groupBy(platformReports.contentType, platformReports.contentId)
     .as("report_counts");
 
+  const disciplineCountSubquery = db
+    .select({
+      userId: memberDisciplineActions.userId,
+      disciplineCount: sql<number>`count(*)::int`,
+    })
+    .from(memberDisciplineActions)
+    .groupBy(memberDisciplineActions.userId)
+    .as("discipline_counts");
+
   const rows = await db
     .select({
       id: platformModerationActions.id,
@@ -180,12 +207,18 @@ export async function getModerationActionById(id: string): Promise<ModerationQue
       status: platformModerationActions.status,
       visibilityOverride: platformModerationActions.visibilityOverride,
       reportCount: sql<number>`coalesce(${reportCountSubquery.reportCount}, 0)`,
+      authorAccountStatus: authUsers.accountStatus,
+      disciplineCount: sql<number>`coalesce(${disciplineCountSubquery.disciplineCount}, 0)`,
     })
     .from(platformModerationActions)
     .leftJoin(authUsers, sql`${platformModerationActions.contentAuthorId}::uuid = ${authUsers.id}`)
     .leftJoin(
       reportCountSubquery,
       sql`${reportCountSubquery.contentType}::text = ${platformModerationActions.contentType}::text AND ${reportCountSubquery.contentId} = ${platformModerationActions.contentId}`,
+    )
+    .leftJoin(
+      disciplineCountSubquery,
+      sql`${platformModerationActions.contentAuthorId}::uuid = ${disciplineCountSubquery.userId}`,
     )
     .where(eq(platformModerationActions.id, id))
     .limit(1);

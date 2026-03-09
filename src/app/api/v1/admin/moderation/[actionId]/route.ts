@@ -8,16 +8,44 @@ import {
   listModerationKeywords,
   updateModerationKeyword,
 } from "@/db/queries/moderation";
+import { listMemberDisciplineHistory } from "@/db/queries/member-discipline";
+import { issueWarning, issueSuspension, issueBan } from "@/services/member-discipline-service";
 import { eventBus } from "@/services/event-bus";
 import { z } from "zod/v4";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-const patchSchema = z.object({
-  action: z.enum(["approve", "remove", "dismiss"]),
-  reason: z.string().optional(),
-  whitelistKeyword: z.boolean().optional(),
-});
+const patchSchema = z.discriminatedUnion("action", [
+  z.object({
+    action: z.literal("approve"),
+    whitelistKeyword: z.boolean().optional(),
+  }),
+  z.object({
+    action: z.literal("remove"),
+    reason: z.string().optional(),
+  }),
+  z.object({
+    action: z.literal("dismiss"),
+    reason: z.string().optional(),
+  }),
+  z.object({
+    action: z.literal("warn"),
+    reason: z.string().min(1),
+    notes: z.string().optional(),
+  }),
+  z.object({
+    action: z.literal("suspend"),
+    reason: z.string().min(1),
+    durationHours: z.union([z.literal(24), z.literal(168), z.literal(720)]),
+    notes: z.string().optional(),
+  }),
+  z.object({
+    action: z.literal("ban"),
+    reason: z.string().min(1),
+    notes: z.string().optional(),
+    confirmed: z.literal(true),
+  }),
+]);
 
 export const GET = withApiHandler(async (request: Request) => {
   await requireAdminSession(request);
@@ -30,7 +58,13 @@ export const GET = withApiHandler(async (request: Request) => {
   const item = await getModerationActionById(actionId);
   if (!item) throw new ApiError({ title: "Not Found", status: 404 });
 
-  return successResponse({ action: item });
+  // Include discipline history so admin can see prior actions before deciding
+  let disciplineHistory = null;
+  if (UUID_RE.test(item.contentAuthorId)) {
+    disciplineHistory = await listMemberDisciplineHistory(item.contentAuthorId);
+  }
+
+  return successResponse({ action: item, disciplineHistory });
 });
 
 export const PATCH = withApiHandler(async (request: Request) => {
@@ -51,7 +85,7 @@ export const PATCH = withApiHandler(async (request: Request) => {
     });
   }
 
-  const { action, reason, whitelistKeyword } = parsed.data;
+  const { action } = parsed.data;
 
   const item = await getModerationActionById(actionId);
   if (!item) throw new ApiError({ title: "Not Found", status: 404 });
@@ -59,6 +93,7 @@ export const PATCH = withApiHandler(async (request: Request) => {
   const now = new Date();
 
   if (action === "approve") {
+    const { whitelistKeyword } = parsed.data;
     await updateModerationAction(actionId, {
       status: "reviewed",
       moderatorId: adminId,
@@ -84,6 +119,7 @@ export const PATCH = withApiHandler(async (request: Request) => {
       }
     }
   } else if (action === "remove") {
+    const { reason } = parsed.data;
     await updateModerationAction(actionId, {
       status: "reviewed",
       moderatorId: adminId,
@@ -99,7 +135,7 @@ export const PATCH = withApiHandler(async (request: Request) => {
       reason,
       timestamp: now.toISOString(),
     });
-  } else {
+  } else if (action === "dismiss") {
     // dismiss — false positive; restore content visibility
     await updateModerationAction(actionId, {
       status: "dismissed",
@@ -115,8 +151,81 @@ export const PATCH = withApiHandler(async (request: Request) => {
       moderatorId: adminId,
       timestamp: now.toISOString(),
     });
+  } else if (action === "warn") {
+    const { reason, notes } = parsed.data;
+    // content_author_id may not be a valid UUID for non-member content
+    const targetUserId = item.contentAuthorId;
+    if (!UUID_RE.test(targetUserId)) {
+      throw new ApiError({
+        title: "Bad Request",
+        status: 400,
+        detail: "Cannot issue discipline: content author is not a member",
+      });
+    }
+    await issueWarning({
+      targetUserId,
+      moderationActionId: actionId,
+      adminId,
+      reason,
+      notes: notes ?? null,
+    });
+    await updateModerationAction(actionId, {
+      status: "reviewed",
+      moderatorId: adminId,
+      actionedAt: now,
+    });
+  } else if (action === "suspend") {
+    const { reason, durationHours, notes } = parsed.data;
+    const targetUserId = item.contentAuthorId;
+    if (!UUID_RE.test(targetUserId)) {
+      throw new ApiError({
+        title: "Bad Request",
+        status: 400,
+        detail: "Cannot issue discipline: content author is not a member",
+      });
+    }
+    await issueSuspension({
+      targetUserId,
+      moderationActionId: actionId,
+      adminId,
+      reason,
+      durationHours,
+      notes: notes ?? null,
+    });
+    await updateModerationAction(actionId, {
+      status: "reviewed",
+      moderatorId: adminId,
+      actionedAt: now,
+    });
+  } else if (action === "ban") {
+    const { reason, notes } = parsed.data;
+    const targetUserId = item.contentAuthorId;
+    if (!UUID_RE.test(targetUserId)) {
+      throw new ApiError({
+        title: "Bad Request",
+        status: 400,
+        detail: "Cannot issue discipline: content author is not a member",
+      });
+    }
+    await issueBan({
+      targetUserId,
+      moderationActionId: actionId,
+      adminId,
+      reason,
+      notes: notes ?? null,
+    });
+    await updateModerationAction(actionId, {
+      status: "reviewed",
+      moderatorId: adminId,
+      actionedAt: now,
+    });
   }
 
   const updated = await getModerationActionById(actionId);
-  return successResponse({ action: updated });
+  // Include discipline history for the target user if available
+  let disciplineHistory = null;
+  if (updated && UUID_RE.test(updated.contentAuthorId)) {
+    disciplineHistory = await listMemberDisciplineHistory(updated.contentAuthorId);
+  }
+  return successResponse({ action: updated, disciplineHistory });
 });

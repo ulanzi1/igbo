@@ -71,9 +71,18 @@ export async function submitApplication(
   const headersList = await headers();
   const clientIp = getClientIp(headersList);
 
-  // Check for duplicate email (never reveal account status)
+  // Check for duplicate email or banned email
   const existing = await findUserByEmail(normalizedEmail);
   if (existing) {
+    if (existing.accountStatus === "BANNED") {
+      return {
+        success: false,
+        error: {
+          field: "email",
+          message: "This email address is not eligible for registration",
+        },
+      };
+    }
     return {
       success: false,
       error: {
