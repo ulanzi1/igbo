@@ -34,6 +34,7 @@ import * as pushSubscriptionsSchema from "./schema/platform-push-subscriptions";
 import * as notifPrefsSchema from "./schema/platform-notification-preferences";
 import * as dismissedRecsSchema from "./schema/platform-dismissed-recommendations";
 import * as moderationSchema from "./schema/moderation";
+import * as reportsSchema from "./schema/reports";
 
 const client = postgres(env.DATABASE_URL, {
   max: env.DATABASE_POOL_SIZE,
@@ -74,6 +75,7 @@ export const db = drizzle(client, {
     ...notifPrefsSchema,
     ...dismissedRecsSchema,
     ...moderationSchema,
+    ...reportsSchema,
   },
 });
 

@@ -49,6 +49,16 @@ vi.mock("@/db/schema/auth-users", () => ({
   authUsers: { id: "id", name: "name" },
 }));
 
+vi.mock("@/db/schema/reports", () => ({
+  platformReports: {
+    contentType: "content_type",
+    contentId: "content_id",
+    reporterId: "reporter_id",
+    status: "status",
+    createdAt: "created_at",
+  },
+}));
+
 vi.mock("@/lib/redis", () => ({
   getRedisClient: () => ({ del: mockRedisDel }),
 }));
@@ -109,18 +119,34 @@ const MOCK_KW = {
   createdAt: new Date(),
 };
 
+/** Subquery builder chain: db.select().from().groupBy().as() */
+function makeSubqueryChain() {
+  const subqueryRef = { contentType: "content_type", contentId: "content_id", reportCount: 0 };
+  return {
+    from: vi.fn().mockReturnValue({
+      groupBy: vi.fn().mockReturnValue({
+        as: vi.fn().mockReturnValue(subqueryRef),
+      }),
+    }),
+  };
+}
+
 function makeChain(result: unknown) {
+  const leftJoinInner = vi.fn().mockReturnValue({
+    where: vi.fn().mockReturnValue({
+      orderBy: vi.fn().mockReturnValue({
+        limit: vi.fn().mockReturnValue({
+          offset: vi.fn().mockResolvedValue([result]),
+        }),
+      }),
+      limit: vi.fn().mockResolvedValue([result]),
+    }),
+  });
   return {
     from: vi.fn().mockReturnValue({
       leftJoin: vi.fn().mockReturnValue({
-        where: vi.fn().mockReturnValue({
-          orderBy: vi.fn().mockReturnValue({
-            limit: vi.fn().mockReturnValue({
-              offset: vi.fn().mockResolvedValue([result]),
-            }),
-          }),
-          limit: vi.fn().mockResolvedValue([result]),
-        }),
+        leftJoin: leftJoinInner,
+        where: vi.fn().mockResolvedValue([result]),
       }),
       where: vi.fn().mockResolvedValue([result]),
     }),
@@ -131,14 +157,17 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
+/** Main row query chain with TWO leftJoins (authUsers + report_counts subquery) */
 function makeRowChain(rows: unknown[]) {
   return {
     from: vi.fn().mockReturnValue({
       leftJoin: vi.fn().mockReturnValue({
-        where: vi.fn().mockReturnValue({
-          orderBy: vi.fn().mockReturnValue({
-            limit: vi.fn().mockReturnValue({
-              offset: vi.fn().mockResolvedValue(rows),
+        leftJoin: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            orderBy: vi.fn().mockReturnValue({
+              limit: vi.fn().mockReturnValue({
+                offset: vi.fn().mockResolvedValue(rows),
+              }),
             }),
           }),
         }),
@@ -160,7 +189,9 @@ describe("listFlaggedContent", () => {
     let calls = 0;
     mockSelect.mockImplementation(() => {
       calls++;
-      return calls === 1 ? makeRowChain([MOCK_ITEM]) : makeCountChain(1);
+      if (calls === 1) return makeSubqueryChain(); // report_counts subquery builder
+      if (calls === 2) return makeRowChain([MOCK_ITEM]); // main query (parallel)
+      return makeCountChain(1); // count query (parallel)
     });
 
     const result = await listFlaggedContent({ page: 1, pageSize: 20 });
@@ -172,7 +203,9 @@ describe("listFlaggedContent", () => {
     let calls = 0;
     mockSelect.mockImplementation(() => {
       calls++;
-      return calls === 1 ? makeRowChain([]) : makeCountChain(0);
+      if (calls === 1) return makeSubqueryChain();
+      if (calls === 2) return makeRowChain([]);
+      return makeCountChain(0);
     });
 
     const result = await listFlaggedContent({ contentType: "message", page: 1, pageSize: 20 });
@@ -184,7 +217,9 @@ describe("listFlaggedContent", () => {
     let calls = 0;
     mockSelect.mockImplementation(() => {
       calls++;
-      return calls === 1 ? makeRowChain([MOCK_ITEM]) : makeCountChain(1);
+      if (calls === 1) return makeSubqueryChain();
+      if (calls === 2) return makeRowChain([MOCK_ITEM]);
+      return makeCountChain(1);
     });
 
     const result = await listFlaggedContent({ status: "reviewed", page: 1, pageSize: 10 });
@@ -194,28 +229,43 @@ describe("listFlaggedContent", () => {
 
 describe("getModerationActionById", () => {
   it("returns item when found", async () => {
-    mockSelect.mockReturnValue({
-      from: vi.fn().mockReturnValue({
-        leftJoin: vi.fn().mockReturnValue({
-          where: vi.fn().mockReturnValue({
-            limit: vi.fn().mockResolvedValue([MOCK_ITEM]),
+    let calls = 0;
+    mockSelect.mockImplementation(() => {
+      calls++;
+      if (calls === 1) return makeSubqueryChain(); // report_counts subquery
+      // main query: 2 leftJoins, then where, then limit
+      return {
+        from: vi.fn().mockReturnValue({
+          leftJoin: vi.fn().mockReturnValue({
+            leftJoin: vi.fn().mockReturnValue({
+              where: vi.fn().mockReturnValue({
+                limit: vi.fn().mockResolvedValue([MOCK_ITEM]),
+              }),
+            }),
           }),
         }),
-      }),
+      };
     });
     const result = await getModerationActionById("action-1");
     expect(result).toMatchObject({ id: "action-1" });
   });
 
   it("returns null when not found", async () => {
-    mockSelect.mockReturnValue({
-      from: vi.fn().mockReturnValue({
-        leftJoin: vi.fn().mockReturnValue({
-          where: vi.fn().mockReturnValue({
-            limit: vi.fn().mockResolvedValue([]),
+    let calls = 0;
+    mockSelect.mockImplementation(() => {
+      calls++;
+      if (calls === 1) return makeSubqueryChain();
+      return {
+        from: vi.fn().mockReturnValue({
+          leftJoin: vi.fn().mockReturnValue({
+            leftJoin: vi.fn().mockReturnValue({
+              where: vi.fn().mockReturnValue({
+                limit: vi.fn().mockResolvedValue([]),
+              }),
+            }),
           }),
         }),
-      }),
+      };
     });
     const result = await getModerationActionById("nonexistent");
     expect(result).toBeNull();

@@ -12,8 +12,10 @@ interface ModerationItem {
   authorName: string | null;
   flagReason: string;
   keywordMatched: string | null;
+  autoFlagged: boolean;
   flaggedAt: string;
   status: "pending" | "reviewed" | "dismissed";
+  reportCount: number;
 }
 
 interface ModerationResponse {
@@ -141,6 +143,7 @@ export function ModerationQueue() {
                 <th className="pb-2 pr-4 font-medium">{t("moderation.table.content")}</th>
                 <th className="pb-2 pr-4 font-medium">{t("moderation.table.author")}</th>
                 <th className="pb-2 pr-4 font-medium">{t("moderation.table.type")}</th>
+                <th className="pb-2 pr-4 font-medium">{t("moderation.table.source")}</th>
                 <th className="pb-2 pr-4 font-medium">{t("moderation.table.reason")}</th>
                 <th className="pb-2 pr-4 font-medium">{t("moderation.table.flaggedAt")}</th>
                 <th className="pb-2 font-medium">{t("moderation.table.actions")}</th>
@@ -163,6 +166,17 @@ export function ModerationQueue() {
                     <span className="bg-zinc-700 text-zinc-200 text-xs px-2 py-1 rounded">
                       {item.contentType}
                     </span>
+                  </td>
+                  <td className="py-3 pr-4">
+                    {item.reportCount > 0 ? (
+                      <span className="bg-orange-700 text-orange-100 text-xs px-2 py-1 rounded">
+                        {t("moderation.source.reported", { count: item.reportCount })}
+                      </span>
+                    ) : (
+                      <span className="bg-zinc-700 text-zinc-300 text-xs px-2 py-1 rounded">
+                        {t("moderation.source.autoFlagged")}
+                      </span>
+                    )}
                   </td>
                   <td className="py-3 pr-4 text-zinc-300">{item.flagReason}</td>
                   <td className="py-3 pr-4 text-zinc-400 text-xs">

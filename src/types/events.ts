@@ -260,6 +260,17 @@ export interface ArticleCommentedEvent extends BaseEvent {
   userId: string;
 }
 
+// --- Report Events ---
+
+export interface ReportCreatedEvent extends BaseEvent {
+  reportId: string;
+  contentType: "post" | "comment" | "message" | "member" | "article";
+  contentId: string;
+  reasonCategory: string;
+  /** Author/owner of the reported content — used by moderation queue insertion */
+  contentAuthorId: string;
+}
+
 // --- Content Moderation Events ---
 
 export interface ContentFlaggedEvent extends BaseEvent {
@@ -658,7 +669,8 @@ export type EventName =
   | "reaction.removed"
   | "content.flagged"
   | "content.unflagged"
-  | "content.moderated";
+  | "content.moderated"
+  | "report.created";
 
 // --- Event Map ---
 
@@ -747,4 +759,5 @@ export interface EventMap {
   "content.flagged": ContentFlaggedEvent;
   "content.unflagged": ContentUnflaggedEvent;
   "content.moderated": ContentModeratedEvent;
+  "report.created": ReportCreatedEvent;
 }

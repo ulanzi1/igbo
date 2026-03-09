@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useTranslations } from "next-intl";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ReportDialog } from "@/components/shared/ReportDialog";
 import type { PostComment } from "@/db/queries/post-interactions";
 
 interface CommentItemProps {
@@ -21,7 +22,9 @@ export function CommentItem({
   isReply = false,
 }: CommentItemProps) {
   const t = useTranslations("Feed");
+  const tReports = useTranslations("Reports");
   const [isDeleting, startDeleteTransition] = useTransition();
+  const [showReport, setShowReport] = useState(false);
 
   const initials = comment.authorDisplayName
     .split(" ")
@@ -78,7 +81,23 @@ export function CommentItem({
                 {t("comments.delete")}
               </button>
             )}
+            {!isOwn && (
+              <button
+                type="button"
+                onClick={() => setShowReport(true)}
+                className="text-xs text-muted-foreground hover:text-destructive font-medium"
+              >
+                {tReports("action.report")}
+              </button>
+            )}
           </div>
+        )}
+        {showReport && (
+          <ReportDialog
+            contentType="comment"
+            contentId={comment.id}
+            onClose={() => setShowReport(false)}
+          />
         )}
         {/* Nested replies */}
         {!isReply && comment.replies.length > 0 && (

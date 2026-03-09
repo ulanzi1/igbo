@@ -6,7 +6,13 @@ import { getPostContent } from "@/db/queries/posts";
 import { getArticleContent } from "@/db/queries/articles";
 import { scanContent } from "@/lib/moderation-scanner";
 import { tiptapJsonToPlainText } from "@/features/articles/utils/tiptap-to-html";
-import type { PostPublishedEvent, ArticlePublishedEvent, MessageSentEvent } from "@/types/events";
+import { getReportCountByContent } from "@/db/queries/reports";
+import type {
+  PostPublishedEvent,
+  ArticlePublishedEvent,
+  MessageSentEvent,
+  ReportCreatedEvent,
+} from "@/types/events";
 import type { Keyword } from "@/lib/moderation-scanner";
 
 const REDIS_KEYWORDS_KEY = "moderation:keywords:active";
@@ -316,6 +322,46 @@ export async function handleMessageScanned(payload: MessageSentEvent): Promise<v
   }
 }
 
+/**
+ * Handle report.created — ensure a moderation action entry exists for the reported content.
+ * If the content is already flagged (auto-flag from Story 11.1), updates its metadata with
+ * the current report count. If not yet flagged, creates a new moderation action with
+ * source set to 'reported' (autoFlagged=false).
+ *
+ * NOTE: report_content_type includes 'comment' and 'member' which are NOT in
+ * moderationContentTypeEnum. We only create/update moderation actions for types the
+ * existing queue supports: 'post', 'article', 'message'.
+ */
+export async function handleReportCreated(payload: ReportCreatedEvent): Promise<void> {
+  // Only feed queue-supported content types into moderation actions
+  const QUEUE_SUPPORTED = ["post", "article", "message"] as const;
+  type QueueType = (typeof QUEUE_SUPPORTED)[number];
+  const isQueueSupported = (t: string): t is QueueType =>
+    (QUEUE_SUPPORTED as readonly string[]).includes(t);
+
+  if (!isQueueSupported(payload.contentType)) {
+    // 'comment' and 'member' reports are stored in platform_reports but not yet surfaced
+    // in the moderation queue UI — deferred to a future story.
+    return;
+  }
+
+  const reportCount = await getReportCountByContent(payload.contentType, payload.contentId);
+
+  // Try to insert a new moderation action (will conflict if already auto-flagged)
+  const flagReason = `Reported by members (${reportCount} report${reportCount === 1 ? "" : "s"})`;
+
+  await insertModerationAction({
+    contentType: payload.contentType,
+    contentId: payload.contentId,
+    contentAuthorId: payload.contentAuthorId,
+    contentPreview: null,
+    flagReason,
+    keywordMatched: null,
+    autoFlagged: false,
+  });
+  // ON CONFLICT DO NOTHING is fine — if already in queue, report count is surfaced via JOIN in listFlaggedContent
+}
+
 // ─── Handler Registration (HMR Guard) ─────────────────────────────────────────
 
 const globalForModeration = globalThis as unknown as {
@@ -363,6 +409,20 @@ if (globalForModeration.__moderationHandlersRegistered) {
         JSON.stringify({
           level: "error",
           msg: "moderation.message_sent.unhandled",
+          error: String(err),
+        }),
+      );
+    }
+  });
+
+  eventBus.on("report.created", async (payload: ReportCreatedEvent) => {
+    try {
+      await handleReportCreated(payload);
+    } catch (err) {
+      console.error(
+        JSON.stringify({
+          level: "error",
+          msg: "moderation.report_created.unhandled",
           error: String(err),
         }),
       );

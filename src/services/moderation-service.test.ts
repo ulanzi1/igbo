@@ -38,6 +38,11 @@ vi.mock("@/db/queries/moderation", () => ({
   insertModerationAction: (...args: unknown[]) => mockInsertModerationAction(...args),
 }));
 
+const mockGetReportCountByContent = vi.hoisted(() => vi.fn().mockResolvedValue(1));
+vi.mock("@/db/queries/reports", () => ({
+  getReportCountByContent: (...args: unknown[]) => mockGetReportCountByContent(...args),
+}));
+
 vi.mock("@/db/queries/posts", () => ({
   getPostContent: (...args: unknown[]) => mockGetPostContent(...args),
   getPostContentLength: vi.fn(),
@@ -77,6 +82,7 @@ import {
   handlePostPublished,
   handleArticleFlaggingCheck,
   handleMessageScanned,
+  handleReportCreated,
 } from "./moderation-service";
 
 const KEYWORDS = [
@@ -258,5 +264,79 @@ describe("ModerationService", () => {
     mockRedisGet.mockResolvedValueOnce(JSON.stringify(KEYWORDS));
     await handlePostPublished(POST_PAYLOAD);
     expect(mockGetActiveKeywords).toHaveBeenCalledTimes(1); // still 1
+  });
+});
+
+describe("handleReportCreated", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("calls insertModerationAction for queue-supported content types", async () => {
+    mockGetReportCountByContent.mockResolvedValue(2);
+    mockInsertModerationAction.mockResolvedValue(null); // ON CONFLICT DO NOTHING
+
+    await handleReportCreated({
+      reportId: "rpt-1",
+      contentType: "post",
+      contentId: "post-1",
+      reasonCategory: "harassment",
+      contentAuthorId: "author-abc",
+      timestamp: new Date().toISOString(),
+    });
+
+    expect(mockGetReportCountByContent).toHaveBeenCalledWith("post", "post-1");
+    expect(mockInsertModerationAction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        contentType: "post",
+        contentId: "post-1",
+        contentAuthorId: "author-abc",
+        autoFlagged: false,
+      }),
+    );
+  });
+
+  it("skips insertModerationAction for non-queue content types (comment, member)", async () => {
+    await handleReportCreated({
+      reportId: "rpt-2",
+      contentType: "comment",
+      contentId: "cmt-1",
+      reasonCategory: "spam",
+      contentAuthorId: "author-xyz",
+      timestamp: new Date().toISOString(),
+    });
+
+    expect(mockInsertModerationAction).not.toHaveBeenCalled();
+
+    await handleReportCreated({
+      reportId: "rpt-3",
+      contentType: "member",
+      contentId: "user-1",
+      reasonCategory: "impersonation",
+      contentAuthorId: "user-1",
+      timestamp: new Date().toISOString(),
+    });
+
+    expect(mockInsertModerationAction).not.toHaveBeenCalled();
+  });
+
+  it("includes report count in flagReason", async () => {
+    mockGetReportCountByContent.mockResolvedValue(5);
+    mockInsertModerationAction.mockResolvedValue(null);
+
+    await handleReportCreated({
+      reportId: "rpt-4",
+      contentType: "article",
+      contentId: "art-1",
+      reasonCategory: "misinformation",
+      contentAuthorId: "author-art",
+      timestamp: new Date().toISOString(),
+    });
+
+    expect(mockInsertModerationAction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        flagReason: expect.stringContaining("5 reports"),
+      }),
+    );
   });
 });

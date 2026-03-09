@@ -453,9 +453,14 @@
         "content": "Content",
         "author": "Author",
         "type": "Type",
+        "source": "Source",
         "reason": "Reason",
         "flaggedAt": "Flagged",
         "actions": "Actions"
+      },
+      "source": {
+        "autoFlagged": "Auto-flagged",
+        "reported": "Reported ({count})"
       },
       "action": {
         "approve": "Approve",
@@ -1854,5 +1859,28 @@
     "endOfResults": "No more results",
     "allTypes": "All types",
     "typeSelector": "Filter by type"
+  },
+  "Reports": {
+    "dialog": {
+      "title": "Report Content",
+      "description": "Help keep the community safe. Reports are anonymous and reviewed by our moderation team."
+    },
+    "reason": {
+      "harassment": "Harassment or bullying",
+      "spam": "Spam or unwanted promotion",
+      "inappropriateContent": "Inappropriate content",
+      "misinformation": "Misinformation or false claims",
+      "impersonation": "Impersonation",
+      "other": "Other",
+      "otherPlaceholder": "Please describe the issue…"
+    },
+    "submit": "Submit Report",
+    "submitting": "Submitting…",
+    "success": "Your report has been submitted. Thank you for helping keep the community safe.",
+    "alreadyReported": "You have already reported this content.",
+    "close": "Close",
+    "action": {
+      "report": "Report"
+    }
   }
 }

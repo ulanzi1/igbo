@@ -12,6 +12,7 @@ import { ReactionBadges } from "./ReactionBadges";
 import { useReactions } from "@/features/chat/hooks/use-reactions";
 import { useLongPress } from "@/features/chat/hooks/use-long-press";
 import { VerificationBadge } from "@/components/shared/VerificationBadge";
+import { ReportDialog } from "@/components/shared/ReportDialog";
 import type { LocalChatMessage, ChatMessage, SharedPostPayload } from "@/features/chat/types";
 
 interface MessageBubbleProps {
@@ -77,8 +78,10 @@ export function MessageBubble({
   const effectiveStatus: DeliveryStatus = isLocal
     ? (message as LocalChatMessage).status
     : (deliveryStatus ?? "delivered");
+  const tReports = useTranslations("Reports");
   const [showPicker, setShowPicker] = useState(false);
   const [showActions, setShowActions] = useState(false);
+  const [showReport, setShowReport] = useState(false);
   const [editContent, setEditContent] = useState(message.content);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -347,6 +350,16 @@ export function MessageBubble({
               >
                 😊
               </button>
+              {!isOwnMessage && (
+                <button
+                  type="button"
+                  onClick={() => setShowReport(true)}
+                  aria-label={tReports("action.report")}
+                  className="flex h-6 w-6 items-center justify-center rounded-full bg-muted text-xs text-muted-foreground hover:bg-accent"
+                >
+                  🚩
+                </button>
+              )}
             </div>
           )}
 
@@ -409,6 +422,18 @@ export function MessageBubble({
                 >
                   {tReactions("react")}
                 </button>
+                {!isOwnMessage && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowActions(false);
+                      setShowReport(true);
+                    }}
+                    className="text-left px-2 py-1 rounded text-sm text-destructive hover:bg-destructive/10"
+                  >
+                    {tReports("action.report")}
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => setShowActions(false)}
@@ -444,6 +469,14 @@ export function MessageBubble({
           )}
           {isOwnMessage && !message.deletedAt && <DeliveryIndicator status={effectiveStatus} />}
         </div>
+
+        {showReport && (
+          <ReportDialog
+            contentType="message"
+            contentId={message.messageId}
+            onClose={() => setShowReport(false)}
+          />
+        )}
       </div>
     </div>
   );

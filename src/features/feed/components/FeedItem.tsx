@@ -11,6 +11,7 @@ import { CommentSection } from "./CommentSection";
 import { ShareDialog } from "./ShareDialog";
 import { BookmarkButton } from "./BookmarkButton";
 import { VerificationBadge } from "@/components/shared/VerificationBadge";
+import { ReportDialog } from "@/components/shared/ReportDialog";
 import type { FeedPost, FeedPostOriginal } from "@/features/feed/types";
 import type { FeedSortMode, FeedFilter } from "@/config/feed";
 
@@ -42,6 +43,8 @@ export function FeedItem({
   const [localShareCount, setLocalShareCount] = useState(post.shareCount);
   const [isPinned, setIsPinned] = useState(post.isPinned);
   const [isPinPending, setIsPinPending] = useState(false);
+  const [showReport, setShowReport] = useState(false);
+  const tReports = useTranslations("Reports");
 
   const isAdmin = currentUserRole === "ADMIN";
 
@@ -285,8 +288,19 @@ export function FeedItem({
           </span>
         </button>
         {/* Bookmark button — right-aligned in engagement bar */}
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-2">
           <BookmarkButton postId={post.id} initialIsBookmarked={post.isBookmarked} />
+          {/* Only show Report for other users' posts */}
+          {post.authorId !== currentUserId && (
+            <button
+              type="button"
+              onClick={() => setShowReport(true)}
+              className="flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium min-h-[44px] min-w-[44px] text-muted-foreground hover:bg-accent transition-colors"
+              aria-label={tReports("action.report")}
+            >
+              🚩
+            </button>
+          )}
         </div>
       </div>
 
@@ -310,6 +324,11 @@ export function FeedItem({
         sort={sort}
         filter={filter}
       />
+
+      {/* Report dialog */}
+      {showReport && (
+        <ReportDialog contentType="post" contentId={post.id} onClose={() => setShowReport(false)} />
+      )}
     </article>
   );
 }

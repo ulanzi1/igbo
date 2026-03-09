@@ -453,9 +453,14 @@
         "content": "Ọdịnaya",
         "author": "Onye Dere",
         "type": "Udi",
+        "source": "Ebe O Si",
         "reason": "Ihe Kpatara",
         "flaggedAt": "Akọwapụtara",
         "actions": "Omume"
+      },
+      "source": {
+        "autoFlagged": "Akọwapụtara n'ọtọmatik",
+        "reported": "Akọọla ({count})"
       },
       "action": {
         "approve": "Kwado",
@@ -1854,5 +1859,28 @@
     "endOfResults": "Enweghị ihe ndị ọzọ",
     "allTypes": "Ụdị niile",
     "typeSelector": "Họrọ ụdị"
+  },
+  "Reports": {
+    "dialog": {
+      "title": "Kọọ Ọdịnaya",
+      "description": "Nyere aka ichekwa obodo. Akụkọ ndị a bụ nzuzo ma ndị ọchịchị ọchịchị ha."
+    },
+    "reason": {
+      "harassment": "Ihe mgbu ma ọ bụ ihe ọjọọ",
+      "spam": "Spam ma ọ bụ mgbasa ozi a chọghị",
+      "inappropriateContent": "Ọdịnaya na-ekwesị",
+      "misinformation": "Ọdịnaya ụgha ma ọ bụ nkọwa ụgha",
+      "impersonation": "Ịdị ka onye ọzọ",
+      "other": "Ihe ndị ọzọ",
+      "otherPlaceholder": "Kọọ nsogbu ahụ…"
+    },
+    "submit": "Nyefee Akụkọ",
+    "submitting": "Na-edozi…",
+    "success": "Anyị natara akụkọ gị. Daalụ maka inyere aka ichekwa obodo.",
+    "alreadyReported": "Ị emeela akụkọ maka ọdịnaya a.",
+    "close": "Mechie",
+    "action": {
+      "report": "Kọọ"
+    }
   }
 }

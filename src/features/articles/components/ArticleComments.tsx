@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
+import { ReportDialog } from "@/components/shared/ReportDialog";
 import type { ArticleCommentItem } from "@/db/queries/article-comments";
 
 interface ArticleCommentsProps {
@@ -21,7 +22,7 @@ interface CommentsResponse {
 
 export function ArticleComments({ articleId, membersOnly = false }: ArticleCommentsProps) {
   const t = useTranslations("Articles");
-  const { status } = useSession();
+  const { data: session, status } = useSession();
   const queryClient = useQueryClient();
   const [commentText, setCommentText] = useState("");
   const isGuest = status === "unauthenticated";
@@ -66,31 +67,11 @@ export function ArticleComments({ articleId, membersOnly = false }: ArticleComme
       ) : (
         <ul className="space-y-4 mb-6">
           {comments.map((comment) => (
-            <li
+            <ArticleCommentRow
               key={comment.id}
-              className="flex flex-col gap-1 rounded-lg border border-border p-4"
-            >
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <span className="font-medium text-foreground">
-                  {comment.authorName ?? "Member"}
-                </span>
-                <span>·</span>
-                <time
-                  dateTime={
-                    comment.createdAt instanceof Date
-                      ? comment.createdAt.toISOString()
-                      : String(comment.createdAt)
-                  }
-                >
-                  {new Date(comment.createdAt).toLocaleDateString(undefined, {
-                    year: "numeric",
-                    month: "short",
-                    day: "numeric",
-                  })}
-                </time>
-              </div>
-              <p className="text-sm">{comment.content}</p>
-            </li>
+              comment={comment}
+              currentUserId={session?.user?.id}
+            />
           ))}
         </ul>
       )}
@@ -149,5 +130,56 @@ export function ArticleComments({ articleId, membersOnly = false }: ArticleComme
         </form>
       )}
     </section>
+  );
+}
+
+function ArticleCommentRow({
+  comment,
+  currentUserId,
+}: {
+  comment: ArticleCommentItem;
+  currentUserId?: string;
+}) {
+  const tReports = useTranslations("Reports");
+  const [showReport, setShowReport] = useState(false);
+  const isOwn = currentUserId === comment.authorId;
+
+  return (
+    <li className="flex flex-col gap-1 rounded-lg border border-border p-4">
+      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+        <span className="font-medium text-foreground">{comment.authorName ?? "Member"}</span>
+        <span>·</span>
+        <time
+          dateTime={
+            comment.createdAt instanceof Date
+              ? comment.createdAt.toISOString()
+              : String(comment.createdAt)
+          }
+        >
+          {new Date(comment.createdAt).toLocaleDateString(undefined, {
+            year: "numeric",
+            month: "short",
+            day: "numeric",
+          })}
+        </time>
+        {!isOwn && currentUserId && (
+          <button
+            type="button"
+            onClick={() => setShowReport(true)}
+            className="ml-auto text-xs text-muted-foreground hover:text-destructive transition-colors"
+          >
+            {tReports("action.report")}
+          </button>
+        )}
+      </div>
+      <p className="text-sm">{comment.content}</p>
+      {showReport && (
+        <ReportDialog
+          contentType="comment"
+          contentId={comment.id}
+          onClose={() => setShowReport(false)}
+        />
+      )}
+    </li>
   );
 }
