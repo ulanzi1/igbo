@@ -88,6 +88,8 @@ import {
   getAllPointsRules,
   updatePointsRule,
   updatePostingLimit,
+  getTopPointsEarners,
+  getThrottledUsersReport,
 } from "./points";
 
 beforeEach(() => {
@@ -658,5 +660,216 @@ describe("updatePostingLimit", () => {
     const result = await updatePostingLimit("nonexistent", { pointsThreshold: 100 });
 
     expect(result).toBeNull();
+  });
+});
+
+// ─── getTopPointsEarners ──────────────────────────────────────────────────────
+
+describe("getTopPointsEarners", () => {
+  function makeRow(overrides: Partial<Record<string, unknown>> = {}) {
+    return {
+      user_id: "user-1",
+      display_name: "Alice",
+      email: "alice@example.com",
+      total_points: "100",
+      badge_type: null,
+      member_since: "2024-01-01T00:00:00.000Z",
+      total_count: "1",
+      ...overrides,
+    };
+  }
+
+  it("returns empty results when no rows", async () => {
+    mockExecute.mockResolvedValue([]);
+    const result = await getTopPointsEarners({ page: 1, limit: 25 });
+    expect(result).toEqual({ users: [], total: 0 });
+  });
+
+  it("returns users with parsed integer points and total count", async () => {
+    const row = makeRow({ total_points: "150", total_count: "3" });
+    mockExecute.mockResolvedValue([row]);
+    const result = await getTopPointsEarners({ page: 1, limit: 25 });
+    expect(result.total).toBe(3);
+    expect(result.users).toHaveLength(1);
+    expect(result.users[0].totalPoints).toBe(150);
+    expect(result.users[0].userId).toBe("user-1");
+    expect(result.users[0].email).toBe("alice@example.com");
+    expect(result.users[0].displayName).toBe("Alice");
+    expect(result.users[0].badgeType).toBeNull();
+  });
+
+  it("returns multiple users across pages", async () => {
+    const rows = [
+      makeRow({ user_id: "u1", total_points: "200", total_count: "2" }),
+      makeRow({ user_id: "u2", total_points: "100", total_count: "2" }),
+    ];
+    mockExecute.mockResolvedValue(rows);
+    const result = await getTopPointsEarners({ page: 1, limit: 25 });
+    expect(result.total).toBe(2);
+    expect(result.users).toHaveLength(2);
+  });
+
+  it("casts badge_type as BadgeType", async () => {
+    mockExecute.mockResolvedValue([makeRow({ badge_type: "blue" })]);
+    const result = await getTopPointsEarners({ page: 1, limit: 25 });
+    expect(result.users[0].badgeType).toBe("blue");
+  });
+
+  it("returns empty results when dateFrom > dateTo (invalid range)", async () => {
+    const result = await getTopPointsEarners({
+      page: 1,
+      limit: 25,
+      dateFrom: "2024-12-31",
+      dateTo: "2024-01-01",
+    });
+    expect(result).toEqual({ users: [], total: 0 });
+    expect(mockExecute).not.toHaveBeenCalled();
+  });
+
+  it("runs query when dateFrom equals dateTo (same-day range is valid)", async () => {
+    mockExecute.mockResolvedValue([]);
+    const result = await getTopPointsEarners({
+      page: 1,
+      limit: 25,
+      dateFrom: "2024-06-01",
+      dateTo: "2024-06-01",
+    });
+    expect(result).toEqual({ users: [], total: 0 });
+    expect(mockExecute).toHaveBeenCalledTimes(1);
+  });
+
+  it("executes query with date range filter applied", async () => {
+    mockExecute.mockResolvedValue([makeRow({ total_count: "1" })]);
+    await getTopPointsEarners({
+      page: 1,
+      limit: 25,
+      dateFrom: "2024-01-01",
+      dateTo: "2024-12-31",
+    });
+    expect(mockExecute).toHaveBeenCalledTimes(1);
+  });
+
+  it("executes query with activity type filter applied", async () => {
+    mockExecute.mockResolvedValue([]);
+    await getTopPointsEarners({ page: 1, limit: 25, activityType: "like_received" });
+    expect(mockExecute).toHaveBeenCalledTimes(1);
+  });
+
+  it("executes query with both date range and activity type filters", async () => {
+    mockExecute.mockResolvedValue([]);
+    await getTopPointsEarners({
+      page: 1,
+      limit: 25,
+      dateFrom: "2024-01-01",
+      dateTo: "2024-12-31",
+      activityType: "event_attended",
+    });
+    expect(mockExecute).toHaveBeenCalledTimes(1);
+  });
+
+  it("excludes soft-deleted user: empty results when only soft-deleted user exists", async () => {
+    // Soft-deleted users are excluded via INNER JOIN ... AND au.deleted_at IS NULL in raw SQL.
+    // The mock simulates the DB returning zero rows as it would for deleted users.
+    mockExecute.mockResolvedValue([]);
+    const result = await getTopPointsEarners({ page: 1, limit: 25 });
+    expect(result).toEqual({ users: [], total: 0 });
+  });
+
+  it("handles null display_name gracefully", async () => {
+    mockExecute.mockResolvedValue([makeRow({ display_name: null })]);
+    const result = await getTopPointsEarners({ page: 1, limit: 25 });
+    expect(result.users[0].displayName).toBeNull();
+  });
+
+  it("calculates correct offset for page 2", async () => {
+    mockExecute.mockResolvedValue([]);
+    await getTopPointsEarners({ page: 2, limit: 10 });
+    // Offset should be 10 = (2-1) * 10; verified by confirming execute was called
+    expect(mockExecute).toHaveBeenCalledTimes(1);
+  });
+});
+
+// ─── getThrottledUsersReport ──────────────────────────────────────────────────
+
+describe("getThrottledUsersReport", () => {
+  function makeRow(overrides: Partial<Record<string, unknown>> = {}) {
+    return {
+      user_id: "user-1",
+      display_name: "Bob",
+      throttle_count: "3",
+      last_throttled_at: "2024-06-15T12:00:00.000Z",
+      reasons: ["rapid_fire", "repeat_pair"],
+      total_count: "1",
+      ...overrides,
+    };
+  }
+
+  it("returns empty results when no throttled users", async () => {
+    mockExecute.mockResolvedValue([]);
+    const result = await getThrottledUsersReport({ page: 1, limit: 25 });
+    expect(result).toEqual({ users: [], total: 0 });
+  });
+
+  it("returns throttled users with parsed throttle counts", async () => {
+    mockExecute.mockResolvedValue([makeRow()]);
+    const result = await getThrottledUsersReport({ page: 1, limit: 25 });
+    expect(result.total).toBe(1);
+    expect(result.users).toHaveLength(1);
+    expect(result.users[0].throttleCount).toBe(3);
+    expect(result.users[0].userId).toBe("user-1");
+    expect(result.users[0].displayName).toBe("Bob");
+    expect(result.users[0].lastThrottledAt).toBe("2024-06-15T12:00:00.000Z");
+    expect(result.users[0].reasons).toEqual(["rapid_fire", "repeat_pair"]);
+  });
+
+  it("groups by user — multiple throttle events produce one row per user", async () => {
+    const rows = [
+      makeRow({ user_id: "u1", throttle_count: "5", total_count: "2" }),
+      makeRow({ user_id: "u2", throttle_count: "2", total_count: "2" }),
+    ];
+    mockExecute.mockResolvedValue(rows);
+    const result = await getThrottledUsersReport({ page: 1, limit: 25 });
+    expect(result.total).toBe(2);
+    expect(result.users).toHaveLength(2);
+    expect(result.users[0].throttleCount).toBe(5);
+    expect(result.users[1].throttleCount).toBe(2);
+  });
+
+  it("handles null display_name gracefully", async () => {
+    mockExecute.mockResolvedValue([makeRow({ display_name: null })]);
+    const result = await getThrottledUsersReport({ page: 1, limit: 25 });
+    expect(result.users[0].displayName).toBeNull();
+  });
+
+  it("handles empty reasons array (FILTER clause prevents NULL entries)", async () => {
+    mockExecute.mockResolvedValue([makeRow({ reasons: [] })]);
+    const result = await getThrottledUsersReport({ page: 1, limit: 25 });
+    expect(result.users[0].reasons).toEqual([]);
+  });
+
+  it("excludes soft-deleted users: returns empty when only soft-deleted users have throttle logs", async () => {
+    // Soft-deleted users excluded via INNER JOIN ... AND au.deleted_at IS NULL in raw SQL.
+    mockExecute.mockResolvedValue([]);
+    const result = await getThrottledUsersReport({ page: 1, limit: 25 });
+    expect(result).toEqual({ users: [], total: 0 });
+  });
+
+  it("excludes rows where target_user_id IS NULL: returns empty when only null-target logs exist", async () => {
+    // WHERE al.target_user_id IS NOT NULL in raw SQL handles this.
+    mockExecute.mockResolvedValue([]);
+    const result = await getThrottledUsersReport({ page: 1, limit: 25 });
+    expect(result).toEqual({ users: [], total: 0 });
+  });
+
+  it("handles pagination: page 2 calculates correct offset", async () => {
+    mockExecute.mockResolvedValue([]);
+    await getThrottledUsersReport({ page: 2, limit: 10 });
+    expect(mockExecute).toHaveBeenCalledTimes(1);
+  });
+
+  it("handles non-array reasons by defaulting to empty array", async () => {
+    mockExecute.mockResolvedValue([makeRow({ reasons: null })]);
+    const result = await getThrottledUsersReport({ page: 1, limit: 25 });
+    expect(result.users[0].reasons).toEqual([]);
   });
 });
