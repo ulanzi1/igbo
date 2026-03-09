@@ -111,7 +111,7 @@ export async function listFlaggedContent(filters: {
     .select({
       contentType: platformReports.contentType,
       contentId: platformReports.contentId,
-      reportCount: sql<number>`count(*)::int`,
+      reportCount: sql<number>`count(*)::int`.as("reportCount"),
     })
     .from(platformReports)
     .groupBy(platformReports.contentType, platformReports.contentId)
@@ -120,7 +120,7 @@ export async function listFlaggedContent(filters: {
   const disciplineCountSubquery = db
     .select({
       userId: memberDisciplineActions.userId,
-      disciplineCount: sql<number>`count(*)::int`,
+      disciplineCount: sql<number>`count(*)::int`.as("disciplineCount"),
     })
     .from(memberDisciplineActions)
     .groupBy(memberDisciplineActions.userId)
@@ -177,7 +177,7 @@ export async function getModerationActionById(id: string): Promise<ModerationQue
     .select({
       contentType: platformReports.contentType,
       contentId: platformReports.contentId,
-      reportCount: sql<number>`count(*)::int`,
+      reportCount: sql<number>`count(*)::int`.as("reportCount"),
     })
     .from(platformReports)
     .groupBy(platformReports.contentType, platformReports.contentId)
@@ -186,7 +186,7 @@ export async function getModerationActionById(id: string): Promise<ModerationQue
   const disciplineCountSubquery = db
     .select({
       userId: memberDisciplineActions.userId,
-      disciplineCount: sql<number>`count(*)::int`,
+      disciplineCount: sql<number>`count(*)::int`.as("disciplineCount"),
     })
     .from(memberDisciplineActions)
     .groupBy(memberDisciplineActions.userId)

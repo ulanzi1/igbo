@@ -287,6 +287,9 @@
     "lastUpdated": "Emelitere ikpeazụ: February 2026"
   },
   "Admin": {
+    "Common": {
+      "loading": "Na-ebugharị…"
+    },
     "approvals": {
       "title": "Membership Applications",
       "empty": "No pending applications",

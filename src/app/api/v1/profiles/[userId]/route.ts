@@ -19,12 +19,13 @@ export const GET = withApiHandler(async (request: Request) => {
     throw new ApiError({ title: "Unauthorized", status: 401 });
   }
 
-  const url = new URL(request.url);
-  const pathParts = url.pathname.split("/");
-  const targetUserId = pathParts[pathParts.length - 1] ?? "";
-
   const viewerUserId = session.user.id;
   const viewerRole = isViewerRole(session.user.role) ? session.user.role : "MEMBER";
+
+  const url = new URL(request.url);
+  const pathParts = url.pathname.split("/");
+  const rawSegment = pathParts[pathParts.length - 1] ?? "";
+  const targetUserId = rawSegment === "me" ? viewerUserId : rawSegment;
 
   if (viewerUserId === targetUserId) {
     // Own profile: return full profile including social links
