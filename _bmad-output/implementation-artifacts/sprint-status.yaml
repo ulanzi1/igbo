@@ -152,7 +152,7 @@ development_status:
   11-2-member-reporting-system: done
   11-3-progressive-discipline-dispute-resolution: done
   11-4-analytics-dashboard: done
-  11-5-audit-logs-governance-documents: backlog
+  11-5-audit-logs-governance-documents: done
   epic-11-retrospective: optional
 
   # Epic 12: Platform Operations & Infrastructure

@@ -8,6 +8,8 @@ export const auditLogs = pgTable("audit_logs", {
     .references(() => authUsers.id),
   action: varchar("action", { length: 100 }).notNull(),
   targetUserId: uuid("target_user_id"),
+  targetType: varchar("target_type", { length: 50 }),
+  traceId: varchar("trace_id", { length: 64 }),
   details: jsonb("details"),
   ipAddress: varchar("ip_address", { length: 45 }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),

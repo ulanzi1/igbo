@@ -37,6 +37,7 @@ import * as moderationSchema from "./schema/moderation";
 import * as reportsSchema from "./schema/reports";
 import * as memberDisciplineSchema from "./schema/member-discipline";
 import * as analyticsSnapshotsSchema from "./schema/platform-analytics-snapshots";
+import * as governanceDocumentsSchema from "./schema/platform-governance-documents";
 
 const client = postgres(env.DATABASE_URL, {
   max: env.DATABASE_POOL_SIZE,
@@ -80,6 +81,7 @@ export const db = drizzle(client, {
     ...reportsSchema,
     ...memberDisciplineSchema,
     ...analyticsSnapshotsSchema,
+    ...governanceDocumentsSchema,
   },
 });
 
