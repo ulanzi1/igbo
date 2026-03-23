@@ -86,4 +86,30 @@ describe("POST /api/v1/auth/login", () => {
     expect(res.status).toBe(401);
     expect(body.detail).toBe("Invalid credentials");
   });
+
+  it("returns 403 when initiateLogin returns banned status (Epic 11 Stabilization)", async () => {
+    mockInitiateLogin.mockResolvedValue({
+      status: "banned",
+      reason: "Hate speech",
+      appealEmail: "abuse@igbo.global",
+      appealWindow: "14 days",
+    });
+
+    const res = await POST(makeRequest({ email: "banned@example.com", password: "Pass1!" }));
+    expect(res.status).toBe(403);
+  });
+
+  it("banned response detail is 'banned' (not the reason — no leaking)", async () => {
+    mockInitiateLogin.mockResolvedValue({
+      status: "banned",
+      reason: "Internal reason details",
+      appealEmail: "abuse@igbo.global",
+      appealWindow: "14 days",
+    });
+
+    const res = await POST(makeRequest({ email: "banned@example.com", password: "Pass1!" }));
+    const body = await res.json();
+    expect(res.status).toBe(403);
+    expect(body.detail).toBe("banned");
+  });
 });

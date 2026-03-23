@@ -202,4 +202,34 @@ describe("LeaderboardTable", () => {
     fireEvent.click(flaggedBtn);
     expect(screen.getByText("Charlie")).toBeInTheDocument();
   });
+
+  it("clicking totalPoints sort header re-orders rows by points ascending", () => {
+    render(<LeaderboardTable />);
+    const sortBtn = screen.getByLabelText("totalPoints sort");
+    fireEvent.click(sortBtn);
+    const rows = document.querySelectorAll("tbody tr");
+    // Bob (200) should come before Alice (500) when sorted ascending
+    expect(rows[0]?.textContent).toContain("Bob");
+    expect(rows[1]?.textContent).toContain("Alice");
+  });
+
+  it("clicking totalPoints sort header twice reverses sort order to descending", () => {
+    render(<LeaderboardTable />);
+    const sortBtn = screen.getByLabelText("totalPoints sort");
+    fireEvent.click(sortBtn); // asc
+    fireEvent.click(sortBtn); // desc
+    const rows = document.querySelectorAll("tbody tr");
+    // Alice (500) should come before Bob (200) when sorted descending
+    expect(rows[0]?.textContent).toContain("Alice");
+    expect(rows[1]?.textContent).toContain("Bob");
+  });
+
+  it("clicking displayName sort header orders rows alphabetically", () => {
+    render(<LeaderboardTable />);
+    const sortBtn = screen.getByLabelText("displayName sort");
+    fireEvent.click(sortBtn);
+    const rows = document.querySelectorAll("tbody tr");
+    expect(rows[0]?.textContent).toContain("Alice");
+    expect(rows[1]?.textContent).toContain("Bob");
+  });
 });

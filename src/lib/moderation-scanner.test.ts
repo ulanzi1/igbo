@@ -70,4 +70,25 @@ describe("scanContent", () => {
     const spamResult = scanContent("This is spam.", [kw("spam")]);
     expect(spamResult).not.toBeNull();
   });
+
+  // ─── Task 11: Space-stripped keyword matching ──────────────────────────────
+
+  it("matches space-stripped multi-word keyword against compound form in text", () => {
+    // keyword "kill you" → stripped "killyou" → matches standalone word "killyou"
+    const result = scanContent("This content has killyou in it", [kw("kill you", "high")]);
+    expect(result).not.toBeNull();
+    expect(result?.keyword).toBe("kill you");
+  });
+
+  it("does NOT match space-stripped keyword as a substring at word boundaries (no false positive)", () => {
+    // "skill your craft" contains "kill" and "you" as separate words but NOT "killyou"
+    const result = scanContent("skill your craft", [kw("kill you", "high")]);
+    expect(result).toBeNull();
+  });
+
+  it("single-word keyword still uses whole-word boundary — space-strip path not taken", () => {
+    // "badword" has no spaces → only first-pass whole-word check runs
+    const result = scanContent("badwordmore", [kw("badword")]);
+    expect(result).toBeNull();
+  });
 });

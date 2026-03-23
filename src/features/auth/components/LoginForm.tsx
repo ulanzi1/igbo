@@ -9,9 +9,10 @@ import type { LoginStep } from "@/features/auth/types/auth";
 
 interface Props {
   callbackUrl?: string;
+  banned?: boolean;
 }
 
-export function LoginForm({ callbackUrl }: Props) {
+export function LoginForm({ callbackUrl, banned = false }: Props) {
   const t = useTranslations("Auth.login");
   const tf = useTranslations("Auth.twoFactor");
   const locale = useLocale();
@@ -21,7 +22,7 @@ export function LoginForm({ callbackUrl }: Props) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(banned ? t("bannedMessage") : null);
   const [loading, setLoading] = useState(false);
 
   async function handleCredentials(e: React.FormEvent) {
@@ -51,6 +52,8 @@ export function LoginForm({ callbackUrl }: Props) {
       if (!res.ok) {
         if (res.status === 429) {
           setError(t("accountLocked"));
+        } else if (res.status === 403) {
+          setError(t("bannedMessage"));
         } else {
           setError(t("invalidCredentials"));
         }

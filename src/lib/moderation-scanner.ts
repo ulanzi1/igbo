@@ -53,6 +53,26 @@ export function scanContent(text: string, keywords: Keyword[]): Keyword | null {
     if (regex.test(normalizedText)) {
       return kw;
     }
+
+    // Second pass: space-stripped keyword check for multi-word keywords.
+    // Strips spaces only from the keyword (not the text) and checks for a whole-word
+    // match in the original normalized text. This catches evasion like "killyou" for
+    // keyword "kill you" while \b boundaries prevent substring false-positives:
+    //   "kill you" → "killyou" → \bkillyou\b in "test killyou here" → MATCH ✓
+    //   "kill you" → "killyou" → \bkillyou\b in "skill your craft"  → NO MATCH ✓
+    // NOTE: \b considers digits as word characters, so "123killyou456" will NOT match
+    // because digits prevent the word boundary from firing. This is acceptable — digit-
+    // adjacent evasion is low-risk and avoiding false positives is more important.
+    if (/\s/.test(normalizedKw)) {
+      const strippedKw = normalizedKw.replace(/\s+/g, "");
+      if (strippedKw) {
+        const escapedStripped = strippedKw.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const strippedRegex = new RegExp(`\\b${escapedStripped}\\b`);
+        if (strippedRegex.test(normalizedText)) {
+          return kw;
+        }
+      }
+    }
   }
 
   return null;

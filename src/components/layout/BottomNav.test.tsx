@@ -37,6 +37,11 @@ vi.mock("@/i18n/navigation", () => ({
   getPathname: vi.fn(),
 }));
 
+vi.mock("next-auth/react", () => ({
+  useSession: () => ({ data: null, status: "unauthenticated" }),
+  SessionProvider: ({ children }: { children: React.ReactNode }) => children,
+}));
+
 vi.mock("@/providers/SocketProvider", () => ({
   useSocketContext: () => ({
     chatSocket: null,

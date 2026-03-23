@@ -1,9 +1,14 @@
-import { eq, desc, sql, and } from "drizzle-orm";
+import { eq, desc, sql, and, isNotNull, gte, isNull } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import { db } from "@/db";
 import { platformModerationKeywords, platformModerationActions } from "@/db/schema/moderation";
+import { communityPosts } from "@/db/schema/community-posts";
+import { communityArticles } from "@/db/schema/community-articles";
 import { platformReports } from "@/db/schema/reports";
 import { authUsers } from "@/db/schema/auth-users";
 import { memberDisciplineActions } from "@/db/schema/member-discipline";
+
+const reporterUsers = alias(authUsers, "reporter_users");
 import type { Keyword } from "@/lib/moderation-scanner";
 import type { PlatformModerationKeyword } from "@/db/schema/moderation";
 import { ApiError } from "@/lib/api-error";
@@ -27,6 +32,12 @@ export interface ModerationQueueItem {
   reportCount: number;
   authorAccountStatus: string | null;
   disciplineCount: number;
+  /** Whether a discipline action was issued for this specific moderation action */
+  disciplineLinked: boolean;
+  /** First reporter's user ID (null for auto-flagged items with no reports) */
+  reporterId: string | null;
+  /** First reporter's display name */
+  reporterName: string | null;
 }
 
 async function invalidateKeywordCache(): Promise<void> {
@@ -126,6 +137,31 @@ export async function listFlaggedContent(filters: {
     .groupBy(memberDisciplineActions.userId)
     .as("discipline_counts");
 
+  // Subquery to detect whether a discipline action was issued for THIS moderation action
+  const disciplineLinkedSubquery = db
+    .select({
+      moderationActionId: memberDisciplineActions.moderationActionId,
+      linked: sql<boolean>`true`.as("linked"),
+    })
+    .from(memberDisciplineActions)
+    .where(isNotNull(memberDisciplineActions.moderationActionId))
+    .groupBy(memberDisciplineActions.moderationActionId)
+    .as("discipline_linked");
+
+  // Subquery to get the first reporter (earliest report) per content item
+  const firstReporterSubquery = db
+    .select({
+      contentType: platformReports.contentType,
+      contentId: platformReports.contentId,
+      reporterId:
+        sql<string>`(array_agg(${platformReports.reporterId} ORDER BY ${platformReports.createdAt} ASC))[1]`.as(
+          "reporterId",
+        ),
+    })
+    .from(platformReports)
+    .groupBy(platformReports.contentType, platformReports.contentId)
+    .as("first_reporter");
+
   const [rows, countRows] = await Promise.all([
     db
       .select({
@@ -144,6 +180,9 @@ export async function listFlaggedContent(filters: {
         reportCount: sql<number>`coalesce(${reportCountSubquery.reportCount}, 0)`,
         authorAccountStatus: authUsers.accountStatus,
         disciplineCount: sql<number>`coalesce(${disciplineCountSubquery.disciplineCount}, 0)`,
+        disciplineLinked: sql<boolean>`coalesce(${disciplineLinkedSubquery.linked}, false)`,
+        reporterId: firstReporterSubquery.reporterId,
+        reporterName: reporterUsers.name,
       })
       .from(platformModerationActions)
       .leftJoin(
@@ -158,6 +197,15 @@ export async function listFlaggedContent(filters: {
         disciplineCountSubquery,
         sql`${platformModerationActions.contentAuthorId}::uuid = ${disciplineCountSubquery.userId}`,
       )
+      .leftJoin(
+        disciplineLinkedSubquery,
+        sql`${platformModerationActions.id} = ${disciplineLinkedSubquery.moderationActionId}`,
+      )
+      .leftJoin(
+        firstReporterSubquery,
+        sql`${firstReporterSubquery.contentType}::text = ${platformModerationActions.contentType}::text AND ${firstReporterSubquery.contentId} = ${platformModerationActions.contentId}`,
+      )
+      .leftJoin(reporterUsers, sql`${firstReporterSubquery.reporterId}::uuid = ${reporterUsers.id}`)
       .where(where)
       .orderBy(desc(platformModerationActions.flaggedAt))
       .limit(pageSize)
@@ -192,6 +240,29 @@ export async function getModerationActionById(id: string): Promise<ModerationQue
     .groupBy(memberDisciplineActions.userId)
     .as("discipline_counts");
 
+  const disciplineLinkedSubquery = db
+    .select({
+      moderationActionId: memberDisciplineActions.moderationActionId,
+      linked: sql<boolean>`true`.as("linked"),
+    })
+    .from(memberDisciplineActions)
+    .where(isNotNull(memberDisciplineActions.moderationActionId))
+    .groupBy(memberDisciplineActions.moderationActionId)
+    .as("discipline_linked");
+
+  const firstReporterSubquery = db
+    .select({
+      contentType: platformReports.contentType,
+      contentId: platformReports.contentId,
+      reporterId:
+        sql<string>`(array_agg(${platformReports.reporterId} ORDER BY ${platformReports.createdAt} ASC))[1]`.as(
+          "reporterId",
+        ),
+    })
+    .from(platformReports)
+    .groupBy(platformReports.contentType, platformReports.contentId)
+    .as("first_reporter");
+
   const rows = await db
     .select({
       id: platformModerationActions.id,
@@ -209,6 +280,9 @@ export async function getModerationActionById(id: string): Promise<ModerationQue
       reportCount: sql<number>`coalesce(${reportCountSubquery.reportCount}, 0)`,
       authorAccountStatus: authUsers.accountStatus,
       disciplineCount: sql<number>`coalesce(${disciplineCountSubquery.disciplineCount}, 0)`,
+      disciplineLinked: sql<boolean>`coalesce(${disciplineLinkedSubquery.linked}, false)`,
+      reporterId: firstReporterSubquery.reporterId,
+      reporterName: reporterUsers.name,
     })
     .from(platformModerationActions)
     .leftJoin(authUsers, sql`${platformModerationActions.contentAuthorId}::uuid = ${authUsers.id}`)
@@ -220,6 +294,15 @@ export async function getModerationActionById(id: string): Promise<ModerationQue
       disciplineCountSubquery,
       sql`${platformModerationActions.contentAuthorId}::uuid = ${disciplineCountSubquery.userId}`,
     )
+    .leftJoin(
+      disciplineLinkedSubquery,
+      sql`${platformModerationActions.id} = ${disciplineLinkedSubquery.moderationActionId}`,
+    )
+    .leftJoin(
+      firstReporterSubquery,
+      sql`${firstReporterSubquery.contentType}::text = ${platformModerationActions.contentType}::text AND ${firstReporterSubquery.contentId} = ${platformModerationActions.contentId}`,
+    )
+    .leftJoin(reporterUsers, sql`${firstReporterSubquery.reporterId}::uuid = ${reporterUsers.id}`)
     .where(eq(platformModerationActions.id, id))
     .limit(1);
 
@@ -244,6 +327,83 @@ export async function updateModerationAction(
       actionedAt: update.actionedAt,
     })
     .where(eq(platformModerationActions.id, id));
+}
+
+// ──────────────────────────────────────────────
+// Retrospective scan helpers
+// ──────────────────────────────────────────────
+
+/**
+ * Fetch a page of recent posts that do NOT already have a moderation action.
+ * Used for retrospective keyword scanning when a new keyword is added.
+ */
+export async function getRecentPostsForScan(
+  since: Date,
+  limit: number,
+  offset: number,
+): Promise<Array<{ id: string; authorId: string; content: string }>> {
+  const rows = await db
+    .select({
+      id: communityPosts.id,
+      authorId: communityPosts.authorId,
+      content: communityPosts.content,
+    })
+    .from(communityPosts)
+    .leftJoin(
+      platformModerationActions,
+      and(
+        sql`${platformModerationActions.contentType}::text = 'post'`,
+        eq(platformModerationActions.contentId, communityPosts.id),
+      ),
+    )
+    .where(
+      and(
+        isNull(communityPosts.deletedAt),
+        gte(communityPosts.createdAt, since),
+        isNull(platformModerationActions.id),
+      ),
+    )
+    .orderBy(desc(communityPosts.createdAt))
+    .limit(limit)
+    .offset(offset);
+  return rows as Array<{ id: string; authorId: string; content: string }>;
+}
+
+/**
+ * Fetch a page of recent published articles that do NOT already have a moderation action.
+ * Content is the concatenation of EN + Igbo body text for scanning.
+ */
+export async function getRecentArticlesForScan(
+  since: Date,
+  limit: number,
+  offset: number,
+): Promise<Array<{ id: string; authorId: string; content: string }>> {
+  const rows = await db
+    .select({
+      id: communityArticles.id,
+      authorId: communityArticles.authorId,
+      content: sql<string>`concat_ws(' ', ${communityArticles.content}, ${communityArticles.contentIgbo}, ${communityArticles.titleIgbo})`,
+    })
+    .from(communityArticles)
+    .leftJoin(
+      platformModerationActions,
+      and(
+        sql`${platformModerationActions.contentType}::text = 'article'`,
+        eq(platformModerationActions.contentId, communityArticles.id),
+      ),
+    )
+    .where(
+      and(
+        isNull(communityArticles.deletedAt),
+        eq(communityArticles.status, "published"),
+        gte(communityArticles.createdAt, since),
+        isNull(platformModerationActions.id),
+      ),
+    )
+    .orderBy(desc(communityArticles.createdAt))
+    .limit(limit)
+    .offset(offset);
+  return rows as Array<{ id: string; authorId: string; content: string }>;
 }
 
 export async function listModerationKeywords(filters?: {

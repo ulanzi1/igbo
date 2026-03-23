@@ -44,6 +44,7 @@ export function ReportDialog({ contentType, contentId, onClose }: ReportDialogPr
   const [reasonText, setReasonText] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [alreadyReported, setAlreadyReported] = useState(false);
+  const [showAbuseWarning, setShowAbuseWarning] = useState(false);
   const dialogRef = useRef<HTMLDivElement>(null);
   const firstRadioRef = useRef<HTMLInputElement>(null);
 
@@ -77,12 +78,15 @@ export function ReportDialog({ contentType, contentId, onClose }: ReportDialogPr
         }),
       });
       if (!res.ok) throw new Error("Report submission failed");
-      return res.json() as Promise<{ data: { alreadyReported?: boolean; reportId?: string } }>;
+      return res.json() as Promise<{
+        data: { alreadyReported?: boolean; reportId?: string; warning?: string };
+      }>;
     },
     onSuccess: (result) => {
       if (result.data.alreadyReported) {
         setAlreadyReported(true);
       } else {
+        if (result.data.warning === "repeated_reporting") setShowAbuseWarning(true);
         setSubmitted(true);
       }
     },
@@ -115,6 +119,11 @@ export function ReportDialog({ contentType, contentId, onClose }: ReportDialogPr
         {submitted ? (
           <div>
             <p className="text-sm text-muted-foreground mb-4">{t("success")}</p>
+            {showAbuseWarning && (
+              <p className="text-sm text-yellow-600 dark:text-yellow-400 mb-4" role="alert">
+                {t("abuseWarning")}
+              </p>
+            )}
             <button
               type="button"
               onClick={onClose}

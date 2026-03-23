@@ -14,7 +14,9 @@ const NAV_LINKS = [
   { key: "articles" as const, href: "/admin/articles" },
   { key: "members" as const, href: "/admin/members" },
   { key: "moderation" as const, href: "/admin/moderation" },
-  { key: "reports" as const, href: "/admin/reports" },
+  { key: "governance" as const, href: "/admin/governance" },
+  { key: "gamification" as const, href: "/admin/gamification" },
+  { key: "leaderboard" as const, href: "/admin/leaderboard" },
   { key: "analytics" as const, href: "/admin/analytics" },
   { key: "auditLog" as const, href: "/admin/audit-log" },
 ] as const;

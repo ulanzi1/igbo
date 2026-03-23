@@ -1516,4 +1516,237 @@ describe("account.discipline_issued handler", () => {
 
     expect(mockCreateNotification).not.toHaveBeenCalled();
   });
+
+  // ─── Epic 11 Stabilization — emailData tests (Task 6) ────────────────────
+
+  it("D1. warning passes emailData with discipline-warning templateId override", async () => {
+    mockFilterNotificationRecipients.mockResolvedValue([USER_ID]);
+    mockFindUserById.mockResolvedValue({
+      id: USER_ID,
+      email: "user@example.com",
+      name: "Emeka",
+      languagePreference: "en",
+    });
+    const handler = handlerRef.current.get("account.discipline_issued");
+    await handler?.({
+      userId: USER_ID,
+      disciplineType: "warning",
+      reason: "Posting spam",
+      disciplineId: "disc-1",
+      timestamp: new Date().toISOString(),
+    });
+
+    const notifEmailCalls = mockEnqueueEmailJob.mock.calls.filter((args) =>
+      String(args[0]).startsWith("notif-"),
+    );
+    expect(notifEmailCalls[0]?.[1]).toMatchObject({
+      to: "user@example.com",
+      templateId: "discipline-warning",
+      data: expect.objectContaining({
+        name: "Emeka",
+        reason: "Posting spam",
+        communityGuidelinesUrl: "/terms",
+      }) as unknown,
+    });
+  });
+
+  it("D2. suspension passes emailData with discipline-suspension templateId and duration/endsAt", async () => {
+    mockFilterNotificationRecipients.mockResolvedValue([USER_ID]);
+    mockFindUserById.mockResolvedValue({
+      id: USER_ID,
+      email: "user@example.com",
+      name: "Chidi",
+      languagePreference: "en",
+    });
+    const handler = handlerRef.current.get("account.discipline_issued");
+    await handler?.({
+      userId: USER_ID,
+      disciplineType: "suspension",
+      reason: "Repeated violations",
+      disciplineId: "disc-2",
+      suspensionEndsAt: "2026-04-01T00:00:00.000Z",
+      timestamp: new Date().toISOString(),
+    });
+
+    const notifEmailCalls = mockEnqueueEmailJob.mock.calls.filter((args) =>
+      String(args[0]).startsWith("notif-"),
+    );
+    expect(notifEmailCalls[0]?.[1]).toMatchObject({
+      to: "user@example.com",
+      templateId: "discipline-suspension",
+      data: expect.objectContaining({
+        name: "Chidi",
+        reason: "Repeated violations",
+        communityGuidelinesUrl: "/terms",
+      }) as unknown,
+    });
+    // endsAt is derived from suspensionEndsAt
+    const data = notifEmailCalls[0]?.[1]?.data as Record<string, unknown>;
+    expect(data?.endsAt).toBeTruthy();
+    expect(data?.duration).toContain("Until");
+  });
+
+  it("D3. suspension without suspensionEndsAt sets duration='Indefinite' and endsAt=null", async () => {
+    mockFilterNotificationRecipients.mockResolvedValue([USER_ID]);
+    mockFindUserById.mockResolvedValue({
+      id: USER_ID,
+      email: "user@example.com",
+      name: "Ada",
+      languagePreference: "en",
+    });
+    const handler = handlerRef.current.get("account.discipline_issued");
+    await handler?.({
+      userId: USER_ID,
+      disciplineType: "suspension",
+      reason: "Abusive behaviour",
+      disciplineId: "disc-ind",
+      timestamp: new Date().toISOString(),
+    });
+
+    const notifEmailCalls = mockEnqueueEmailJob.mock.calls.filter((args) =>
+      String(args[0]).startsWith("notif-"),
+    );
+    const data = notifEmailCalls[0]?.[1]?.data as Record<string, unknown>;
+    expect(data?.duration).toBe("Indefinite");
+    expect(data?.endsAt).toBeNull();
+  });
+
+  it("D4. ban calls enqueueEmailJob directly with discipline-ban template (no in-app)", async () => {
+    mockFindUserById.mockResolvedValue({
+      id: USER_ID,
+      email: "user@example.com",
+      name: "Banned User",
+      languagePreference: "en",
+    });
+    const handler = handlerRef.current.get("account.discipline_issued");
+    await handler?.({
+      userId: USER_ID,
+      disciplineType: "ban",
+      reason: "Hate speech",
+      disciplineId: "disc-ban-1",
+      timestamp: new Date().toISOString(),
+    });
+
+    expect(mockCreateNotification).not.toHaveBeenCalled();
+    expect(mockEnqueueEmailJob).toHaveBeenCalledWith(
+      expect.stringContaining(`discipline-ban-${USER_ID}`),
+      expect.objectContaining({
+        to: "user@example.com",
+        templateId: "discipline-ban",
+        data: expect.objectContaining({
+          name: "Banned User",
+          reason: "Hate speech",
+        }) as unknown,
+      }),
+    );
+  });
+
+  it("D5. ban does NOT call enqueueEmailJob when user has no email", async () => {
+    mockFindUserById.mockResolvedValue({
+      id: USER_ID,
+      email: null,
+      name: "Banned User",
+      languagePreference: "en",
+    });
+    const handler = handlerRef.current.get("account.discipline_issued");
+    await handler?.({
+      userId: USER_ID,
+      disciplineType: "ban",
+      reason: "Hate speech",
+      disciplineId: "disc-ban-2",
+      timestamp: new Date().toISOString(),
+    });
+
+    expect(mockEnqueueEmailJob).not.toHaveBeenCalled();
+  });
+});
+
+// ─── Epic 11 Stabilization — content.moderated handler tests (Task 6) ─────────
+
+describe("content.moderated handler (Epic 11 Stabilization)", () => {
+  const AUTHOR_ID = "00000000-0000-4000-8000-000000000085";
+  const CONTENT_ID = "00000000-0000-4000-8000-000000000095";
+
+  it("registers content.moderated listener", () => {
+    expect(handlerRef.current.has("content.moderated")).toBe(true);
+  });
+
+  it("C1. action=remove enqueues content-removal email to content author", async () => {
+    mockFindUserById.mockResolvedValue({
+      id: AUTHOR_ID,
+      email: "author@example.com",
+      name: "Nkem",
+      languagePreference: "en",
+    });
+    const handler = handlerRef.current.get("content.moderated");
+    await handler?.({
+      contentType: "post",
+      contentId: CONTENT_ID,
+      contentAuthorId: AUTHOR_ID,
+      action: "remove",
+      moderatorId: "mod-001",
+      reason: "Violates community guidelines",
+      contentPreview: "This is the offending content...",
+      timestamp: new Date().toISOString(),
+    });
+
+    expect(mockEnqueueEmailJob).toHaveBeenCalledWith(
+      expect.stringContaining(`content-removal-${CONTENT_ID}`),
+      expect.objectContaining({
+        to: "author@example.com",
+        templateId: "content-removal",
+        data: expect.objectContaining({
+          name: "Nkem",
+          contentType: "post",
+          contentPreview: "This is the offending content...",
+          reason: "Violates community guidelines",
+          communityGuidelinesUrl: "/terms",
+        }) as unknown,
+        locale: "en",
+      }),
+    );
+  });
+
+  it("C2. action=approve is a no-op (no email sent)", async () => {
+    const handler = handlerRef.current.get("content.moderated");
+    await handler?.({
+      contentType: "article",
+      contentId: CONTENT_ID,
+      contentAuthorId: AUTHOR_ID,
+      action: "approve",
+      moderatorId: "mod-001",
+      timestamp: new Date().toISOString(),
+    });
+
+    expect(mockEnqueueEmailJob).not.toHaveBeenCalled();
+    expect(mockFindUserById).not.toHaveBeenCalled();
+  });
+
+  it("C3. action=remove with no reason falls back to default reason string", async () => {
+    mockFindUserById.mockResolvedValue({
+      id: AUTHOR_ID,
+      email: "author@example.com",
+      name: "Nkem",
+      languagePreference: "ig",
+    });
+    const handler = handlerRef.current.get("content.moderated");
+    await handler?.({
+      contentType: "message",
+      contentId: CONTENT_ID,
+      contentAuthorId: AUTHOR_ID,
+      action: "remove",
+      moderatorId: "mod-001",
+      timestamp: new Date().toISOString(),
+    });
+
+    expect(mockEnqueueEmailJob).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        data: expect.objectContaining({
+          reason: "Violation of Community Guidelines",
+        }) as unknown,
+        locale: "ig",
+      }),
+    );
+  });
 });

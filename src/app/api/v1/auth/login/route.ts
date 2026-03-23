@@ -35,6 +35,14 @@ export const POST = withApiHandler(async (request: Request) => {
     });
   }
 
+  if (result.status === "banned") {
+    throw new ApiError({
+      title: "Forbidden",
+      status: 403,
+      detail: "banned",
+    });
+  }
+
   if (result.status === "invalid") {
     throw new ApiError({
       title: "Unauthorized",

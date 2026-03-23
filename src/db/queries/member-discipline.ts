@@ -88,3 +88,23 @@ export async function listSuspensionsExpiringBefore(date: Date) {
       ),
     );
 }
+
+export async function getActiveWarnings(
+  userId: string,
+): Promise<Array<{ id: string; reason: string; createdAt: Date }>> {
+  return db
+    .select({
+      id: memberDisciplineActions.id,
+      reason: memberDisciplineActions.reason,
+      createdAt: memberDisciplineActions.createdAt,
+    })
+    .from(memberDisciplineActions)
+    .where(
+      and(
+        eq(memberDisciplineActions.userId, userId),
+        eq(memberDisciplineActions.actionType, "warning"),
+        eq(memberDisciplineActions.status, "active"),
+      ),
+    )
+    .orderBy(desc(memberDisciplineActions.createdAt));
+}

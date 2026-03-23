@@ -146,12 +146,12 @@ export function GamificationRulesManager() {
       {/* ─── Points Rules ─────────────────────────────────────────────────────── */}
       <section>
         <h2 className="text-lg font-semibold mb-4">{t("pointsRules")}</h2>
-        {rulesQuery.isLoading && <p className="text-muted-foreground">{t("loading")}</p>}
-        {rulesQuery.isError && <p className="text-destructive">{t("loadError")}</p>}
+        {rulesQuery.isLoading && <p className="text-zinc-400">{t("loading")}</p>}
+        {rulesQuery.isError && <p className="text-red-400">{t("loadError")}</p>}
         {rulesQuery.data && (
-          <div className="border rounded-xl overflow-hidden">
+          <div className="border border-zinc-700 rounded-xl overflow-hidden">
             <table className="w-full text-sm">
-              <thead className="bg-muted">
+              <thead className="bg-zinc-800 text-zinc-200">
                 <tr>
                   <th className="text-left px-4 py-2">{t("activityType")}</th>
                   <th className="text-left px-4 py-2">{t("description")}</th>
@@ -168,13 +168,11 @@ export function GamificationRulesManager() {
                   return (
                     <tr key={rule.id} className="border-t">
                       <td className="px-4 py-2 font-mono text-xs">{rule.activityType}</td>
-                      <td className="px-4 py-2 text-xs text-muted-foreground">
-                        {rule.description ?? "—"}
-                      </td>
+                      <td className="px-4 py-2 text-xs text-zinc-400">{rule.description ?? "—"}</td>
                       <td className="px-4 py-2">
                         <input
                           type="number"
-                          className="w-20 border rounded px-2 py-1 text-sm"
+                          className="w-20 border border-zinc-700 rounded px-2 py-1 text-sm bg-zinc-800 text-white"
                           value={basePoints}
                           min={0}
                           onChange={(e) =>
@@ -208,7 +206,7 @@ export function GamificationRulesManager() {
                           <span className="text-green-600 text-xs mr-2">{t("saved")}</span>
                         )}
                         {rulesErrors[rule.id] && (
-                          <span className="text-destructive text-xs mr-2">{t("error")}</span>
+                          <span className="text-red-400 text-xs mr-2">{t("error")}</span>
                         )}
                         <button
                           className="px-3 py-1 rounded bg-primary text-primary-foreground text-xs"
@@ -236,12 +234,12 @@ export function GamificationRulesManager() {
       {/* ─── Posting Limits ───────────────────────────────────────────────────── */}
       <section>
         <h2 className="text-lg font-semibold mb-4">{t("postingLimits")}</h2>
-        {limitsQuery.isLoading && <p className="text-muted-foreground">{t("loading")}</p>}
-        {limitsQuery.isError && <p className="text-destructive">{t("loadError")}</p>}
+        {limitsQuery.isLoading && <p className="text-zinc-400">{t("loading")}</p>}
+        {limitsQuery.isError && <p className="text-red-400">{t("loadError")}</p>}
         {limitsQuery.data && (
-          <div className="border rounded-xl overflow-hidden">
+          <div className="border border-zinc-700 rounded-xl overflow-hidden">
             <table className="w-full text-sm">
-              <thead className="bg-muted">
+              <thead className="bg-zinc-800 text-zinc-200">
                 <tr>
                   <th className="text-left px-4 py-2">{t("tier")}</th>
                   <th className="text-left px-4 py-2">{t("baseLimit")}</th>
@@ -262,7 +260,7 @@ export function GamificationRulesManager() {
                       <td className="px-4 py-2">
                         <input
                           type="number"
-                          className="w-16 border rounded px-2 py-1 text-sm"
+                          className="w-16 border border-zinc-700 rounded px-2 py-1 text-sm bg-zinc-800 text-white"
                           value={baseLimit}
                           min={0}
                           onChange={(e) =>
@@ -280,7 +278,7 @@ export function GamificationRulesManager() {
                       <td className="px-4 py-2">
                         <input
                           type="number"
-                          className="w-16 border rounded px-2 py-1 text-sm"
+                          className="w-16 border border-zinc-700 rounded px-2 py-1 text-sm bg-zinc-800 text-white"
                           value={bonusLimit}
                           min={0}
                           onChange={(e) =>
@@ -298,7 +296,7 @@ export function GamificationRulesManager() {
                       <td className="px-4 py-2">
                         <input
                           type="number"
-                          className="w-24 border rounded px-2 py-1 text-sm"
+                          className="w-24 border border-zinc-700 rounded px-2 py-1 text-sm bg-zinc-800 text-white"
                           value={pointsThreshold}
                           min={0}
                           onChange={(e) =>
@@ -318,7 +316,7 @@ export function GamificationRulesManager() {
                           <span className="text-green-600 text-xs mr-2">{t("saved")}</span>
                         )}
                         {limitsErrors[limit.id] && (
-                          <span className="text-destructive text-xs mr-2">{t("error")}</span>
+                          <span className="text-red-400 text-xs mr-2">{t("error")}</span>
                         )}
                         <button
                           className="px-3 py-1 rounded bg-primary text-primary-foreground text-xs"
@@ -347,19 +345,19 @@ export function GamificationRulesManager() {
       {/* ─── Daily Cap ────────────────────────────────────────────────────────── */}
       <section>
         <h2 className="text-lg font-semibold mb-4">{t("dailyCap")}</h2>
-        {dailyCapQuery.isLoading && <p className="text-muted-foreground">{t("loading")}</p>}
-        {dailyCapQuery.isError && <p className="text-destructive">{t("loadError")}</p>}
+        {dailyCapQuery.isLoading && <p className="text-zinc-400">{t("loading")}</p>}
+        {dailyCapQuery.isError && <p className="text-red-400">{t("loadError")}</p>}
         {dailyCapQuery.data && (
-          <div className="border rounded-xl p-4 bg-card flex items-center gap-4">
+          <div className="border border-zinc-700 rounded-xl p-4 bg-zinc-900 flex items-center gap-4">
             <input
               type="number"
-              className="w-28 border rounded px-3 py-2 text-sm"
+              className="w-28 border border-zinc-700 rounded px-3 py-2 text-sm bg-zinc-800 text-white"
               value={dailyCapEdit ?? dailyCapQuery.data.value}
               min={1}
               onChange={(e) => setDailyCapEdit(parseInt(e.target.value, 10) || 1)}
             />
             {dailyCapSaved && <span className="text-green-600 text-xs">{t("saved")}</span>}
-            {dailyCapError && <span className="text-destructive text-xs">{t("error")}</span>}
+            {dailyCapError && <span className="text-red-400 text-xs">{t("error")}</span>}
             <button
               className="px-4 py-2 rounded bg-primary text-primary-foreground text-sm"
               disabled={dailyCapMutation.isPending}

@@ -114,4 +114,32 @@ describe("LoginForm", () => {
       });
     });
   });
+
+  // ─── Epic 11 Stabilization — banned user login experience ─────────────────
+
+  it("shows ban message on mount when banned=true prop is passed", () => {
+    render(<LoginForm banned={true} />);
+    expect(screen.getByText(/bannedMessage/i)).toBeInTheDocument();
+  });
+
+  it("shows ban message when API returns 403", async () => {
+    mockFetch.mockResolvedValue({
+      ok: false,
+      status: 403,
+      json: async () => ({ detail: "banned" }),
+    });
+
+    render(<LoginForm />);
+    fireEvent.change(screen.getByLabelText(/emailLabel/i), {
+      target: { value: "banned@example.com" },
+    });
+    fireEvent.change(screen.getByLabelText(/passwordLabel/i), {
+      target: { value: "Pass1!" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /submitButton/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/bannedMessage/i)).toBeInTheDocument();
+    });
+  });
 });

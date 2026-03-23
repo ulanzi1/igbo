@@ -96,7 +96,7 @@ describe("PUT /api/v1/user/notification-preferences/quiet-hours", () => {
         quietHoursTimezone: "UTC",
       }),
     );
-    expect(mockRedisSet).toHaveBeenCalledWith("dnd:user-1", "1", { ex: 5400 });
+    expect(mockRedisSet).toHaveBeenCalledWith("dnd:user-1", "1", "EX", 5400);
   });
 
   it("clears Redis DnD key when not currently in quiet hours", async () => {

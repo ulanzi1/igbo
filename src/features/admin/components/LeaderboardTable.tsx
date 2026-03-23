@@ -40,6 +40,10 @@ export function LeaderboardTable() {
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [activityType, setActivityType] = useState("");
+  const [sortCol, setSortCol] = useState<"rank" | "displayName" | "totalPoints" | "badgeType">(
+    "rank",
+  );
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
 
   const limit = 25;
 
@@ -91,19 +95,47 @@ export function LeaderboardTable() {
     setPage(1);
   }
 
+  function handleSort(col: "rank" | "displayName" | "totalPoints" | "badgeType") {
+    if (col === sortCol) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortCol(col);
+      setSortDir("asc");
+    }
+  }
+
+  const sortedLeaderboard = (() => {
+    const items = [...(leaderboardQuery.data?.data ?? [])];
+    return items.sort((a, b) => {
+      let cmp = 0;
+      if (sortCol === "displayName") {
+        cmp = (a.displayName ?? "").localeCompare(b.displayName ?? "");
+      } else if (sortCol === "totalPoints") {
+        cmp = a.totalPoints - b.totalPoints;
+      } else if (sortCol === "badgeType") {
+        cmp = (a.badgeType ?? "").localeCompare(b.badgeType ?? "");
+      }
+      // sortCol === "rank": cmp remains 0, preserving server order
+      return sortDir === "asc" ? cmp : -cmp;
+    });
+  })();
+
+  const sortIndicator = (col: "rank" | "displayName" | "totalPoints" | "badgeType") =>
+    sortCol === col ? (sortDir === "asc" ? " ↑" : " ↓") : "";
+
   const activeQuery = view === "leaderboard" ? leaderboardQuery : flaggedQuery;
   const totalPages = activeQuery.data ? Math.ceil(activeQuery.data.pagination.total / limit) : 0;
 
   return (
     <div className="space-y-6">
       {/* ─── Tab Toggle ─────────────────────────────────────────────────────── */}
-      <div className="flex gap-2 border-b pb-2">
+      <div className="flex gap-2 border-b border-zinc-700 pb-2">
         <button
           onClick={() => handleViewChange("leaderboard")}
           className={`px-4 py-2 text-sm font-medium rounded-t ${
             view === "leaderboard"
-              ? "border-b-2 border-primary text-primary"
-              : "text-muted-foreground hover:text-foreground"
+              ? "border-b-2 border-white text-white"
+              : "text-zinc-400 hover:text-white"
           }`}
         >
           {t("leaderboardTab")}
@@ -112,8 +144,8 @@ export function LeaderboardTable() {
           onClick={() => handleViewChange("flagged")}
           className={`px-4 py-2 text-sm font-medium rounded-t ${
             view === "flagged"
-              ? "border-b-2 border-primary text-primary"
-              : "text-muted-foreground hover:text-foreground"
+              ? "border-b-2 border-white text-white"
+              : "text-zinc-400 hover:text-white"
           }`}
         >
           {t("flaggedUsersTab")}
@@ -126,7 +158,7 @@ export function LeaderboardTable() {
           {/* Filters */}
           <div className="flex flex-wrap gap-4 items-end">
             <div className="flex flex-col gap-1">
-              <label className="text-xs text-muted-foreground">{t("dateFrom")}</label>
+              <label className="text-xs text-zinc-400">{t("dateFrom")}</label>
               <input
                 type="date"
                 value={dateFrom}
@@ -134,11 +166,11 @@ export function LeaderboardTable() {
                   setDateFrom(e.target.value);
                   setPage(1);
                 }}
-                className="border rounded px-2 py-1 text-sm"
+                className="border border-zinc-700 rounded px-2 py-1 text-sm bg-zinc-800 text-white"
               />
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-xs text-muted-foreground">{t("dateTo")}</label>
+              <label className="text-xs text-zinc-400">{t("dateTo")}</label>
               <input
                 type="date"
                 value={dateTo}
@@ -146,18 +178,18 @@ export function LeaderboardTable() {
                   setDateTo(e.target.value);
                   setPage(1);
                 }}
-                className="border rounded px-2 py-1 text-sm"
+                className="border border-zinc-700 rounded px-2 py-1 text-sm bg-zinc-800 text-white"
               />
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-xs text-muted-foreground">{t("activityType")}</label>
+              <label className="text-xs text-zinc-400">{t("activityType")}</label>
               <select
                 value={activityType}
                 onChange={(e) => {
                   setActivityType(e.target.value);
                   setPage(1);
                 }}
-                className="border rounded px-2 py-1 text-sm"
+                className="border border-zinc-700 rounded px-2 py-1 text-sm bg-zinc-800 text-white"
               >
                 <option value="">{t("allTypes")}</option>
                 <option value="like_received">{t("likeReceived")}</option>
@@ -171,7 +203,7 @@ export function LeaderboardTable() {
           {leaderboardQuery.isLoading && (
             <div className="animate-pulse space-y-2">
               {[...Array(5)].map((_, i) => (
-                <div key={i} className="h-10 bg-muted rounded" />
+                <div key={i} className="h-10 bg-zinc-800 rounded" />
               ))}
             </div>
           )}
@@ -179,40 +211,76 @@ export function LeaderboardTable() {
           {leaderboardQuery.data && (
             <>
               {leaderboardQuery.data.data.length === 0 ? (
-                <p className="text-muted-foreground text-sm py-8 text-center">{t("noResults")}</p>
+                <p className="text-zinc-400 text-sm py-8 text-center">{t("noResults")}</p>
               ) : (
-                <div className="border rounded-xl overflow-hidden">
+                <div className="border border-zinc-700 rounded-xl overflow-hidden">
                   <table className="w-full text-sm">
-                    <thead className="bg-muted">
+                    <thead className="bg-zinc-800 text-zinc-200">
                       <tr>
-                        <th className="text-left px-4 py-2">{t("rank")}</th>
-                        <th className="text-left px-4 py-2">{t("displayName")}</th>
+                        <th className="text-left px-4 py-2">
+                          <button
+                            className="hover:text-white"
+                            onClick={() => handleSort("rank")}
+                            aria-label={`${t("rank")} sort`}
+                          >
+                            {t("rank")}
+                            {sortIndicator("rank")}
+                          </button>
+                        </th>
+                        <th className="text-left px-4 py-2">
+                          <button
+                            className="hover:text-white"
+                            onClick={() => handleSort("displayName")}
+                            aria-label={`${t("displayName")} sort`}
+                          >
+                            {t("displayName")}
+                            {sortIndicator("displayName")}
+                          </button>
+                        </th>
                         <th className="text-left px-4 py-2">{t("email")}</th>
-                        <th className="text-right px-4 py-2">{t("totalPoints")}</th>
-                        <th className="text-center px-4 py-2">{t("badge")}</th>
+                        <th className="text-right px-4 py-2">
+                          <button
+                            className="hover:text-white"
+                            onClick={() => handleSort("totalPoints")}
+                            aria-label={`${t("totalPoints")} sort`}
+                          >
+                            {t("totalPoints")}
+                            {sortIndicator("totalPoints")}
+                          </button>
+                        </th>
+                        <th className="text-center px-4 py-2">
+                          <button
+                            className="hover:text-white"
+                            onClick={() => handleSort("badgeType")}
+                            aria-label={`${t("badge")} sort`}
+                          >
+                            {t("badge")}
+                            {sortIndicator("badgeType")}
+                          </button>
+                        </th>
                         <th className="text-left px-4 py-2">{t("memberSince")}</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {leaderboardQuery.data.data.map((user, index) => (
+                      {sortedLeaderboard.map((user, index) => (
                         <tr
                           key={user.userId}
-                          className="border-t cursor-pointer hover:bg-muted"
+                          className="border-t border-zinc-700 cursor-pointer hover:bg-zinc-800"
                           role="link"
                           onClick={() => handleRowClick(user.userId)}
                         >
-                          <td className="px-4 py-2 font-mono text-xs text-muted-foreground">
+                          <td className="px-4 py-2 font-mono text-xs text-zinc-400">
                             {(page - 1) * limit + index + 1}
                           </td>
                           <td className="px-4 py-2 font-medium">{user.displayName ?? "—"}</td>
-                          <td className="px-4 py-2 text-muted-foreground">{user.email}</td>
+                          <td className="px-4 py-2 text-zinc-400">{user.email}</td>
                           <td className="px-4 py-2 text-right font-mono">
                             {user.totalPoints.toLocaleString()}
                           </td>
                           <td className="px-4 py-2 text-center">
                             <VerificationBadge badgeType={user.badgeType} size="sm" />
                           </td>
-                          <td className="px-4 py-2 text-muted-foreground text-xs">
+                          <td className="px-4 py-2 text-zinc-400 text-xs">
                             {new Date(user.memberSince).toLocaleDateString()}
                           </td>
                         </tr>
@@ -225,21 +293,21 @@ export function LeaderboardTable() {
               {/* Pagination */}
               {totalPages > 1 && (
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">
+                  <span className="text-zinc-400">
                     {t("page")} {page} {t("of")} {totalPages}
                   </span>
                   <div className="flex gap-2">
                     <button
                       disabled={page <= 1}
                       onClick={() => setPage((p) => p - 1)}
-                      className="px-3 py-1 border rounded text-sm disabled:opacity-50"
+                      className="px-3 py-1 border border-zinc-700 rounded text-sm text-zinc-200 bg-zinc-900 disabled:opacity-50"
                     >
                       &larr;
                     </button>
                     <button
                       disabled={page >= totalPages}
                       onClick={() => setPage((p) => p + 1)}
-                      className="px-3 py-1 border rounded text-sm disabled:opacity-50"
+                      className="px-3 py-1 border border-zinc-700 rounded text-sm text-zinc-200 bg-zinc-900 disabled:opacity-50"
                     >
                       &rarr;
                     </button>
@@ -257,7 +325,7 @@ export function LeaderboardTable() {
           {flaggedQuery.isLoading && (
             <div className="animate-pulse space-y-2">
               {[...Array(5)].map((_, i) => (
-                <div key={i} className="h-10 bg-muted rounded" />
+                <div key={i} className="h-10 bg-zinc-800 rounded" />
               ))}
             </div>
           )}
@@ -265,13 +333,11 @@ export function LeaderboardTable() {
           {flaggedQuery.data && (
             <>
               {flaggedQuery.data.data.length === 0 ? (
-                <p className="text-muted-foreground text-sm py-8 text-center">
-                  {t("noFlaggedUsers")}
-                </p>
+                <p className="text-zinc-400 text-sm py-8 text-center">{t("noFlaggedUsers")}</p>
               ) : (
-                <div className="border rounded-xl overflow-hidden">
+                <div className="border border-zinc-700 rounded-xl overflow-hidden">
                   <table className="w-full text-sm">
-                    <thead className="bg-muted">
+                    <thead className="bg-zinc-800 text-zinc-200">
                       <tr>
                         <th className="text-left px-4 py-2">{t("displayName")}</th>
                         <th className="text-right px-4 py-2">{t("throttleCount")}</th>
@@ -283,16 +349,16 @@ export function LeaderboardTable() {
                       {flaggedQuery.data.data.map((user) => (
                         <tr
                           key={user.userId}
-                          className="border-t cursor-pointer hover:bg-muted"
+                          className="border-t border-zinc-700 cursor-pointer hover:bg-zinc-800"
                           role="link"
                           onClick={() => handleRowClick(user.userId)}
                         >
                           <td className="px-4 py-2 font-medium">{user.displayName ?? "—"}</td>
                           <td className="px-4 py-2 text-right font-mono">{user.throttleCount}</td>
-                          <td className="px-4 py-2 text-muted-foreground text-xs">
+                          <td className="px-4 py-2 text-zinc-400 text-xs">
                             {new Date(user.lastThrottledAt).toLocaleString()}
                           </td>
-                          <td className="px-4 py-2 text-muted-foreground text-xs">
+                          <td className="px-4 py-2 text-zinc-400 text-xs">
                             {user.reasons.join(", ") || "—"}
                           </td>
                         </tr>
@@ -305,21 +371,21 @@ export function LeaderboardTable() {
               {/* Pagination */}
               {totalPages > 1 && (
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">
+                  <span className="text-zinc-400">
                     {t("page")} {page} {t("of")} {totalPages}
                   </span>
                   <div className="flex gap-2">
                     <button
                       disabled={page <= 1}
                       onClick={() => setPage((p) => p - 1)}
-                      className="px-3 py-1 border rounded text-sm disabled:opacity-50"
+                      className="px-3 py-1 border border-zinc-700 rounded text-sm text-zinc-200 bg-zinc-900 disabled:opacity-50"
                     >
                       &larr;
                     </button>
                     <button
                       disabled={page >= totalPages}
                       onClick={() => setPage((p) => p + 1)}
-                      className="px-3 py-1 border rounded text-sm disabled:opacity-50"
+                      className="px-3 py-1 border border-zinc-700 rounded text-sm text-zinc-200 bg-zinc-900 disabled:opacity-50"
                     >
                       &rarr;
                     </button>

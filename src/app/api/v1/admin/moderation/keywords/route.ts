@@ -3,6 +3,7 @@ import { successResponse } from "@/lib/api-response";
 import { ApiError } from "@/lib/api-error";
 import { requireAdminSession } from "@/lib/admin-auth";
 import { listModerationKeywords, addModerationKeyword } from "@/db/queries/moderation";
+import { eventBus } from "@/services/event-bus";
 import { z } from "zod/v4";
 
 const addSchema = z.object({
@@ -37,5 +38,18 @@ export const POST = withApiHandler(async (request: Request) => {
   }
 
   const keyword = await addModerationKeyword({ ...parsed.data, createdBy: adminId });
+
+  try {
+    eventBus.emit("moderation.keyword_added", {
+      keyword: parsed.data.keyword,
+      severity: parsed.data.severity,
+      category: parsed.data.category,
+      createdBy: adminId,
+      timestamp: new Date().toISOString(),
+    });
+  } catch {
+    // Non-critical — keyword already persisted
+  }
+
   return successResponse({ keyword }, undefined, 201);
 });

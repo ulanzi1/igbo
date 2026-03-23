@@ -175,7 +175,7 @@ describe("PATCH /api/v1/admin/moderation/[actionId]", () => {
     );
     expect(mockEventBusEmit).toHaveBeenCalledWith(
       "content.moderated",
-      expect.objectContaining({ action: "remove", contentType: "post" }),
+      expect.objectContaining({ action: "remove", contentType: "post", contentPreview: "bad" }),
     );
   });
 

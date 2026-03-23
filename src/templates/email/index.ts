@@ -25,6 +25,10 @@ import { render as renderNotificationNewFollower } from "./notification-new-foll
 import { render as renderNotificationDigest } from "./notification-digest";
 import { render as renderNotificationMention } from "./notification-mention";
 import { render as renderNotificationGroupActivity } from "./notification-group-activity";
+import { render as renderDisciplineWarning } from "./discipline-warning";
+import { render as renderDisciplineSuspension } from "./discipline-suspension";
+import { render as renderDisciplineBan } from "./discipline-ban";
+import { render as renderContentRemoval } from "./content-removal";
 import type { EmailTemplateResult, EmailTemplateRenderer } from "./types";
 
 export type { EmailTemplateResult, EmailTemplateRenderer };
@@ -56,6 +60,10 @@ const REGISTRY: Record<string, EmailTemplateRenderer> = {
   "notification-digest": renderNotificationDigest,
   "notification-mention": renderNotificationMention,
   "notification-group-activity": renderNotificationGroupActivity,
+  "discipline-warning": renderDisciplineWarning,
+  "discipline-suspension": renderDisciplineSuspension,
+  "discipline-ban": renderDisciplineBan,
+  "content-removal": renderContentRemoval,
 };
 
 export function renderTemplate(

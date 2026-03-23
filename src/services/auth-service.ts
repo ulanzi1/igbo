@@ -149,6 +149,7 @@ export type LoginResult =
   | { status: "requires_2fa"; challengeToken: string }
   | { status: "requires_2fa_setup"; challengeToken: string }
   | { status: "locked"; lockoutSeconds: number }
+  | { status: "banned"; reason: string; appealEmail: string; appealWindow: string }
   | { status: "invalid" };
 
 export async function initiateLogin(
@@ -164,6 +165,17 @@ export async function initiateLogin(
   }
 
   const user = await findUserByEmail(email);
+
+  // Ban check: show specific ban message for banned accounts (still timing-safe)
+  if (user?.accountStatus === "BANNED") {
+    await bcryptjs.compare(password, DUMMY_HASH); // timing safety
+    return {
+      status: "banned",
+      reason: user.adminNotes ?? "Terms of Service violation",
+      appealEmail: "abuse@igbo.global",
+      appealWindow: "14 days",
+    };
+  }
 
   // Uniform error — no enumeration; always perform bcrypt compare to prevent timing attacks
   if (!user || user.accountStatus !== "APPROVED" || !user.passwordHash) {

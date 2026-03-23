@@ -28,6 +28,36 @@ vi.mock("@/i18n/navigation", () => ({
   redirect: vi.fn(),
 }));
 
+vi.mock("@/env", () => ({
+  env: {
+    DATABASE_URL: "postgres://test",
+    REDIS_URL: "redis://localhost:6379",
+    ADMIN_EMAIL: "admin@test.com",
+    ADMIN_PASSWORD: "testpassword",
+    AUTH_SECRET: "test-secret",
+    NEXT_PUBLIC_APP_URL: "http://localhost:3000",
+    NEXT_PUBLIC_REALTIME_URL: "http://localhost:3001",
+    HETZNER_S3_ENDPOINT: "https://s3.test",
+    HETZNER_S3_REGION: "eu-central",
+    HETZNER_S3_BUCKET: "test-bucket",
+    HETZNER_S3_ACCESS_KEY_ID: "test-key",
+    HETZNER_S3_SECRET_ACCESS_KEY: "test-secret-key",
+    HETZNER_S3_PUBLIC_URL: "https://s3.test/bucket",
+  },
+}));
+
+vi.mock("next-auth/react", () => ({
+  useSession: () => ({ data: null, status: "unauthenticated" }),
+}));
+
+vi.mock("@/features/groups", () => ({
+  RecommendedGroupsWidget: () => <div data-testid="recommended-groups-widget" />,
+}));
+
+vi.mock("@/features/events", () => ({
+  UpcomingEventsWidget: () => <div data-testid="upcoming-events-widget" />,
+}));
+
 vi.mock("lucide-react", () => ({
   NewspaperIcon: () => <span data-testid="newspaper-icon" />,
 }));

@@ -17,6 +17,8 @@ const mockGetActiveKeywords = vi.hoisted(() => vi.fn());
 const mockInsertModerationAction = vi.hoisted(() => vi.fn());
 const mockGetPostContent = vi.hoisted(() => vi.fn());
 const mockGetArticleContent = vi.hoisted(() => vi.fn());
+const mockGetRecentPostsForScan = vi.hoisted(() => vi.fn().mockResolvedValue([]));
+const mockGetRecentArticlesForScan = vi.hoisted(() => vi.fn().mockResolvedValue([]));
 
 const mockRedisGet = vi.hoisted(() => vi.fn().mockResolvedValue(null));
 const mockRedisSet = vi.hoisted(() => vi.fn().mockResolvedValue("OK"));
@@ -36,6 +38,8 @@ vi.mock("@/services/event-bus", () => ({
 vi.mock("@/db/queries/moderation", () => ({
   getActiveKeywords: (...args: unknown[]) => mockGetActiveKeywords(...args),
   insertModerationAction: (...args: unknown[]) => mockInsertModerationAction(...args),
+  getRecentPostsForScan: (...args: unknown[]) => mockGetRecentPostsForScan(...args),
+  getRecentArticlesForScan: (...args: unknown[]) => mockGetRecentArticlesForScan(...args),
 }));
 
 const mockGetReportCountByContent = vi.hoisted(() => vi.fn().mockResolvedValue(1));
@@ -83,6 +87,7 @@ import {
   handleArticleFlaggingCheck,
   handleMessageScanned,
   handleReportCreated,
+  handleKeywordAdded,
 } from "./moderation-service";
 
 const KEYWORDS = [
@@ -275,6 +280,7 @@ describe("handleReportCreated", () => {
   it("calls insertModerationAction for queue-supported content types", async () => {
     mockGetReportCountByContent.mockResolvedValue(2);
     mockInsertModerationAction.mockResolvedValue(null); // ON CONFLICT DO NOTHING
+    mockGetPostContent.mockResolvedValue("This is reported post content");
 
     await handleReportCreated({
       reportId: "rpt-1",
@@ -286,12 +292,57 @@ describe("handleReportCreated", () => {
     });
 
     expect(mockGetReportCountByContent).toHaveBeenCalledWith("post", "post-1");
+    expect(mockGetPostContent).toHaveBeenCalledWith("post-1");
     expect(mockInsertModerationAction).toHaveBeenCalledWith(
       expect.objectContaining({
         contentType: "post",
         contentId: "post-1",
         contentAuthorId: "author-abc",
+        contentPreview: "This is reported post content",
         autoFlagged: false,
+      }),
+    );
+  });
+
+  it("fetches article content preview for reported articles", async () => {
+    mockGetReportCountByContent.mockResolvedValue(1);
+    mockInsertModerationAction.mockResolvedValue(null);
+    mockGetArticleContent.mockResolvedValue("Article body text here");
+
+    await handleReportCreated({
+      reportId: "rpt-art-1",
+      contentType: "article",
+      contentId: "art-1",
+      reasonCategory: "misinformation",
+      contentAuthorId: "author-art",
+      timestamp: new Date().toISOString(),
+    });
+
+    expect(mockGetArticleContent).toHaveBeenCalledWith("art-1");
+    expect(mockInsertModerationAction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        contentPreview: "Article body text here",
+      }),
+    );
+  });
+
+  it("falls back to null preview when content fetch fails", async () => {
+    mockGetReportCountByContent.mockResolvedValue(1);
+    mockInsertModerationAction.mockResolvedValue(null);
+    mockGetPostContent.mockRejectedValue(new Error("DB error"));
+
+    await handleReportCreated({
+      reportId: "rpt-err",
+      contentType: "post",
+      contentId: "post-err",
+      reasonCategory: "spam",
+      contentAuthorId: "author-err",
+      timestamp: new Date().toISOString(),
+    });
+
+    expect(mockInsertModerationAction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        contentPreview: null,
       }),
     );
   });
@@ -338,5 +389,100 @@ describe("handleReportCreated", () => {
         flagReason: expect.stringContaining("5 reports"),
       }),
     );
+  });
+});
+
+// ─── Task 11: Retrospective keyword scan ──────────────────────────────────────
+
+const KEYWORD_ADDED_PAYLOAD = {
+  keyword: "badword",
+  severity: "high" as const,
+  category: "hate_speech",
+  createdBy: "admin-1",
+  timestamp: new Date().toISOString(),
+};
+
+describe("handleKeywordAdded", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockInsertModerationAction.mockResolvedValue({ id: "action-new" });
+    mockGetRecentPostsForScan.mockResolvedValue([]);
+    mockGetRecentArticlesForScan.mockResolvedValue([]);
+  });
+
+  it("registers handler for moderation.keyword_added", () => {
+    expect(handlerRef.current.has("moderation.keyword_added")).toBe(true);
+  });
+
+  it("scans recent posts and flags matching content", async () => {
+    mockGetRecentPostsForScan
+      .mockResolvedValueOnce([
+        { id: "post-1", authorId: "author-a", content: "This has badword in it" },
+      ])
+      .mockResolvedValue([]);
+
+    await handleKeywordAdded(KEYWORD_ADDED_PAYLOAD);
+
+    expect(mockInsertModerationAction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        contentType: "post",
+        contentId: "post-1",
+        contentAuthorId: "author-a",
+        keywordMatched: "badword",
+      }),
+    );
+  });
+
+  it("scans recent articles and flags matching content", async () => {
+    mockGetRecentArticlesForScan
+      .mockResolvedValueOnce([
+        { id: "article-1", authorId: "author-b", content: "Article mentioning badword" },
+      ])
+      .mockResolvedValue([]);
+
+    await handleKeywordAdded(KEYWORD_ADDED_PAYLOAD);
+
+    expect(mockInsertModerationAction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        contentType: "article",
+        contentId: "article-1",
+        keywordMatched: "badword",
+      }),
+    );
+  });
+
+  it("paginates through multiple batches when >100 items exist", async () => {
+    // First batch: 100 posts (simulate full batch), second batch: empty (end)
+    const batch1 = Array.from({ length: 100 }, (_, i) => ({
+      id: `post-batch-${i}`,
+      authorId: `author-${i}`,
+      content: i === 50 ? "This has badword here" : "Clean content",
+    }));
+    mockGetRecentPostsForScan.mockResolvedValueOnce(batch1).mockResolvedValueOnce([]); // end of posts
+
+    await handleKeywordAdded(KEYWORD_ADDED_PAYLOAD);
+
+    // Should have been called twice for posts (batch 1 + empty batch 2)
+    expect(mockGetRecentPostsForScan).toHaveBeenCalledTimes(2);
+    // Only the matching post should be flagged
+    expect(mockInsertModerationAction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        contentType: "post",
+        contentId: "post-batch-50",
+        keywordMatched: "badword",
+      }),
+    );
+  });
+
+  it("does not call insertModerationAction when no content matches the keyword", async () => {
+    mockGetRecentPostsForScan
+      .mockResolvedValueOnce([
+        { id: "post-2", authorId: "author-c", content: "Clean content here" },
+      ])
+      .mockResolvedValue([]);
+
+    await handleKeywordAdded(KEYWORD_ADDED_PAYLOAD);
+
+    expect(mockInsertModerationAction).not.toHaveBeenCalled();
   });
 });

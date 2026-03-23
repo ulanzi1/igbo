@@ -15,6 +15,7 @@ interface DisciplineRecord {
 interface ModerationItem {
   id: string;
   contentType: "post" | "article" | "message";
+  contentId: string;
   contentPreview: string | null;
   authorName: string | null;
   contentAuthorId: string;
@@ -23,7 +24,11 @@ interface ModerationItem {
   autoFlagged: boolean;
   flaggedAt: string;
   status: "pending" | "reviewed" | "dismissed";
+  visibilityOverride: "visible" | "hidden";
+  disciplineLinked: boolean;
   reportCount: number;
+  reporterId: string | null;
+  reporterName: string | null;
 }
 
 interface ModerationResponse {
@@ -34,6 +39,22 @@ interface ModerationResponse {
 interface ModerationDetailResponse {
   data: { action: ModerationItem; disciplineHistory: DisciplineRecord[] | null };
 }
+
+type OutcomeTagVariant = "approved" | "removed" | "warned" | "dismissed";
+
+function resolveOutcomeTag(item: ModerationItem): OutcomeTagVariant {
+  if (item.status === "dismissed") return "dismissed";
+  if (item.visibilityOverride === "hidden") return "removed";
+  if (item.disciplineLinked) return "warned";
+  return "approved";
+}
+
+const OUTCOME_TAG_CLASSES: Record<OutcomeTagVariant, string> = {
+  approved: "bg-green-800 text-green-100",
+  removed: "bg-red-800 text-red-100",
+  warned: "bg-yellow-700 text-yellow-100",
+  dismissed: "bg-zinc-700 text-zinc-300",
+};
 
 function highlightKeyword(text: string, keyword: string): React.ReactNode {
   const idx = text.toLowerCase().indexOf(keyword.toLowerCase());
@@ -190,6 +211,7 @@ export function ModerationQueue() {
               <tr className="border-b border-zinc-700 text-zinc-400 text-left">
                 <th className="pb-2 pr-4 font-medium">{t("moderation.table.content")}</th>
                 <th className="pb-2 pr-4 font-medium">{t("moderation.table.author")}</th>
+                <th className="pb-2 pr-4 font-medium">{t("moderation.table.reporter")}</th>
                 <th className="pb-2 pr-4 font-medium">{t("moderation.table.type")}</th>
                 <th className="pb-2 pr-4 font-medium">{t("moderation.table.source")}</th>
                 <th className="pb-2 pr-4 font-medium">{t("moderation.table.reason")}</th>
@@ -202,14 +224,43 @@ export function ModerationQueue() {
                 <tr key={item.id} className="border-b border-zinc-800">
                   <td className="py-3 pr-4 max-w-xs">
                     <span className="text-zinc-200 truncate block">
-                      {item.contentPreview
-                        ? item.keywordMatched
-                          ? highlightKeyword(item.contentPreview, item.keywordMatched)
-                          : item.contentPreview
-                        : "—"}
+                      {item.contentPreview ? (
+                        item.keywordMatched ? (
+                          highlightKeyword(item.contentPreview, item.keywordMatched)
+                        ) : (
+                          item.contentPreview
+                        )
+                      ) : (
+                        <a
+                          href={
+                            item.contentType === "article"
+                              ? `/articles/${item.contentId}`
+                              : item.contentType === "post"
+                                ? `/feed#post-${item.contentId}`
+                                : undefined
+                          }
+                          className="text-zinc-400 underline hover:text-zinc-200 text-xs"
+                          data-testid={`view-content-link-${item.id}`}
+                        >
+                          {t("moderation.viewContent")}
+                        </a>
+                      )}
                     </span>
                   </td>
                   <td className="py-3 pr-4 text-zinc-300">{item.authorName ?? "Unknown"}</td>
+                  <td className="py-3 pr-4 text-zinc-300">
+                    {item.reporterName && item.reporterId ? (
+                      <a
+                        href={`/admin/members?userId=${item.reporterId}`}
+                        className="text-zinc-300 underline hover:text-white text-xs"
+                        data-testid={`reporter-link-${item.id}`}
+                      >
+                        {item.reporterName}
+                      </a>
+                    ) : (
+                      <span className="text-zinc-600 text-xs">—</span>
+                    )}
+                  </td>
                   <td className="py-3 pr-4">
                     <span className="bg-zinc-700 text-zinc-200 text-xs px-2 py-1 rounded">
                       {item.contentType}
@@ -231,65 +282,79 @@ export function ModerationQueue() {
                     {new Date(item.flaggedAt).toLocaleDateString()}
                   </td>
                   <td className="py-3">
-                    <div className="flex flex-wrap gap-1">
-                      <button
-                        type="button"
-                        onClick={() => handleApprove(item.id)}
-                        className="bg-green-700 hover:bg-green-600 text-white text-xs px-2 py-1 rounded min-h-[28px]"
-                        aria-label={t("moderation.action.approve")}
-                      >
-                        {t("moderation.action.approve")}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setDialogItem({ id: item.id, action: "remove" })}
-                        className="bg-red-700 hover:bg-red-600 text-white text-xs px-2 py-1 rounded min-h-[28px]"
-                        aria-label={t("moderation.action.remove")}
-                      >
-                        {t("moderation.action.remove")}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setDialogItem({ id: item.id, action: "dismiss" })}
-                        className="bg-zinc-600 hover:bg-zinc-500 text-white text-xs px-2 py-1 rounded min-h-[28px]"
-                        aria-label={t("moderation.action.dismiss")}
-                      >
-                        {t("moderation.action.dismiss")}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => void openDisciplineDialog(item.id, "warn")}
-                        className="bg-yellow-700 hover:bg-yellow-600 text-white text-xs px-2 py-1 rounded min-h-[28px]"
-                        aria-label={t("moderation.action.warn")}
-                      >
-                        {t("moderation.action.warn")}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => void openDisciplineDialog(item.id, "suspend")}
-                        className="bg-orange-700 hover:bg-orange-600 text-white text-xs px-2 py-1 rounded min-h-[28px]"
-                        aria-label={t("moderation.action.suspend")}
-                      >
-                        {t("moderation.action.suspend")}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => void openDisciplineDialog(item.id, "ban")}
-                        className="bg-red-900 hover:bg-red-800 text-white text-xs px-2 py-1 rounded min-h-[28px]"
-                        aria-label={t("moderation.action.ban")}
-                      >
-                        {t("moderation.action.ban")}
-                      </button>
-                      {item.contentType === "message" && (
-                        <a
-                          href={`/admin/moderation/${item.id}/conversation`}
-                          className="bg-blue-800 hover:bg-blue-700 text-white text-xs px-2 py-1 rounded min-h-[28px] flex items-center"
-                          aria-label={t("moderation.action.viewContext")}
+                    {item.status !== "pending" ? (
+                      (() => {
+                        const variant = resolveOutcomeTag(item);
+                        return (
+                          <span
+                            className={`text-xs px-2 py-1 rounded ${OUTCOME_TAG_CLASSES[variant]}`}
+                            data-testid={`outcome-tag-${item.id}`}
+                          >
+                            {t(`moderation.outcomeTag.${variant}`)}
+                          </span>
+                        );
+                      })()
+                    ) : (
+                      <div className="flex flex-wrap gap-1">
+                        <button
+                          type="button"
+                          onClick={() => handleApprove(item.id)}
+                          className="bg-green-700 hover:bg-green-600 text-white text-xs px-2 py-1 rounded min-h-[28px]"
+                          aria-label={t("moderation.action.approve")}
                         >
-                          {t("moderation.action.viewContext")}
-                        </a>
-                      )}
-                    </div>
+                          {t("moderation.action.approve")}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDialogItem({ id: item.id, action: "remove" })}
+                          className="bg-red-700 hover:bg-red-600 text-white text-xs px-2 py-1 rounded min-h-[28px]"
+                          aria-label={t("moderation.action.remove")}
+                        >
+                          {t("moderation.action.remove")}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDialogItem({ id: item.id, action: "dismiss" })}
+                          className="bg-zinc-600 hover:bg-zinc-500 text-white text-xs px-2 py-1 rounded min-h-[28px]"
+                          aria-label={t("moderation.action.dismiss")}
+                        >
+                          {t("moderation.action.dismiss")}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void openDisciplineDialog(item.id, "warn")}
+                          className="bg-yellow-700 hover:bg-yellow-600 text-white text-xs px-2 py-1 rounded min-h-[28px]"
+                          aria-label={t("moderation.action.warn")}
+                        >
+                          {t("moderation.action.warn")}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void openDisciplineDialog(item.id, "suspend")}
+                          className="bg-orange-700 hover:bg-orange-600 text-white text-xs px-2 py-1 rounded min-h-[28px]"
+                          aria-label={t("moderation.action.suspend")}
+                        >
+                          {t("moderation.action.suspend")}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void openDisciplineDialog(item.id, "ban")}
+                          className="bg-red-900 hover:bg-red-800 text-white text-xs px-2 py-1 rounded min-h-[28px]"
+                          aria-label={t("moderation.action.ban")}
+                        >
+                          {t("moderation.action.ban")}
+                        </button>
+                        {item.contentType === "message" && (
+                          <a
+                            href={`/admin/moderation/${item.id}/conversation`}
+                            className="bg-blue-800 hover:bg-blue-700 text-white text-xs px-2 py-1 rounded min-h-[28px] flex items-center"
+                            aria-label={t("moderation.action.viewContext")}
+                          >
+                            {t("moderation.action.viewContext")}
+                          </a>
+                        )}
+                      </div>
+                    )}
                   </td>
                 </tr>
               ))}

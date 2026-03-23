@@ -1,6 +1,33 @@
 // @vitest-environment node
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
+vi.mock("@/env", () => ({
+  env: {
+    AUTH_SECRET: "test-secret",
+    DATABASE_URL: "postgres://test",
+    ADMIN_PASSWORD: "test",
+    NEXT_PUBLIC_APP_URL: "http://localhost:3000",
+    SESSION_TTL_SECONDS: 86400,
+  },
+}));
+
+const mockGetActiveSuspension = vi.fn();
+vi.mock("@/db/queries/member-discipline", () => ({
+  getActiveSuspension: (...args: unknown[]) => mockGetActiveSuspension(...args),
+}));
+
+vi.mock("drizzle-orm", () => ({ eq: vi.fn((col: unknown, val: unknown) => ({ col, val })) }));
+
+const mockDbSelectChain = { from: vi.fn() };
+const mockDbFromChain = { where: vi.fn() };
+const mockDbWhereChain = { limit: vi.fn() };
+vi.mock("@/db", () => ({
+  db: { select: vi.fn(() => mockDbSelectChain) },
+}));
+vi.mock("@/db/schema/auth-users", () => ({
+  authUsers: { id: "id", accountStatus: "account_status" },
+}));
+
 // Mock i18n routing
 vi.mock("./i18n/routing", () => ({
   routing: { locales: ["en", "ig"], defaultLocale: "en" },
@@ -157,7 +184,12 @@ const WITH_SESSION = { [SESSION_COOKIE]: "fake-jwt-token" };
 beforeEach(() => {
   vi.clearAllMocks();
   mockDecode.mockResolvedValue(null);
+  mockGetActiveSuspension.mockResolvedValue(null);
   lastEnrichedRequest = null;
+  // Default DB select chain: returns empty array (no suspended/banned status)
+  mockDbWhereChain.limit.mockResolvedValue([]);
+  mockDbFromChain.where.mockReturnValue(mockDbWhereChain);
+  mockDbSelectChain.from.mockReturnValue(mockDbFromChain);
 });
 
 // ─── Request-Id tests ─────────────────────────────────────────────────────────
@@ -425,6 +457,74 @@ describe("middleware — X-Client-IP extraction", () => {
     await middleware(makeRequest("/en/about") as never);
     expect(lastEnrichedRequest).not.toBeNull();
     expect(lastEnrichedRequest!.headers.get("X-Client-IP")).toBe("unknown");
+  });
+});
+
+// ─── Suspension redirect tests ───────────────────────────────────────────────
+
+describe("middleware — suspension redirect", () => {
+  it("redirects SUSPENDED JWT to /suspended with ?until and ?reason from DB", async () => {
+    const { middleware } = await import("./middleware");
+    process.env.AUTH_SECRET = "test-secret";
+
+    const endsAt = new Date("2026-04-01T12:00:00Z");
+    mockDecode.mockResolvedValue({
+      accountStatus: "SUSPENDED",
+      id: "user-1",
+      profileCompleted: true,
+    });
+    mockGetActiveSuspension.mockResolvedValue({
+      suspensionEndsAt: endsAt,
+      reason: "Test suspension",
+    });
+
+    const response = await middleware(makeRequest("/en/dashboard", WITH_SESSION) as never);
+
+    expect(response.status).toBe(307);
+    const location = response.headers.get("Location") ?? "";
+    expect(location).toContain("/en/suspended");
+    expect(location).toContain("until=2026-04-01T12%3A00%3A00.000Z");
+    expect(location).toContain("reason=Test");
+  });
+
+  it("redirects SUSPENDED JWT to /suspended without params if DB lookup fails", async () => {
+    const { middleware } = await import("./middleware");
+    process.env.AUTH_SECRET = "test-secret";
+
+    mockDecode.mockResolvedValue({
+      accountStatus: "SUSPENDED",
+      id: "user-1",
+      profileCompleted: true,
+    });
+    mockGetActiveSuspension.mockRejectedValue(new Error("DB error"));
+
+    const response = await middleware(makeRequest("/en/dashboard", WITH_SESSION) as never);
+
+    expect(response.status).toBe(307);
+    const location = response.headers.get("Location") ?? "";
+    expect(location).toContain("/en/suspended");
+    expect(location).not.toContain("until=");
+  });
+
+  it("redirects APPROVED JWT to /suspended when DB shows user is SUSPENDED (stale JWT)", async () => {
+    const { middleware } = await import("./middleware");
+    process.env.AUTH_SECRET = "test-secret";
+
+    mockDecode.mockResolvedValue({
+      accountStatus: "APPROVED",
+      id: "user-stale",
+      profileCompleted: true,
+    });
+    mockDbWhereChain.limit.mockResolvedValue([{ accountStatus: "SUSPENDED" }]);
+    const endsAt = new Date("2026-04-02T00:00:00Z");
+    mockGetActiveSuspension.mockResolvedValue({ suspensionEndsAt: endsAt, reason: "Stale reason" });
+
+    const response = await middleware(makeRequest("/en/dashboard", WITH_SESSION) as never);
+
+    expect(response.status).toBe(307);
+    const location = response.headers.get("Location") ?? "";
+    expect(location).toContain("/en/suspended");
+    expect(location).toContain("until=");
   });
 });
 

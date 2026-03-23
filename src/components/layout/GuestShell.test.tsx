@@ -40,6 +40,15 @@ vi.mock("next-auth/react", () => ({
   useSession: () => ({ data: null }),
 }));
 
+vi.mock("@/providers/SocketProvider", () => ({
+  SocketProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  useSocketContext: () => ({ notificationsSocket: null, chatSocket: null, isConnected: false }),
+}));
+
+vi.mock("@/features/profiles", () => ({
+  useMyProfilePhoto: () => ({ data: undefined }),
+}));
+
 describe("GuestShell", () => {
   it("renders children in main content area", () => {
     render(

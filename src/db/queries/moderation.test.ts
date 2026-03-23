@@ -77,8 +77,16 @@ vi.mock("drizzle-orm", () => ({
   eq: vi.fn((col, val) => ({ type: "eq", col, val })),
   and: vi.fn((...args) => ({ type: "and", args })),
   desc: vi.fn((col) => ({ type: "desc", col })),
+  isNotNull: vi.fn((col) => ({ type: "isNotNull", col })),
+  isNull: vi.fn((col) => ({ type: "isNull", col })),
+  gte: vi.fn((col, val) => ({ type: "gte", col, val })),
   sql: new Proxy(
-    (strings: TemplateStringsArray, ...values: unknown[]) => ({ type: "sql", strings, values }),
+    (strings: TemplateStringsArray, ...values: unknown[]) => ({
+      type: "sql",
+      strings,
+      values,
+      as: (alias: string) => ({ type: "sql_aliased", alias }),
+    }),
     { get: () => undefined },
   ),
 }));
@@ -119,61 +127,42 @@ const MOCK_KW = {
   createdAt: new Date(),
 };
 
-/** Subquery builder chain: db.select().from().groupBy().as() */
+/**
+ * Subquery builder chain.
+ * Supports both:
+ *   db.select().from().groupBy(...).as()          (no intermediate where)
+ *   db.select().from().where(...).groupBy(...).as() (with intermediate where)
+ */
 function makeSubqueryChain() {
-  const subqueryRef = { contentType: "content_type", contentId: "content_id", reportCount: 0 };
-  return {
-    from: vi.fn().mockReturnValue({
-      groupBy: vi.fn().mockReturnValue({
-        as: vi.fn().mockReturnValue(subqueryRef),
-      }),
-    }),
+  const ref = {};
+  const groupBy = vi.fn().mockReturnValue({ as: vi.fn().mockReturnValue(ref) });
+  const fromResult = {
+    groupBy,
+    where: vi.fn().mockReturnValue({ groupBy }),
+    as: vi.fn().mockReturnValue(ref),
   };
+  return { from: vi.fn().mockReturnValue(fromResult) };
 }
 
-function makeChain(result: unknown) {
-  const leftJoinInner = vi.fn().mockReturnValue({
-    where: vi.fn().mockReturnValue({
-      orderBy: vi.fn().mockReturnValue({
-        limit: vi.fn().mockReturnValue({
-          offset: vi.fn().mockResolvedValue([result]),
-        }),
-      }),
-      limit: vi.fn().mockResolvedValue([result]),
-    }),
-  });
-  return {
-    from: vi.fn().mockReturnValue({
-      leftJoin: vi.fn().mockReturnValue({
-        leftJoin: leftJoinInner,
-        where: vi.fn().mockResolvedValue([result]),
-      }),
-      where: vi.fn().mockResolvedValue([result]),
-    }),
-  };
-}
-
-beforeEach(() => {
-  vi.clearAllMocks();
-});
-
-/** Main row query chain with TWO leftJoins (authUsers + report_counts subquery) */
+/**
+ * Main row query chain.
+ * Supports N leftJoins followed by either:
+ *   .where().orderBy().limit().offset() → rows (listFlaggedContent)
+ *   .where().limit()                    → rows (getModerationActionById)
+ */
 function makeRowChain(rows: unknown[]) {
-  return {
-    from: vi.fn().mockReturnValue({
-      leftJoin: vi.fn().mockReturnValue({
-        leftJoin: vi.fn().mockReturnValue({
-          where: vi.fn().mockReturnValue({
-            orderBy: vi.fn().mockReturnValue({
-              limit: vi.fn().mockReturnValue({
-                offset: vi.fn().mockResolvedValue(rows),
-              }),
-            }),
-          }),
-        }),
+  const midChain: Record<string, unknown> = {};
+  midChain.leftJoin = vi.fn().mockReturnValue(midChain);
+  midChain.where = vi.fn().mockReturnValue({
+    orderBy: vi.fn().mockReturnValue({
+      limit: vi.fn().mockReturnValue({
+        offset: vi.fn().mockResolvedValue(rows),
       }),
     }),
-  };
+    // getModerationActionById ends chain with .limit(1) directly after .where()
+    limit: vi.fn().mockResolvedValue(rows),
+  });
+  return { from: vi.fn().mockReturnValue(midChain) };
 }
 
 function makeCountChain(count: number) {
@@ -184,14 +173,19 @@ function makeCountChain(count: number) {
   };
 }
 
+beforeEach(() => {
+  vi.clearAllMocks();
+});
+
 describe("listFlaggedContent", () => {
   it("returns paginated results with default pending status", async () => {
     let calls = 0;
     mockSelect.mockImplementation(() => {
       calls++;
-      if (calls === 1) return makeSubqueryChain(); // report_counts subquery builder
-      if (calls === 2) return makeRowChain([MOCK_ITEM]); // main query (parallel)
-      return makeCountChain(1); // count query (parallel)
+      // calls 1-4: 4 subquery builders (reportCount, disciplineCount, disciplineLinked, firstReporter)
+      if (calls <= 4) return makeSubqueryChain();
+      if (calls === 5) return makeRowChain([MOCK_ITEM]); // main rows query
+      return makeCountChain(1); // count query
     });
 
     const result = await listFlaggedContent({ page: 1, pageSize: 20 });
@@ -203,8 +197,8 @@ describe("listFlaggedContent", () => {
     let calls = 0;
     mockSelect.mockImplementation(() => {
       calls++;
-      if (calls === 1) return makeSubqueryChain();
-      if (calls === 2) return makeRowChain([]);
+      if (calls <= 4) return makeSubqueryChain();
+      if (calls === 5) return makeRowChain([]);
       return makeCountChain(0);
     });
 
@@ -217,8 +211,8 @@ describe("listFlaggedContent", () => {
     let calls = 0;
     mockSelect.mockImplementation(() => {
       calls++;
-      if (calls === 1) return makeSubqueryChain();
-      if (calls === 2) return makeRowChain([MOCK_ITEM]);
+      if (calls <= 4) return makeSubqueryChain();
+      if (calls === 5) return makeRowChain([MOCK_ITEM]);
       return makeCountChain(1);
     });
 
@@ -232,19 +226,10 @@ describe("getModerationActionById", () => {
     let calls = 0;
     mockSelect.mockImplementation(() => {
       calls++;
-      if (calls === 1) return makeSubqueryChain(); // report_counts subquery
-      // main query: 2 leftJoins, then where, then limit
-      return {
-        from: vi.fn().mockReturnValue({
-          leftJoin: vi.fn().mockReturnValue({
-            leftJoin: vi.fn().mockReturnValue({
-              where: vi.fn().mockReturnValue({
-                limit: vi.fn().mockResolvedValue([MOCK_ITEM]),
-              }),
-            }),
-          }),
-        }),
-      };
+      // calls 1-4: 4 subquery builders
+      if (calls <= 4) return makeSubqueryChain();
+      // call 5: main row query (6 leftJoins + where + limit)
+      return makeRowChain([MOCK_ITEM]);
     });
     const result = await getModerationActionById("action-1");
     expect(result).toMatchObject({ id: "action-1" });
@@ -254,18 +239,8 @@ describe("getModerationActionById", () => {
     let calls = 0;
     mockSelect.mockImplementation(() => {
       calls++;
-      if (calls === 1) return makeSubqueryChain();
-      return {
-        from: vi.fn().mockReturnValue({
-          leftJoin: vi.fn().mockReturnValue({
-            leftJoin: vi.fn().mockReturnValue({
-              where: vi.fn().mockReturnValue({
-                limit: vi.fn().mockResolvedValue([]),
-              }),
-            }),
-          }),
-        }),
-      };
+      if (calls <= 4) return makeSubqueryChain();
+      return makeRowChain([]);
     });
     const result = await getModerationActionById("nonexistent");
     expect(result).toBeNull();

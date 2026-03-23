@@ -1,5 +1,5 @@
 import "server-only";
-import { eq, and, count, sql, desc } from "drizzle-orm";
+import { eq, and, count, sql, desc, gte } from "drizzle-orm";
 import { db } from "@/db";
 import { platformReports } from "@/db/schema/reports";
 import type { PlatformReport } from "@/db/schema/reports";
@@ -43,6 +43,19 @@ export async function createReport(
     .returning();
 
   return rows[0] ?? null;
+}
+
+/**
+ * Count reports submitted by a given reporter in the last 24 hours.
+ * Used to detect potential abuse / repeated false reporting.
+ */
+export async function countReporterReportsLast24h(reporterId: string): Promise<number> {
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const rows = await db
+    .select({ count: count() })
+    .from(platformReports)
+    .where(and(eq(platformReports.reporterId, reporterId), gte(platformReports.createdAt, since)));
+  return Number(rows[0]?.count ?? 0);
 }
 
 /**
