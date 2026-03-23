@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: igbo-realtime
+  namespace: igbo
+  labels:
+    app: igbo-realtime
+    component: realtime
+  # NOTE: Socket.IO requires sticky sessions. Add the following annotations
+  # to your Ingress resource (not Deployment) — see docs/kubernetes-migration.md:
+  #   nginx.ingress.kubernetes.io/affinity: "cookie"
+  #   nginx.ingress.kubernetes.io/session-cookie-name: "igbo-realtime-affinity"
+  #   nginx.ingress.kubernetes.io/session-cookie-expires: "172800"
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: igbo-realtime
+  template:
+    metadata:
+      labels:
+        app: igbo-realtime
+        component: realtime
+    spec:
+      containers:
+        - name: realtime
+          image: ghcr.io/your-org/igbo-realtime:latest
+          ports:
+            - containerPort: 3001
+              name: http
+          envFrom:
+            - configMapRef:
+                name: igbo-config
+            - secretRef:
+                name: igbo-secrets
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "125m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3001
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3001
+            initialDelaySeconds: 20
+            periodSeconds: 30
+            failureThreshold: 3
+          securityContext:
+            runAsNonRoot: true
+            readOnlyRootFilesystem: false
+            allowPrivilegeEscalation: false

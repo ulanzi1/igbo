@@ -1,0 +1,16 @@
+apiVersion: v2
+name: igbo
+description: OBIGBO Community Platform — Helm chart for Kubernetes deployment
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+keywords:
+  - igbo
+  - community
+  - obigbo
+home: https://obigbo.app
+sources:
+  - https://github.com/your-org/igbo
+maintainers:
+  - name: OBIGBO Platform Team
+    email: platform@obigbo.app

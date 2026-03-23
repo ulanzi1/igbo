@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: igbo-web
+  namespace: igbo
+  labels:
+    app: igbo-web
+    component: web
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: igbo-web
+  template:
+    metadata:
+      labels:
+        app: igbo-web
+        component: web
+    spec:
+      containers:
+        - name: web
+          image: ghcr.io/your-org/igbo-web:latest
+          ports:
+            - containerPort: 3000
+              name: http
+          envFrom:
+            - configMapRef:
+                name: igbo-config
+            - secretRef:
+                name: igbo-secrets
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+          readinessProbe:
+            httpGet:
+              path: /api/v1/health
+              port: 3000
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /api/v1/health
+              port: 3000
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            failureThreshold: 3
+          securityContext:
+            runAsNonRoot: true
+            readOnlyRootFilesystem: false
+            allowPrivilegeEscalation: false

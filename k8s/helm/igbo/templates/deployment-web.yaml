@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: igbo-web
+  namespace: { { .Values.namespace } }
+  labels:
+    app: igbo-web
+    app.kubernetes.io/name: { { .Chart.Name } }
+    app.kubernetes.io/version: { { .Chart.AppVersion | quote } }
+spec:
+  replicas: { { .Values.web.replicaCount } }
+  selector:
+    matchLabels:
+      app: igbo-web
+  template:
+    metadata:
+      labels:
+        app: igbo-web
+    spec:
+      containers:
+        - name: web
+          image: "{{ .Values.image.registry }}/{{ .Values.image.organization }}/{{ .Values.web.image.name }}:{{ .Values.image.tag }}"
+          imagePullPolicy: { { .Values.image.pullPolicy } }
+          ports:
+            - containerPort: { { .Values.web.port } }
+              name: http
+          envFrom:
+            - configMapRef:
+                name: igbo-config
+            - secretRef:
+                name: { { .Values.secretName } }
+          resources:
+            requests:
+              memory: { { .Values.web.resources.requests.memory | quote } }
+              cpu: { { .Values.web.resources.requests.cpu | quote } }
+            limits:
+              memory: { { .Values.web.resources.limits.memory | quote } }
+              cpu: { { .Values.web.resources.limits.cpu | quote } }
+          readinessProbe:
+            httpGet:
+              path: /api/v1/health
+              port: { { .Values.web.port } }
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /api/v1/health
+              port: { { .Values.web.port } }
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            failureThreshold: 3
+          securityContext:
+            runAsNonRoot: true
+            readOnlyRootFilesystem: false
+            allowPrivilegeEscalation: false

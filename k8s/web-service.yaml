@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: igbo-web
+  namespace: igbo
+  labels:
+    app: igbo-web
+    component: web
+spec:
+  selector:
+    app: igbo-web
+  ports:
+    - name: http
+      port: 80
+      targetPort: 3000
+      protocol: TCP
+  type: ClusterIP

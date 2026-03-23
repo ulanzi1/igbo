@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: igbo-realtime
+  namespace: { { .Values.namespace } }
+  labels:
+    app: igbo-realtime
+    app.kubernetes.io/name: { { .Chart.Name } }
+  annotations:
+    nginx.ingress.kubernetes.io/affinity: "cookie"
+    nginx.ingress.kubernetes.io/session-cookie-name:
+      { { .Values.realtime.stickySession.cookieName | quote } }
+spec:
+  selector:
+    app: igbo-realtime
+  ports:
+    - name: http
+      port: 80
+      targetPort: { { .Values.realtime.port } }
+      protocol: TCP
+  type: ClusterIP
