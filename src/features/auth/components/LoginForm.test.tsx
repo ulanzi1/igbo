@@ -9,8 +9,9 @@ vi.mock("next-intl", () => ({
   useTranslations: () => (key: string) => key,
   useLocale: () => "en",
 }));
+const mockPush = vi.fn();
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
+  useRouter: () => ({ push: mockPush, refresh: vi.fn() }),
 }));
 
 const mockFetch = vi.fn();
@@ -122,7 +123,7 @@ describe("LoginForm", () => {
     expect(screen.getByText(/bannedMessage/i)).toBeInTheDocument();
   });
 
-  it("shows ban message when API returns 403", async () => {
+  it("shows ban message when API returns 403 with detail 'banned'", async () => {
     mockFetch.mockResolvedValue({
       ok: false,
       status: 403,
@@ -140,6 +141,57 @@ describe("LoginForm", () => {
 
     await waitFor(() => {
       expect(screen.getByText(/bannedMessage/i)).toBeInTheDocument();
+    });
+  });
+
+  // ─── Suspended user login — redirects to /suspended page ──────────────────
+
+  it("redirects to /suspended page with params when API returns 403 + suspended", async () => {
+    mockFetch.mockResolvedValue({
+      ok: false,
+      status: 403,
+      json: async () => ({
+        detail: "suspended",
+        until: "2026-04-01T00:00:00.000Z",
+        reason: "Repeated harassment",
+      }),
+    });
+
+    render(<LoginForm />);
+    fireEvent.change(screen.getByLabelText(/emailLabel/i), {
+      target: { value: "suspended@example.com" },
+    });
+    fireEvent.change(screen.getByLabelText(/passwordLabel/i), {
+      target: { value: "Pass1!" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /submitButton/i }));
+
+    await waitFor(() => {
+      expect(mockPush).toHaveBeenCalledWith(expect.stringContaining("/en/suspended"));
+      const url = mockPush.mock.calls[0][0] as string;
+      expect(url).toContain("until=2026-04-01T00%3A00%3A00.000Z");
+      expect(url).toContain("reason=Repeated+harassment");
+    });
+  });
+
+  it("redirects to /suspended page without params when until/reason missing", async () => {
+    mockFetch.mockResolvedValue({
+      ok: false,
+      status: 403,
+      json: async () => ({ detail: "suspended" }),
+    });
+
+    render(<LoginForm />);
+    fireEvent.change(screen.getByLabelText(/emailLabel/i), {
+      target: { value: "suspended@example.com" },
+    });
+    fireEvent.change(screen.getByLabelText(/passwordLabel/i), {
+      target: { value: "Pass1!" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /submitButton/i }));
+
+    await waitFor(() => {
+      expect(mockPush).toHaveBeenCalledWith("/en/suspended");
     });
   });
 });

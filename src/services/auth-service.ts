@@ -25,6 +25,7 @@ import { getRedisClient } from "@/lib/redis";
 import { checkRateLimit } from "@/lib/rate-limiter";
 import { eventBus } from "@/services/event-bus";
 import { enqueueEmailJob } from "@/services/email-service";
+import { getActiveSuspension } from "@/db/queries/member-discipline";
 import { env } from "@/env";
 import { ApiError } from "@/lib/api-error";
 
@@ -150,6 +151,7 @@ export type LoginResult =
   | { status: "requires_2fa_setup"; challengeToken: string }
   | { status: "locked"; lockoutSeconds: number }
   | { status: "banned"; reason: string; appealEmail: string; appealWindow: string }
+  | { status: "suspended"; until?: string; reason?: string }
   | { status: "invalid" };
 
 export async function initiateLogin(
@@ -174,6 +176,24 @@ export async function initiateLogin(
       reason: user.adminNotes ?? "Terms of Service violation",
       appealEmail: "abuse@igbo.global",
       appealWindow: "14 days",
+    };
+  }
+
+  // Suspension check: verify password first — only reveal suspension after valid credentials.
+  // passwordHash guard needed (unlike banned which uses DUMMY_HASH) because we verify real credentials.
+  // If passwordHash is null, falls through to generic "not APPROVED" check with timing-safe dummy compare.
+  if (user?.accountStatus === "SUSPENDED" && user.passwordHash) {
+    const passwordValid = await verifyPassword(password, user.passwordHash);
+    if (!passwordValid) {
+      await recordFailedAttempt(email, ip);
+      return { status: "invalid" };
+    }
+    await clearLoginAttempts(email, ip);
+    const suspension = await getActiveSuspension(user.id);
+    return {
+      status: "suspended",
+      until: suspension?.suspensionEndsAt?.toISOString(),
+      reason: suspension?.reason ?? undefined,
     };
   }
 

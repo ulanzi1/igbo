@@ -47,11 +47,19 @@ export function LoginForm({ callbackUrl, banned = false }: Props) {
         data?: { requiresMfaSetup: boolean; challengeToken: string };
         status?: number;
         detail?: string;
+        until?: string;
+        reason?: string;
       };
 
       if (!res.ok) {
         if (res.status === 429) {
           setError(t("accountLocked"));
+        } else if (res.status === 403 && json.detail === "suspended") {
+          const suspendedUrl = new URL(`/${locale}/suspended`, window.location.origin);
+          if (json.until) suspendedUrl.searchParams.set("until", json.until);
+          if (json.reason) suspendedUrl.searchParams.set("reason", json.reason);
+          router.push(suspendedUrl.pathname + suspendedUrl.search);
+          return;
         } else if (res.status === 403) {
           setError(t("bannedMessage"));
         } else {
