@@ -116,7 +116,6 @@ describe("awardPoints", () => {
     await awardPoints(baseInput);
 
     expect(mockAwardPoints).toHaveBeenCalledWith(
-      6,
       "points:idempotency:reaction:post-1:actor-1", // KEYS[1]
       "points:rapid:actor-1", // KEYS[2]
       "points:repeat:actor-1:author-1", // KEYS[3]
@@ -140,7 +139,6 @@ describe("awardPoints", () => {
     await awardPoints(baseInput);
 
     expect(mockAwardPoints).toHaveBeenCalledWith(
-      6,
       expect.any(String),
       expect.any(String),
       expect.any(String),

@@ -133,6 +133,7 @@ export const PATCH = withApiHandler(async (request: Request) => {
       action: "remove",
       moderatorId: adminId,
       reason,
+      contentPreview: item.contentPreview ?? null,
       timestamp: now.toISOString(),
     });
   } else if (action === "dismiss") {

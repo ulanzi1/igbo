@@ -36,13 +36,30 @@ vi.mock("@/hooks/use-contrast-mode", () => ({
   }),
 }));
 
+const mockSessionData = vi.hoisted(() => ({
+  current: { data: null, status: "unauthenticated" } as {
+    data: unknown;
+    status: string;
+    update?: unknown;
+  },
+}));
+
 vi.mock("next-auth/react", () => ({
-  useSession: () => ({ data: null }),
+  useSession: () => mockSessionData.current,
 }));
 
 vi.mock("@/providers/SocketProvider", () => ({
   SocketProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   useSocketContext: () => ({ notificationsSocket: null, chatSocket: null, isConnected: false }),
+}));
+
+vi.mock("@/features/profiles", () => ({
+  useMyProfilePhoto: () => ({ data: undefined }),
+}));
+
+// Mock for useUnreadCount (used by BottomNav)
+vi.mock("@/hooks/use-unread-count", () => ({
+  useUnreadCount: () => 0,
 }));
 
 describe("AppShell", () => {
@@ -83,5 +100,41 @@ describe("AppShell", () => {
       </AppShell>,
     );
     expect(document.getElementById("main-content")).toBeInTheDocument();
+  });
+
+  it("renders warning banner when authenticated user has active warnings", async () => {
+    // Set session to authenticated
+    mockSessionData.current = {
+      data: { user: { id: "u1" }, expires: "2099-01-01" },
+      status: "authenticated",
+      update: vi.fn(),
+    };
+
+    // Mock fetch to return warnings
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        data: {
+          warnings: [
+            { id: "w1", reason: "Test warning reason", createdAt: "2026-03-20T00:00:00Z" },
+          ],
+        },
+      }),
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    render(
+      <AppShell>
+        <p>Content</p>
+      </AppShell>,
+    );
+
+    // Wait for the query to resolve and banner to appear
+    const banner = await screen.findByRole("alert", {}, { timeout: 3000 });
+    expect(banner).toBeInTheDocument();
+
+    // Reset
+    mockSessionData.current = { data: null, status: "unauthenticated" };
+    vi.unstubAllGlobals();
   });
 });

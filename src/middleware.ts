@@ -1,7 +1,13 @@
 import { decode } from "next-auth/jwt";
 import createMiddleware from "next-intl/middleware";
 import { NextRequest, NextResponse } from "next/server";
+import { eq } from "drizzle-orm";
 import { routing } from "./i18n/routing";
+import { db } from "@/db";
+import { authUsers } from "@/db/schema/auth-users";
+import { getActiveSuspension } from "@/db/queries/member-discipline";
+
+export const runtime = "nodejs";
 
 const handleI18nRouting = createMiddleware(routing);
 
@@ -122,17 +128,59 @@ export async function middleware(request: NextRequest) {
         return response;
       }
       if (decoded?.accountStatus === "SUSPENDED") {
-        // Note: JWT only carries accountStatus set at login. suspensionEndsAt/reason
-        // are not in the JWT — the suspended page displays generic info.
-        // The authoritative guard is requireAuthenticatedSession() which does a DB check.
-        // This middleware redirect is defense-in-depth for the rare race window where
-        // the JWT cookie still exists but session eviction hasn't cleared it yet.
         if (!pathname.includes("/suspended")) {
           const locale = pathname.split("/")[1];
           const suspendedUrl = new URL(`/${locale}/suspended`, request.url);
+          // Bug fix: fetch suspension details to populate countdown and reason
+          try {
+            const suspension = await getActiveSuspension(decoded.id as string);
+            if (suspension?.suspensionEndsAt) {
+              suspendedUrl.searchParams.set("until", suspension.suspensionEndsAt.toISOString());
+            }
+            if (suspension?.reason) {
+              suspendedUrl.searchParams.set("reason", suspension.reason);
+            }
+          } catch {
+            // Non-critical — redirect without params if DB unavailable
+          }
           const response = NextResponse.redirect(suspendedUrl);
           response.headers.set("X-Request-Id", requestId);
           return response;
+        }
+      }
+      // Stale JWT guard: JWT accountStatus may be APPROVED but DB may say SUSPENDED/BANNED
+      // (happens when admin suspends/bans a user who is already logged in)
+      if (decoded?.accountStatus === "APPROVED" && decoded?.id) {
+        try {
+          const [currentUser] = await db
+            .select({ accountStatus: authUsers.accountStatus })
+            .from(authUsers)
+            .where(eq(authUsers.id, decoded.id as string))
+            .limit(1);
+          if (currentUser?.accountStatus === "SUSPENDED" && !pathname.includes("/suspended")) {
+            const locale = pathname.split("/")[1];
+            const suspendedUrl = new URL(`/${locale}/suspended`, request.url);
+            const suspension = await getActiveSuspension(decoded.id as string);
+            if (suspension?.suspensionEndsAt) {
+              suspendedUrl.searchParams.set("until", suspension.suspensionEndsAt.toISOString());
+            }
+            if (suspension?.reason) {
+              suspendedUrl.searchParams.set("reason", suspension.reason);
+            }
+            const response = NextResponse.redirect(suspendedUrl);
+            response.headers.set("X-Request-Id", requestId);
+            return response;
+          }
+          if (currentUser?.accountStatus === "BANNED") {
+            const locale = pathname.split("/")[1];
+            const loginUrl = new URL(`/${locale}/login`, request.url);
+            loginUrl.searchParams.set("banned", "true");
+            const response = NextResponse.redirect(loginUrl);
+            response.headers.set("X-Request-Id", requestId);
+            return response;
+          }
+        } catch {
+          // Non-critical — continue with JWT-derived status if DB unavailable
         }
       }
       if (decoded?.accountStatus === "APPROVED" && decoded?.profileCompleted === false) {

@@ -11,8 +11,10 @@ vi.mock("@/services/permissions", () => ({
 }));
 
 const mockCreateReport = vi.hoisted(() => vi.fn());
+const mockCountReporterReportsLast24h = vi.hoisted(() => vi.fn().mockResolvedValue(0));
 vi.mock("@/db/queries/reports", () => ({
   createReport: (...args: unknown[]) => mockCreateReport(...args),
+  countReporterReportsLast24h: (...args: unknown[]) => mockCountReporterReportsLast24h(...args),
 }));
 
 const mockEventBusEmit = vi.hoisted(() => vi.fn());
@@ -270,5 +272,45 @@ describe("POST /api/v1/reports", () => {
     });
     const res = await POST(req);
     expect(res.status).toBe(400);
+  });
+
+  // ─── Task 10: Report abuse warning ────────────────────────────────────────
+
+  it("returns 201 with warning:repeated_reporting when reporter has >= 3 reports in 24h", async () => {
+    mockContentFound("other-user");
+    mockCreateReport.mockResolvedValue({
+      id: "rpt-new",
+      contentType: "post",
+      contentId: VALID_BODY.contentId,
+      reasonCategory: "harassment",
+      status: "pending",
+      createdAt: new Date(),
+    });
+    mockCountReporterReportsLast24h.mockResolvedValue(3);
+
+    const req = makeRequest(VALID_BODY);
+    const res = await POST(req);
+    expect(res.status).toBe(201);
+    const json = (await res.json()) as { data: { reportId: string; warning?: string } };
+    expect(json.data.warning).toBe("repeated_reporting");
+  });
+
+  it("returns 201 without warning when reporter has < 3 reports in 24h", async () => {
+    mockContentFound("other-user");
+    mockCreateReport.mockResolvedValue({
+      id: "rpt-new",
+      contentType: "post",
+      contentId: VALID_BODY.contentId,
+      reasonCategory: "harassment",
+      status: "pending",
+      createdAt: new Date(),
+    });
+    mockCountReporterReportsLast24h.mockResolvedValue(2);
+
+    const req = makeRequest(VALID_BODY);
+    const res = await POST(req);
+    expect(res.status).toBe(201);
+    const json = (await res.json()) as { data: { reportId: string; warning?: string } };
+    expect(json.data.warning).toBeUndefined();
   });
 });

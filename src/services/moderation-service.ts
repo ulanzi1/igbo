@@ -1,7 +1,12 @@
 import "server-only";
 import { eventBus } from "@/services/event-bus";
 import { getRedisClient } from "@/lib/redis";
-import { getActiveKeywords, insertModerationAction } from "@/db/queries/moderation";
+import {
+  getActiveKeywords,
+  insertModerationAction,
+  getRecentPostsForScan,
+  getRecentArticlesForScan,
+} from "@/db/queries/moderation";
 import { getPostContent } from "@/db/queries/posts";
 import { getArticleContent } from "@/db/queries/articles";
 import { scanContent } from "@/lib/moderation-scanner";
@@ -12,6 +17,7 @@ import type {
   ArticlePublishedEvent,
   MessageSentEvent,
   ReportCreatedEvent,
+  KeywordAddedEvent,
 } from "@/types/events";
 import type { Keyword } from "@/lib/moderation-scanner";
 
@@ -347,6 +353,21 @@ export async function handleReportCreated(payload: ReportCreatedEvent): Promise<
 
   const reportCount = await getReportCountByContent(payload.contentType, payload.contentId);
 
+  // Fetch content preview for the moderation queue display (AC10)
+  let contentPreview: string | null = null;
+  try {
+    if (payload.contentType === "post") {
+      const raw = await getPostContent(payload.contentId);
+      if (raw) contentPreview = tiptapJsonToPlainText(raw).slice(0, 200);
+    } else if (payload.contentType === "article") {
+      const raw = await getArticleContent(payload.contentId);
+      if (raw) contentPreview = tiptapJsonToPlainText(raw).slice(0, 200);
+    }
+    // messages: preview not fetched (would require chat query import; low priority)
+  } catch {
+    // Non-critical — proceed with null preview
+  }
+
   // Try to insert a new moderation action (will conflict if already auto-flagged)
   const flagReason = `Reported by members (${reportCount} report${reportCount === 1 ? "" : "s"})`;
 
@@ -354,12 +375,98 @@ export async function handleReportCreated(payload: ReportCreatedEvent): Promise<
     contentType: payload.contentType,
     contentId: payload.contentId,
     contentAuthorId: payload.contentAuthorId,
-    contentPreview: null,
+    contentPreview,
     flagReason,
     keywordMatched: null,
     autoFlagged: false,
   });
   // ON CONFLICT DO NOTHING is fine — if already in queue, report count is surfaced via JOIN in listFlaggedContent
+}
+
+const RETROSPECTIVE_BATCH_SIZE = 100;
+const RETROSPECTIVE_LOOKBACK_DAYS = 30;
+
+/**
+ * Handle moderation.keyword_added — retrospectively scan recent content for the new keyword.
+ * Processes posts and articles in batches of 100, inserts moderation actions for matches.
+ * Already-flagged content is excluded by the scan query (LEFT JOIN on platform_moderation_actions).
+ */
+export async function handleKeywordAdded(payload: KeywordAddedEvent): Promise<void> {
+  const newKeyword: Keyword = {
+    keyword: payload.keyword,
+    category: payload.category,
+    severity: payload.severity,
+  };
+
+  const since = new Date(Date.now() - RETROSPECTIVE_LOOKBACK_DAYS * 24 * 60 * 60 * 1000);
+  let postsScanned = 0;
+  let articlesScanned = 0;
+  let newFlags = 0;
+
+  // Scan posts in batches
+  let offset = 0;
+  while (true) {
+    const posts = await getRecentPostsForScan(since, RETROSPECTIVE_BATCH_SIZE, offset);
+    if (posts.length === 0) break;
+
+    for (const post of posts) {
+      postsScanned++;
+      const content = tiptapJsonToPlainText(post.content);
+      const match = scanContent(content, [newKeyword]);
+      if (!match) continue;
+
+      const action = await insertModerationAction({
+        contentType: "post",
+        contentId: post.id,
+        contentAuthorId: post.authorId,
+        contentPreview: content.slice(0, 200),
+        flagReason: `Keyword match: ${match.keyword} (category: ${match.category})`,
+        keywordMatched: match.keyword,
+      });
+      if (action) newFlags++;
+    }
+
+    if (posts.length < RETROSPECTIVE_BATCH_SIZE) break;
+    offset += RETROSPECTIVE_BATCH_SIZE;
+  }
+
+  // Scan articles in batches
+  offset = 0;
+  while (true) {
+    const articles = await getRecentArticlesForScan(since, RETROSPECTIVE_BATCH_SIZE, offset);
+    if (articles.length === 0) break;
+
+    for (const article of articles) {
+      articlesScanned++;
+      const content = tiptapJsonToPlainText(article.content);
+      const match = scanContent(content, [newKeyword]);
+      if (!match) continue;
+
+      const action = await insertModerationAction({
+        contentType: "article",
+        contentId: article.id,
+        contentAuthorId: article.authorId,
+        contentPreview: content.slice(0, 200),
+        flagReason: `Keyword match: ${match.keyword} (category: ${match.category})`,
+        keywordMatched: match.keyword,
+      });
+      if (action) newFlags++;
+    }
+
+    if (articles.length < RETROSPECTIVE_BATCH_SIZE) break;
+    offset += RETROSPECTIVE_BATCH_SIZE;
+  }
+
+  console.info(
+    JSON.stringify({
+      level: "info",
+      msg: "moderation.keyword_retrospective_scan",
+      keyword: payload.keyword,
+      postsScanned,
+      articlesScanned,
+      newFlags,
+    }),
+  );
 }
 
 // ─── Handler Registration (HMR Guard) ─────────────────────────────────────────
@@ -423,6 +530,20 @@ if (globalForModeration.__moderationHandlersRegistered) {
         JSON.stringify({
           level: "error",
           msg: "moderation.report_created.unhandled",
+          error: String(err),
+        }),
+      );
+    }
+  });
+
+  eventBus.on("moderation.keyword_added", async (payload: KeywordAddedEvent) => {
+    try {
+      await handleKeywordAdded(payload);
+    } catch (err) {
+      console.error(
+        JSON.stringify({
+          level: "error",
+          msg: "moderation.keyword_added.unhandled",
           error: String(err),
         }),
       );

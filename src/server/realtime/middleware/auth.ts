@@ -1,7 +1,9 @@
 // NOTE: No "server-only" import — this runs as standalone Node.js, not inside Next.js
 import type { Socket } from "socket.io";
 import { jwtVerify } from "jose";
-import { findUserById } from "@/db/queries/auth-queries";
+import { and, eq, isNull } from "drizzle-orm";
+import { db } from "@/db";
+import { authUsers } from "@/db/schema/auth-users";
 
 const AUTH_SECRET = process.env.AUTH_SECRET;
 
@@ -38,7 +40,12 @@ export async function authMiddleware(socket: Socket, next: (err?: Error) => void
     }
 
     // Authoritative DB status check — reject suspended or banned users
-    const user = await findUserById(userId);
+    // Direct query avoids importing server-only-guarded auth-queries.ts
+    const [user] = await db
+      .select({ accountStatus: authUsers.accountStatus })
+      .from(authUsers)
+      .where(and(eq(authUsers.id, userId), isNull(authUsers.deletedAt)))
+      .limit(1);
     if (user?.accountStatus === "BANNED") {
       next(new Error("UNAUTHORIZED: account banned"));
       return;

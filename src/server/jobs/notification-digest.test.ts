@@ -178,8 +178,8 @@ describe("sendDigestForUser", () => {
     expect(jobHandler).toBeDefined();
     if (jobHandler) {
       await jobHandler();
-      expect(mockGetRedisSet).toHaveBeenCalledWith("dnd:user-qh-1", "1", { ex: 5400 });
-      expect(mockGetRedisSet).toHaveBeenCalledWith("dnd:user-qh-2", "1", { ex: 5400 });
+      expect(mockGetRedisSet).toHaveBeenCalledWith("dnd:user-qh-1", "1", "EX", 5400);
+      expect(mockGetRedisSet).toHaveBeenCalledWith("dnd:user-qh-2", "1", "EX", 5400);
     }
   });
 });

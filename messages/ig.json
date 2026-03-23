@@ -321,12 +321,14 @@
     "sidebar": {
       "dashboard": "Dashboard",
       "approvals": "Approvals",
+      "articles": "Akụkọ",
       "members": "Members",
       "moderation": "Moderation",
-      "reports": "Reports",
+      "governance": "Iwu Ọchịchị",
+      "gamification": "Egwuregwu Akara",
+      "leaderboard": "Ndepụta Ọkwa",
       "analytics": "Analytics",
-      "auditLog": "Audit Log",
-      "articles": "Akụkọ"
+      "auditLog": "Audit Log"
     },
     "members": {
       "title": "Member Management",
@@ -509,7 +511,8 @@
         "source": "Ebe O Si",
         "reason": "Ihe Kpatara",
         "flaggedAt": "Akọwapụtara",
-        "actions": "Omume"
+        "actions": "Omume",
+        "reporter": "Onye Ọkọwa"
       },
       "source": {
         "autoFlagged": "Akọwapụtara n'ọtọmatik",
@@ -552,6 +555,12 @@
         "reviewed": "Anyọchara",
         "dismissed": "Hapụrụ"
       },
+      "outcomeTag": {
+        "approved": "Anabatara",
+        "removed": "Ewepụrụ",
+        "warned": "Dọọrọ aka",
+        "dismissed": "Hapụrụ"
+      },
       "keywords": {
         "title": "Njikwa Okwu",
         "addKeyword": "Tinye Okwu",
@@ -568,7 +577,9 @@
         "save": "Chekwaa",
         "add": "Tinye",
         "editTitle": "Dezie Okwu"
-      }
+      },
+      "viewContent": "Lee ọrụ a",
+      "reportedBy": "Onye kọrọ: {name}"
     },
     "auditLog": {
       "title": "Ndekọ Ọrụ Ndị Isi",
@@ -901,7 +912,8 @@
       "applyLink": "Rịọọ ọnụ otu",
       "invalidCredentials": "Email ma ọ bụ okwuntughe ezighi ezi. Biko nwaa ọzọ.",
       "accountLocked": "Azọọtara akanta oge. Nwaa ọzọ n'ime nkeji 15 ma ọ bụ kpọtụrụ nkwado.",
-      "genericError": "Ihe fọdụrụ n'ụzọ. Biko nwaa ọzọ."
+      "genericError": "Ihe fọdụrụ n'ụzọ. Biko nwaa ọzọ.",
+      "bannedMessage": "Ewepụrụ akaụntụ gị n’ihi na ị mebiara iwu anyị. Ị nwere ike ịrere arọ n’ime ụbọchị 14 site na ịde email na abuse@igbo.global."
     },
     "twoFactor": {
       "title": "Nkwenye Abụọ-Ihe",
@@ -2081,6 +2093,7 @@
     "success": "Anyị natara akụkọ gị. Daalụ maka inyere aka ichekwa obodo.",
     "alreadyReported": "Ị emeela akụkọ maka ọdịnaya a.",
     "close": "Mechie",
+    "abuseWarning": "Ịkọọ ihe ụgha ugboro ugboro nwere ike ibute ntụle akaụntụ gị.",
     "action": {
       "report": "Kọọ"
     }
@@ -2093,5 +2106,26 @@
     "download": "Budata",
     "contentUnavailable": "Ọdịnaya adịghị ugbu a. Biko lọghachi ka e mesịa.",
     "applyButton": "Rịọọ Ọnụ otu"
+  },
+  "emails": {
+    "disciplineWarning": {
+      "subject": "Nkọwa: Ọnọdụ ọjọọ nyere aka na akaụntụ OBIGBO gị"
+    },
+    "disciplineSuspension": {
+      "subject": "Emechiri akaụntụ OBIGBO gị nwa oge"
+    },
+    "disciplineBan": {
+      "subject": "Emechiri akaụntụ OBIGBO gị ebighị ebi"
+    },
+    "contentRemoval": {
+      "subject": "Ewepụrụ ọrụ gị n'OBIGBO"
+    }
+  },
+  "warnings": {
+    "banner": {
+      "title": "Ịdọ aka ná ntị Akaụntụ",
+      "reason": "Ihe mere: {reason}",
+      "dismiss": "Aghọtara m"
+    }
   }
 }

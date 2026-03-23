@@ -4,7 +4,7 @@ import { withApiHandler } from "@/server/api/middleware";
 import { successResponse, errorResponse } from "@/lib/api-response";
 import { requireAuthenticatedSession } from "@/services/permissions";
 import { RATE_LIMIT_PRESETS } from "@/services/rate-limiter";
-import { createReport } from "@/db/queries/reports";
+import { createReport, countReporterReportsLast24h } from "@/db/queries/reports";
 import { eventBus } from "@/services/event-bus";
 import { db } from "@/db";
 import { communityPosts } from "@/db/schema/community-posts";
@@ -97,6 +97,15 @@ async function getContentAuthorId(contentType: string, contentId: string): Promi
   }
 }
 
+const rateLimitConfig = {
+  key: async () => {
+    const { requireAuthenticatedSession: getSession } = await import("@/services/permissions");
+    const { userId } = await getSession();
+    return `report-submit:${userId}`;
+  },
+  ...RATE_LIMIT_PRESETS.REPORT_SUBMIT,
+};
+
 export const POST = withApiHandler(
   async (request: Request) => {
     const session = await requireAuthenticatedSession();
@@ -165,7 +174,20 @@ export const POST = withApiHandler(
       // Non-critical — report is already persisted
     }
 
-    return successResponse({ reportId: report.id }, undefined, 201);
+    // Check for repeated-reporting abuse pattern (>= 3 reports in 24h)
+    let warning: string | undefined;
+    try {
+      const recentCount = await countReporterReportsLast24h(reporterId);
+      if (recentCount >= 3) warning = "repeated_reporting";
+    } catch {
+      // Non-critical — don't block report submission
+    }
+
+    return successResponse(
+      { reportId: report.id, ...(warning ? { warning } : {}) },
+      undefined,
+      201,
+    );
   },
-  { rateLimit: RATE_LIMIT_PRESETS.REPORT_SUBMIT },
+  { rateLimit: rateLimitConfig },
 );

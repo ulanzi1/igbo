@@ -4,7 +4,7 @@ import { LoginForm } from "@/features/auth";
 
 interface Props {
   params: Promise<{ locale: string }>;
-  searchParams: Promise<{ callbackUrl?: string }>;
+  searchParams: Promise<{ callbackUrl?: string; banned?: string }>;
 }
 
 export async function generateMetadata({
@@ -19,13 +19,13 @@ export async function generateMetadata({
 
 export default async function LoginPage({ params, searchParams }: Props) {
   const { locale } = await params;
-  const { callbackUrl } = await searchParams;
+  const { callbackUrl, banned } = await searchParams;
   setRequestLocale(locale);
 
   return (
     <div className="flex min-h-screen items-center justify-center px-4">
       <div className="w-full max-w-md">
-        <LoginForm callbackUrl={callbackUrl} />
+        <LoginForm callbackUrl={callbackUrl} banned={banned === "true"} />
       </div>
     </div>
   );

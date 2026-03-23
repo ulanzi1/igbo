@@ -153,7 +153,9 @@ async function deliverNotification(params: {
   if (!routeResult.email.suppressed && emailData !== undefined) {
     const user = await findUserById(userId);
     if (user?.email) {
-      const templateId = getEmailTemplateForType(type);
+      // Allow emailData.templateId to override the default type→template mapping
+      const templateId =
+        (emailData?.templateId as string | undefined) ?? getEmailTemplateForType(type);
       if (templateId) {
         enqueueEmailJob(`notif-${type}-${userId}-${Date.now()}`, {
           to: user.email,
@@ -596,18 +598,77 @@ if (globalForNotif.__notifHandlersRegistered) {
           title: "notifications.discipline.warning.title",
           body: "notifications.discipline.warning.body",
           link: "/dashboard",
+          emailData: {
+            templateId: "discipline-warning",
+            reason: payload.reason,
+            communityGuidelinesUrl: "/terms",
+          },
         });
       } else if (payload.disciplineType === "suspension") {
+        const endsAtDate = payload.suspensionEndsAt ? new Date(payload.suspensionEndsAt) : null;
         await deliverNotification({
           userId: payload.userId,
           actorId: payload.userId,
           type: "admin_announcement",
           title: "notifications.discipline.suspension.title",
           body: "notifications.discipline.suspension.body",
-          link: "/dashboard",
+          link: "/suspended",
+          emailData: {
+            templateId: "discipline-suspension",
+            reason: payload.reason,
+            duration: endsAtDate ? `Until ${endsAtDate.toLocaleDateString()}` : "Indefinite",
+            endsAt: endsAtDate ? endsAtDate.toUTCString() : null,
+            communityGuidelinesUrl: "/terms",
+          },
         });
+      } else if (payload.disciplineType === "ban") {
+        // Ban: send email directly — no in-app notification (member is locked out)
+        const user = await findUserById(payload.userId);
+        if (user?.email) {
+          enqueueEmailJob(`discipline-ban-${payload.userId}-${Date.now()}`, {
+            to: user.email,
+            templateId: "discipline-ban",
+            data: {
+              name: user.name ?? "Member",
+              reason: payload.reason,
+            },
+            locale: user.languagePreference === "ig" ? "ig" : "en",
+          });
+        }
       }
-      // ban: no in-app notification — member is locked out immediately
+    },
+  );
+
+  // ─── Content Removal Email Notification (Epic 11 Stabilization) ───────────
+  // Sends email to content author when their content is removed by a moderator.
+
+  eventBus.on(
+    "content.moderated",
+    async (payload: {
+      contentType: "post" | "article" | "message";
+      contentId: string;
+      contentAuthorId: string;
+      action: "approve" | "remove" | "dismiss";
+      moderatorId: string;
+      reason?: string;
+      contentPreview?: string | null;
+      timestamp: string;
+    }) => {
+      if (payload.action !== "remove") return;
+      const user = await findUserById(payload.contentAuthorId);
+      if (!user?.email) return;
+      enqueueEmailJob(`content-removal-${payload.contentId}-${Date.now()}`, {
+        to: user.email,
+        templateId: "content-removal",
+        data: {
+          name: user.name ?? "Member",
+          contentType: payload.contentType,
+          contentPreview: payload.contentPreview ?? null,
+          reason: payload.reason ?? "Violation of Community Guidelines",
+          communityGuidelinesUrl: "/terms",
+        },
+        locale: user.languagePreference === "ig" ? "ig" : "en",
+      });
     },
   );
 } // end of hot-reload guard (globalForNotif.__notifHandlersRegistered)

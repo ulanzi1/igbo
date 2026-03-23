@@ -3,10 +3,36 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { SignJWT } from "jose";
 import type { Socket } from "socket.io";
 
-const mockFindUserById = vi.hoisted(() => vi.fn());
+vi.mock("@/env", () => ({
+  env: {
+    DATABASE_URL: "postgres://test",
+    REDIS_URL: "redis://localhost:6379",
+    ADMIN_EMAIL: "admin@test.com",
+    ADMIN_PASSWORD: "testpassword",
+    AUTH_SECRET: "test-secret",
+    NEXT_PUBLIC_APP_URL: "http://localhost:3000",
+    NEXT_PUBLIC_REALTIME_URL: "http://localhost:3001",
+    HETZNER_S3_ENDPOINT: "https://s3.test",
+    HETZNER_S3_REGION: "eu-central",
+    HETZNER_S3_BUCKET: "test-bucket",
+    HETZNER_S3_ACCESS_KEY_ID: "test-key",
+    HETZNER_S3_SECRET_ACCESS_KEY: "test-secret-key",
+    HETZNER_S3_PUBLIC_URL: "https://s3.test/bucket",
+  },
+}));
 
-vi.mock("@/db/queries/auth-queries", () => ({
-  findUserById: mockFindUserById,
+const mockDbLimit = vi.hoisted(() => vi.fn().mockResolvedValue([]));
+
+vi.mock("@/db", () => ({
+  db: {
+    select: () => ({
+      from: () => ({
+        where: () => ({
+          limit: (...args: unknown[]) => mockDbLimit(...args),
+        }),
+      }),
+    }),
+  },
 }));
 
 const TEST_SECRET = "test-auth-secret-for-jwt-signing";
@@ -42,7 +68,7 @@ describe("authMiddleware", () => {
     vi.clearAllMocks();
     vi.resetModules();
     // Default: user is approved (not banned/suspended)
-    mockFindUserById.mockResolvedValue({ id: TEST_USER_ID, accountStatus: "APPROVED" });
+    mockDbLimit.mockResolvedValue([{ id: TEST_USER_ID, accountStatus: "APPROVED" }]);
   });
 
   // AUTH_SECRET is captured at module load time, so we must set process.env
@@ -151,7 +177,7 @@ describe("authMiddleware", () => {
   });
 
   it("calls next() with error for BANNED user (Story 11.3)", async () => {
-    mockFindUserById.mockResolvedValue({ id: TEST_USER_ID, accountStatus: "BANNED" });
+    mockDbLimit.mockResolvedValue([{ id: TEST_USER_ID, accountStatus: "BANNED" }]);
     const authMiddleware = await getAuthMiddleware(TEST_SECRET);
     const validToken = await makeValidToken();
     const socket = makeSocket(validToken);
@@ -164,7 +190,7 @@ describe("authMiddleware", () => {
   });
 
   it("calls next() with error for SUSPENDED user (Story 11.3)", async () => {
-    mockFindUserById.mockResolvedValue({ id: TEST_USER_ID, accountStatus: "SUSPENDED" });
+    mockDbLimit.mockResolvedValue([{ id: TEST_USER_ID, accountStatus: "SUSPENDED" }]);
     const authMiddleware = await getAuthMiddleware(TEST_SECRET);
     const validToken = await makeValidToken();
     const socket = makeSocket(validToken);

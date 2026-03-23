@@ -273,6 +273,13 @@ export interface ReportCreatedEvent extends BaseEvent {
 
 // --- Content Moderation Events ---
 
+export interface KeywordAddedEvent extends BaseEvent {
+  keyword: string;
+  severity: "low" | "medium" | "high";
+  category: string;
+  createdBy: string;
+}
+
 export interface ContentFlaggedEvent extends BaseEvent {
   contentType: "post" | "article" | "message";
   contentId: string;
@@ -297,6 +304,7 @@ export interface ContentModeratedEvent extends BaseEvent {
   action: "approve" | "remove" | "dismiss";
   moderatorId: string;
   reason?: string;
+  contentPreview?: string | null;
 }
 
 // --- Group Leadership & Moderation Events ---
@@ -670,7 +678,8 @@ export type EventName =
   | "content.flagged"
   | "content.unflagged"
   | "content.moderated"
-  | "report.created";
+  | "report.created"
+  | "moderation.keyword_added";
 
 // --- Event Map ---
 
@@ -760,4 +769,5 @@ export interface EventMap {
   "content.unflagged": ContentUnflaggedEvent;
   "content.moderated": ContentModeratedEvent;
   "report.created": ReportCreatedEvent;
+  "moderation.keyword_added": KeywordAddedEvent;
 }

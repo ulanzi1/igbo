@@ -111,28 +111,28 @@ export function GovernanceManager() {
         </button>
       </div>
 
-      {isLoading && <p className="text-muted-foreground">{t("loading")}</p>}
-      {isError && <p className="text-destructive">{t("error")}</p>}
+      {isLoading && <p className="text-zinc-400">{t("loading")}</p>}
+      {isError && <p className="text-red-400">{t("error")}</p>}
 
       {/* Create form */}
       {creating && (
-        <div className="border rounded-xl p-6 mb-6 bg-card">
-          <h3 className="font-semibold mb-4">{t("createNew")}</h3>
+        <div className="border border-zinc-700 rounded-xl p-6 mb-6 bg-zinc-900">
+          <h3 className="font-semibold mb-4 text-white">{t("createNew")}</h3>
           <div className="space-y-3">
             <input
-              className="w-full border rounded-lg px-3 py-2 text-sm"
+              className="w-full border border-zinc-700 rounded-lg px-3 py-2 text-sm bg-zinc-800 text-white placeholder:text-zinc-500"
               placeholder={t("fieldTitle")}
               value={form.title}
               onChange={(e) => setForm({ ...form, title: e.target.value })}
             />
             <input
-              className="w-full border rounded-lg px-3 py-2 text-sm"
+              className="w-full border border-zinc-700 rounded-lg px-3 py-2 text-sm bg-zinc-800 text-white placeholder:text-zinc-500"
               placeholder={t("fieldSlug")}
               value={form.slug}
               onChange={(e) => setForm({ ...form, slug: e.target.value })}
             />
             <select
-              className="w-full border rounded-lg px-3 py-2 text-sm"
+              className="w-full border border-zinc-700 rounded-lg px-3 py-2 text-sm bg-zinc-800 text-white"
               value={form.visibility}
               onChange={(e) => setForm({ ...form, visibility: e.target.value })}
             >
@@ -140,27 +140,27 @@ export function GovernanceManager() {
               <option value="admin_only">{t("visibilityAdminOnly")}</option>
             </select>
             <textarea
-              className="w-full border rounded-lg px-3 py-2 text-sm min-h-[120px]"
+              className="w-full border border-zinc-700 rounded-lg px-3 py-2 text-sm min-h-[120px] bg-zinc-800 text-white placeholder:text-zinc-500"
               placeholder={t("fieldContentEn")}
               value={form.content}
               onChange={(e) => setForm({ ...form, content: e.target.value })}
             />
             <textarea
-              className="w-full border rounded-lg px-3 py-2 text-sm min-h-[80px]"
+              className="w-full border border-zinc-700 rounded-lg px-3 py-2 text-sm min-h-[80px] bg-zinc-800 text-white placeholder:text-zinc-500"
               placeholder={t("fieldContentIg")}
               value={form.contentIgbo}
               onChange={(e) => setForm({ ...form, contentIgbo: e.target.value })}
             />
             <div className="flex gap-2">
               <button
-                className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm"
+                className="px-4 py-2 rounded-lg bg-zinc-700 hover:bg-zinc-600 text-white text-sm"
                 onClick={() => createMutation.mutate(form)}
                 disabled={createMutation.isPending}
               >
                 {t("save")}
               </button>
               <button
-                className="px-4 py-2 rounded-lg border text-sm"
+                className="px-4 py-2 rounded-lg border border-zinc-600 text-zinc-200 text-sm hover:bg-zinc-800"
                 onClick={() => setCreating(false)}
               >
                 {t("cancel")}
@@ -174,16 +174,16 @@ export function GovernanceManager() {
       {data && (
         <div className="space-y-4">
           {data.documents.map((doc) => (
-            <div key={doc.id} className="border rounded-xl p-5 bg-card">
+            <div key={doc.id} className="border border-zinc-700 rounded-xl p-5 bg-zinc-900">
               {editing?.id === doc.id ? (
                 <div className="space-y-3">
                   <input
-                    className="w-full border rounded-lg px-3 py-2 text-sm"
+                    className="w-full border border-zinc-700 rounded-lg px-3 py-2 text-sm bg-zinc-800 text-white"
                     value={form.title}
                     onChange={(e) => setForm({ ...form, title: e.target.value })}
                   />
                   <select
-                    className="w-full border rounded-lg px-3 py-2 text-sm"
+                    className="w-full border border-zinc-700 rounded-lg px-3 py-2 text-sm bg-zinc-800 text-white"
                     value={form.visibility}
                     onChange={(e) => setForm({ ...form, visibility: e.target.value })}
                   >
@@ -191,18 +191,18 @@ export function GovernanceManager() {
                     <option value="admin_only">{t("visibilityAdminOnly")}</option>
                   </select>
                   <textarea
-                    className="w-full border rounded-lg px-3 py-2 text-sm min-h-[120px]"
+                    className="w-full border border-zinc-700 rounded-lg px-3 py-2 text-sm min-h-[120px] bg-zinc-800 text-white"
                     value={form.content}
                     onChange={(e) => setForm({ ...form, content: e.target.value })}
                   />
                   <textarea
-                    className="w-full border rounded-lg px-3 py-2 text-sm min-h-[80px]"
+                    className="w-full border border-zinc-700 rounded-lg px-3 py-2 text-sm min-h-[80px] bg-zinc-800 text-white"
                     value={form.contentIgbo}
                     onChange={(e) => setForm({ ...form, contentIgbo: e.target.value })}
                   />
                   <div className="flex gap-2">
                     <button
-                      className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm"
+                      className="px-4 py-2 rounded-lg bg-zinc-700 hover:bg-zinc-600 text-white text-sm"
                       onClick={() =>
                         updateMutation.mutate({
                           id: doc.id,
@@ -219,7 +219,7 @@ export function GovernanceManager() {
                       {t("save")}
                     </button>
                     <button
-                      className="px-4 py-2 rounded-lg border text-sm"
+                      className="px-4 py-2 rounded-lg border border-zinc-600 text-zinc-200 text-sm hover:bg-zinc-800"
                       onClick={() => setEditing(null)}
                     >
                       {t("cancel")}
@@ -230,17 +230,17 @@ export function GovernanceManager() {
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <div className="flex items-center gap-2 mb-1">
-                      <h3 className="font-semibold">{doc.title}</h3>
+                      <h3 className="font-semibold text-white">{doc.title}</h3>
                       <StatusBadge status={doc.status} />
-                      <span className="text-xs text-muted-foreground">v{doc.version}</span>
+                      <span className="text-xs text-zinc-400">v{doc.version}</span>
                     </div>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-zinc-400">
                       {doc.slug} &bull; {doc.visibility}
                     </p>
                   </div>
                   <div className="flex gap-2 shrink-0">
                     <button
-                      className="px-3 py-1.5 rounded-lg border text-sm"
+                      className="px-3 py-1.5 rounded-lg border border-zinc-600 text-zinc-200 text-sm hover:bg-zinc-800"
                       onClick={() => {
                         setEditing(doc);
                         setForm({
@@ -256,7 +256,7 @@ export function GovernanceManager() {
                     </button>
                     {doc.status === "draft" && (
                       <button
-                        className="px-3 py-1.5 rounded-lg bg-green-600 text-white text-sm"
+                        className="px-3 py-1.5 rounded-lg bg-green-700 hover:bg-green-600 text-white text-sm"
                         onClick={() => publishMutation.mutate(doc.id)}
                         disabled={publishMutation.isPending}
                       >
@@ -269,7 +269,7 @@ export function GovernanceManager() {
             </div>
           ))}
           {data.documents.length === 0 && (
-            <p className="text-muted-foreground text-center py-8">{t("empty")}</p>
+            <p className="text-zinc-400 text-center py-8">{t("empty")}</p>
           )}
         </div>
       )}

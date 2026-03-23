@@ -140,14 +140,14 @@ development_status:
   9-5-notification-bug-fixes-ux-polish: done
 
   # Epic 10: Search & Discovery Platform
-  epic-10: in-progress
+  epic-10: done
   10-1-global-search-autocomplete: done
   10-2-filtered-search-results: done
   10-3-recommended-groups: done
   epic-10-retrospective: done # AI-1–AI-3 captured; Epic 11 prep tasks defined; moderation architecture spike + admin UI layout + test template + event contract all critical path — 2026-03-08
 
   # Epic 11: Administration & Moderation
-  epic-11: in-progress
+  epic-11: done
   11-1-content-moderation-queue-automated-flagging: done
   11-2-member-reporting-system: done
   11-3-progressive-discipline-dispute-resolution: done
@@ -156,7 +156,8 @@ development_status:
   11-6-gamification-rules-admin: done
   11-7-leaderboard-admin-view: done
   11-8-member-points-investigation: done
-  epic-11-retrospective: optional
+  epic-11-retrospective: done # 27 bugs from manual testing identified; 3 stabilization groups + 4 AIs + 5 team agreements; validation scenarios added to DoD — 2026-03-23
+  epic-11-stabilization: done # 12 tasks completed: admin nav, contrast, status tags, leaderboard sort, suspend redirect, discipline emails, warning banner, banned login, moderation preview+reporter, report abuse warning, keyword enhancements, test fixes — 2026-03-23
 
   # Epic 12: Platform Operations & Infrastructure
   epic-12: backlog

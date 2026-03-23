@@ -56,6 +56,36 @@ describe("AdminShell", () => {
     expect(screen.getByText("Admin.sidebar.approvals")).toBeInTheDocument();
     expect(screen.getByText("Admin.sidebar.members")).toBeInTheDocument();
     expect(screen.getByText("Admin.sidebar.moderation")).toBeInTheDocument();
+    expect(screen.getByText("Admin.sidebar.governance")).toBeInTheDocument();
+    expect(screen.getByText("Admin.sidebar.gamification")).toBeInTheDocument();
+    expect(screen.getByText("Admin.sidebar.leaderboard")).toBeInTheDocument();
+  });
+
+  it("does not render a reports nav link", () => {
+    render(
+      <AdminShell>
+        <div>Content</div>
+      </AdminShell>,
+    );
+    expect(screen.queryByText("Admin.sidebar.reports")).not.toBeInTheDocument();
+  });
+
+  it("governance link points to /admin/governance", () => {
+    render(<AdminSidebar />);
+    const link = screen.getByText("Admin.sidebar.governance").closest("a");
+    expect(link).toHaveAttribute("href", "/admin/governance");
+  });
+
+  it("gamification link points to /admin/gamification", () => {
+    render(<AdminSidebar />);
+    const link = screen.getByText("Admin.sidebar.gamification").closest("a");
+    expect(link).toHaveAttribute("href", "/admin/gamification");
+  });
+
+  it("leaderboard link points to /admin/leaderboard", () => {
+    render(<AdminSidebar />);
+    const link = screen.getByText("Admin.sidebar.leaderboard").closest("a");
+    expect(link).toHaveAttribute("href", "/admin/leaderboard");
   });
 
   it("renders children in main content area", () => {

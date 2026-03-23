@@ -321,12 +321,14 @@
     "sidebar": {
       "dashboard": "Dashboard",
       "approvals": "Approvals",
+      "articles": "Articles",
       "members": "Members",
       "moderation": "Moderation",
-      "reports": "Reports",
+      "governance": "Governance",
+      "gamification": "Gamification",
+      "leaderboard": "Leaderboard",
       "analytics": "Analytics",
-      "auditLog": "Audit Log",
-      "articles": "Articles"
+      "auditLog": "Audit Log"
     },
     "members": {
       "title": "Member Management",
@@ -509,7 +511,8 @@
         "source": "Source",
         "reason": "Reason",
         "flaggedAt": "Flagged",
-        "actions": "Actions"
+        "actions": "Actions",
+        "reporter": "Reporter"
       },
       "source": {
         "autoFlagged": "Auto-flagged",
@@ -552,6 +555,12 @@
         "reviewed": "Reviewed",
         "dismissed": "Dismissed"
       },
+      "outcomeTag": {
+        "approved": "Approved",
+        "removed": "Removed",
+        "warned": "Warned",
+        "dismissed": "Dismissed"
+      },
       "keywords": {
         "title": "Keyword Management",
         "addKeyword": "Add Keyword",
@@ -568,7 +577,9 @@
         "save": "Save",
         "add": "Add",
         "editTitle": "Edit Keyword"
-      }
+      },
+      "viewContent": "View content",
+      "reportedBy": "Reported by {name}"
     },
     "auditLog": {
       "title": "Audit Log",
@@ -901,7 +912,8 @@
       "applyLink": "Apply for membership",
       "invalidCredentials": "Invalid email or password. Please try again.",
       "accountLocked": "Account temporarily locked. Try again in 15 minutes or contact support.",
-      "genericError": "Something went wrong. Please try again."
+      "genericError": "Something went wrong. Please try again.",
+      "bannedMessage": "Your account has been banned for violating our Terms of Service. You may appeal within 14 days by writing to abuse@igbo.global."
     },
     "twoFactor": {
       "title": "Two-Factor Authentication",
@@ -2081,6 +2093,7 @@
     "success": "Your report has been submitted. Thank you for helping keep the community safe.",
     "alreadyReported": "You have already reported this content.",
     "close": "Close",
+    "abuseWarning": "Repeated false reporting may result in account restriction.",
     "action": {
       "report": "Report"
     }
@@ -2093,5 +2106,26 @@
     "download": "Download",
     "contentUnavailable": "Content is temporarily unavailable. Please check back later.",
     "applyButton": "Apply for Membership"
+  },
+  "emails": {
+    "disciplineWarning": {
+      "subject": "Important: A warning has been issued on your OBIGBO account"
+    },
+    "disciplineSuspension": {
+      "subject": "Your OBIGBO account has been suspended"
+    },
+    "disciplineBan": {
+      "subject": "Your OBIGBO account has been permanently banned"
+    },
+    "contentRemoval": {
+      "subject": "Your content has been removed from OBIGBO"
+    }
+  },
+  "warnings": {
+    "banner": {
+      "title": "Account Warning",
+      "reason": "Reason: {reason}",
+      "dismiss": "I understand"
+    }
   }
 }

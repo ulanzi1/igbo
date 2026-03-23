@@ -131,4 +131,17 @@ describe("ReportDialog", () => {
     fireEvent.keyDown(document, { key: "Escape" });
     expect(defaultProps.onClose).toHaveBeenCalled();
   });
+
+  // ─── Task 10: Report abuse warning ────────────────────────────────────────
+
+  it("shows abuse warning when response includes warning:repeated_reporting", async () => {
+    render(<ReportDialog {...defaultProps} />);
+    fireEvent.click(screen.getByDisplayValue("spam"));
+
+    mockOnSuccess?.({ data: { reportId: "rpt-warn", warning: "repeated_reporting" } });
+
+    await waitFor(() => {
+      expect(screen.getByText("Reports.abuseWarning")).toBeInTheDocument();
+    });
+  });
 });
