@@ -45,6 +45,9 @@ vi.mock("@/lib/rate-limiter", () => ({
   }),
   buildRateLimitHeaders: vi.fn().mockReturnValue({}),
 }));
+vi.mock("@/db/queries/member-discipline", () => ({
+  getActiveSuspension: vi.fn(),
+}));
 vi.mock("@/services/event-bus", () => ({ eventBus: { emit: vi.fn() } }));
 vi.mock("@/services/email-service", () => ({ enqueueEmailJob: vi.fn() }));
 vi.mock("@/env", () => ({
@@ -81,7 +84,11 @@ import {
   verifyPassword,
   validatePasswordComplexity,
   parseDeviceInfo,
+  initiateLogin,
 } from "@/services/auth-service";
+import { findUserByEmail } from "@/db/queries/auth-queries";
+import { getActiveSuspension } from "@/db/queries/member-discipline";
+import { setChallenge } from "@/server/auth/config";
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -145,5 +152,68 @@ describe("parseDeviceInfo", () => {
   it("returns Unknown device for null user agent", () => {
     const result = parseDeviceInfo(null);
     expect(result).toBe("Unknown device");
+  });
+});
+
+// ─── initiateLogin — suspended user flow ────────────────────────────────────
+
+describe("initiateLogin — suspended users", () => {
+  const suspendedUser = {
+    id: "user-suspended",
+    email: "suspended@example.com",
+    accountStatus: "SUSPENDED",
+    passwordHash: "$2a$12$realHash",
+  };
+
+  it("returns suspended status with details when password is correct", async () => {
+    vi.mocked(findUserByEmail).mockResolvedValue(suspendedUser as never);
+    vi.mocked(bcryptjs.compare).mockResolvedValue(true as never);
+    vi.mocked(getActiveSuspension).mockResolvedValue({
+      suspensionEndsAt: new Date("2026-04-01T00:00:00Z"),
+      reason: "Repeated harassment",
+    } as never);
+
+    const result = await initiateLogin("suspended@example.com", "Pass1!", "UA", "127.0.0.1");
+
+    expect(result.status).toBe("suspended");
+    if (result.status === "suspended") {
+      expect(result.until).toBe("2026-04-01T00:00:00.000Z");
+      expect(result.reason).toBe("Repeated harassment");
+    }
+  });
+
+  it("returns invalid status when suspended user provides wrong password", async () => {
+    vi.mocked(findUserByEmail).mockResolvedValue(suspendedUser as never);
+    vi.mocked(bcryptjs.compare).mockResolvedValue(false as never);
+
+    const result = await initiateLogin("suspended@example.com", "wrong", "UA", "127.0.0.1");
+
+    expect(result.status).toBe("invalid");
+    expect(getActiveSuspension).not.toHaveBeenCalled();
+  });
+
+  it("returns invalid when suspended user has no passwordHash (falls through to generic check)", async () => {
+    const noHashUser = { ...suspendedUser, passwordHash: null };
+    vi.mocked(findUserByEmail).mockResolvedValue(noHashUser as never);
+    vi.mocked(bcryptjs.compare).mockResolvedValue(false as never);
+
+    const result = await initiateLogin("suspended@example.com", "Pass1!", "UA", "127.0.0.1");
+
+    expect(result.status).toBe("invalid");
+    expect(getActiveSuspension).not.toHaveBeenCalled();
+  });
+
+  it("returns suspended without until/reason when no active suspension record found", async () => {
+    vi.mocked(findUserByEmail).mockResolvedValue(suspendedUser as never);
+    vi.mocked(bcryptjs.compare).mockResolvedValue(true as never);
+    vi.mocked(getActiveSuspension).mockResolvedValue(null);
+
+    const result = await initiateLogin("suspended@example.com", "Pass1!", "UA", "127.0.0.1");
+
+    expect(result.status).toBe("suspended");
+    if (result.status === "suspended") {
+      expect(result.until).toBeUndefined();
+      expect(result.reason).toBeUndefined();
+    }
   });
 });

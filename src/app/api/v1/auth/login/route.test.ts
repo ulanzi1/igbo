@@ -112,4 +112,32 @@ describe("POST /api/v1/auth/login", () => {
     expect(res.status).toBe(403);
     expect(body.detail).toBe("banned");
   });
+
+  // ─── Suspended user login flow ──────────────────────────────────────────────
+
+  it("returns 403 with detail 'suspended' for suspended user", async () => {
+    mockInitiateLogin.mockResolvedValue({
+      status: "suspended",
+      until: "2026-04-01T00:00:00.000Z",
+      reason: "Repeated harassment",
+    });
+
+    const res = await POST(makeRequest({ email: "suspended@example.com", password: "Pass1!" }));
+    const body = await res.json();
+    expect(res.status).toBe(403);
+    expect(body.detail).toBe("suspended");
+    expect(body.until).toBe("2026-04-01T00:00:00.000Z");
+    expect(body.reason).toBe("Repeated harassment");
+  });
+
+  it("returns 403 with detail 'suspended' without until/reason when not available", async () => {
+    mockInitiateLogin.mockResolvedValue({
+      status: "suspended",
+    });
+
+    const res = await POST(makeRequest({ email: "suspended@example.com", password: "Pass1!" }));
+    const body = await res.json();
+    expect(res.status).toBe(403);
+    expect(body.detail).toBe("suspended");
+  });
 });

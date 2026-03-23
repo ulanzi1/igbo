@@ -43,6 +43,18 @@ export const POST = withApiHandler(async (request: Request) => {
     });
   }
 
+  if (result.status === "suspended") {
+    throw new ApiError({
+      title: "Forbidden",
+      status: 403,
+      detail: "suspended",
+      extensions: {
+        until: result.until,
+        reason: result.reason,
+      },
+    });
+  }
+
   if (result.status === "invalid") {
     throw new ApiError({
       title: "Unauthorized",
