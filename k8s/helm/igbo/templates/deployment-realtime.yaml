@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: igbo-realtime
+  namespace: { { .Values.namespace } }
+  labels:
+    app: igbo-realtime
+    app.kubernetes.io/name: { { .Chart.Name } }
+    app.kubernetes.io/version: { { .Chart.AppVersion | quote } }
+spec:
+  replicas: { { .Values.realtime.replicaCount } }
+  selector:
+    matchLabels:
+      app: igbo-realtime
+  template:
+    metadata:
+      labels:
+        app: igbo-realtime
+    spec:
+      containers:
+        - name: realtime
+          image: "{{ .Values.image.registry }}/{{ .Values.image.organization }}/{{ .Values.realtime.image.name }}:{{ .Values.image.tag }}"
+          imagePullPolicy: { { .Values.image.pullPolicy } }
+          ports:
+            - containerPort: { { .Values.realtime.port } }
+              name: http
+          envFrom:
+            - configMapRef:
+                name: igbo-config
+            - secretRef:
+                name: { { .Values.secretName } }
+          resources:
+            requests:
+              memory: { { .Values.realtime.resources.requests.memory | quote } }
+              cpu: { { .Values.realtime.resources.requests.cpu | quote } }
+            limits:
+              memory: { { .Values.realtime.resources.limits.memory | quote } }
+              cpu: { { .Values.realtime.resources.limits.cpu | quote } }
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: { { .Values.realtime.port } }
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: { { .Values.realtime.port } }
+            initialDelaySeconds: 20
+            periodSeconds: 30
+            failureThreshold: 3
+          securityContext:
+            runAsNonRoot: true
+            readOnlyRootFilesystem: false
+            allowPrivilegeEscalation: false

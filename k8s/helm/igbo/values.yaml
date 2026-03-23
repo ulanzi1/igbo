@@ -1,0 +1,80 @@
+# Default values for igbo Helm chart.
+# Override with: helm install igbo ./k8s/helm/igbo --set image.tag=sha-abc1234
+
+image:
+  registry: ghcr.io
+  organization: your-org
+  tag: latest
+  pullPolicy: IfNotPresent
+
+namespace: igbo
+
+web:
+  replicaCount: 2
+  image:
+    name: igbo-web
+  port: 3000
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "250m"
+    limits:
+      memory: "1Gi"
+      cpu: "1000m"
+  hpa:
+    minReplicas: 2
+    maxReplicas: 8
+    targetCPUUtilization: 70
+    targetMemoryUtilization: 80
+
+realtime:
+  replicaCount: 2
+  image:
+    name: igbo-realtime
+  port: 3001
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "125m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+  # Socket.IO sticky sessions — cookie affinity ensures WebSocket connections
+  # hit the same pod. Alternatively, the Redis adapter makes sessions stateless.
+  stickySession:
+    enabled: true
+    cookieName: igbo-realtime-affinity
+
+# ConfigMap keys (non-secret env vars injected into pods)
+config:
+  NODE_ENV: production
+  REALTIME_PORT: "3001"
+  ENABLE_GEOCODING: "false"
+  ENABLE_EMAIL_SENDING: "true"
+
+# Secret name — create separately with kubectl:
+# kubectl create secret generic igbo-secrets --from-env-file=.env -n igbo
+secretName: igbo-secrets
+
+# Ingress configuration
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+  hosts:
+    - host: obigbo.app
+      paths:
+        - path: /
+          pathType: Prefix
+          service: web
+    - host: obigbo.app
+      paths:
+        - path: /socket.io
+          pathType: Prefix
+          service: realtime
+  tls:
+    - secretName: igbo-tls
+      hosts:
+        - obigbo.app

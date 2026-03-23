@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: igbo-realtime
+  namespace: igbo
+  labels:
+    app: igbo-realtime
+    component: realtime
+  # NOTE: Sticky session annotations belong on the Ingress resource, not the Service.
+  # See docs/kubernetes-migration.md for Ingress configuration.
+spec:
+  selector:
+    app: igbo-realtime
+  ports:
+    - name: http
+      port: 80
+      targetPort: 3001
+      protocol: TCP
+  type: ClusterIP
