@@ -11,12 +11,15 @@ const mockEvictAllUserSessions = vi.hoisted(() => vi.fn());
 const mockCreateDisciplineAction = vi.hoisted(() => vi.fn());
 const mockListSuspensionsExpiringBefore = vi.hoisted(() => vi.fn());
 const mockExpireDisciplineAction = vi.hoisted(() => vi.fn());
+const mockGetDisciplineActionById = vi.hoisted(() => vi.fn());
+const mockDbTransaction = vi.hoisted(() => vi.fn());
 const mockLogAdminAction = vi.hoisted(() => vi.fn());
 const mockEventBusEmit = vi.hoisted(() => vi.fn());
 
 vi.mock("@/db", () => ({
   db: {
     update: mockDbUpdate,
+    transaction: mockDbTransaction,
   },
 }));
 
@@ -37,8 +40,18 @@ vi.mock("@/server/auth/redis-session-cache", () => ({
   evictAllUserSessions: mockEvictAllUserSessions,
 }));
 
+vi.mock("@/db/schema/member-discipline", () => ({
+  memberDisciplineActions: {
+    id: "id",
+    status: "status",
+    liftedAt: "lifted_at",
+    liftedBy: "lifted_by",
+  },
+}));
+
 vi.mock("@/db/queries/member-discipline", () => ({
   createDisciplineAction: mockCreateDisciplineAction,
+  getDisciplineActionById: mockGetDisciplineActionById,
   listSuspensionsExpiringBefore: mockListSuspensionsExpiringBefore,
   expireDisciplineAction: mockExpireDisciplineAction,
 }));
@@ -56,6 +69,7 @@ import {
   issueSuspension,
   issueBan,
   liftExpiredSuspensions,
+  liftSuspensionEarly,
 } from "./member-discipline-service";
 
 const buildUpdateChain = () => {
@@ -227,5 +241,111 @@ describe("liftExpiredSuspensions", () => {
     mockListSuspensionsExpiringBefore.mockResolvedValue([]);
     const count = await liftExpiredSuspensions(new Date("2026-03-09"));
     expect(count).toBe(0);
+  });
+});
+
+describe("liftSuspensionEarly", () => {
+  const SUSPENSION_ID = "00000000-0000-4000-8000-000000000099";
+  const USER_ID = "user-1";
+  const ADMIN_ID = "admin-1";
+
+  const MOCK_SUSPENSION = {
+    id: SUSPENSION_ID,
+    userId: USER_ID,
+    actionType: "suspension",
+    status: "active",
+  };
+
+  beforeEach(() => {
+    mockGetDisciplineActionById.mockResolvedValue(MOCK_SUSPENSION);
+    mockFindUserById.mockResolvedValue({ id: USER_ID, accountStatus: "SUSPENDED" });
+
+    const mockTxUpdate = vi.fn().mockReturnValue({
+      set: vi.fn().mockReturnValue({
+        where: vi.fn().mockResolvedValue(undefined),
+      }),
+    });
+    const mockTx = { update: mockTxUpdate };
+    mockDbTransaction.mockImplementation(async (fn: (tx: typeof mockTx) => Promise<unknown>) =>
+      fn(mockTx),
+    );
+  });
+
+  it("happy path: calls db.transaction, emits events, calls logAdminAction", async () => {
+    await liftSuspensionEarly({
+      suspensionId: SUSPENSION_ID,
+      adminId: ADMIN_ID,
+      reason: "Good behavior",
+    });
+
+    expect(mockDbTransaction).toHaveBeenCalledTimes(1);
+    expect(mockLogAdminAction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actorId: ADMIN_ID,
+        action: "LIFT_SUSPENSION_EARLY",
+        targetUserId: USER_ID,
+      }),
+    );
+    expect(mockEventBusEmit).toHaveBeenCalledWith(
+      "account.status_changed",
+      expect.objectContaining({
+        userId: USER_ID,
+        newStatus: "APPROVED",
+        oldStatus: "SUSPENDED",
+      }),
+    );
+    expect(mockEventBusEmit).toHaveBeenCalledWith(
+      "account.discipline_lifted",
+      expect.objectContaining({
+        userId: USER_ID,
+        disciplineId: SUSPENSION_ID,
+        reason: "Good behavior",
+        liftedBy: ADMIN_ID,
+      }),
+    );
+  });
+
+  it("throws 404 when suspension not found", async () => {
+    mockGetDisciplineActionById.mockResolvedValue(null);
+    await expect(
+      liftSuspensionEarly({ suspensionId: SUSPENSION_ID, adminId: ADMIN_ID, reason: "test" }),
+    ).rejects.toMatchObject({ status: 404 });
+  });
+
+  it("throws 409 when suspension already lifted (status !== 'active')", async () => {
+    mockGetDisciplineActionById.mockResolvedValue({ ...MOCK_SUSPENSION, status: "lifted" });
+    await expect(
+      liftSuspensionEarly({ suspensionId: SUSPENSION_ID, adminId: ADMIN_ID, reason: "test" }),
+    ).rejects.toMatchObject({ status: 409 });
+  });
+
+  it("throws 409 when user status is BANNED", async () => {
+    mockFindUserById.mockResolvedValue({ id: USER_ID, accountStatus: "BANNED" });
+    await expect(
+      liftSuspensionEarly({ suspensionId: SUSPENSION_ID, adminId: ADMIN_ID, reason: "test" }),
+    ).rejects.toMatchObject({ status: 409 });
+  });
+
+  it("calls db.transaction with a function", async () => {
+    await liftSuspensionEarly({
+      suspensionId: SUSPENSION_ID,
+      adminId: ADMIN_ID,
+      reason: "Good behavior",
+    });
+    expect(mockDbTransaction).toHaveBeenCalledTimes(1);
+    expect(typeof mockDbTransaction.mock.calls[0][0]).toBe("function");
+  });
+
+  it("emits account.status_changed and account.discipline_lifted events", async () => {
+    await liftSuspensionEarly({
+      suspensionId: SUSPENSION_ID,
+      adminId: ADMIN_ID,
+      reason: "Resolved",
+    });
+
+    const emitCalls = mockEventBusEmit.mock.calls;
+    const eventNames = emitCalls.map((c: unknown[]) => c[0]);
+    expect(eventNames).toContain("account.status_changed");
+    expect(eventNames).toContain("account.discipline_lifted");
   });
 });

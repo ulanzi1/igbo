@@ -14,6 +14,7 @@ interface DisciplineRecord {
 
 interface ModerationActionDialogProps {
   action: DisciplineAction;
+  contentAuthorId?: string;
   disciplineHistory?: DisciplineRecord[];
   onConfirm: (params: { reason?: string; durationHours?: number; confirmed?: boolean }) => void;
   onCancel: () => void;
@@ -28,6 +29,7 @@ const SUSPENSION_DURATIONS = [
 
 export function ModerationActionDialog({
   action,
+  contentAuthorId,
   disciplineHistory,
   onConfirm,
   onCancel,
@@ -111,6 +113,15 @@ export function ModerationActionDialog({
                 </div>
               ))}
             </div>
+            {contentAuthorId && (
+              <a
+                href={`/admin/moderation/members/${contentAuthorId}`}
+                className="text-xs text-zinc-400 underline hover:text-white mt-2 inline-block"
+                data-testid="view-full-history-link"
+              >
+                {t("moderation.discipline.viewFullHistory")} &rarr;
+              </a>
+            )}
           </div>
         )}
 

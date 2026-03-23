@@ -7,7 +7,7 @@ const mockUseMutation = vi.fn();
 const mockUseQueryClient = vi.fn();
 const mockInvalidateQueries = vi.fn();
 const mockMutate = vi.fn();
-const mockT = vi.fn((key: string, _params?: unknown) => key);
+const mockT = vi.fn((key: string) => key);
 
 vi.mock("@tanstack/react-query", () => ({
   useQuery: (...args: unknown[]) => mockUseQuery(...args),
@@ -44,6 +44,8 @@ vi.mock("./ModerationActionDialog", () => ({
 
 import { ModerationQueue } from "./ModerationQueue";
 
+const VALID_UUID = "00000000-0000-4000-8000-000000000001";
+
 const MOCK_ITEMS = [
   {
     id: "action-1",
@@ -51,7 +53,7 @@ const MOCK_ITEMS = [
     contentId: "post-001",
     contentPreview: "This is bad content with badword here",
     authorName: "Alice",
-    contentAuthorId: "user-001",
+    contentAuthorId: VALID_UUID,
     flagReason: "hate_speech",
     keywordMatched: "badword",
     autoFlagged: true,
@@ -59,6 +61,7 @@ const MOCK_ITEMS = [
     status: "pending",
     visibilityOverride: "visible",
     disciplineLinked: false,
+    disciplineCount: 2,
     reportCount: 1,
     reporterId: "reporter-001",
     reporterName: "Bob",
@@ -125,7 +128,6 @@ describe("ModerationQueue", () => {
     render(<ModerationQueue />);
     const selects = document.querySelectorAll("select");
     fireEvent.change(selects[0]!, { target: { value: "reviewed" } });
-    // No crash = pass; query is re-triggered with new key
     expect(mockUseQuery).toHaveBeenCalled();
   });
 
@@ -222,9 +224,9 @@ describe("ModerationQueue", () => {
     expect(tag?.textContent).toBe("moderation.outcomeTag.dismissed");
   });
 
-  // ─── Task 9: Content preview link + reporter identity ─────────────────────
+  // ─── View content button (replaces old <a> link) ─────────────────────────
 
-  it("shows 'View content' link when contentPreview is null", () => {
+  it("shows 'View content' button when contentPreview is null", () => {
     mockUseQuery.mockReturnValue({
       data: {
         data: {
@@ -243,10 +245,66 @@ describe("ModerationQueue", () => {
       isLoading: false,
     });
     render(<ModerationQueue />);
-    const link = document.querySelector("[data-testid='view-content-link-no-preview-1']");
-    expect(link).not.toBeNull();
-    expect(link?.getAttribute("href")).toBe("/feed#post-post-999");
+    const btn = document.querySelector("[data-testid='view-content-btn-no-preview-1']");
+    expect(btn).not.toBeNull();
+    expect(btn?.tagName).toBe("BUTTON");
+    expect(btn?.textContent).toBe("moderation.viewContentExpand");
   });
+
+  // ─── Author link + discipline badge ──────────────────────────────────────
+
+  it("renders author name as link to discipline history page", () => {
+    render(<ModerationQueue />);
+    const link = document.querySelector(`[data-testid='author-link-action-1']`);
+    expect(link).not.toBeNull();
+    expect(link?.getAttribute("href")).toBe(`/admin/moderation/members/${VALID_UUID}`);
+    expect(link?.textContent).toContain("Alice");
+  });
+
+  it("shows discipline badge count on author name when disciplineCount > 0", () => {
+    render(<ModerationQueue />);
+    const badge = document.querySelector(`[data-testid='discipline-badge-action-1']`);
+    expect(badge).not.toBeNull();
+    expect(badge?.textContent).toBe("(2)");
+  });
+
+  it("does not show discipline badge when disciplineCount is 0", () => {
+    mockUseQuery.mockReturnValue({
+      data: {
+        data: {
+          items: [{ ...MOCK_ITEMS[0], id: "no-disc", disciplineCount: 0 }],
+        },
+        meta: { page: 1, pageSize: 20, total: 1 },
+      },
+      isLoading: false,
+    });
+    render(<ModerationQueue />);
+    expect(document.querySelector("[data-testid='discipline-badge-no-disc']")).toBeNull();
+  });
+
+  it("renders author as plain text when contentAuthorId is not a valid UUID", () => {
+    mockUseQuery.mockReturnValue({
+      data: {
+        data: {
+          items: [
+            {
+              ...MOCK_ITEMS[0],
+              id: "non-uuid-author",
+              contentAuthorId: "not-a-uuid",
+              authorName: "External",
+            },
+          ],
+        },
+        meta: { page: 1, pageSize: 20, total: 1 },
+      },
+      isLoading: false,
+    });
+    render(<ModerationQueue />);
+    expect(document.querySelector("[data-testid='author-link-non-uuid-author']")).toBeNull();
+    expect(screen.getByText("External")).toBeTruthy();
+  });
+
+  // ─── Reporter ─────────────────────────────────────────────────────────────
 
   it("shows reporter name as link when reporterName is provided", () => {
     render(<ModerationQueue />);
@@ -276,28 +334,5 @@ describe("ModerationQueue", () => {
     });
     render(<ModerationQueue />);
     expect(document.querySelector("[data-testid='reporter-link-auto-flagged-1']")).toBeNull();
-  });
-
-  it("shows article content link for article contentType", () => {
-    mockUseQuery.mockReturnValue({
-      data: {
-        data: {
-          items: [
-            {
-              ...MOCK_ITEMS[0],
-              id: "article-no-preview",
-              contentPreview: null,
-              contentType: "article",
-              contentId: "article-888",
-            },
-          ],
-        },
-        meta: { page: 1, pageSize: 20, total: 1 },
-      },
-      isLoading: false,
-    });
-    render(<ModerationQueue />);
-    const link = document.querySelector("[data-testid='view-content-link-article-no-preview']");
-    expect(link?.getAttribute("href")).toBe("/articles/article-888");
   });
 });

@@ -131,6 +131,21 @@ export async function togglePostPin(
 }
 
 /**
+ * Soft-delete a post by admin moderation (any post, regardless of group).
+ * Returns the deleted post row or null if not found.
+ */
+export async function softDeletePostByModeration(
+  postId: string,
+): Promise<typeof communityPosts.$inferSelect | null> {
+  const [updated] = await db
+    .update(communityPosts)
+    .set({ deletedAt: new Date() })
+    .where(and(eq(communityPosts.id, postId), sql`${communityPosts.deletedAt} IS NULL`))
+    .returning();
+  return updated ?? null;
+}
+
+/**
  * Soft-delete a group post by a moderator (leader/creator).
  * Returns the deleted post row or null if not found or not in the specified group.
  */
@@ -175,6 +190,20 @@ export async function getPostContent(postId: string): Promise<string | null> {
     .select({ content: communityPosts.content })
     .from(communityPosts)
     .where(and(eq(communityPosts.id, postId), sql`${communityPosts.deletedAt} IS NULL`))
+    .limit(1);
+  return row?.content ?? null;
+}
+
+/**
+ * Get the raw text content of a post for admin moderation review.
+ * Unlike getPostContent, this does NOT filter by deletedAt — moderators
+ * need to see content even if it was soft-deleted by a previous action.
+ */
+export async function getPostContentForModeration(postId: string): Promise<string | null> {
+  const [row] = await db
+    .select({ content: communityPosts.content })
+    .from(communityPosts)
+    .where(eq(communityPosts.id, postId))
     .limit(1);
   return row?.content ?? null;
 }

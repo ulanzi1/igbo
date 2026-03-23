@@ -574,3 +574,18 @@ export async function getArticleContent(articleId: string): Promise<string | nul
   const parts = [row.content, row.contentIgbo, row.titleIgbo].filter(Boolean);
   return parts.join(" ");
 }
+
+/**
+ * Soft-delete an article by admin moderation.
+ * Returns the deleted article row or null if not found.
+ */
+export async function softDeleteArticleByModeration(
+  articleId: string,
+): Promise<typeof communityArticles.$inferSelect | null> {
+  const [updated] = await db
+    .update(communityArticles)
+    .set({ deletedAt: new Date() })
+    .where(and(eq(communityArticles.id, articleId), sql`${communityArticles.deletedAt} IS NULL`))
+    .returning();
+  return updated ?? null;
+}

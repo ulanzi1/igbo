@@ -539,8 +539,12 @@
         "banConfirmCheck": "Aghọtara m na nke a bụ mgbe niile ma enwekwara ike ịtụgharị ya"
       },
       "discipline": {
-        "priorActions": "{count} ihe ndịmakwa ọchịchọ emechara n'onye otu a"
+        "priorActions": "{count} ihe ndịmakwa ọchịchọ emechara n'onye otu a",
+        "viewFullHistory": "Lee akụkọ niile"
       },
+      "viewContentExpand": "Lee ọrụ a",
+      "hideContent": "Zoo ọrụ a",
+      "contentUnavailable": "Ọdịnaya adịghị",
       "contentTypes": {
         "post": "Ozi",
         "article": "Akụkọ",
@@ -580,6 +584,29 @@
       },
       "viewContent": "Lee ọrụ a",
       "reportedBy": "Onye kọrọ: {name}"
+    },
+    "discipline": {
+      "title": "Akụkọ Ntụziaka Onye Otu",
+      "activeSuspension": "Imechi Na-arụ Ọrụ",
+      "endsAt": "Ọgwụgwụ: {date}",
+      "remaining": "({days} ụbọchị fọdụrụ)",
+      "issuedBy": "Nyere site n'aka: {name}",
+      "liftEarly": "Wepụ Imechi Oge Ntụ",
+      "liftReason": "Ihe kpatara iwepụ",
+      "liftReasonRequired": "A chọrọ ihe kpatara",
+      "liftConfirmMessage": "Nke a ga-eweghachi ọnọdụ onye otu ahụ ka ọ bụrụ ANABATARA ozugbo.",
+      "liftSuccess": "Ewepụrụ imechi nke ọma",
+      "historyCount": "Akụkọ Ntụziaka ({count} omume)",
+      "noHistory": "Enweghị akụkọ ntụziaka",
+      "status": {
+        "active": "Na-arụ ọrụ",
+        "expired": "Agwụla",
+        "lifted": "Ewepụrụ"
+      },
+      "backToQueue": "Laghachi na Ahịrị Nlekọta",
+      "memberStatus": "Ọnọdụ Akanta: {status}",
+      "liftedBy": "Onye wepụrụ: {name}",
+      "liftedAt": "Ewepụrụ: {date}"
     },
     "auditLog": {
       "title": "Ndekọ Ọrụ Ndị Isi",
@@ -649,7 +676,8 @@
       "page": "Ibe",
       "of": "n'ime",
       "showing": "Na-egosi",
-      "perPage": "n'ibe"
+      "perPage": "n'ibe",
+      "investigate": "Nyochaa"
     },
     "governance": {
       "title": "Akwụkwọ Ọchịchọ",
@@ -1651,6 +1679,10 @@
       "suspension": {
         "title": "A Kwụsị Akanta Gị",
         "body": "A kwụsị akanta gị nwa oge. Biko lelee ọnọdụ akanta gị maka nkọwa."
+      },
+      "lifted": {
+        "title": "Ewepụrụ Imechi",
+        "body": "Ewepụrụ imechi akanta gị oge ntụ"
       }
     }
   },

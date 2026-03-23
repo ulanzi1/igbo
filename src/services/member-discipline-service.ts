@@ -7,11 +7,14 @@ import { findActiveSessionsByUserId, deleteAllSessionsForUser } from "@/db/queri
 import { evictAllUserSessions } from "@/server/auth/redis-session-cache";
 import {
   createDisciplineAction,
+  getDisciplineActionById,
   listSuspensionsExpiringBefore,
   expireDisciplineAction,
 } from "@/db/queries/member-discipline";
+import { memberDisciplineActions } from "@/db/schema/member-discipline";
 import { logAdminAction } from "@/services/audit-logger";
 import { eventBus } from "@/services/event-bus";
+import { ApiError } from "@/lib/api-error";
 
 // ─── Session eviction helper ──────────────────────────────────────────────────
 
@@ -216,4 +219,78 @@ export async function liftExpiredSuspensions(now: Date): Promise<number> {
   }
 
   return liftedCount;
+}
+
+// ─── Manual early lift ──────────────────────────────────────────────────────
+
+export async function liftSuspensionEarly(params: {
+  suspensionId: string;
+  adminId: string;
+  reason: string;
+}): Promise<void> {
+  const { suspensionId, adminId, reason } = params;
+
+  // All checks + mutations inside a single transaction to prevent TOCTOU races
+  const userId = await db.transaction(async (tx) => {
+    // 1. Verify discipline action exists and is an active suspension
+    const suspension = await getDisciplineActionById(suspensionId);
+    if (!suspension) {
+      throw new ApiError({ title: "Not Found", status: 404, detail: "Suspension not found" });
+    }
+    if (suspension.actionType !== "suspension" || suspension.status !== "active") {
+      throw new ApiError({
+        title: "Conflict",
+        status: 409,
+        detail: "Suspension already lifted or expired",
+      });
+    }
+
+    // 2. Verify user is actually SUSPENDED — never overwrite BANNED/PENDING_DELETION/ANONYMIZED
+    const currentUser = await findUserById(suspension.userId);
+    if (!currentUser) {
+      throw new ApiError({ title: "Not Found", status: 404, detail: "User not found" });
+    }
+    if (currentUser.accountStatus !== "SUSPENDED") {
+      throw new ApiError({
+        title: "Conflict",
+        status: 409,
+        detail: `Cannot lift: account status is ${currentUser.accountStatus}`,
+      });
+    }
+
+    // 3. Atomic: restore user + mark discipline as lifted
+    await tx
+      .update(authUsers)
+      .set({ accountStatus: "APPROVED", updatedAt: new Date() })
+      .where(eq(authUsers.id, suspension.userId));
+    await tx
+      .update(memberDisciplineActions)
+      .set({ status: "lifted", liftedAt: new Date(), liftedBy: adminId })
+      .where(eq(memberDisciplineActions.id, suspensionId));
+
+    return suspension.userId;
+  });
+
+  // 4. Side effects outside transaction
+  await logAdminAction({
+    actorId: adminId,
+    action: "LIFT_SUSPENSION_EARLY",
+    targetUserId: userId,
+    details: { disciplineId: suspensionId, reason },
+  });
+
+  eventBus.emit("account.status_changed", {
+    userId,
+    newStatus: "APPROVED",
+    oldStatus: "SUSPENDED",
+    timestamp: new Date().toISOString(),
+  });
+
+  eventBus.emit("account.discipline_lifted", {
+    userId,
+    disciplineId: suspensionId,
+    reason,
+    liftedBy: adminId,
+    timestamp: new Date().toISOString(),
+  });
 }

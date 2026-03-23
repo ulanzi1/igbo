@@ -539,8 +539,12 @@
         "banConfirmCheck": "I understand this is permanent and cannot be undone"
       },
       "discipline": {
-        "priorActions": "{count} prior disciplinary action(s) on this member"
+        "priorActions": "{count} prior disciplinary action(s) on this member",
+        "viewFullHistory": "View full history"
       },
+      "viewContentExpand": "View content",
+      "hideContent": "Hide content",
+      "contentUnavailable": "Content unavailable",
       "contentTypes": {
         "post": "Post",
         "article": "Article",
@@ -580,6 +584,29 @@
       },
       "viewContent": "View content",
       "reportedBy": "Reported by {name}"
+    },
+    "discipline": {
+      "title": "Member Discipline History",
+      "activeSuspension": "Active Suspension",
+      "endsAt": "Ends: {date}",
+      "remaining": "({days} days remaining)",
+      "issuedBy": "Issued by: {name}",
+      "liftEarly": "Lift Suspension Early",
+      "liftReason": "Reason for lifting",
+      "liftReasonRequired": "A reason is required",
+      "liftConfirmMessage": "This will restore the member's account to APPROVED status immediately.",
+      "liftSuccess": "Suspension lifted successfully",
+      "historyCount": "Discipline History ({count} actions)",
+      "noHistory": "No discipline history",
+      "status": {
+        "active": "Active",
+        "expired": "Expired",
+        "lifted": "Lifted"
+      },
+      "backToQueue": "Back to Moderation Queue",
+      "memberStatus": "Account Status: {status}",
+      "liftedBy": "Lifted by: {name}",
+      "liftedAt": "Lifted: {date}"
     },
     "auditLog": {
       "title": "Audit Log",
@@ -649,7 +676,8 @@
       "page": "Page",
       "of": "of",
       "showing": "Showing",
-      "perPage": "per page"
+      "perPage": "per page",
+      "investigate": "Investigate"
     },
     "governance": {
       "title": "Governance Documents",
@@ -1651,6 +1679,10 @@
       "suspension": {
         "title": "Account Suspended",
         "body": "Your account has been temporarily suspended. Please check your account status for details."
+      },
+      "lifted": {
+        "title": "Suspension Lifted",
+        "body": "Your account suspension has been lifted early"
       }
     }
   },
