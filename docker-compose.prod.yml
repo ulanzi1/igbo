@@ -1,5 +1,6 @@
 services:
   web:
+    image: ${WEB_IMAGE:-igbo-web:local}
     build:
       context: .
       dockerfile: Dockerfile.web
@@ -47,6 +48,7 @@ services:
       - app-network
 
   realtime:
+    image: ${REALTIME_IMAGE:-igbo-realtime:local}
     build:
       context: .
       dockerfile: Dockerfile.realtime

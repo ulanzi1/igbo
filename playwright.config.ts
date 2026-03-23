@@ -26,7 +26,9 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: "npm run dev",
+    // In CI: start the pre-built standalone server (artifact downloaded by ci.yml).
+    // Locally: start the dev server (hot reload).
+    command: process.env.CI ? "PORT=3000 node .next/standalone/server.js" : "npm run dev",
     url: "http://localhost:3000",
     reuseExistingServer: !process.env.CI,
   },
