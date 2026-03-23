@@ -91,9 +91,11 @@ export function AuditLogTable() {
       {/* Filters */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
         <div>
-          <label className="block text-sm font-medium mb-1">{t("filterAction")}</label>
+          <label className="block text-sm font-medium mb-1 text-zinc-300">
+            {t("filterAction")}
+          </label>
           <select
-            className="w-full border rounded-lg px-3 py-2 text-sm"
+            className="w-full border border-zinc-700 bg-zinc-800 text-white rounded-lg px-3 py-2 text-sm"
             value={action}
             onChange={(e) => {
               setAction(e.target.value);
@@ -109,9 +111,11 @@ export function AuditLogTable() {
           </select>
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">{t("filterTargetType")}</label>
+          <label className="block text-sm font-medium mb-1 text-zinc-300">
+            {t("filterTargetType")}
+          </label>
           <select
-            className="w-full border rounded-lg px-3 py-2 text-sm"
+            className="w-full border border-zinc-700 bg-zinc-800 text-white rounded-lg px-3 py-2 text-sm"
             value={targetType}
             onChange={(e) => {
               setTargetType(e.target.value);
@@ -127,10 +131,12 @@ export function AuditLogTable() {
           </select>
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">{t("filterDateFrom")}</label>
+          <label className="block text-sm font-medium mb-1 text-zinc-300">
+            {t("filterDateFrom")}
+          </label>
           <input
             type="date"
-            className="w-full border rounded-lg px-3 py-2 text-sm"
+            className="w-full border border-zinc-700 bg-zinc-800 text-white rounded-lg px-3 py-2 text-sm [color-scheme:dark]"
             value={dateFrom}
             onChange={(e) => {
               setDateFrom(e.target.value);
@@ -139,10 +145,12 @@ export function AuditLogTable() {
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">{t("filterDateTo")}</label>
+          <label className="block text-sm font-medium mb-1 text-zinc-300">
+            {t("filterDateTo")}
+          </label>
           <input
             type="date"
-            className="w-full border rounded-lg px-3 py-2 text-sm"
+            className="w-full border border-zinc-700 bg-zinc-800 text-white rounded-lg px-3 py-2 text-sm [color-scheme:dark]"
             value={dateTo}
             onChange={(e) => {
               setDateTo(e.target.value);
@@ -153,13 +161,13 @@ export function AuditLogTable() {
       </div>
 
       {/* Table */}
-      {isLoading && <p className="text-muted-foreground">{t("loading")}</p>}
-      {isError && <p className="text-destructive">{t("error")}</p>}
+      {isLoading && <p className="text-zinc-400">{t("loading")}</p>}
+      {isError && <p className="text-red-400">{t("error")}</p>}
       {data && (
         <>
-          <div className="overflow-x-auto rounded-lg border">
+          <div className="overflow-x-auto rounded-lg border border-zinc-700">
             <table className="min-w-full text-sm">
-              <thead className="bg-muted">
+              <thead className="bg-zinc-800 text-zinc-300">
                 <tr>
                   <th className="px-4 py-3 text-left font-medium">{t("colTimestamp")}</th>
                   <th className="px-4 py-3 text-left font-medium">{t("colAdmin")}</th>
@@ -172,7 +180,7 @@ export function AuditLogTable() {
               </thead>
               <tbody>
                 {data.logs.map((log) => (
-                  <tr key={log.id} className="border-t hover:bg-muted/30">
+                  <tr key={log.id} className="border-t border-zinc-800 hover:bg-zinc-800/50">
                     <td className="px-4 py-3 whitespace-nowrap font-mono text-xs">
                       {new Date(log.createdAt).toISOString().replace("T", " ").slice(0, 19)}
                     </td>
@@ -192,7 +200,7 @@ export function AuditLogTable() {
                 ))}
                 {data.logs.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">
+                    <td colSpan={7} className="px-4 py-8 text-center text-zinc-400">
                       {t("empty")}
                     </td>
                   </tr>
@@ -204,19 +212,19 @@ export function AuditLogTable() {
           {/* Pagination */}
           {data.totalPages > 1 && (
             <div className="flex items-center justify-between mt-4">
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-zinc-400">
                 {t("pagination", { page: data.page, total: data.totalPages })}
               </p>
               <div className="flex gap-2">
                 <button
-                  className="px-3 py-1 rounded border text-sm disabled:opacity-50"
+                  className="px-3 py-1 rounded border border-zinc-700 text-sm disabled:opacity-50 hover:bg-zinc-800"
                   disabled={data.page <= 1}
                   onClick={() => setPage((p) => p - 1)}
                 >
                   {t("prev")}
                 </button>
                 <button
-                  className="px-3 py-1 rounded border text-sm disabled:opacity-50"
+                  className="px-3 py-1 rounded border border-zinc-700 text-sm disabled:opacity-50 hover:bg-zinc-800"
                   disabled={data.page >= data.totalPages}
                   onClick={() => setPage((p) => p + 1)}
                 >
