@@ -1,6 +1,8 @@
-import { eq, desc, and, lt } from "drizzle-orm";
+import { eq, desc, and, lt, getTableColumns } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import { db } from "@/db";
 import { memberDisciplineActions } from "@/db/schema/member-discipline";
+import { authUsers } from "@/db/schema/auth-users";
 
 export type {
   MemberDisciplineAction,
@@ -41,10 +43,28 @@ export async function createDisciplineAction(
   return { id };
 }
 
-export async function listMemberDisciplineHistory(userId: string) {
-  return db
+export async function getDisciplineActionById(id: string) {
+  const [row] = await db
     .select()
     .from(memberDisciplineActions)
+    .where(eq(memberDisciplineActions.id, id))
+    .limit(1);
+  return row ?? null;
+}
+
+export async function listMemberDisciplineHistory(userId: string) {
+  const issuerAlias = alias(authUsers, "issuer");
+  const lifterAlias = alias(authUsers, "lifter");
+
+  return db
+    .select({
+      ...getTableColumns(memberDisciplineActions),
+      issuedByName: issuerAlias.name,
+      liftedByName: lifterAlias.name,
+    })
+    .from(memberDisciplineActions)
+    .leftJoin(issuerAlias, eq(memberDisciplineActions.issuedBy, issuerAlias.id))
+    .leftJoin(lifterAlias, eq(memberDisciplineActions.liftedBy, lifterAlias.id))
     .where(eq(memberDisciplineActions.userId, userId))
     .orderBy(desc(memberDisciplineActions.createdAt));
 }

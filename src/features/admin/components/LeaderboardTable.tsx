@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { useQuery } from "@tanstack/react-query";
-import { useRouter } from "@/i18n/navigation";
+import { useRouter, Link } from "@/i18n/navigation";
 import { VerificationBadge } from "@/components/shared/VerificationBadge";
 import type { BadgeType } from "@/db/schema/community-badges";
 
@@ -259,6 +259,7 @@ export function LeaderboardTable() {
                           </button>
                         </th>
                         <th className="text-left px-4 py-2">{t("memberSince")}</th>
+                        <th className="text-left px-4 py-2" />
                       </tr>
                     </thead>
                     <tbody>
@@ -282,6 +283,15 @@ export function LeaderboardTable() {
                           </td>
                           <td className="px-4 py-2 text-zinc-400 text-xs">
                             {new Date(user.memberSince).toLocaleDateString()}
+                          </td>
+                          <td className="px-4 py-2">
+                            <Link
+                              href={`/admin/members/points?userId=${user.userId}`}
+                              className="text-blue-400 hover:text-blue-300 text-xs underline"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {t("investigate")}
+                            </Link>
                           </td>
                         </tr>
                       ))}
@@ -343,6 +353,7 @@ export function LeaderboardTable() {
                         <th className="text-right px-4 py-2">{t("throttleCount")}</th>
                         <th className="text-left px-4 py-2">{t("lastThrottled")}</th>
                         <th className="text-left px-4 py-2">{t("reasons")}</th>
+                        <th className="text-left px-4 py-2" />
                       </tr>
                     </thead>
                     <tbody>
@@ -360,6 +371,15 @@ export function LeaderboardTable() {
                           </td>
                           <td className="px-4 py-2 text-zinc-400 text-xs">
                             {user.reasons.join(", ") || "—"}
+                          </td>
+                          <td className="px-4 py-2">
+                            <Link
+                              href={`/admin/members/points?userId=${user.userId}`}
+                              className="text-blue-400 hover:text-blue-300 text-xs underline"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {t("investigate")}
+                            </Link>
                           </td>
                         </tr>
                       ))}

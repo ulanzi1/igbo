@@ -32,8 +32,21 @@ vi.mock("@/db/schema/member-discipline", () => ({
   memberDisciplineActions: mockDisciplineTable,
 }));
 
+vi.mock("@/db/schema/auth-users", () => ({
+  authUsers: { id: "id", name: "name" },
+}));
+
+vi.mock("drizzle-orm/pg-core", () => ({
+  alias: vi.fn((_table: unknown, name: string) => ({
+    _alias: name,
+    id: `${name}.id`,
+    name: `${name}.name`,
+  })),
+}));
+
 import {
   createDisciplineAction,
+  getDisciplineActionById,
   listMemberDisciplineHistory,
   getActiveSuspension,
   expireDisciplineAction,
@@ -109,17 +122,49 @@ describe("createDisciplineAction", () => {
   });
 });
 
+describe("getDisciplineActionById", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("returns discipline action when found", async () => {
+    const action = { id: "disc-1", actionType: "suspension", status: "active" };
+    buildSelectChain([action]);
+    const result = await getDisciplineActionById("disc-1");
+    expect(result).toEqual(action);
+  });
+
+  it("returns null when not found", async () => {
+    buildSelectChain([]);
+    const result = await getDisciplineActionById("disc-nonexistent");
+    expect(result).toBeNull();
+  });
+});
+
 describe("listMemberDisciplineHistory", () => {
   beforeEach(() => vi.clearAllMocks());
 
   it("returns discipline records ordered by createdAt desc", async () => {
     const records = [
-      { id: "d1", actionType: "ban", createdAt: new Date() },
-      { id: "d2", actionType: "warning", createdAt: new Date("2026-01-01") },
+      {
+        id: "d1",
+        actionType: "ban",
+        createdAt: new Date(),
+        issuedByName: "Admin",
+        liftedByName: null,
+      },
+      {
+        id: "d2",
+        actionType: "warning",
+        createdAt: new Date("2026-01-01"),
+        issuedByName: "Admin",
+        liftedByName: null,
+      },
     ];
     const orderBy = vi.fn().mockResolvedValue(records);
     const where = vi.fn().mockReturnValue({ orderBy });
-    const from = vi.fn().mockReturnValue({ where });
+    const leftJoin = vi
+      .fn()
+      .mockReturnValue({ leftJoin: vi.fn().mockReturnValue({ where }), where });
+    const from = vi.fn().mockReturnValue({ leftJoin });
     mockSelect.mockReturnValue({ from });
 
     const result = await listMemberDisciplineHistory("user-1");

@@ -920,7 +920,6 @@ describe("Story 9.1 regression — NotificationRouter integration", () => {
 
 describe("Story 9.2 — email dispatch via deliverNotification()", () => {
   const USER_ID = "00000000-0000-4000-8000-000000000001";
-  const ACTOR_ID = "00000000-0000-4000-8000-000000000002";
   const EVENT_ID = "00000000-0000-4000-8000-000000000088";
 
   it("E1. enqueues email when router says email not suppressed AND user has email AND template exists", async () => {
@@ -1748,5 +1747,72 @@ describe("content.moderated handler (Epic 11 Stabilization)", () => {
         locale: "ig",
       }),
     );
+  });
+});
+
+// ─── account.discipline_lifted handler tests ───────────────────────────────────
+
+describe("account.discipline_lifted handler", () => {
+  const USER_ID = "00000000-0000-4000-8000-000000000090";
+
+  it("registers account.discipline_lifted listener", () => {
+    expect(handlerRef.current.has("account.discipline_lifted")).toBe(true);
+  });
+
+  it("delivers notification with correct params and emailData templateId", async () => {
+    mockFilterNotificationRecipients.mockResolvedValue([USER_ID]);
+    mockFindUserById.mockResolvedValue({
+      id: USER_ID,
+      email: "lifted@example.com",
+      name: "Lifted User",
+      languagePreference: "en",
+    });
+    const handler = handlerRef.current.get("account.discipline_lifted");
+    await handler?.({
+      userId: USER_ID,
+      disciplineId: "disc-lift-1",
+      reason: "Good behaviour",
+      liftedBy: "admin-001",
+      timestamp: new Date().toISOString(),
+    });
+
+    expect(mockCreateNotification).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: USER_ID,
+        type: "admin_announcement",
+        title: "notifications.discipline.lifted.title",
+        body: "notifications.discipline.lifted.body",
+        link: "/dashboard",
+      }),
+    );
+  });
+
+  it("passes emailData with discipline-suspension-lifted templateId", async () => {
+    mockFilterNotificationRecipients.mockResolvedValue([USER_ID]);
+    mockFindUserById.mockResolvedValue({
+      id: USER_ID,
+      email: "lifted@example.com",
+      name: "Lifted User",
+      languagePreference: "en",
+    });
+    const handler = handlerRef.current.get("account.discipline_lifted");
+    await handler?.({
+      userId: USER_ID,
+      disciplineId: "disc-lift-2",
+      reason: "Appeal accepted",
+      liftedBy: "admin-001",
+      timestamp: new Date().toISOString(),
+    });
+
+    const notifEmailCalls = mockEnqueueEmailJob.mock.calls.filter((args) =>
+      String(args[0]).startsWith("notif-"),
+    );
+    expect(notifEmailCalls[0]?.[1]).toMatchObject({
+      to: "lifted@example.com",
+      templateId: "discipline-suspension-lifted",
+      data: expect.objectContaining({
+        reason: "Appeal accepted",
+      }) as unknown,
+    });
   });
 });

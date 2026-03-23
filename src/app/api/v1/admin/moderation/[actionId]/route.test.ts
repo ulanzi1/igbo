@@ -13,6 +13,11 @@ const mockIssueWarning = vi.fn();
 const mockIssueSuspension = vi.fn();
 const mockIssueBan = vi.fn();
 const mockEventBusEmit = vi.fn();
+const mockSoftDeletePostByModeration = vi.fn();
+const mockSoftDeleteArticleByModeration = vi.fn();
+const mockGetPostContentForModeration = vi.fn();
+const mockGetArticleByIdForAdmin = vi.fn();
+const mockTiptapJsonToPlainText = vi.fn();
 
 vi.mock("@/lib/admin-auth", () => ({
   requireAdminSession: (...args: unknown[]) => mockRequireAdminSession(...args),
@@ -27,6 +32,20 @@ vi.mock("@/db/queries/moderation", () => ({
 
 vi.mock("@/db/queries/member-discipline", () => ({
   listMemberDisciplineHistory: (...args: unknown[]) => mockListMemberDisciplineHistory(...args),
+}));
+
+vi.mock("@/db/queries/posts", () => ({
+  softDeletePostByModeration: (...args: unknown[]) => mockSoftDeletePostByModeration(...args),
+  getPostContentForModeration: (...args: unknown[]) => mockGetPostContentForModeration(...args),
+}));
+
+vi.mock("@/db/queries/articles", () => ({
+  softDeleteArticleByModeration: (...args: unknown[]) => mockSoftDeleteArticleByModeration(...args),
+  getArticleByIdForAdmin: (...args: unknown[]) => mockGetArticleByIdForAdmin(...args),
+}));
+
+vi.mock("@/features/articles/utils/tiptap-to-html", () => ({
+  tiptapJsonToPlainText: (...args: unknown[]) => mockTiptapJsonToPlainText(...args),
 }));
 
 vi.mock("@/services/member-discipline-service", () => ({
@@ -99,6 +118,8 @@ beforeEach(() => {
   mockIssueWarning.mockResolvedValue({ id: "disc-1" });
   mockIssueSuspension.mockResolvedValue({ id: "disc-2" });
   mockIssueBan.mockResolvedValue({ id: "disc-3" });
+  mockSoftDeletePostByModeration.mockResolvedValue({ id: "post-1" });
+  mockSoftDeleteArticleByModeration.mockResolvedValue({ id: "article-1" });
 });
 
 describe("GET /api/v1/admin/moderation/[actionId]", () => {
@@ -125,6 +146,42 @@ describe("GET /api/v1/admin/moderation/[actionId]", () => {
     mockGetModerationActionById.mockResolvedValue(null);
     const res = await GET(makeRequest("GET"));
     expect(res.status).toBe(404);
+  });
+
+  it("returns contentBody for post content type", async () => {
+    const postJson =
+      '{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"hello"}]}]}';
+    mockGetPostContentForModeration.mockResolvedValue(postJson);
+    mockTiptapJsonToPlainText.mockReturnValue("hello");
+
+    const res = await GET(makeRequest("GET"));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.data.contentBody).toBe("hello");
+    expect(mockGetPostContentForModeration).toHaveBeenCalledWith("post-1");
+    expect(mockTiptapJsonToPlainText).toHaveBeenCalledWith(postJson);
+  });
+
+  it("returns contentBody for article content type", async () => {
+    const articleItem = { ...MOCK_ITEM, contentType: "article" as const, contentId: "article-1" };
+    mockGetModerationActionById.mockResolvedValue(articleItem);
+    mockGetArticleByIdForAdmin.mockResolvedValue({ title: "Title", contentEn: "{}" });
+    mockTiptapJsonToPlainText.mockReturnValue("");
+
+    const res = await GET(makeRequest("GET"));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.data.contentBody).toContain("Title");
+    expect(mockGetArticleByIdForAdmin).toHaveBeenCalledWith("article-1");
+  });
+
+  it("returns contentBody null when content fetch fails", async () => {
+    mockGetPostContentForModeration.mockRejectedValue(new Error("DB error"));
+
+    const res = await GET(makeRequest("GET"));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.data.contentBody).toBeNull();
   });
 });
 
@@ -213,7 +270,7 @@ describe("PATCH /api/v1/admin/moderation/[actionId]", () => {
     expect(res.status).toBe(403);
   });
 
-  it("warn → calls issueWarning and marks action as reviewed", async () => {
+  it("warn → calls issueWarning and marks action as reviewed with hidden visibility", async () => {
     const updatedItem = { ...MOCK_ITEM, status: "reviewed" as const };
     mockGetModerationActionById.mockResolvedValueOnce(MOCK_ITEM).mockResolvedValueOnce(updatedItem);
 
@@ -224,7 +281,7 @@ describe("PATCH /api/v1/admin/moderation/[actionId]", () => {
     );
     expect(mockUpdateModerationAction).toHaveBeenCalledWith(
       VALID_UUID,
-      expect.objectContaining({ status: "reviewed" }),
+      expect.objectContaining({ status: "reviewed", visibilityOverride: "hidden" }),
     );
   });
 
@@ -272,6 +329,80 @@ describe("PATCH /api/v1/admin/moderation/[actionId]", () => {
     const res = await PATCH(makeRequest("PATCH", { action: "ban", reason: "Violation" }));
     expect(res.status).toBe(422);
     expect(mockIssueBan).not.toHaveBeenCalled();
+  });
+
+  it("remove → soft-deletes the post content", async () => {
+    const updatedItem = {
+      ...MOCK_ITEM,
+      status: "reviewed" as const,
+      visibilityOverride: "hidden" as const,
+    };
+    mockGetModerationActionById.mockResolvedValueOnce(MOCK_ITEM).mockResolvedValueOnce(updatedItem);
+
+    await PATCH(makeRequest("PATCH", { action: "remove", reason: "Violation" }));
+    expect(mockSoftDeletePostByModeration).toHaveBeenCalledWith("post-1");
+  });
+
+  it("remove → soft-deletes article content when contentType is article", async () => {
+    const articleItem = { ...MOCK_ITEM, contentType: "article" as const, contentId: "article-1" };
+    const updatedItem = {
+      ...articleItem,
+      status: "reviewed" as const,
+      visibilityOverride: "hidden" as const,
+    };
+    mockGetModerationActionById
+      .mockResolvedValueOnce(articleItem)
+      .mockResolvedValueOnce(updatedItem);
+
+    await PATCH(makeRequest("PATCH", { action: "remove", reason: "Violation" }));
+    expect(mockSoftDeleteArticleByModeration).toHaveBeenCalledWith("article-1");
+    expect(mockSoftDeletePostByModeration).not.toHaveBeenCalled();
+  });
+
+  it("warn → soft-deletes the flagged post content", async () => {
+    const updatedItem = { ...MOCK_ITEM, status: "reviewed" as const };
+    mockGetModerationActionById.mockResolvedValueOnce(MOCK_ITEM).mockResolvedValueOnce(updatedItem);
+
+    await PATCH(makeRequest("PATCH", { action: "warn", reason: "Spam content" }));
+    expect(mockSoftDeletePostByModeration).toHaveBeenCalledWith("post-1");
+  });
+
+  it("suspend → soft-deletes the flagged post content", async () => {
+    const updatedItem = { ...MOCK_ITEM, status: "reviewed" as const };
+    mockGetModerationActionById.mockResolvedValueOnce(MOCK_ITEM).mockResolvedValueOnce(updatedItem);
+
+    await PATCH(
+      makeRequest("PATCH", { action: "suspend", reason: "Harassment", durationHours: 24 }),
+    );
+    expect(mockSoftDeletePostByModeration).toHaveBeenCalledWith("post-1");
+  });
+
+  it("ban → soft-deletes the flagged post content", async () => {
+    const updatedItem = { ...MOCK_ITEM, status: "reviewed" as const };
+    mockGetModerationActionById.mockResolvedValueOnce(MOCK_ITEM).mockResolvedValueOnce(updatedItem);
+
+    await PATCH(
+      makeRequest("PATCH", { action: "ban", reason: "Severe violation", confirmed: true }),
+    );
+    expect(mockSoftDeletePostByModeration).toHaveBeenCalledWith("post-1");
+  });
+
+  it("approve → does NOT soft-delete content", async () => {
+    const updatedItem = { ...MOCK_ITEM, status: "reviewed" as const };
+    mockGetModerationActionById.mockResolvedValueOnce(MOCK_ITEM).mockResolvedValueOnce(updatedItem);
+
+    await PATCH(makeRequest("PATCH", { action: "approve" }));
+    expect(mockSoftDeletePostByModeration).not.toHaveBeenCalled();
+    expect(mockSoftDeleteArticleByModeration).not.toHaveBeenCalled();
+  });
+
+  it("dismiss → does NOT soft-delete content", async () => {
+    const updatedItem = { ...MOCK_ITEM, status: "dismissed" as const };
+    mockGetModerationActionById.mockResolvedValueOnce(MOCK_ITEM).mockResolvedValueOnce(updatedItem);
+
+    await PATCH(makeRequest("PATCH", { action: "dismiss" }));
+    expect(mockSoftDeletePostByModeration).not.toHaveBeenCalled();
+    expect(mockSoftDeleteArticleByModeration).not.toHaveBeenCalled();
   });
 
   // Regression: existing approve/remove/dismiss still work after extension

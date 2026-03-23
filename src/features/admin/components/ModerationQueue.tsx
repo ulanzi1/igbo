@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { useTranslations } from "next-intl";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ModerationActionDialog, type DisciplineAction } from "./ModerationActionDialog";
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 interface DisciplineRecord {
   id: string;
@@ -26,6 +28,7 @@ interface ModerationItem {
   status: "pending" | "reviewed" | "dismissed";
   visibilityOverride: "visible" | "hidden";
   disciplineLinked: boolean;
+  disciplineCount: number;
   reportCount: number;
   reporterId: string | null;
   reporterName: string | null;
@@ -37,7 +40,11 @@ interface ModerationResponse {
 }
 
 interface ModerationDetailResponse {
-  data: { action: ModerationItem; disciplineHistory: DisciplineRecord[] | null };
+  data: {
+    action: ModerationItem;
+    disciplineHistory: DisciplineRecord[] | null;
+    contentBody: string | null;
+  };
 }
 
 type OutcomeTagVariant = "approved" | "removed" | "warned" | "dismissed";
@@ -77,8 +84,12 @@ export function ModerationQueue() {
   const [dialogItem, setDialogItem] = useState<{
     id: string;
     action: DisciplineAction;
+    contentAuthorId?: string;
     disciplineHistory?: DisciplineRecord[];
   } | null>(null);
+  const [expandedContentId, setExpandedContentId] = useState<string | null>(null);
+  const [expandedContentBody, setExpandedContentBody] = useState<string | null>(null);
+  const [expandedContentLoading, setExpandedContentLoading] = useState(false);
 
   const queryKey = ["admin", "moderation", { status, contentType, page }];
 
@@ -130,7 +141,34 @@ export function ModerationQueue() {
 
   const handleApprove = (id: string) => mutation.mutate({ id, action: "approve" });
 
-  async function openDisciplineDialog(itemId: string, action: DisciplineAction) {
+  async function handleViewContent(itemId: string) {
+    if (expandedContentId === itemId) {
+      setExpandedContentId(null);
+      setExpandedContentBody(null);
+      return;
+    }
+    setExpandedContentLoading(true);
+    setExpandedContentId(itemId);
+    try {
+      const res = await fetch(`/api/v1/admin/moderation/${itemId}`, { credentials: "include" });
+      if (res.ok) {
+        const detail = (await res.json()) as ModerationDetailResponse;
+        setExpandedContentBody(detail.data.contentBody);
+      } else {
+        setExpandedContentBody(null);
+      }
+    } catch {
+      setExpandedContentBody(null);
+    } finally {
+      setExpandedContentLoading(false);
+    }
+  }
+
+  async function openDisciplineDialog(
+    itemId: string,
+    action: DisciplineAction,
+    contentAuthorId?: string,
+  ) {
     // Fetch discipline history for this item's author
     try {
       const res = await fetch(`/api/v1/admin/moderation/${itemId}`, { credentials: "include" });
@@ -139,6 +177,7 @@ export function ModerationQueue() {
         setDialogItem({
           id: itemId,
           action,
+          contentAuthorId,
           disciplineHistory: detail.data.disciplineHistory ?? undefined,
         });
         return;
@@ -146,7 +185,7 @@ export function ModerationQueue() {
     } catch {
       // Fall through to open dialog without history
     }
-    setDialogItem({ id: itemId, action });
+    setDialogItem({ id: itemId, action, contentAuthorId });
   }
 
   const items = data?.data?.items ?? [];
@@ -221,142 +260,202 @@ export function ModerationQueue() {
             </thead>
             <tbody>
               {items.map((item) => (
-                <tr key={item.id} className="border-b border-zinc-800">
-                  <td className="py-3 pr-4 max-w-xs">
-                    <span className="text-zinc-200 truncate block">
-                      {item.contentPreview ? (
-                        item.keywordMatched ? (
-                          highlightKeyword(item.contentPreview, item.keywordMatched)
+                <React.Fragment key={item.id}>
+                  <tr className="border-b border-zinc-800">
+                    <td className="py-3 pr-4 max-w-xs">
+                      <span className="text-zinc-200 truncate block">
+                        {item.contentPreview ? (
+                          item.keywordMatched ? (
+                            highlightKeyword(item.contentPreview, item.keywordMatched)
+                          ) : (
+                            item.contentPreview
+                          )
                         ) : (
-                          item.contentPreview
-                        )
-                      ) : (
-                        <a
-                          href={
-                            item.contentType === "article"
-                              ? `/articles/${item.contentId}`
-                              : item.contentType === "post"
-                                ? `/feed#post-${item.contentId}`
-                                : undefined
-                          }
-                          className="text-zinc-400 underline hover:text-zinc-200 text-xs"
-                          data-testid={`view-content-link-${item.id}`}
-                        >
-                          {t("moderation.viewContent")}
-                        </a>
-                      )}
-                    </span>
-                  </td>
-                  <td className="py-3 pr-4 text-zinc-300">{item.authorName ?? "Unknown"}</td>
-                  <td className="py-3 pr-4 text-zinc-300">
-                    {item.reporterName && item.reporterId ? (
-                      <a
-                        href={`/admin/members?userId=${item.reporterId}`}
-                        className="text-zinc-300 underline hover:text-white text-xs"
-                        data-testid={`reporter-link-${item.id}`}
-                      >
-                        {item.reporterName}
-                      </a>
-                    ) : (
-                      <span className="text-zinc-600 text-xs">—</span>
-                    )}
-                  </td>
-                  <td className="py-3 pr-4">
-                    <span className="bg-zinc-700 text-zinc-200 text-xs px-2 py-1 rounded">
-                      {item.contentType}
-                    </span>
-                  </td>
-                  <td className="py-3 pr-4">
-                    {item.reportCount > 0 ? (
-                      <span className="bg-orange-700 text-orange-100 text-xs px-2 py-1 rounded">
-                        {t("moderation.source.reported", { count: item.reportCount })}
-                      </span>
-                    ) : (
-                      <span className="bg-zinc-700 text-zinc-300 text-xs px-2 py-1 rounded">
-                        {t("moderation.source.autoFlagged")}
-                      </span>
-                    )}
-                  </td>
-                  <td className="py-3 pr-4 text-zinc-300">{item.flagReason}</td>
-                  <td className="py-3 pr-4 text-zinc-400 text-xs">
-                    {new Date(item.flaggedAt).toLocaleDateString()}
-                  </td>
-                  <td className="py-3">
-                    {item.status !== "pending" ? (
-                      (() => {
-                        const variant = resolveOutcomeTag(item);
-                        return (
-                          <span
-                            className={`text-xs px-2 py-1 rounded ${OUTCOME_TAG_CLASSES[variant]}`}
-                            data-testid={`outcome-tag-${item.id}`}
+                          <button
+                            type="button"
+                            onClick={() => void handleViewContent(item.id)}
+                            className="text-zinc-400 underline hover:text-zinc-200 text-xs"
+                            data-testid={`view-content-btn-${item.id}`}
                           >
-                            {t(`moderation.outcomeTag.${variant}`)}
-                          </span>
-                        );
-                      })()
-                    ) : (
-                      <div className="flex flex-wrap gap-1">
-                        <button
-                          type="button"
-                          onClick={() => handleApprove(item.id)}
-                          className="bg-green-700 hover:bg-green-600 text-white text-xs px-2 py-1 rounded min-h-[28px]"
-                          aria-label={t("moderation.action.approve")}
-                        >
-                          {t("moderation.action.approve")}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setDialogItem({ id: item.id, action: "remove" })}
-                          className="bg-red-700 hover:bg-red-600 text-white text-xs px-2 py-1 rounded min-h-[28px]"
-                          aria-label={t("moderation.action.remove")}
-                        >
-                          {t("moderation.action.remove")}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setDialogItem({ id: item.id, action: "dismiss" })}
-                          className="bg-zinc-600 hover:bg-zinc-500 text-white text-xs px-2 py-1 rounded min-h-[28px]"
-                          aria-label={t("moderation.action.dismiss")}
-                        >
-                          {t("moderation.action.dismiss")}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => void openDisciplineDialog(item.id, "warn")}
-                          className="bg-yellow-700 hover:bg-yellow-600 text-white text-xs px-2 py-1 rounded min-h-[28px]"
-                          aria-label={t("moderation.action.warn")}
-                        >
-                          {t("moderation.action.warn")}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => void openDisciplineDialog(item.id, "suspend")}
-                          className="bg-orange-700 hover:bg-orange-600 text-white text-xs px-2 py-1 rounded min-h-[28px]"
-                          aria-label={t("moderation.action.suspend")}
-                        >
-                          {t("moderation.action.suspend")}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => void openDisciplineDialog(item.id, "ban")}
-                          className="bg-red-900 hover:bg-red-800 text-white text-xs px-2 py-1 rounded min-h-[28px]"
-                          aria-label={t("moderation.action.ban")}
-                        >
-                          {t("moderation.action.ban")}
-                        </button>
-                        {item.contentType === "message" && (
-                          <a
-                            href={`/admin/moderation/${item.id}/conversation`}
-                            className="bg-blue-800 hover:bg-blue-700 text-white text-xs px-2 py-1 rounded min-h-[28px] flex items-center"
-                            aria-label={t("moderation.action.viewContext")}
-                          >
-                            {t("moderation.action.viewContext")}
-                          </a>
+                            {expandedContentId === item.id
+                              ? t("moderation.hideContent")
+                              : t("moderation.viewContentExpand")}
+                          </button>
                         )}
-                      </div>
-                    )}
-                  </td>
-                </tr>
+                      </span>
+                    </td>
+                    <td className="py-3 pr-4 text-zinc-300">
+                      {UUID_RE.test(item.contentAuthorId) ? (
+                        <a
+                          href={`/admin/moderation/members/${item.contentAuthorId}`}
+                          className="text-zinc-300 underline hover:text-white"
+                          data-testid={`author-link-${item.id}`}
+                        >
+                          {item.authorName ?? "Unknown"}
+                          {item.disciplineCount > 0 && (
+                            <span
+                              className="ml-1 text-xs bg-red-900 text-red-200 px-1 rounded"
+                              data-testid={`discipline-badge-${item.id}`}
+                            >
+                              ({item.disciplineCount})
+                            </span>
+                          )}
+                        </a>
+                      ) : (
+                        <>{item.authorName ?? "Unknown"}</>
+                      )}
+                    </td>
+                    <td className="py-3 pr-4 text-zinc-300">
+                      {item.reporterName && item.reporterId ? (
+                        <a
+                          href={`/admin/members?userId=${item.reporterId}`}
+                          className="text-zinc-300 underline hover:text-white text-xs"
+                          data-testid={`reporter-link-${item.id}`}
+                        >
+                          {item.reporterName}
+                        </a>
+                      ) : (
+                        <span className="text-zinc-600 text-xs">—</span>
+                      )}
+                    </td>
+                    <td className="py-3 pr-4">
+                      <span className="bg-zinc-700 text-zinc-200 text-xs px-2 py-1 rounded">
+                        {item.contentType}
+                      </span>
+                    </td>
+                    <td className="py-3 pr-4">
+                      {item.reportCount > 0 ? (
+                        <span className="bg-orange-700 text-orange-100 text-xs px-2 py-1 rounded">
+                          {t("moderation.source.reported", { count: item.reportCount })}
+                        </span>
+                      ) : (
+                        <span className="bg-zinc-700 text-zinc-300 text-xs px-2 py-1 rounded">
+                          {t("moderation.source.autoFlagged")}
+                        </span>
+                      )}
+                    </td>
+                    <td className="py-3 pr-4 text-zinc-300">{item.flagReason}</td>
+                    <td className="py-3 pr-4 text-zinc-400 text-xs">
+                      {new Date(item.flaggedAt).toLocaleDateString()}
+                    </td>
+                    <td className="py-3">
+                      {item.status !== "pending" ? (
+                        (() => {
+                          const variant = resolveOutcomeTag(item);
+                          return (
+                            <span
+                              className={`text-xs px-2 py-1 rounded ${OUTCOME_TAG_CLASSES[variant]}`}
+                              data-testid={`outcome-tag-${item.id}`}
+                            >
+                              {t(`moderation.outcomeTag.${variant}`)}
+                            </span>
+                          );
+                        })()
+                      ) : (
+                        <div className="flex flex-wrap gap-1">
+                          <button
+                            type="button"
+                            onClick={() => handleApprove(item.id)}
+                            className="bg-green-700 hover:bg-green-600 text-white text-xs px-2 py-1 rounded min-h-[28px]"
+                            aria-label={t("moderation.action.approve")}
+                          >
+                            {t("moderation.action.approve")}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setDialogItem({ id: item.id, action: "remove" })}
+                            className="bg-red-700 hover:bg-red-600 text-white text-xs px-2 py-1 rounded min-h-[28px]"
+                            aria-label={t("moderation.action.remove")}
+                          >
+                            {t("moderation.action.remove")}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setDialogItem({ id: item.id, action: "dismiss" })}
+                            className="bg-zinc-600 hover:bg-zinc-500 text-white text-xs px-2 py-1 rounded min-h-[28px]"
+                            aria-label={t("moderation.action.dismiss")}
+                          >
+                            {t("moderation.action.dismiss")}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              void openDisciplineDialog(item.id, "warn", item.contentAuthorId)
+                            }
+                            className="bg-yellow-700 hover:bg-yellow-600 text-white text-xs px-2 py-1 rounded min-h-[28px]"
+                            aria-label={t("moderation.action.warn")}
+                          >
+                            {t("moderation.action.warn")}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              void openDisciplineDialog(item.id, "suspend", item.contentAuthorId)
+                            }
+                            className="bg-orange-700 hover:bg-orange-600 text-white text-xs px-2 py-1 rounded min-h-[28px]"
+                            aria-label={t("moderation.action.suspend")}
+                          >
+                            {t("moderation.action.suspend")}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              void openDisciplineDialog(item.id, "ban", item.contentAuthorId)
+                            }
+                            className="bg-red-900 hover:bg-red-800 text-white text-xs px-2 py-1 rounded min-h-[28px]"
+                            aria-label={t("moderation.action.ban")}
+                          >
+                            {t("moderation.action.ban")}
+                          </button>
+                          {item.contentType === "message" && (
+                            <a
+                              href={`/admin/moderation/${item.id}/conversation`}
+                              className="bg-blue-800 hover:bg-blue-700 text-white text-xs px-2 py-1 rounded min-h-[28px] flex items-center"
+                              aria-label={t("moderation.action.viewContext")}
+                            >
+                              {t("moderation.action.viewContext")}
+                            </a>
+                          )}
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                  {/* Expanded content row */}
+                  {expandedContentId === item.id && (
+                    <tr className="border-b border-zinc-800">
+                      <td colSpan={8} className="bg-zinc-800 p-4">
+                        {expandedContentLoading ? (
+                          <div className="h-8 bg-zinc-700 rounded animate-pulse" />
+                        ) : expandedContentBody ? (
+                          <div
+                            className="text-sm text-zinc-300 whitespace-pre-wrap"
+                            data-testid={`content-body-${item.id}`}
+                          >
+                            {expandedContentBody}
+                          </div>
+                        ) : (
+                          <p
+                            className="text-sm text-zinc-500"
+                            data-testid={`content-unavailable-${item.id}`}
+                          >
+                            {t("moderation.contentUnavailable")}
+                          </p>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setExpandedContentId(null);
+                            setExpandedContentBody(null);
+                          }}
+                          className="text-xs text-zinc-400 underline hover:text-white mt-2"
+                          data-testid={`hide-content-btn-${item.id}`}
+                        >
+                          {t("moderation.hideContent")}
+                        </button>
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
               ))}
             </tbody>
           </table>
@@ -392,6 +491,7 @@ export function ModerationQueue() {
       {dialogItem && (
         <ModerationActionDialog
           action={dialogItem.action}
+          contentAuthorId={dialogItem.contentAuthorId}
           disciplineHistory={dialogItem.disciplineHistory}
           onConfirm={({ reason, durationHours, confirmed }) =>
             mutation.mutate({

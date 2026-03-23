@@ -9,9 +9,12 @@ import {
   updateModerationKeyword,
 } from "@/db/queries/moderation";
 import { listMemberDisciplineHistory } from "@/db/queries/member-discipline";
+import { softDeletePostByModeration, getPostContentForModeration } from "@/db/queries/posts";
+import { softDeleteArticleByModeration, getArticleByIdForAdmin } from "@/db/queries/articles";
 import { issueWarning, issueSuspension, issueBan } from "@/services/member-discipline-service";
 import { eventBus } from "@/services/event-bus";
 import { z } from "zod/v4";
+import { tiptapJsonToPlainText } from "@/features/articles/utils/tiptap-to-html";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -64,7 +67,25 @@ export const GET = withApiHandler(async (request: Request) => {
     disciplineHistory = await listMemberDisciplineHistory(item.contentAuthorId);
   }
 
-  return successResponse({ action: item, disciplineHistory });
+  // Fetch content body for inline preview (handles soft-deleted posts)
+  let contentBody: string | null = null;
+  try {
+    if (item.contentType === "post") {
+      const raw = await getPostContentForModeration(item.contentId);
+      contentBody = raw ? tiptapJsonToPlainText(raw) : null;
+    } else if (item.contentType === "article") {
+      const article = await getArticleByIdForAdmin(item.contentId);
+      if (article) {
+        contentBody = article.title + "\n\n" + tiptapJsonToPlainText(article.contentEn ?? "");
+      }
+    } else if (item.contentType === "message") {
+      contentBody = item.contentPreview ?? null;
+    }
+  } catch {
+    // Content truly gone — leave as null
+  }
+
+  return successResponse({ action: item, disciplineHistory, contentBody });
 });
 
 export const PATCH = withApiHandler(async (request: Request) => {
@@ -126,6 +147,13 @@ export const PATCH = withApiHandler(async (request: Request) => {
       visibilityOverride: "hidden",
       actionedAt: now,
     });
+    // Soft-delete the actual content so it no longer appears in feeds
+    if (item.contentType === "post") {
+      await softDeletePostByModeration(item.contentId);
+    } else if (item.contentType === "article") {
+      await softDeleteArticleByModeration(item.contentId);
+    }
+    // Messages are handled via realtime in eventbus-bridge (already works)
     eventBus.emit("content.moderated", {
       contentType: item.contentType,
       contentId: item.contentId,
@@ -173,8 +201,15 @@ export const PATCH = withApiHandler(async (request: Request) => {
     await updateModerationAction(actionId, {
       status: "reviewed",
       moderatorId: adminId,
+      visibilityOverride: "hidden",
       actionedAt: now,
     });
+    // Soft-delete the flagged content
+    if (item.contentType === "post") {
+      await softDeletePostByModeration(item.contentId);
+    } else if (item.contentType === "article") {
+      await softDeleteArticleByModeration(item.contentId);
+    }
   } else if (action === "suspend") {
     const { reason, durationHours, notes } = parsed.data;
     const targetUserId = item.contentAuthorId;
@@ -196,8 +231,15 @@ export const PATCH = withApiHandler(async (request: Request) => {
     await updateModerationAction(actionId, {
       status: "reviewed",
       moderatorId: adminId,
+      visibilityOverride: "hidden",
       actionedAt: now,
     });
+    // Soft-delete the flagged content
+    if (item.contentType === "post") {
+      await softDeletePostByModeration(item.contentId);
+    } else if (item.contentType === "article") {
+      await softDeleteArticleByModeration(item.contentId);
+    }
   } else if (action === "ban") {
     const { reason, notes } = parsed.data;
     const targetUserId = item.contentAuthorId;
@@ -218,8 +260,15 @@ export const PATCH = withApiHandler(async (request: Request) => {
     await updateModerationAction(actionId, {
       status: "reviewed",
       moderatorId: adminId,
+      visibilityOverride: "hidden",
       actionedAt: now,
     });
+    // Soft-delete the flagged content
+    if (item.contentType === "post") {
+      await softDeletePostByModeration(item.contentId);
+    } else if (item.contentType === "article") {
+      await softDeleteArticleByModeration(item.contentId);
+    }
   }
 
   const updated = await getModerationActionById(actionId);

@@ -639,6 +639,33 @@ if (globalForNotif.__notifHandlersRegistered) {
     },
   );
 
+  // ─── Discipline Lifted Notification ────────────────────────────────────────
+  // Notifies user when their suspension is lifted early by an admin.
+
+  eventBus.on(
+    "account.discipline_lifted",
+    async (payload: {
+      userId: string;
+      disciplineId: string;
+      reason: string;
+      liftedBy: string;
+      timestamp: string;
+    }) => {
+      await deliverNotification({
+        userId: payload.userId,
+        actorId: payload.userId, // self-notification pattern
+        type: "admin_announcement",
+        title: "notifications.discipline.lifted.title",
+        body: "notifications.discipline.lifted.body",
+        link: "/dashboard",
+        emailData: {
+          templateId: "discipline-suspension-lifted",
+          reason: payload.reason,
+        },
+      });
+    },
+  );
+
   // ─── Content Removal Email Notification (Epic 11 Stabilization) ───────────
   // Sends email to content author when their content is removed by a moderator.
 
