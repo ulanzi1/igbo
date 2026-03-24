@@ -79,6 +79,12 @@ export function normalizeRoute(pathname: string): string {
     .replace(/\/\d+(?=\/|$)/g, "/:id");
 }
 
+/**
+ * Paths exempt from maintenance mode blocking in the API handler.
+ * These must remain accessible during maintenance.
+ */
+const MAINTENANCE_EXEMPT_PATHS = new Set(["/api/v1/health", "/api/v1/maintenance-status"]);
+
 export function withApiHandler(handler: RouteHandler, options?: ApiHandlerOptions): RouteHandler {
   return async (request: Request): Promise<Response> => {
     const traceId = request.headers.get("X-Request-Id") ?? randomUUID();
@@ -98,6 +104,28 @@ export function withApiHandler(handler: RouteHandler, options?: ApiHandlerOption
     }
 
     try {
+      // Maintenance mode check — env var approach (O(1), zero failure modes)
+      if (process.env.MAINTENANCE_MODE === "true") {
+        const pathname = new URL(request.url).pathname;
+        const isExempt = MAINTENANCE_EXEMPT_PATHS.has(pathname);
+        if (!isExempt) {
+          const maintenanceResponse = errorResponse({
+            type: "https://httpstatuses.io/503",
+            title: "Service Unavailable",
+            status: 503,
+            detail:
+              "The platform is currently undergoing scheduled maintenance. Please try again later.",
+          });
+          return new Response(maintenanceResponse.body, {
+            status: 503,
+            headers: {
+              ...Object.fromEntries(maintenanceResponse.headers.entries()),
+              "Retry-After": "3600",
+            },
+          });
+        }
+      }
+
       if (!options?.skipCsrf) {
         validateCsrf(request);
       }

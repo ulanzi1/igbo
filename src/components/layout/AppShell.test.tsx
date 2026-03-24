@@ -50,7 +50,28 @@ vi.mock("next-auth/react", () => ({
 
 vi.mock("@/providers/SocketProvider", () => ({
   SocketProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-  useSocketContext: () => ({ notificationsSocket: null, chatSocket: null, isConnected: false }),
+  useSocketContext: () => ({
+    notificationsSocket: null,
+    chatSocket: null,
+    isConnected: false,
+    connectionPhase: "connected" as const,
+  }),
+}));
+
+vi.mock("next/navigation", () => ({
+  usePathname: () => "/en/dashboard",
+}));
+
+vi.mock("@/components/ServiceDegradationBanner", () => ({
+  ServiceDegradationBanner: () => null,
+}));
+
+vi.mock("@/components/MaintenanceBanner", () => ({
+  MaintenanceBanner: () => null,
+}));
+
+vi.mock("@/components/ConnectionStatusBanner", () => ({
+  ConnectionStatusBanner: () => null,
 }));
 
 vi.mock("@/features/profiles", () => ({

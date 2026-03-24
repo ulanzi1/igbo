@@ -47,7 +47,16 @@
     "language": {
       "english": "English",
       "igbo": "Igbo"
-    }
+    },
+    "socketReconnecting": "Reconnecting...",
+    "socketReconnected": "Connected",
+    "socketDisconnected": "Connection lost",
+    "socketConnectionLost": "Connection lost. Some features may be unavailable.",
+    "socketRetry": "Retry",
+    "chatUnavailable": "Chat is temporarily unavailable. We're working on it.",
+    "videoUnavailable": "Video meetings are temporarily unavailable.",
+    "maintenanceScheduled": "Scheduled maintenance in {countdown}. Expected duration: {duration}.",
+    "maintenanceDuration": "{minutes} minutes"
   },
   "Errors": {
     "notFound": "Page not found",
@@ -908,7 +917,8 @@
       "recordingExpired": "Recording expired",
       "playButton": "Play",
       "playSourceButton": "Play (source)"
-    }
+    },
+    "videoUnavailable": "Video meetings are temporarily unavailable."
   },
   "Permissions": {
     "upgradeRequired": "This feature requires a higher membership tier.",
@@ -2159,5 +2169,11 @@
       "reason": "Reason: {reason}",
       "dismiss": "I understand"
     }
+  },
+  "Maintenance": {
+    "title": "Scheduled Maintenance",
+    "message": "The OBIGBO Community Platform is temporarily offline for maintenance.",
+    "expectedReturn": "Expected return: {time}",
+    "apology": "We apologize for the inconvenience. Please check back soon."
   }
 }

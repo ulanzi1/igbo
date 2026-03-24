@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useEventMeeting } from "@/features/events/hooks/use-event-meeting";
+import { useServiceHealth } from "@/lib/service-health";
 import { NetworkQualityBadge } from "./DailyMeetingView";
 
 // Lazy-load Daily meeting UI — client-only, never SSR'd
@@ -22,6 +23,8 @@ interface EventMeetingPanelProps {
 
 export function EventMeetingPanel({ eventId }: EventMeetingPanelProps) {
   const t = useTranslations("Events.video");
+  const tEvents = useTranslations("Events");
+  const { videoAvailable } = useServiceHealth();
   const {
     meetingState,
     networkQuality,
@@ -36,6 +39,17 @@ export function EventMeetingPanel({ eventId }: EventMeetingPanelProps) {
 
   if (meetingState === "left") {
     return null;
+  }
+
+  if (!videoAvailable) {
+    return (
+      <div className="flex flex-col gap-2">
+        <Button disabled size="sm" title={tEvents("videoUnavailable")}>
+          {t("joinButton")}
+        </Button>
+        <p className="text-sm text-muted-foreground">{tEvents("videoUnavailable")}</p>
+      </div>
+    );
   }
 
   if (meetingState === "idle") {
