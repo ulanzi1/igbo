@@ -3,11 +3,15 @@
 import { useState } from "react";
 import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
+import { usePathname } from "next/navigation";
 import { TopNav } from "./TopNav";
 import { BottomNav } from "./BottomNav";
 import { Footer } from "./Footer";
 import { SocketProvider } from "@/providers/SocketProvider";
 import { WarningBanner } from "@/components/shared/WarningBanner";
+import { ServiceDegradationBanner } from "@/components/ServiceDegradationBanner";
+import { MaintenanceBanner } from "@/components/MaintenanceBanner";
+import { ConnectionStatusBanner } from "@/components/ConnectionStatusBanner";
 
 function AppQueryProvider({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
@@ -36,6 +40,21 @@ function ActiveWarningsBanner() {
   return <WarningBanner warnings={data.warnings} />;
 }
 
+function ServiceBanners() {
+  const pathname = usePathname();
+  const isOnChatPage = pathname.includes("/chat");
+  const isOnEventPage = pathname.includes("/events");
+
+  return (
+    <>
+      <MaintenanceBanner />
+      <ConnectionStatusBanner />
+      {isOnChatPage && <ServiceDegradationBanner context="chat" />}
+      {isOnEventPage && <ServiceDegradationBanner context="video" />}
+    </>
+  );
+}
+
 function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <AppQueryProvider>
@@ -43,6 +62,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
         <div className="flex min-h-screen flex-col">
           <TopNav />
           <ActiveWarningsBanner />
+          <ServiceBanners />
           <main id="main-content" className="flex-1 pb-14 md:pb-0" tabIndex={-1}>
             {children}
           </main>

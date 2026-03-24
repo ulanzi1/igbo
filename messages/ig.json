@@ -47,7 +47,16 @@
     "language": {
       "english": "Bekee",
       "igbo": "Igbo"
-    }
+    },
+    "socketReconnecting": "Na-ejikọta...",
+    "socketReconnected": "Ejikọtara",
+    "socketDisconnected": "Ejikọghị",
+    "socketConnectionLost": "Ejikọghị. Ọ bụ ikike na-adịghị ọ bụla.",
+    "socketRetry": "Nwaa ọzọ",
+    "chatUnavailable": "Ọkwụkwọ dị na mbara oge. Anyị na-arụ ọrụ.",
+    "videoUnavailable": "Nzukọ vidiyo dị na mbara oge.",
+    "maintenanceScheduled": "Nhazigharị ga-amalite n'oge {countdown}. Oge a tọrọ: {duration}.",
+    "maintenanceDuration": "{minutes} nkeji"
   },
   "Errors": {
     "notFound": "Ahụghị ibe a",
@@ -908,7 +917,8 @@
       "recordingExpired": "Ndekọ agwụla",
       "playButton": "Kpọọ",
       "playSourceButton": "Kpọọ (isi)"
-    }
+    },
+    "videoUnavailable": "Nzukọ vidiyo dị na mbara oge."
   },
   "Permissions": {
     "upgradeRequired": "Atụmụta a chọrọ ọkwa otu dị elu.",
@@ -2159,5 +2169,11 @@
       "reason": "Ihe mere: {reason}",
       "dismiss": "Aghọtara m"
     }
+  },
+  "Maintenance": {
+    "title": "Nhazigharị Oge Ndị Nna",
+    "message": "Ikpo okwu OBIGBO dị na mbara oge maka nhazigharị.",
+    "expectedReturn": "Ihe a ga-abịa: {time}",
+    "apology": "Anyị arịọ mgbaghara maka nsogbu a. Biko lọghachie n'oge ọzọ."
   }
 }

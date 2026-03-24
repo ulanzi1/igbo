@@ -30,6 +30,7 @@ const AUTH_PATH_PATTERN =
   /^\/[^/]+\/(login|register|forgot-password|reset-password|verify|2fa-setup)(\/|$)/;
 const ONBOARDING_PATTERN = /^\/[^/]+\/onboarding(\/|$)/;
 const ADMIN_PATTERN = /^\/[^/]+\/admin(\/|$)/;
+const MAINTENANCE_PAGE_PATTERN = /^\/[^/]+\/maintenance(\/|$)/;
 
 function isPublicPath(pathname: string): boolean {
   return PUBLIC_PATH_PATTERNS.some((pattern) => pattern.test(pathname));
@@ -47,6 +48,10 @@ function isAdminPath(pathname: string): boolean {
   return ADMIN_PATTERN.test(pathname);
 }
 
+function isMaintenancePage(pathname: string): boolean {
+  return MAINTENANCE_PAGE_PATTERN.test(pathname);
+}
+
 function hasSessionCookie(request: NextRequest): boolean {
   return !!(
     request.cookies.get("authjs.session-token") ||
@@ -56,6 +61,19 @@ function hasSessionCookie(request: NextRequest): boolean {
 
 export async function middleware(request: NextRequest) {
   const requestHeaders = new Headers(request.headers);
+  const { pathname: checkPathname } = request.nextUrl;
+
+  // Maintenance mode — env var check (O(1), no Redis/DB).
+  // Exempt: admin routes and the maintenance page itself.
+  if (process.env.MAINTENANCE_MODE === "true") {
+    if (!isAdminPath(checkPathname) && !isMaintenancePage(checkPathname)) {
+      const locale = checkPathname.split("/")[1] ?? "en";
+      const maintenanceUrl = new URL(`/${locale}/maintenance`, request.url);
+      const response = NextResponse.redirect(maintenanceUrl, { status: 307 });
+      response.headers.set("Retry-After", "3600");
+      return response;
+    }
+  }
 
   // Extract real client IP from Cloudflare or proxy headers for IP-based rate limiting
   const clientIp =

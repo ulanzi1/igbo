@@ -12,6 +12,11 @@ vi.mock("@/features/events/hooks/use-event-meeting", () => ({
   useEventMeeting: (...args: unknown[]) => mockUseEventMeeting(...args),
 }));
 
+const mockUseServiceHealth = vi.fn();
+vi.mock("@/lib/service-health", () => ({
+  useServiceHealth: () => mockUseServiceHealth(),
+}));
+
 // Mock next/dynamic so it doesn't try to load Daily SDK in tests
 vi.mock("next/dynamic", () => ({
   default: (_fn: unknown, opts?: { loading?: () => React.ReactNode }) => {
@@ -72,6 +77,12 @@ describe("EventMeetingPanel", () => {
   beforeEach(() => {
     mockUseEventMeeting.mockReset();
     mockUseEventMeeting.mockReturnValue({ ...defaultMeeting });
+    // Default: video available
+    mockUseServiceHealth.mockReturnValue({
+      chatAvailable: true,
+      videoAvailable: true,
+      degradedServices: [],
+    });
   });
 
   it("renders join button in idle state", () => {
@@ -120,5 +131,19 @@ describe("EventMeetingPanel", () => {
     });
     render(<EventMeetingPanel eventId="event-1" />);
     expect(screen.getByText("You must be registered to join this event")).toBeInTheDocument();
+  });
+
+  it("shows disabled join button when video is unavailable", () => {
+    mockUseServiceHealth.mockReturnValue({
+      chatAvailable: true,
+      videoAvailable: false,
+      degradedServices: ["video"],
+    });
+
+    render(<EventMeetingPanel eventId="event-1" />);
+
+    const button = screen.getByRole("button", { name: "Events.video.joinButton" });
+    expect(button).toBeDisabled();
+    expect(screen.getByText("Events.videoUnavailable")).toBeInTheDocument();
   });
 });

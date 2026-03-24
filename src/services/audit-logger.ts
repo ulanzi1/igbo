@@ -32,7 +32,9 @@ export type AdminAction =
   | "GOVERNANCE_PUBLISHED"
   | "GOVERNANCE_UPDATED"
   | "ARTICLE_REJECTED"
-  | "ARTICLE_REVISION_REQUESTED";
+  | "ARTICLE_REVISION_REQUESTED"
+  | "MAINTENANCE_ENABLED"
+  | "MAINTENANCE_DISABLED";
 
 interface AuditParams {
   actorId: string;

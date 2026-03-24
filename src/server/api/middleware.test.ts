@@ -601,6 +601,75 @@ describe("withApiHandler — HTTP metrics (Task 9.7)", () => {
   });
 });
 
+// ─── Maintenance mode tests (Task 4.5) ───────────────────────────────────────
+
+describe("withApiHandler — maintenance mode (Task 4.5)", () => {
+  let origMaintenanceMode: string | undefined;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    origMaintenanceMode = process.env.MAINTENANCE_MODE;
+  });
+
+  afterEach(() => {
+    if (origMaintenanceMode === undefined) {
+      delete process.env.MAINTENANCE_MODE;
+    } else {
+      process.env.MAINTENANCE_MODE = origMaintenanceMode;
+    }
+  });
+
+  it("returns 503 with Retry-After when MAINTENANCE_MODE=true", async () => {
+    process.env.MAINTENANCE_MODE = "true";
+    const handler = withApiHandler(async () => Response.json({ data: {} }));
+    const req = new Request("http://localhost:3000/api/v1/posts", {
+      headers: { Host: "localhost:3000" },
+    });
+    const res = await handler(req);
+    expect(res.status).toBe(503);
+    expect(res.headers.get("Retry-After")).toBe("3600");
+    const body = (await res.json()) as { status: number; title: string };
+    expect(body.status).toBe(503);
+    expect(body.title).toBe("Service Unavailable");
+  });
+
+  it("exempts /api/v1/health from maintenance mode", async () => {
+    process.env.MAINTENANCE_MODE = "true";
+    const handler = withApiHandler(async () => Response.json({ data: { status: "ok" } }));
+    const req = new Request("http://localhost:3000/api/v1/health", {
+      headers: { Host: "localhost:3000" },
+    });
+    const res = await handler(req);
+    expect(res.status).toBe(200);
+  });
+
+  it("exempts /api/v1/maintenance-status from maintenance mode", async () => {
+    process.env.MAINTENANCE_MODE = "true";
+    const handler = withApiHandler(async () => Response.json({ data: { enabled: true } }));
+    const req = new Request("http://localhost:3000/api/v1/maintenance-status", {
+      headers: { Host: "localhost:3000" },
+    });
+    const res = await handler(req);
+    expect(res.status).toBe(200);
+  });
+
+  it("does not affect requests when MAINTENANCE_MODE is not set", async () => {
+    delete process.env.MAINTENANCE_MODE;
+    const handler = withApiHandler(async () => Response.json({ data: {} }));
+    const req = createRequest("GET");
+    const res = await handler(req);
+    expect(res.status).toBe(200);
+  });
+
+  it("does not affect requests when MAINTENANCE_MODE=false", async () => {
+    process.env.MAINTENANCE_MODE = "false";
+    const handler = withApiHandler(async () => Response.json({ data: {} }));
+    const req = createRequest("GET");
+    const res = await handler(req);
+    expect(res.status).toBe(200);
+  });
+});
+
 // ─── Env vars validation (Task 9.8) ──────────────────────────────────────────
 
 import { readFileSync, existsSync } from "fs";
