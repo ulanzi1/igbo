@@ -13,6 +13,7 @@ vi.mock("@/db/queries/points", () => ({
   getPointsSummaryStats: vi.fn().mockResolvedValue({ total: 42, thisWeek: 5, thisMonth: 20 }),
 }));
 vi.mock("@/lib/request-context", () => ({
+  getRequestContext: vi.fn(() => undefined),
   runWithContext: vi.fn((_ctx: unknown, fn: () => unknown) => fn()),
 }));
 

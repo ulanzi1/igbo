@@ -35,6 +35,7 @@ vi.mock("drizzle-orm", () => ({
   asc: vi.fn((col) => ({ type: "asc", col })),
 }));
 vi.mock("@/lib/request-context", () => ({
+  getRequestContext: vi.fn(() => undefined),
   runWithContext: vi.fn((_ctx: unknown, fn: () => unknown) => fn()),
 }));
 

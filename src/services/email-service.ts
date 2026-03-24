@@ -4,6 +4,7 @@ import { Resend } from "resend";
 import { env } from "@/env";
 import { renderTemplate } from "@/templates/email";
 import { registerJob, runJob } from "@/server/jobs/job-runner";
+import { createLogger } from "@/lib/logger";
 
 export interface EmailPayload {
   to: string;
@@ -15,6 +16,8 @@ export interface EmailPayload {
   /** Override the default noreply from address (e.g. use support@ for reply-able emails). */
   from?: string;
 }
+
+const log = createLogger("email-service");
 
 function hashEmail(email: string): string {
   return createHash("sha256").update(email.toLowerCase().trim()).digest("hex");
@@ -34,14 +37,10 @@ function getResend(): Resend {
 export const emailService = {
   send: async (payload: EmailPayload): Promise<void> => {
     if (env.ENABLE_EMAIL_SENDING === "false") {
-      console.info(
-        JSON.stringify({
-          level: "info",
-          message: "email.send.skipped",
-          templateId: payload.templateId,
-          reason: "ENABLE_EMAIL_SENDING=false",
-        }),
-      );
+      log.info("email.send.skipped", {
+        templateId: payload.templateId,
+        reason: "ENABLE_EMAIL_SENDING=false",
+      });
       return;
     }
 
@@ -62,26 +61,18 @@ export const emailService = {
         throw new Error(`Resend API error [${payload.templateId}]: ${error.message}`);
       }
 
-      console.info(
-        JSON.stringify({
-          level: "info",
-          message: "email.send.success",
-          templateId: payload.templateId,
-          toHash,
-          locale: payload.locale ?? "en",
-          resendId: resendData?.id,
-        }),
-      );
+      log.info("email.send.success", {
+        templateId: payload.templateId,
+        toHash,
+        locale: payload.locale ?? "en",
+        resendId: resendData?.id,
+      });
     } catch (err) {
-      console.error(
-        JSON.stringify({
-          level: "error",
-          message: "email.send.error",
-          templateId: payload.templateId,
-          toHash,
-          error: err instanceof Error ? err.message : String(err),
-        }),
-      );
+      log.error("email.send.error", {
+        templateId: payload.templateId,
+        toHash,
+        error: err,
+      });
       throw err;
     }
   },
@@ -97,13 +88,6 @@ export function enqueueEmailJob(name: string, payload: EmailPayload): void {
     await emailService.send(payload);
   });
   void runJob(name).catch((err: unknown) => {
-    console.error(
-      JSON.stringify({
-        level: "error",
-        message: "email.job.failed",
-        jobName: name,
-        error: err instanceof Error ? err.message : String(err),
-      }),
-    );
+    log.error("email.job.failed", { jobName: name, error: err });
   });
 }

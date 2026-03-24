@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 import createNextIntlPlugin from "next-intl/plugin";
 import withSerwistInit from "@serwist/next";
+import { withSentryConfig } from "@sentry/nextjs";
 
 const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
@@ -35,12 +36,12 @@ const cspDirectives = [
   "default-src 'self'",
   process.env.NODE_ENV === "development"
     ? "script-src 'self' 'unsafe-inline' 'unsafe-eval'"
-    : "script-src 'self' 'unsafe-inline'",
+    : "script-src 'self' 'unsafe-inline' https://*.sentry.io",
   "style-src 'self' 'unsafe-inline'",
   `img-src 'self' blob: data:${s3PublicOrigin ? ` ${s3PublicOrigin}` : ""}`,
   `media-src 'self'${s3PublicOrigin ? ` ${s3PublicOrigin}` : ""}`,
   "font-src 'self'",
-  `connect-src 'self'${realtimeUrl ? ` ${realtimeUrl} ${realtimeWsUrl}` : ""}${s3Endpoint ? ` ${s3Endpoint}` : ""}${s3PublicOrigin ? ` ${s3PublicOrigin}` : ""}`,
+  `connect-src 'self'${realtimeUrl ? ` ${realtimeUrl} ${realtimeWsUrl}` : ""}${s3Endpoint ? ` ${s3Endpoint}` : ""}${s3PublicOrigin ? ` ${s3PublicOrigin}` : ""} https://*.ingest.sentry.io`,
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",
@@ -121,5 +122,12 @@ const nextConfig: NextConfig = {
   },
 };
 
-// Compose: Serwist outermost (webpack config), next-intl inner
-export default withSerwist(withNextIntl(nextConfig));
+const sentryOptions = {
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+  silent: true,
+  disableLogger: true,
+};
+
+// Compose: Serwist outermost, next-intl inner, Sentry innermost (webpack plugin runs first)
+export default withSerwist(withNextIntl(withSentryConfig(nextConfig, sentryOptions)));

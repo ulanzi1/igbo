@@ -163,7 +163,7 @@ describe("Job Runner", () => {
     expect(failLog).toBeDefined();
     expect(failLog.level).toBe("error");
     expect(failLog.jobName).toBe("fail-log");
-    expect(failLog.error).toBe("boom");
+    expect(failLog.error.message).toBe("boom");
     expect(failLog.attempts).toBe(1);
   });
 

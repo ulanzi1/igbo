@@ -6,8 +6,11 @@
  * https://nextjs.org/docs/app/building-your-application/optimizing/instrumentation
  */
 export async function register() {
-  // Only run in the Node.js runtime (not Edge or client)
   if (process.env.NEXT_RUNTIME === "nodejs") {
-    await import("@/server/jobs");
+    await import("../sentry.server.config");
+    await import("@/server/jobs"); // keep existing — do not remove
+  }
+  if (process.env.NEXT_RUNTIME === "edge") {
+    await import("../sentry.edge.config");
   }
 }
