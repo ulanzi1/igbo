@@ -1,0 +1,28 @@
+FROM alpine:3.19
+
+# Install required packages at build time (NOT runtime — prevents crash-loops on network outages)
+RUN apk add --no-cache \
+    postgresql16-client \
+    aws-cli \
+    bash \
+    gzip \
+    curl \
+    jq
+
+# Create scripts directory
+RUN mkdir -p /scripts/backup
+
+# Copy backup scripts into image
+COPY scripts/backup/ /scripts/backup/
+
+# Make all shell scripts executable
+RUN find /scripts/backup -name "*.sh" -exec chmod +x {} \;
+
+# Install cron schedule
+COPY scripts/backup/crontab /etc/crontabs/root
+
+# Health check — verify cron daemon is running
+HEALTHCHECK --interval=60s --timeout=10s CMD pgrep crond || exit 1
+
+# Run crond in foreground (log level 2)
+CMD ["crond", "-f", "-l", "2"]

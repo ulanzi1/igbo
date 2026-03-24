@@ -78,3 +78,59 @@ docker compose -f docker-compose.monitoring.yml down
 ```
 
 Data is persisted in Docker volumes (`prometheusdata`, `grafanadata`).
+
+## Backup Monitoring
+
+The backup sidecar does **not** expose a Prometheus `/metrics` endpoint — monitoring is log-based.
+
+### Verify backup ran (last 25 hours)
+
+```bash
+docker logs backup --since 25h | grep backup_completed
+```
+
+Expected output example:
+
+```json
+{
+  "timestamp": "2026-03-24T02:03:12Z",
+  "level": "info",
+  "message": "backup_completed",
+  "file": "daily/2026-03-24T020000Z.dump",
+  "size_bytes": 52428800
+}
+```
+
+### Check backup freshness
+
+```bash
+docker exec backup /scripts/backup/check-backup-freshness.sh
+```
+
+This queries S3 for the most recent backup and alerts (exit code 1 + error log) if older than 25 hours.
+
+### Trigger manual backup
+
+```bash
+docker exec backup /scripts/backup/backup.sh
+```
+
+### Trigger manual backup verification
+
+```bash
+docker exec backup /scripts/backup/verify-backup.sh
+```
+
+This downloads the latest backup, restores to a temporary PostgreSQL container, runs integrity checks, then destroys the temp container. Requires Docker socket access (mounted in backup sidecar).
+
+### Check backup freshness alerts
+
+```bash
+docker logs backup --since 1h | grep backup_freshness_alert
+```
+
+### View all backup-related errors
+
+```bash
+docker logs backup --since 7d | grep '"level":"error"'
+```

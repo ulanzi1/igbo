@@ -17,6 +17,7 @@ const ROOT = resolve(__dirname, ".");
 
 interface ComposeService {
   image?: string;
+  build?: unknown; // backup + postgres services use build: instead of image: (Story 12.4)
   restart?: string;
   mem_limit?: string;
   cpus?: number;
@@ -30,7 +31,7 @@ interface ComposeService {
     start_period?: string;
   };
   depends_on?: Record<string, { condition: string }> | string[];
-  command?: string;
+  command?: string | string[];
   environment?: Record<string, string>;
   env_file?: string | string[];
   profiles?: string[];

@@ -51,3 +51,21 @@ groups:
         annotations:
           summary: "Health check failure"
           description: "One or more services (web, realtime) are unreachable by Prometheus."
+
+# ─── Backup Monitoring Notes ──────────────────────────────────────────────────
+# The backup sidecar does NOT expose a /metrics endpoint (shell scripts via cron,
+# no HTTP server). Backup monitoring is LOG-BASED, not metric-based.
+#
+# Health monitoring strategy:
+# 1. Docker HEALTHCHECK (CMD: pgrep crond) — container restart policy handles sidecar
+#    failure automatically (restart: unless-stopped). If crond stops, Docker restarts.
+# 2. Structured JSON logs — backup scripts emit JSON to Docker stdout:
+#    {"level":"info","message":"backup_completed",...} or {"level":"error",...}
+#    Ops can query: docker logs backup --since 25h | grep backup_completed
+# 3. Freshness check — check-backup-freshness.sh runs daily at 5:00 AM UTC and
+#    logs an error-level JSON entry if the latest backup is older than 25 hours.
+#    Query: docker logs backup --since 1h | grep backup_freshness_alert
+#
+# Future enhancement (not in scope for launch):
+# A Prometheus exporter sidecar could scrape backup age from S3 metadata and expose
+# a metric (e.g. backup_age_hours) to trigger Prometheus alerts here.

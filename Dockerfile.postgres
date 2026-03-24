@@ -1,0 +1,14 @@
+FROM postgres:16-alpine
+
+# Install aws-cli for WAL archive_command (wal-archive.sh runs inside this container)
+RUN apk add --no-cache aws-cli
+
+# Create scripts directory
+RUN mkdir -p /scripts/backup
+
+# Copy WAL archive script and PostgreSQL custom config
+COPY scripts/backup/wal-archive.sh /scripts/backup/wal-archive.sh
+COPY scripts/backup/postgresql-custom.conf /etc/postgresql/postgresql-custom.conf
+
+# Make archive script executable
+RUN chmod +x /scripts/backup/wal-archive.sh
