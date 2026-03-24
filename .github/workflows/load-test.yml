@@ -1,0 +1,121 @@
+name: Load Tests (Nightly)
+
+# Runs nightly at 3 AM UTC to detect performance regressions.
+# NOT triggered on every PR — load tests require a full Docker environment.
+
+on:
+  schedule:
+    - cron: "0 3 * * *"
+  workflow_dispatch: # Allow manual trigger for pre-launch verification
+
+# Do not cancel in-progress nightly runs — each run is independent
+concurrency:
+  group: load-test-nightly
+  cancel-in-progress: false
+
+jobs:
+  load-test:
+    name: Load Test Suite
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
+          restore-keys: ${{ runner.os }}-bun-
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      # Install k6 via official GitHub Action — pinned to prevent nightly instability
+      - uses: grafana/setup-k6-action@v1
+        with:
+          k6-version: "0.54.0"
+
+      # Create .env file for Docker compose services (web/realtime read env_file: .env)
+      - name: Create load test env file
+        run: |
+          cat > .env <<'ENVEOF'
+          DATABASE_URL=postgres://postgres:loadtestpassword@postgres:5432/igbo_loadtest
+          REDIS_URL=redis://:loadtestpass@redis:6379
+          AUTH_SECRET=loadtest-auth-secret-minimum-32-chars-long
+          AUTH_URL=http://localhost:3000
+          NEXTAUTH_URL=http://localhost:3000
+          NEXT_PUBLIC_APP_URL=http://localhost:3000
+          NEXT_PUBLIC_REALTIME_URL=http://localhost:3001
+          ENVEOF
+
+      # Start load test Docker stack
+      - name: Start load test environment
+        env:
+          NEXT_PUBLIC_APP_URL: http://localhost:3000
+          NEXT_PUBLIC_REALTIME_URL: http://localhost:3001
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: loadtestpassword
+          POSTGRES_DB: igbo_loadtest
+          REDIS_PASSWORD: loadtestpass
+          LOADTEST_DATABASE_URL: postgres://postgres:loadtestpassword@localhost:5432/igbo_loadtest
+        run: docker compose -f docker-compose.loadtest.yml up -d
+
+      - name: Wait for services to be healthy
+        run: |
+          echo "Waiting for postgres..."
+          for i in $(seq 1 30); do
+            docker compose -f docker-compose.loadtest.yml exec -T postgres pg_isready -U postgres -d igbo_loadtest && break
+            echo "  Attempt $i/30..."
+            sleep 5
+          done
+
+          echo "Waiting for web app..."
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:3000/api/v1/health > /dev/null && echo "App ready" && break
+            echo "  Attempt $i/30..."
+            sleep 5
+          done
+
+          # Fail if app never started
+          curl -sf http://localhost:3000/api/v1/health > /dev/null || { echo "App failed to start"; exit 1; }
+
+      - name: Run database migrations
+        env:
+          DATABASE_URL: postgres://postgres:loadtestpassword@localhost:5432/igbo_loadtest
+        run: bun run db:migrate
+
+      - name: Seed load test data
+        env:
+          LOADTEST_DATABASE_URL: postgres://postgres:loadtestpassword@localhost:5432/igbo_loadtest
+        run: bun run test:load:seed
+
+      - name: Run k6 HTTP load tests
+        env:
+          BASE_URL: http://localhost:3000
+        run: bun run test:load:http
+
+      - name: Run WebSocket load tests
+        env:
+          BASE_URL: http://localhost:3000
+          REALTIME_URL: http://localhost:3001
+        run: bun run test:load:ws
+
+      - name: Generate load test report
+        run: bun run test:load:report
+
+      - name: Upload load test results
+        if: always() # Upload even on failure so we can diagnose regressions
+        uses: actions/upload-artifact@v4
+        with:
+          name: load-test-results-${{ github.run_number }}
+          path: tests/load/results/
+          retention-days: 30
+
+      - name: Tear down Docker stack
+        if: always()
+        run: docker compose -f docker-compose.loadtest.yml down -v
