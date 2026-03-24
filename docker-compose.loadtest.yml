@@ -1,0 +1,135 @@
+# Load test environment — mirrors docker-compose.prod.yml but stripped to 4 core services.
+# NO backup sidecar, NO ClamAV, NO monitoring stack.
+# Uses separate volume names and a distinct network to prevent namespace collision
+# when both loadtest and prod stacks are running simultaneously on the same host.
+
+services:
+  web:
+    image: ${WEB_IMAGE:-igbo-web:local}
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+      args:
+        NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
+        NEXT_PUBLIC_REALTIME_URL: ${NEXT_PUBLIC_REALTIME_URL:-http://localhost:3001}
+        HETZNER_S3_PUBLIC_URL: ${HETZNER_S3_PUBLIC_URL:-}
+        HETZNER_S3_ENDPOINT: ${HETZNER_S3_ENDPOINT:-}
+    restart: unless-stopped
+    mem_limit: 2g
+    cpus: 1.0
+    ports:
+      - "3000:3000"
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      MAINTENANCE_MODE: "false"
+      NEXT_PUBLIC_DAILY_ENABLED: "false"
+      REALTIME_INTERNAL_URL: http://realtime:3001
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/api/v1/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      realtime:
+        condition: service_started
+    networks:
+      - loadtest-network
+
+  realtime:
+    image: ${REALTIME_IMAGE:-igbo-realtime:local}
+    build:
+      context: .
+      dockerfile: Dockerfile.realtime
+    restart: unless-stopped
+    mem_limit: 1g
+    cpus: 0.5
+    ports:
+      - "3001:3001"
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      REALTIME_CORS_ORIGIN: ${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3001/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - loadtest-network
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    mem_limit: 1g
+    cpus: 1.0
+    shm_size: 256m
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      POSTGRES_DB: ${POSTGRES_DB:-igbo_loadtest}
+    expose:
+      - "5432"
+    ports:
+      - "5432:5432"
+    volumes:
+      - loadtest-pgdata:/var/lib/postgresql/data
+    # Tuned for bulk insert seeding performance (Task 1.3)
+    command:
+      - postgres
+      - -c
+      - shared_buffers=256MB
+      - -c
+      - work_mem=64MB
+      - -c
+      - maintenance_work_mem=512MB
+      - -c
+      - max_connections=200
+    healthcheck:
+      test:
+        ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-igbo_loadtest}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - loadtest-network
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    mem_limit: 512m
+    cpus: 0.5
+    command: >
+      redis-server
+      --requirepass ${REDIS_PASSWORD:-loadtestpass}
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+    expose:
+      - "6379"
+    volumes:
+      - loadtest-redisdata:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a ${REDIS_PASSWORD:-loadtestpass} ping | grep -q PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    networks:
+      - loadtest-network
+
+volumes:
+  loadtest-pgdata:
+  loadtest-redisdata:
+
+networks:
+  loadtest-network:
+    driver: bridge
