@@ -1,0 +1,14 @@
+# OBIGBO Backup Cron Schedule (all times UTC)
+# Redirect to PID 1 stdout for Docker log capture
+
+# Daily backup at 2:00 AM UTC
+0 2 * * * /scripts/backup/backup.sh >> /proc/1/fd/1 2>&1
+
+# Daily retention cleanup at 3:30 AM UTC (runs after backup completes)
+30 3 * * * /scripts/backup/retention-cleanup.sh >> /proc/1/fd/1 2>&1
+
+# Monthly backup verification on 1st of month at 4:00 AM UTC
+0 4 1 * * /scripts/backup/verify-backup.sh >> /proc/1/fd/1 2>&1
+
+# Daily freshness check at 5:00 AM UTC (3 hours after backup — verifies recent backup exists)
+0 5 * * * /scripts/backup/check-backup-freshness.sh >> /proc/1/fd/1 2>&1

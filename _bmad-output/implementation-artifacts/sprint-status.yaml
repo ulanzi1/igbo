@@ -164,7 +164,7 @@ development_status:
   12-1-ci-cd-pipeline: done
   12-2-production-deployment-infrastructure: done
   12-3-monitoring-logging-alerting: done
-  12-4-backup-recovery-disaster-recovery: backlog
+  12-4-backup-recovery-disaster-recovery: done
   12-5-resilience-graceful-degradation: backlog
   12-6-load-testing-performance-verification: backlog
   12-7-accessibility-testing-verification: backlog
