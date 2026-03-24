@@ -54,11 +54,21 @@ export const env = createEnv({
     // Web Push / VAPID (Story 9.3) — optional so dev envs without VAPID keys start normally
     VAPID_PRIVATE_KEY: z.string().optional().default(""),
     VAPID_CONTACT_EMAIL: z.string().optional().default(""),
+    // Sentry (Story 12.3) — optional so dev envs work without Sentry configured
+    SENTRY_DSN: z.string().optional().default(""),
+    SENTRY_RELEASE: z.string().optional(),
+    // Prometheus metrics bearer token (Story 12.3)
+    METRICS_SECRET: z.string().optional().default(""),
+    // Logging level (Story 12.3)
+    LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]).optional(),
   },
   client: {
     NEXT_PUBLIC_APP_URL: z.url(),
     NEXT_PUBLIC_REALTIME_URL: z.url(),
     NEXT_PUBLIC_VAPID_PUBLIC_KEY: z.string().optional().default(""),
+    // Sentry (Story 12.3)
+    NEXT_PUBLIC_SENTRY_DSN: z.string().optional().default(""),
+    NEXT_PUBLIC_SENTRY_ENVIRONMENT: z.string().optional(),
   },
   runtimeEnv: {
     DATABASE_URL: process.env.DATABASE_URL,
@@ -107,5 +117,11 @@ export const env = createEnv({
     VAPID_PRIVATE_KEY: process.env.VAPID_PRIVATE_KEY,
     VAPID_CONTACT_EMAIL: process.env.VAPID_CONTACT_EMAIL,
     NEXT_PUBLIC_VAPID_PUBLIC_KEY: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
+    SENTRY_DSN: process.env.SENTRY_DSN,
+    SENTRY_RELEASE: process.env.SENTRY_RELEASE,
+    METRICS_SECRET: process.env.METRICS_SECRET,
+    LOG_LEVEL: process.env.LOG_LEVEL as "debug" | "info" | "warn" | "error" | undefined,
+    NEXT_PUBLIC_SENTRY_DSN: process.env.NEXT_PUBLIC_SENTRY_DSN,
+    NEXT_PUBLIC_SENTRY_ENVIRONMENT: process.env.NEXT_PUBLIC_SENTRY_ENVIRONMENT,
   },
 });

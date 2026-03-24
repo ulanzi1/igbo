@@ -15,6 +15,7 @@ vi.mock("@/services/notification-service", () => ({
 }));
 
 vi.mock("@/lib/request-context", () => ({
+  getRequestContext: vi.fn(() => undefined),
   runWithContext: vi.fn((_ctx: unknown, fn: () => unknown) => fn()),
 }));
 

@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 // ─── Rate limiter mock ────────────────────────────────────────────────────────
 const mockCheckRateLimit = vi.fn();
@@ -9,6 +9,32 @@ vi.mock("@/lib/rate-limiter", () => ({
   buildRateLimitHeaders: (...args: unknown[]) => mockBuildRateLimitHeaders(...args),
 }));
 
+// ─── Metrics mock ─────────────────────────────────────────────────────────────
+const mockHttpDurationObserve = vi.fn();
+const mockHttpRequestsTotalInc = vi.fn();
+const mockAppErrorsTotalInc = vi.fn();
+vi.mock("@/lib/metrics", () => ({
+  httpDuration: { observe: (...args: unknown[]) => mockHttpDurationObserve(...args) },
+  httpRequestsTotal: { inc: (...args: unknown[]) => mockHttpRequestsTotalInc(...args) },
+  appErrorsTotal: { inc: (...args: unknown[]) => mockAppErrorsTotalInc(...args) },
+}));
+
+// ─── Logger mock ──────────────────────────────────────────────────────────────
+vi.mock("@/lib/logger", () => ({
+  logger: { error: vi.fn(), info: vi.fn(), warn: vi.fn(), debug: vi.fn() },
+  createLogger: vi.fn(() => ({ error: vi.fn(), info: vi.fn(), warn: vi.fn(), debug: vi.fn() })),
+}));
+
+// ─── Env mock ─────────────────────────────────────────────────────────────────
+vi.mock("@/env", () => ({
+  env: {
+    SENTRY_DSN: "https://test@sentry.io/123",
+    METRICS_SECRET: "test-secret",
+    NODE_ENV: "test",
+  },
+}));
+
+import * as Sentry from "@sentry/nextjs";
 import { withApiHandler } from "./middleware";
 import { ApiError } from "@/lib/api-error";
 import { getRequestContext } from "@/lib/request-context";
@@ -462,5 +488,150 @@ describe("withApiHandler", () => {
       expect(keyResolver).toHaveBeenCalledWith(request);
       expect(mockCheckRateLimit).toHaveBeenCalledWith("resolved-key", 10, 60_000);
     });
+  });
+});
+
+// ─── Sentry integration tests (Task 9.6) ─────────────────────────────────────
+
+describe("withApiHandler — Sentry integration (Task 9.6)", () => {
+  let origSentryDsn: string | undefined;
+  beforeEach(() => {
+    vi.clearAllMocks();
+    origSentryDsn = process.env.SENTRY_DSN;
+    process.env.SENTRY_DSN = "https://test@sentry.io/123";
+    mockCheckRateLimit.mockResolvedValue({ allowed: true, remaining: 9, resetAt: 0, limit: 10 });
+    mockBuildRateLimitHeaders.mockReturnValue({});
+  });
+  afterEach(() => {
+    process.env.SENTRY_DSN = origSentryDsn;
+  });
+
+  it("calls Sentry.captureException on unhandled error with traceId and user context", async () => {
+    const error = new Error("unexpected failure");
+    const handler = withApiHandler(async () => {
+      throw error;
+    });
+    const request = new Request("http://localhost:3000/api/v1/test", {
+      method: "GET",
+      headers: { "X-Request-Id": "trace-abc-123", Host: "localhost:3000" },
+    });
+    const response = await handler(request);
+    expect(response.status).toBe(500);
+    expect(vi.mocked(Sentry.captureException)).toHaveBeenCalledWith(error, {
+      tags: { traceId: "trace-abc-123" },
+      user: undefined, // userId not available in catch scope (outside runWithContext)
+    });
+  });
+
+  it("does NOT call captureException for ApiError (handled error)", async () => {
+    const handler = withApiHandler(async () => {
+      throw new ApiError({ title: "Not Found", status: 404 });
+    });
+    const request = createRequest("GET");
+    const response = await handler(request);
+    expect(response.status).toBe(404);
+    expect(vi.mocked(Sentry.captureException)).not.toHaveBeenCalled();
+  });
+
+  it("increments appErrorsTotal on unhandled error", async () => {
+    const handler = withApiHandler(async () => {
+      throw new Error("boom");
+    });
+    await handler(createRequest("GET"));
+    expect(mockAppErrorsTotalInc).toHaveBeenCalledWith({ type: "api" });
+  });
+});
+
+// ─── HTTP metrics tests (Task 9.7) ───────────────────────────────────────────
+
+describe("withApiHandler — HTTP metrics (Task 9.7)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockCheckRateLimit.mockResolvedValue({ allowed: true, remaining: 9, resetAt: 0, limit: 10 });
+    mockBuildRateLimitHeaders.mockReturnValue({});
+  });
+
+  it("records httpDuration and httpRequestsTotal after successful request", async () => {
+    const handler = withApiHandler(async () => new Response(null, { status: 200 }));
+    await handler(createRequest("GET", { url: "http://localhost:3000/api/v1/users" }));
+    expect(mockHttpDurationObserve).toHaveBeenCalledWith(
+      expect.objectContaining({ method: "GET", route: "/api/v1/users", status_code: "200" }),
+      expect.any(Number),
+    );
+    expect(mockHttpRequestsTotalInc).toHaveBeenCalledWith(
+      expect.objectContaining({ method: "GET", route: "/api/v1/users", status_code: "200" }),
+    );
+  });
+
+  it("normalizes UUID segments in route label", async () => {
+    const handler = withApiHandler(async () => new Response(null, { status: 200 }));
+    await handler(
+      createRequest("GET", {
+        url: "http://localhost:3000/api/v1/users/abc12345-def6-7890-abcd-ef1234567890/points",
+      }),
+    );
+    expect(mockHttpDurationObserve).toHaveBeenCalledWith(
+      expect.objectContaining({ route: "/api/v1/users/:id/points" }),
+      expect.any(Number),
+    );
+  });
+
+  it("records 500 metrics on unhandled errors", async () => {
+    const handler = withApiHandler(async () => {
+      throw new Error("unhandled");
+    });
+    const response = await handler(createRequest("GET"));
+    expect(response.status).toBe(500);
+    expect(mockHttpDurationObserve).toHaveBeenCalledWith(
+      expect.objectContaining({ status_code: "500" }),
+      expect.any(Number),
+    );
+  });
+
+  it("records 4xx metrics for ApiErrors", async () => {
+    const handler = withApiHandler(async () => {
+      throw new ApiError({ title: "Not Found", status: 404 });
+    });
+    const response = await handler(createRequest("GET"));
+    expect(response.status).toBe(404);
+    expect(mockHttpDurationObserve).toHaveBeenCalledWith(
+      expect.objectContaining({ status_code: "404" }),
+      expect.any(Number),
+    );
+  });
+});
+
+// ─── Env vars validation (Task 9.8) ──────────────────────────────────────────
+
+import { readFileSync, existsSync } from "fs";
+import { resolve } from "path";
+
+const ENV_ROOT = resolve(__dirname, "../../../");
+const envContent = readFileSync(resolve(ENV_ROOT, ".env.production.example"), "utf-8");
+
+describe("withApiHandler — env vars validation (Task 9.8)", () => {
+  it(".env.production.example exists", () => {
+    expect(existsSync(resolve(ENV_ROOT, ".env.production.example"))).toBe(true);
+  });
+
+  it(".env.production.example contains SENTRY_DSN", () => {
+    expect(envContent).toContain("SENTRY_DSN");
+  });
+
+  it(".env.production.example contains METRICS_SECRET", () => {
+    expect(envContent).toContain("METRICS_SECRET");
+  });
+
+  it(".env.production.example contains LOG_LEVEL", () => {
+    expect(envContent).toContain("LOG_LEVEL");
+  });
+
+  it(".env.production.example contains GRAFANA_ADMIN_PASSWORD", () => {
+    expect(envContent).toContain("GRAFANA_ADMIN_PASSWORD");
+  });
+
+  it(".env.production.example has CI-only comment for SENTRY_AUTH_TOKEN", () => {
+    expect(envContent).toContain("SENTRY_AUTH_TOKEN");
+    expect(envContent).toContain("CI BUILD ONLY");
   });
 });

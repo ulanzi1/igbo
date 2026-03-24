@@ -1,0 +1,53 @@
+groups:
+  - name: igbo-alerts
+    rules:
+      - alert: HighErrorRate
+        expr: |
+          rate(http_requests_total{status_code=~"5.."}[5m]) / rate(http_requests_total[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High error rate detected"
+          description: "More than 5% of requests are returning 5xx errors over the last 5 minutes."
+
+      - alert: HighLatency
+        expr: |
+          histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High API latency detected"
+          description: "p95 API latency is above 500ms over the last 5 minutes."
+
+      - alert: HighDiskUsage
+        expr: |
+          (1 - node_filesystem_avail_bytes / node_filesystem_size_bytes) > 0.8
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High disk usage"
+          description: "Disk usage is above 80%."
+
+      - alert: WebSocketConnectionDrop
+        expr: |
+          (ws_active_connections offset 1m > 10) and
+          (ws_active_connections / (ws_active_connections offset 1m) < 0.5)
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "WebSocket connection drop detected"
+          description: "Active WebSocket connections dropped by more than 50% in the last minute."
+
+      - alert: HealthCheckFailure
+        expr: |
+          up{job="web"} == 0 or up{job="realtime"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Health check failure"
+          description: "One or more services (web, realtime) are unreachable by Prometheus."

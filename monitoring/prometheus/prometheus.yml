@@ -1,0 +1,38 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - alertmanager:9093
+
+rule_files:
+  - /etc/prometheus/alert-rules.yml
+
+scrape_configs:
+  - job_name: web
+    scheme: http
+    static_configs:
+      - targets:
+          - web:3000
+    metrics_path: /api/metrics
+    authorization:
+      credentials_file: /run/secrets/metrics_secret
+    # Note: In production, set credentials via METRICS_SECRET env var in a secrets file.
+    # For docker-compose.monitoring.yml, pass METRICS_SECRET as environment variable
+    # and configure bearer_token directly:
+    # bearer_token: ${METRICS_SECRET}
+
+  - job_name: realtime
+    scheme: http
+    static_configs:
+      - targets:
+          - realtime:3001
+    metrics_path: /metrics
+
+  - job_name: node
+    static_configs:
+      - targets:
+          - node-exporter:9100

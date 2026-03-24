@@ -1,7 +1,10 @@
 import { randomUUID } from "node:crypto";
+import * as Sentry from "@sentry/nextjs";
 import { ApiError } from "@/lib/api-error";
 import { errorResponse } from "@/lib/api-response";
-import { runWithContext } from "@/lib/request-context";
+import { getRequestContext, runWithContext } from "@/lib/request-context";
+import { logger } from "@/lib/logger";
+import { httpDuration, httpRequestsTotal, appErrorsTotal } from "@/lib/metrics";
 import type { RateLimitResult } from "@/lib/rate-limiter";
 
 type RouteHandler = (request: Request) => Promise<Response>;
@@ -70,9 +73,16 @@ function validateCsrf(request: Request): void {
   }
 }
 
+export function normalizeRoute(pathname: string): string {
+  return pathname
+    .replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, ":id")
+    .replace(/\/\d+(?=\/|$)/g, "/:id");
+}
+
 export function withApiHandler(handler: RouteHandler, options?: ApiHandlerOptions): RouteHandler {
   return async (request: Request): Promise<Response> => {
     const traceId = request.headers.get("X-Request-Id") ?? randomUUID();
+    const startTime = Date.now();
 
     let rateLimitResult: RateLimitResult | undefined;
     let buildRateLimitHeadersFn: ((r: RateLimitResult) => Record<string, string>) | undefined;
@@ -118,6 +128,19 @@ export function withApiHandler(handler: RouteHandler, options?: ApiHandlerOption
         headers.set("Cache-Control", "no-store");
       }
 
+      // Record HTTP metrics
+      const route = normalizeRoute(new URL(request.url).pathname);
+      const durationSeconds = (Date.now() - startTime) / 1000;
+      httpDuration.observe(
+        { method: request.method, route, status_code: String(response.status) },
+        durationSeconds,
+      );
+      httpRequestsTotal.inc({
+        method: request.method,
+        route,
+        status_code: String(response.status),
+      });
+
       return new Response(response.body, {
         status: response.status,
         statusText: response.statusText,
@@ -126,22 +149,41 @@ export function withApiHandler(handler: RouteHandler, options?: ApiHandlerOption
     } catch (error) {
       if (error instanceof ApiError) {
         const errResponse = errorResponse(error.toProblemDetails());
+        // Record HTTP metrics for API errors
+        const route = normalizeRoute(new URL(request.url).pathname);
+        const durationSeconds = (Date.now() - startTime) / 1000;
+        httpDuration.observe(
+          { method: request.method, route, status_code: String(errResponse.status) },
+          durationSeconds,
+        );
+        httpRequestsTotal.inc({
+          method: request.method,
+          route,
+          status_code: String(errResponse.status),
+        });
         return new Response(errResponse.body, {
           status: errResponse.status,
           headers: enrichHeaders(errResponse.headers),
         });
       }
 
-      // Unknown error — log server-side, never expose internals to client
-      console.error(
-        JSON.stringify({
-          level: "error",
-          traceId,
-          message: "unhandled_route_error",
-          error: error instanceof Error ? error.message : String(error),
-          stack: error instanceof Error ? error.stack : undefined,
-        }),
-      );
+      // Unknown error — capture in Sentry + log server-side
+      if (process.env.SENTRY_DSN) {
+        const userId = getRequestContext()?.userId;
+        Sentry.captureException(error, {
+          tags: { traceId },
+          user: userId ? { id: userId } : undefined,
+        });
+      }
+      appErrorsTotal.inc({ type: "api" });
+      logger.error("unhandled_route_error", { error, traceId });
+
+      // Record HTTP metrics for 500 errors
+      const route = normalizeRoute(new URL(request.url).pathname);
+      const durationSeconds = (Date.now() - startTime) / 1000;
+      httpDuration.observe({ method: request.method, route, status_code: "500" }, durationSeconds);
+      httpRequestsTotal.inc({ method: request.method, route, status_code: "500" });
+
       const errResponse = errorResponse({
         type: "about:blank",
         title: "Internal Server Error",

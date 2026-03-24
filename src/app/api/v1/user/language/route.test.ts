@@ -18,6 +18,7 @@ vi.mock("@/db/queries/auth-queries", () => ({
 }));
 
 vi.mock("@/lib/request-context", () => ({
+  getRequestContext: vi.fn(() => undefined),
   runWithContext: vi.fn((_ctx: unknown, fn: () => unknown) => fn()),
 }));
 

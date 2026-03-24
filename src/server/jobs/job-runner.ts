@@ -1,6 +1,7 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
 import { runWithContext } from "@/lib/request-context";
+import { createLogger } from "@/lib/logger";
 import { eventBus } from "@/services/event-bus";
 
 const DEFAULT_RETRIES = 3;
@@ -22,11 +23,10 @@ interface RegisteredJob {
 
 type ErrorReporter = (error: Error, context: Record<string, unknown>) => void;
 
-const log = (data: Record<string, unknown>) => console.info(JSON.stringify(data));
-const logError = (data: Record<string, unknown>) => console.error(JSON.stringify(data));
+const log = createLogger("job-runner");
 
 let errorReporter: ErrorReporter = (error, context) => {
-  logError({ level: "error", ...context, error: error.message, stack: error.stack });
+  log.error("job.error_reporter", { error, ...context });
 };
 
 const registry = new Map<string, RegisteredJob>();
@@ -80,13 +80,7 @@ export async function runJob(name: string): Promise<boolean> {
   const startTime = Date.now();
 
   return runWithContext({ traceId }, async () => {
-    log({
-      level: "info",
-      message: "job.start",
-      jobName: name,
-      traceId,
-      timestamp: new Date().toISOString(),
-    });
+    log.info("job.start", { jobName: name, traceId });
 
     let lastError: Error | undefined;
 
@@ -100,29 +94,14 @@ export async function runJob(name: string): Promise<boolean> {
         }
 
         const duration = Date.now() - startTime;
-        log({
-          level: "info",
-          message: "job.complete",
-          jobName: name,
-          traceId,
-          duration,
-          timestamp: new Date().toISOString(),
-        });
+        log.info("job.complete", { jobName: name, traceId, duration });
         return true;
       } catch (err) {
         lastError = err instanceof Error ? err : new Error(String(err));
 
         if (attempt <= job.options.retries) {
           const backoff = Math.pow(2, attempt - 1) * job.options.backoffMs;
-          log({
-            level: "warn",
-            message: "job.retry",
-            jobName: name,
-            traceId,
-            attempt,
-            backoffMs: backoff,
-            timestamp: new Date().toISOString(),
-          });
+          log.warn("job.retry", { jobName: name, traceId, attempt, backoffMs: backoff });
           await sleep(backoff);
         }
       }
@@ -131,15 +110,12 @@ export async function runJob(name: string): Promise<boolean> {
     const duration = Date.now() - startTime;
     const error = lastError!;
 
-    logError({
-      level: "error",
-      message: "job.failed",
+    log.error("job.failed", {
       jobName: name,
       traceId,
       duration,
       attempts: job.options.retries + 1,
-      error: error.message,
-      timestamp: new Date().toISOString(),
+      error,
     });
 
     errorReporter(error, { jobName: name, traceId, attempts: job.options.retries + 1 });
