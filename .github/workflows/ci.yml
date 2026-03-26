@@ -106,8 +106,16 @@ jobs:
           restore-keys: ${{ runner.os }}-nextjs-
       - run: bun install --frozen-lockfile
       - run: bun run build
-      # Upload only the runtime subset (standalone + static + public) to minimise artifact size.
-      # Full .next/ directory is NOT uploaded — it includes source maps and build cache.
+      # Verify standalone output contains BUILD_ID
+      - name: Verify standalone build
+        run: |
+          echo "=== .next root ==="
+          ls -la .next/BUILD_ID .next/required-server-files.json 2>&1 || true
+          echo "=== standalone .next ==="
+          ls -la .next/standalone/.next/ 2>&1 || true
+          test -f .next/standalone/.next/BUILD_ID && echo "BUILD_ID found in standalone" || echo "BUILD_ID NOT in standalone"
+      # Upload runtime subset: standalone (self-contained server), static assets, and public.
+      # Also include root-level .next/BUILD_ID in case standalone doesn't embed it.
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
@@ -115,6 +123,8 @@ jobs:
           path: |
             .next/standalone
             .next/static
+            .next/BUILD_ID
+            .next/required-server-files.json
             public
           retention-days: 1
 
@@ -147,12 +157,17 @@ jobs:
         with:
           name: nextjs-build
           path: .
-      # Prepare standalone server: static files must live inside the standalone dir
+      # Prepare standalone server: static files and BUILD_ID must live inside the standalone dir
       - name: Setup standalone server assets
         run: |
           mkdir -p .next/standalone/.next
           cp -r .next/static .next/standalone/.next/static
           cp -r public .next/standalone/public
+          # Copy BUILD_ID into standalone if not already there
+          test -f .next/standalone/.next/BUILD_ID || cp .next/BUILD_ID .next/standalone/.next/BUILD_ID
+          test -f .next/standalone/.next/required-server-files.json || cp .next/required-server-files.json .next/standalone/.next/required-server-files.json 2>/dev/null || true
+          echo "Standalone .next contents:"
+          ls -la .next/standalone/.next/
       # Playwright manages the server via webServer config (command: node .next/standalone/server.js)
       - run: bunx playwright test --reporter=html
       - name: Upload Playwright report on failure
@@ -192,6 +207,8 @@ jobs:
           mkdir -p .next/standalone/.next
           cp -r .next/static .next/standalone/.next/static
           cp -r public .next/standalone/public
+          test -f .next/standalone/.next/BUILD_ID || cp .next/BUILD_ID .next/standalone/.next/BUILD_ID
+          test -f .next/standalone/.next/required-server-files.json || cp .next/required-server-files.json .next/standalone/.next/required-server-files.json 2>/dev/null || true
       - name: Start standalone server
         run: PORT=3000 node .next/standalone/server.js &
       - name: Wait for server to be ready
