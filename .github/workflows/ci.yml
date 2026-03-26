@@ -125,10 +125,27 @@ jobs:
     name: E2E Tests
     needs: [build]
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: igbo_test
+        ports:
+          - 5432:5432
+        options: --health-cmd pg_isready --health-interval 5s --health-timeout 3s --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: --health-cmd "redis-cli ping" --health-interval 5s --health-timeout 3s --health-retries 5
     env:
       SKIP_ENV_VALIDATION: "true"
       NEXT_PUBLIC_APP_URL: http://localhost:3000
       NEXT_PUBLIC_REALTIME_URL: http://localhost:3001
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/igbo_test
+      REDIS_URL: redis://localhost:6379
       CI: "true"
     steps:
       - uses: actions/checkout@v4
@@ -148,6 +165,9 @@ jobs:
         with:
           name: nextjs-build
           path: .
+      # Run database migrations so the standalone server has tables
+      - name: Run database migrations
+        run: for f in src/db/migrations/*.sql; do PGPASSWORD=postgres psql -h localhost -U postgres -d igbo_test -f "$f"; done
       # Prepare standalone server: static files must live inside the standalone dir
       - name: Setup standalone server assets
         run: |
@@ -167,10 +187,27 @@ jobs:
     name: Lighthouse CI
     needs: [build]
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: igbo_test
+        ports:
+          - 5432:5432
+        options: --health-cmd pg_isready --health-interval 5s --health-timeout 3s --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: --health-cmd "redis-cli ping" --health-interval 5s --health-timeout 3s --health-retries 5
     env:
       SKIP_ENV_VALIDATION: "true"
       NEXT_PUBLIC_APP_URL: http://localhost:3000
       NEXT_PUBLIC_REALTIME_URL: http://localhost:3001
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/igbo_test
+      REDIS_URL: redis://localhost:6379
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
@@ -187,6 +224,8 @@ jobs:
         with:
           name: nextjs-build
           path: .
+      - name: Run database migrations
+        run: for f in src/db/migrations/*.sql; do PGPASSWORD=postgres psql -h localhost -U postgres -d igbo_test -f "$f"; done
       - name: Setup standalone server assets
         run: |
           cp -r .next/static .next/standalone/.next/static
