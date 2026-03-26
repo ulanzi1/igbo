@@ -11,9 +11,6 @@ export function getRequestContext(): RequestContext | undefined {
   return requestContext.getStore();
 }
 
-export function runWithContext<T>(
-  context: RequestContext,
-  fn: () => T,
-): T {
+export function runWithContext<T>(context: RequestContext, fn: () => T): T {
   return requestContext.run(context, fn);
 }

@@ -2,6 +2,7 @@
 import { render, screen, fireEvent } from "@/test/test-utils";
 import { ContrastToggle } from "./ContrastToggle";
 import { STORAGE_KEY } from "@/hooks/use-contrast-mode";
+import { expectNoA11yViolations } from "@/test/a11y-utils";
 
 vi.mock("next-intl", () => ({
   useTranslations: (namespace?: string) => (key: string) => `${namespace}.${key}`,
@@ -89,5 +90,10 @@ describe("ContrastToggle", () => {
     const button = screen.getByRole("button");
     expect(button).toHaveAttribute("aria-pressed", "true");
     expect(button).toHaveAttribute("aria-label", "Shell.contrastToggle");
+  });
+
+  it("has no accessibility violations", async () => {
+    const { container } = render(<ContrastToggle />);
+    await expectNoA11yViolations(container);
   });
 });

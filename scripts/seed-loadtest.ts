@@ -75,7 +75,7 @@ function randomPastDate(daysBack = 180): Date {
 }
 
 function pickRandom<T>(arr: T[]): T {
-  return arr[Math.floor(Math.random() * arr.length)];
+  return arr[Math.floor(Math.random() * arr.length)]!;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -114,7 +114,7 @@ async function seedMembers(): Promise<string[]> {
       accountStatus: "APPROVED" as const,
       passwordHash,
       role: "MEMBER" as const,
-      membershipTier: "STANDARD" as const,
+      membershipTier: "PROFESSIONAL" as const,
       languagePreference: "en",
       createdAt: now,
       updatedAt: now,
@@ -161,8 +161,8 @@ async function seedMembers(): Promise<string[]> {
         Math.random() < 0.7
           ? ("BASIC" as const)
           : Math.random() < 0.8
-            ? ("STANDARD" as const)
-            : ("PREMIUM" as const),
+            ? ("PROFESSIONAL" as const)
+            : ("TOP_TIER" as const),
       languagePreference: Math.random() < 0.2 ? "ig" : "en",
       createdAt: randomPastDate(365),
       updatedAt: new Date(),

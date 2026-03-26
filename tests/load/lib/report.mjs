@@ -286,9 +286,7 @@ async function main() {
       console.warn("⚠️  Could not parse baseline.json — skipping regression check");
     }
   } else {
-    console.log(
-      'ℹ️  No baseline found. Run with --save-baseline after first successful run.',
-    );
+    console.log("ℹ️  No baseline found. Run with --save-baseline after first successful run.");
   }
 
   // Detect regressions
@@ -300,7 +298,12 @@ async function main() {
   if (httpEval) {
     for (const [nfr, result] of Object.entries(httpEval.results)) {
       if (result.pass === false) {
-        failures.push({ nfr, description: result.description, value: result.value, threshold: result.threshold });
+        failures.push({
+          nfr,
+          description: result.description,
+          value: result.value,
+          threshold: result.threshold,
+        });
       }
     }
   }
@@ -308,7 +311,12 @@ async function main() {
   if (wsEval) {
     for (const [nfr, result] of Object.entries(wsEval)) {
       if (result.pass === false) {
-        failures.push({ nfr, description: result.description, value: result.value, threshold: result.threshold });
+        failures.push({
+          nfr,
+          description: result.description,
+          value: result.value,
+          threshold: result.threshold,
+        });
       }
     }
   }
@@ -328,7 +336,8 @@ async function main() {
     regressions,
     failures,
     pass: failures.length === 0,
-    summary: failures.length === 0 ? "✅ All NFR thresholds pass" : `❌ ${failures.length} failure(s)`,
+    summary:
+      failures.length === 0 ? "✅ All NFR thresholds pass" : `❌ ${failures.length} failure(s)`,
   };
 
   // Write report
@@ -344,7 +353,10 @@ async function main() {
     console.log("\nHTTP NFRs:");
     for (const [nfr, result] of Object.entries(httpEval.results)) {
       const status = result.pass === true ? "✅" : result.pass === false ? "❌" : "⚠️";
-      const val = result.value != null ? ` (${typeof result.value === "number" ? result.value.toFixed(1) : result.value})` : "";
+      const val =
+        result.value != null
+          ? ` (${typeof result.value === "number" ? result.value.toFixed(1) : result.value})`
+          : "";
       console.log(`  ${status} ${nfr}: ${result.description}${val}`);
     }
   }

@@ -5,3 +5,6 @@ build
 coverage
 src/db/migrations
 package-lock.json
+_bmad-output
+_bmad-backup*
+public/sw.js

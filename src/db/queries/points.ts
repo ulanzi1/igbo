@@ -266,7 +266,7 @@ export async function getTopPointsEarners(opts: {
 
   if (arr.length === 0) return { users: [], total: 0 };
 
-  const total = parseInt(arr[0].total_count, 10);
+  const total = parseInt(arr[0]!.total_count, 10);
   const users: TopPointsEarnerRow[] = arr.map((row) => ({
     userId: row.user_id,
     displayName: row.display_name,
@@ -323,7 +323,7 @@ export async function getThrottledUsersReport(opts: {
 
   if (arr.length === 0) return { users: [], total: 0 };
 
-  const total = parseInt(arr[0].total_count, 10);
+  const total = parseInt(arr[0]!.total_count, 10);
   const users: ThrottledUserRow[] = arr.map((row) => ({
     userId: row.user_id,
     displayName: row.display_name,
@@ -423,7 +423,7 @@ export async function getUserThrottleHistory(
 
   if (arr.length === 0) return { entries: [], total: 0 };
 
-  const total = parseInt(arr[0].total_count, 10);
+  const total = parseInt(arr[0]!.total_count, 10);
   const entries: ThrottleHistoryEntry[] = arr.map((row) => ({
     date: row.date,
     reason: row.reason,

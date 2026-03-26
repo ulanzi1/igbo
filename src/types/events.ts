@@ -360,6 +360,21 @@ export interface AccountStatusChangedEvent extends BaseEvent {
   previousStatus?: string;
 }
 
+export interface AccountDisciplineIssuedEvent extends BaseEvent {
+  userId: string;
+  disciplineType: string;
+  reason: string;
+  disciplineId: string;
+  suspensionEndsAt?: string;
+}
+
+export interface AccountDisciplineLiftedEvent extends BaseEvent {
+  userId: string;
+  disciplineId: string;
+  reason: string;
+  liftedBy: string;
+}
+
 // --- Group Events ---
 
 export interface GroupCreatedEvent extends BaseEvent {
@@ -679,7 +694,9 @@ export type EventName =
   | "content.unflagged"
   | "content.moderated"
   | "report.created"
-  | "moderation.keyword_added";
+  | "moderation.keyword_added"
+  | "account.discipline_issued"
+  | "account.discipline_lifted";
 
 // --- Event Map ---
 
@@ -770,4 +787,6 @@ export interface EventMap {
   "content.moderated": ContentModeratedEvent;
   "report.created": ReportCreatedEvent;
   "moderation.keyword_added": KeywordAddedEvent;
+  "account.discipline_issued": AccountDisciplineIssuedEvent;
+  "account.discipline_lifted": AccountDisciplineLiftedEvent;
 }

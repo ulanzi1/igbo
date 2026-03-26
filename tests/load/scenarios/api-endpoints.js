@@ -122,7 +122,9 @@ export default function (data) {
   // ── Feed pagination ────────────────────────────────────────────────────────
   {
     const res = http.get(`${BASE_URL}/api/v1/feed`, params);
-    const ok = check(res, { "feed: status 200 or 401": (r) => r.status === 200 || r.status === 401 });
+    const ok = check(res, {
+      "feed: status 200 or 401": (r) => r.status === 200 || r.status === 401,
+    });
     feedDuration.add(res.timings.duration);
     if (!ok) requestErrors.add(1);
   }

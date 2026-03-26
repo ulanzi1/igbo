@@ -2,6 +2,7 @@
 import React from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@/test/test-utils";
+import { expectNoA11yViolations } from "@/test/a11y-utils";
 
 const mockUseSession = vi.fn();
 vi.mock("next-auth/react", () => ({
@@ -163,5 +164,12 @@ describe("RSVPButton", () => {
     // Click the confirm action button (second instance)
     fireEvent.click(confirmButtons[1]);
     expect(cancelMutateFn).toHaveBeenCalledTimes(1);
+  });
+
+  it("has no accessibility violations", async () => {
+    const { container } = render(
+      <RSVPButton eventId="event-1" registrationLimit={null} attendeeCount={0} />,
+    );
+    await expectNoA11yViolations(container);
   });
 });

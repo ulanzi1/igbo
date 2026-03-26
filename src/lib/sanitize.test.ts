@@ -4,8 +4,7 @@ import { sanitizeHtml } from "./sanitize";
 
 describe("sanitizeHtml", () => {
   it("allows safe HTML tags", () => {
-    const input =
-      "<p>Hello <strong>world</strong> <em>italic</em> <b>bold</b></p>";
+    const input = "<p>Hello <strong>world</strong> <em>italic</em> <b>bold</b></p>";
     expect(sanitizeHtml(input)).toBe(input);
   });
 
@@ -26,13 +25,9 @@ describe("sanitizeHtml", () => {
   });
 
   it("allows blockquote, code, pre, br", () => {
-    expect(sanitizeHtml("<blockquote>Quote</blockquote>")).toBe(
-      "<blockquote>Quote</blockquote>",
-    );
+    expect(sanitizeHtml("<blockquote>Quote</blockquote>")).toBe("<blockquote>Quote</blockquote>");
     expect(sanitizeHtml("<code>code</code>")).toBe("<code>code</code>");
-    expect(sanitizeHtml("<pre>preformatted</pre>")).toBe(
-      "<pre>preformatted</pre>",
-    );
+    expect(sanitizeHtml("<pre>preformatted</pre>")).toBe("<pre>preformatted</pre>");
     expect(sanitizeHtml("Line 1<br />Line 2")).toBe("Line 1<br />Line 2");
   });
 
@@ -47,8 +42,7 @@ describe("sanitizeHtml", () => {
   });
 
   it("allows rel and class attributes", () => {
-    const input =
-      '<a href="https://example.com" rel="noopener" class="link">Link</a>';
+    const input = '<a href="https://example.com" rel="noopener" class="link">Link</a>';
     expect(sanitizeHtml(input)).toBe(input);
   });
 
@@ -86,8 +80,7 @@ describe("sanitizeHtml", () => {
   });
 
   it("strips style attributes", () => {
-    const input =
-      '<p style="background:url(javascript:alert(1))">Styled</p>';
+    const input = '<p style="background:url(javascript:alert(1))">Styled</p>';
     expect(sanitizeHtml(input)).toBe("<p>Styled</p>");
   });
 

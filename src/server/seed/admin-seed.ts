@@ -20,7 +20,9 @@ async function seedAdmin() {
     console.info(`Admin account created for ${adminEmail}`);
   } catch (error) {
     if (error instanceof Error && error.message.includes("auth_users")) {
-      console.info("auth_users table does not exist yet. Skipping admin seed — will be created in a later story.");
+      console.info(
+        "auth_users table does not exist yet. Skipping admin seed — will be created in a later story.",
+      );
     } else {
       throw error;
     }

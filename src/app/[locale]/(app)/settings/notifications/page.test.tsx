@@ -11,14 +11,12 @@ vi.mock("@tanstack/react-query", () => ({
   QueryClientProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   useQuery: vi.fn().mockReturnValue({ data: {}, isLoading: false }),
   useMutation: vi.fn().mockReturnValue({ mutate: vi.fn() }),
-  useQueryClient: vi
-    .fn()
-    .mockReturnValue({
-      cancelQueries: vi.fn(),
-      setQueryData: vi.fn(),
-      getQueryData: vi.fn(),
-      invalidateQueries: vi.fn(),
-    }),
+  useQueryClient: vi.fn().mockReturnValue({
+    cancelQueries: vi.fn(),
+    setQueryData: vi.fn(),
+    getQueryData: vi.fn(),
+    invalidateQueries: vi.fn(),
+  }),
 }));
 
 vi.mock("@/components/notifications/NotificationPreferencesMatrix", () => ({

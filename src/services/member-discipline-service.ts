@@ -113,7 +113,7 @@ export async function issueSuspension(
   eventBus.emit("account.status_changed", {
     userId: targetUserId,
     newStatus: "SUSPENDED",
-    oldStatus,
+    previousStatus: oldStatus,
     timestamp: new Date().toISOString(),
   });
 
@@ -164,7 +164,7 @@ export async function issueBan(params: IssueDisciplineParams): Promise<{ id: str
   eventBus.emit("account.status_changed", {
     userId: targetUserId,
     newStatus: "BANNED",
-    oldStatus,
+    previousStatus: oldStatus,
     timestamp: new Date().toISOString(),
   });
 
@@ -211,7 +211,7 @@ export async function liftExpiredSuspensions(now: Date): Promise<number> {
     eventBus.emit("account.status_changed", {
       userId: suspension.userId,
       newStatus: "APPROVED",
-      oldStatus: "SUSPENDED",
+      previousStatus: "SUSPENDED",
       timestamp: new Date().toISOString(),
     });
 
@@ -274,7 +274,7 @@ export async function liftSuspensionEarly(params: {
   // 4. Side effects outside transaction
   await logAdminAction({
     actorId: adminId,
-    action: "LIFT_SUSPENSION_EARLY",
+    action: "LIFT_SUSPENSION",
     targetUserId: userId,
     details: { disciplineId: suspensionId, reason },
   });
@@ -282,7 +282,7 @@ export async function liftSuspensionEarly(params: {
   eventBus.emit("account.status_changed", {
     userId,
     newStatus: "APPROVED",
-    oldStatus: "SUSPENDED",
+    previousStatus: "SUSPENDED",
     timestamp: new Date().toISOString(),
   });
 

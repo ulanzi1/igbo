@@ -148,7 +148,11 @@ describe("issueSuspension", () => {
 
     expect(mockEventBusEmit).toHaveBeenCalledWith(
       "account.status_changed",
-      expect.objectContaining({ userId: "user-1", newStatus: "SUSPENDED", oldStatus: "APPROVED" }),
+      expect.objectContaining({
+        userId: "user-1",
+        newStatus: "SUSPENDED",
+        previousStatus: "APPROVED",
+      }),
     );
   });
 });
@@ -207,7 +211,11 @@ describe("liftExpiredSuspensions", () => {
     );
     expect(mockEventBusEmit).toHaveBeenCalledWith(
       "account.status_changed",
-      expect.objectContaining({ userId: "user-1", newStatus: "APPROVED", oldStatus: "SUSPENDED" }),
+      expect.objectContaining({
+        userId: "user-1",
+        newStatus: "APPROVED",
+        previousStatus: "SUSPENDED",
+      }),
     );
   });
 
@@ -282,7 +290,7 @@ describe("liftSuspensionEarly", () => {
     expect(mockLogAdminAction).toHaveBeenCalledWith(
       expect.objectContaining({
         actorId: ADMIN_ID,
-        action: "LIFT_SUSPENSION_EARLY",
+        action: "LIFT_SUSPENSION",
         targetUserId: USER_ID,
       }),
     );
@@ -291,7 +299,7 @@ describe("liftSuspensionEarly", () => {
       expect.objectContaining({
         userId: USER_ID,
         newStatus: "APPROVED",
-        oldStatus: "SUSPENDED",
+        previousStatus: "SUSPENDED",
       }),
     );
     expect(mockEventBusEmit).toHaveBeenCalledWith(

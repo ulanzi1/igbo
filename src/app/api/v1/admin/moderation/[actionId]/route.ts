@@ -76,7 +76,7 @@ export const GET = withApiHandler(async (request: Request) => {
     } else if (item.contentType === "article") {
       const article = await getArticleByIdForAdmin(item.contentId);
       if (article) {
-        contentBody = article.title + "\n\n" + tiptapJsonToPlainText(article.contentEn ?? "");
+        contentBody = article.title + "\n\n" + tiptapJsonToPlainText(article.content ?? "");
       }
     } else if (item.contentType === "message") {
       contentBody = item.contentPreview ?? null;

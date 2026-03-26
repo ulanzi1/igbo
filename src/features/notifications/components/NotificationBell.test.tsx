@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@/test/test-utils";
+import { expectNoA11yViolations } from "@/test/a11y-utils";
 
 vi.mock("next-intl", () => ({
   useTranslations: () => (key: string, params?: Record<string, unknown>) => {
@@ -136,5 +137,10 @@ describe("NotificationBell", () => {
     const button = screen.getByRole("button");
     fireEvent.click(button);
     expect(button.getAttribute("aria-expanded")).toBe("true");
+  });
+
+  it("has no accessibility violations", async () => {
+    const { container } = render(<NotificationBell />);
+    await expectNoA11yViolations(container);
   });
 });

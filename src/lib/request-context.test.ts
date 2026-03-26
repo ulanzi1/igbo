@@ -1,10 +1,6 @@
 // @vitest-environment node
 import { describe, it, expect } from "vitest";
-import {
-  requestContext,
-  getRequestContext,
-  runWithContext,
-} from "./request-context";
+import { requestContext, getRequestContext, runWithContext } from "./request-context";
 
 describe("request-context", () => {
   it("exports an AsyncLocalStorage instance", () => {
@@ -18,25 +14,19 @@ describe("request-context", () => {
   });
 
   it("provides context within runWithContext", async () => {
-    const result = await runWithContext(
-      { traceId: "test-trace-123" },
-      () => {
-        const ctx = getRequestContext();
-        return ctx?.traceId;
-      },
-    );
+    const result = await runWithContext({ traceId: "test-trace-123" }, () => {
+      const ctx = getRequestContext();
+      return ctx?.traceId;
+    });
 
     expect(result).toBe("test-trace-123");
   });
 
   it("supports optional userId", async () => {
-    const result = await runWithContext(
-      { traceId: "trace-456", userId: "user-789" },
-      () => {
-        const ctx = getRequestContext();
-        return ctx;
-      },
-    );
+    const result = await runWithContext({ traceId: "trace-456", userId: "user-789" }, () => {
+      const ctx = getRequestContext();
+      return ctx;
+    });
 
     expect(result).toEqual({
       traceId: "trace-456",
@@ -45,15 +35,12 @@ describe("request-context", () => {
   });
 
   it("propagates context through async call chains", async () => {
-    const result = await runWithContext(
-      { traceId: "async-trace" },
-      async () => {
-        // Simulate async operations
-        await new Promise((resolve) => setTimeout(resolve, 10));
-        const ctx = getRequestContext();
-        return ctx?.traceId;
-      },
-    );
+    const result = await runWithContext({ traceId: "async-trace" }, async () => {
+      // Simulate async operations
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      const ctx = getRequestContext();
+      return ctx?.traceId;
+    });
 
     expect(result).toBe("async-trace");
   });
