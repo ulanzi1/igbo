@@ -3,6 +3,7 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@/test/test-utils";
 import { EventCard } from "./EventCard";
 import type { EventListItem } from "@/db/queries/events";
+import { expectNoA11yViolations } from "@/test/a11y-utils";
 
 vi.mock("next-intl", () => ({
   useTranslations: () => (key: string, params?: Record<string, unknown>) => {
@@ -80,5 +81,10 @@ describe("EventCard", () => {
     render(<EventCard event={{ ...mockEvent, dateChangeType: null }} />);
     expect(screen.queryByText("Events.dateChange.postponed")).not.toBeInTheDocument();
     expect(screen.queryByText("Events.dateChange.preponed")).not.toBeInTheDocument();
+  });
+
+  it("has no accessibility violations", async () => {
+    const { container } = render(<EventCard event={mockEvent} />);
+    await expectNoA11yViolations(container);
   });
 });

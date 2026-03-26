@@ -4,6 +4,7 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { GroupCard } from "./GroupCard";
 import type { DirectoryGroupItem } from "@/db/queries/groups";
+import { expectNoA11yViolations } from "@/test/a11y-utils";
 
 vi.mock("next-intl", () => ({
   useTranslations: () => (key: string, params?: Record<string, unknown>) => {
@@ -165,5 +166,10 @@ describe("GroupCard", () => {
 
     await screen.findByRole("alert");
     expect(screen.getByRole("alert")).toHaveTextContent("errors.fetchFailed");
+  });
+
+  it("has no accessibility violations", async () => {
+    const { container } = render(<GroupCard group={mockGroup} viewerMembership={null} />);
+    await expectNoA11yViolations(container);
   });
 });

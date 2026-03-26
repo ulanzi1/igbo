@@ -57,6 +57,7 @@ export const GET = withApiHandler(async (request: Request) => {
 
   if (!profile) {
     return errorResponse({
+      type: "about:blank",
       title: "Not Found",
       detail: "Member not found",
       status: 404,

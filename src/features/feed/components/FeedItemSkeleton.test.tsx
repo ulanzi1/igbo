@@ -2,6 +2,7 @@
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { FeedItemSkeleton } from "./FeedItemSkeleton";
+import { expectNoA11yViolations } from "@/test/a11y-utils";
 
 describe("FeedItemSkeleton", () => {
   it("renders with aria-hidden=true", () => {
@@ -15,5 +16,10 @@ describe("FeedItemSkeleton", () => {
     const { container } = render(<FeedItemSkeleton />);
     const root = container.firstElementChild;
     expect(root!.className).toContain("animate-pulse");
+  });
+
+  it("has no accessibility violations", async () => {
+    const { container } = render(<FeedItemSkeleton />);
+    await expectNoA11yViolations(container);
   });
 });

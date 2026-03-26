@@ -3,6 +3,7 @@ import React from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { BookmarkButton } from "./BookmarkButton";
+import { expectNoA11yViolations } from "@/test/a11y-utils";
 
 vi.mock("../actions/toggle-bookmark", () => ({
   toggleBookmarkAction: vi.fn(),
@@ -130,5 +131,10 @@ describe("BookmarkButton", () => {
     render(<BookmarkButton postId={POST_ID} initialIsBookmarked={true} />);
     const btn = screen.getByRole("button");
     expect(btn.getAttribute("aria-label")).toContain("Feed.bookmarks.bookmarkedAriaLabel");
+  });
+
+  it("has no accessibility violations", async () => {
+    const { container } = render(<BookmarkButton postId={POST_ID} initialIsBookmarked={false} />);
+    await expectNoA11yViolations(container);
   });
 });

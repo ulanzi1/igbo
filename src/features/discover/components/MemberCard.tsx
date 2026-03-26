@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useTransition, useState } from "react";
 import { useRouter } from "@/i18n/navigation";
+import { Link } from "@/i18n/navigation";
 import { createOrFindDirectConversation } from "@/features/chat/actions/create-conversation";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { FollowButton } from "@/features/profiles/components/FollowButton";
@@ -46,12 +47,8 @@ export function MemberCard({
   const bioSnippet =
     member.bio && member.bio.length > 80 ? `${member.bio.slice(0, 80)}...` : member.bio;
 
-  function handleCardClick() {
-    router.push(`/profiles/${member.userId}`);
-  }
-
   function handleMessage(e: React.MouseEvent) {
-    e.stopPropagation(); // Don't trigger card click
+    e.stopPropagation();
     if (onMessage) {
       onMessage(member.userId);
       return;
@@ -65,18 +62,13 @@ export function MemberCard({
   }
 
   return (
-    <div
-      role="button"
-      tabIndex={0}
-      aria-label={t("viewProfile", { name: member.displayName })}
-      onClick={handleCardClick}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") handleCardClick();
-      }}
-      className="flex cursor-pointer flex-col gap-3 rounded-lg border border-gray-200 bg-white p-4 shadow-sm transition hover:shadow-md"
-    >
-      {/* Avatar + Name */}
-      <div className="flex items-center gap-3">
+    <div className="flex flex-col gap-3 rounded-lg border border-gray-200 bg-white p-4 shadow-sm transition hover:shadow-md">
+      {/* Avatar + Name — navigates to profile; wrapping in <a> avoids nested-interactive violation */}
+      <Link
+        href={`/profiles/${member.userId}`}
+        aria-label={t("viewProfile", { name: member.displayName })}
+        className="flex items-center gap-3 no-underline"
+      >
         <Avatar size="lg">
           <AvatarImage src={member.photoUrl ?? undefined} alt={member.displayName} />
           <AvatarFallback>
@@ -95,7 +87,7 @@ export function MemberCard({
           </p>
           {location && <p className="truncate text-xs text-gray-500">{location}</p>}
         </div>
-      </div>
+      </Link>
 
       {/* Bio snippet */}
       {bioSnippet && <p className="line-clamp-2 text-sm text-gray-600">{bioSnippet}</p>}

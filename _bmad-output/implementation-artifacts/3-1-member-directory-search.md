@@ -217,14 +217,14 @@ So that I can find and connect with community members who share my interests or 
         ${
           query && query.trim().length >= 2
             ? sql`AND to_tsvector('english',
-                COALESCE(cp.display_name, '') || ' ' ||
-                COALESCE(cp.bio, '') || ' ' ||
-                COALESCE(cp.location_city, '') || ' ' ||
-                COALESCE(cp.location_state, '') || ' ' ||
-                COALESCE(cp.location_country, '') || ' ' ||
-                array_to_string(cp.interests, ' ') || ' ' ||
-                array_to_string(cp.languages, ' ')
-              ) @@ plainto_tsquery('english', ${query.trim()})`
+        COALESCE(cp.display_name, '') || ' ' ||
+        COALESCE(cp.bio, '') || ' ' ||
+        COALESCE(cp.location_city, '') || ' ' ||
+        COALESCE(cp.location_state, '') || ' ' ||
+        COALESCE(cp.location_country, '') || ' ' ||
+        array_to_string(cp.interests, ' ') || ' ' ||
+        array_to_string(cp.languages, ' ')
+      ) @@ plainto_tsquery('english', ${query.trim()})`
             : sql``
         }
         ${locationCity ? sql`AND cp.location_city ILIKE ${"%" + locationCity + "%"}` : sql``}

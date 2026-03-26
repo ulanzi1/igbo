@@ -1,10 +1,6 @@
 // @vitest-environment node
 import { describe, it, expect } from "vitest";
-import {
-  successResponse,
-  errorResponse,
-  validationErrorResponse,
-} from "./api-response";
+import { successResponse, errorResponse, validationErrorResponse } from "./api-response";
 
 describe("successResponse", () => {
   it("returns JSON response with data field", async () => {
@@ -48,9 +44,7 @@ describe("errorResponse", () => {
     });
 
     expect(response.status).toBe(404);
-    expect(response.headers.get("Content-Type")).toBe(
-      "application/problem+json",
-    );
+    expect(response.headers.get("Content-Type")).toBe("application/problem+json");
 
     const body = await response.json();
     expect(body).toEqual({
@@ -88,9 +82,7 @@ describe("validationErrorResponse", () => {
     });
 
     expect(response.status).toBe(422);
-    expect(response.headers.get("Content-Type")).toBe(
-      "application/problem+json",
-    );
+    expect(response.headers.get("Content-Type")).toBe("application/problem+json");
 
     const body = await response.json();
     expect(body.type).toBe("about:blank");

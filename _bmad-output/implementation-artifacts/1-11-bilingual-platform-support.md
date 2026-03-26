@@ -66,12 +66,14 @@ So that I can use OBIGBO in the language I'm most comfortable with.
     - Position it after `membershipTier` (line ~48)
     - Export updated `AuthUser` and `NewAuthUser` types (automatically via `$inferSelect`/`$inferInsert`)
   - [x] Hand-write migration `src/db/migrations/0008_language_preference.sql`:
+
     ```sql
     ALTER TABLE "auth_users"
     ADD COLUMN "language_preference" varchar(2) NOT NULL DEFAULT 'en';
     ```
 
     - Do NOT run `drizzle-kit generate` — it fails with `server-only` error (established pattern from all prior migrations)
+
   - [x] Update `src/db/index.ts` — no change needed (authUsersSchema already imported)
   - [x] Update test fixtures: any test that constructs an `AuthUser` mock object needs to add `languagePreference: "en"` to avoid TypeScript type errors (check `ApplicationRow.test.tsx`, `ApprovalsTable.test.tsx` — same pattern as `membershipTier` field added in Story 1.10)
 

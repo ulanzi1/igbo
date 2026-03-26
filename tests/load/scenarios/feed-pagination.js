@@ -75,9 +75,7 @@ export function setup() {
 export default function (data) {
   const userIndex = (__VU - 1) % 20;
   const sessionCookie = data.sessionCookies[userIndex];
-  const headers = sessionCookie
-    ? { Cookie: sessionCookie }
-    : {};
+  const headers = sessionCookie ? { Cookie: sessionCookie } : {};
 
   let cursor = null;
 
@@ -89,8 +87,7 @@ export default function (data) {
 
     const res = http.get(url, { headers, tags: { type: "api" } });
     const ok = check(res, {
-      [`feed page ${page + 1}: status 200 or 401`]: (r) =>
-        r.status === 200 || r.status === 401,
+      [`feed page ${page + 1}: status 200 or 401`]: (r) => r.status === 200 || r.status === 401,
     });
 
     pageDuration.add(res.timings.duration);

@@ -4,6 +4,7 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { FeedItem } from "./FeedItem";
 import type { FeedPost } from "@/features/feed/types";
+import { expectNoA11yViolations } from "@/test/a11y-utils";
 
 vi.mock("./PostRichTextRenderer", () => ({
   PostRichTextRenderer: ({ content }: { content: string }) => (
@@ -40,6 +41,7 @@ vi.mock("./BookmarkButton", () => ({
       data-testid="bookmark-button"
       data-post-id={postId}
       data-is-bookmarked={String(initialIsBookmarked)}
+      aria-label={initialIsBookmarked ? "Remove bookmark" : "Add bookmark"}
     />
   ),
 }));
@@ -356,5 +358,10 @@ describe("FeedItem", () => {
     const badges = screen.queryAllByTestId("badge");
     const pendingBadge = badges.find((b) => b.textContent === "Feed.awaitingModeration");
     expect(pendingBadge).toBeUndefined();
+  });
+
+  it("has no accessibility violations", async () => {
+    const { container } = renderPost();
+    await expectNoA11yViolations(container);
   });
 });

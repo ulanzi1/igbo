@@ -3,6 +3,7 @@ import React from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@/test/test-utils";
 import { MemberCard } from "./MemberCard";
+import { expectNoA11yViolations } from "@/test/a11y-utils";
 import type { MemberCardData } from "../types";
 
 vi.mock("@/features/profiles/components/FollowButton", () => ({
@@ -21,6 +22,21 @@ vi.mock("next-intl", () => ({
 
 vi.mock("@/i18n/navigation", () => ({
   useRouter: () => ({ push: mockPush, replace: vi.fn() }),
+  Link: ({
+    href,
+    children,
+    className,
+    "aria-label": ariaLabel,
+  }: {
+    href: string;
+    children: React.ReactNode;
+    className?: string;
+    "aria-label"?: string;
+  }) => (
+    <a href={href} className={className} aria-label={ariaLabel}>
+      {children}
+    </a>
+  ),
 }));
 
 vi.mock("@/features/chat/actions/create-conversation", () => ({
@@ -87,13 +103,12 @@ describe("MemberCard", () => {
     expect(mockCreateOrFind).not.toHaveBeenCalled();
   });
 
-  it("card click navigates to profile page", () => {
+  it("card has a profile link with the correct href", () => {
     render(<MemberCard member={baseMember} viewerInterests={[]} />);
 
-    const card = screen.getByRole("button", { name: /viewProfile/ });
-    fireEvent.click(card);
-
-    expect(mockPush).toHaveBeenCalledWith(`/profiles/${baseMember.userId}`);
+    // Profile navigation is now a proper <a> link (not a role="button" div)
+    const profileLink = screen.getByRole("link", { name: /viewProfile/ });
+    expect(profileLink).toHaveAttribute("href", `/profiles/${baseMember.userId}`);
   });
 
   it("renders gracefully when bio is null", () => {
@@ -143,5 +158,10 @@ describe("MemberCard", () => {
       <MemberCard member={baseMember} viewerInterests={[]} viewerUserId={baseMember.userId} />,
     );
     expect(screen.queryByTestId("follow-button")).not.toBeInTheDocument();
+  });
+
+  it("has no accessibility violations", async () => {
+    const { container } = render(<MemberCard member={baseMember} viewerInterests={[]} />);
+    await expectNoA11yViolations(container);
   });
 });

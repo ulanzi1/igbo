@@ -167,5 +167,5 @@ development_status:
   12-4-backup-recovery-disaster-recovery: done
   12-5-resilience-graceful-degradation: done
   12-6-load-testing-performance-verification: done
-  12-7-accessibility-testing-verification: backlog
+  12-7-accessibility-testing-verification: done
   epic-12-retrospective: optional

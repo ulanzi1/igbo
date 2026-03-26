@@ -206,7 +206,9 @@ async function main() {
     );
     const cookies = await Promise.all(batchIndices.map((i) => authenticate(i)));
     sessionCookies.push(...cookies);
-    process.stdout.write(`  Authenticated ${Math.min(batch + AUTH_BATCH_SIZE, TARGET_CONNECTIONS)}/${TARGET_CONNECTIONS}\r`);
+    process.stdout.write(
+      `  Authenticated ${Math.min(batch + AUTH_BATCH_SIZE, TARGET_CONNECTIONS)}/${TARGET_CONNECTIONS}\r`,
+    );
   }
   console.log(`\n  ✓ Authentication complete`);
 
@@ -231,9 +233,7 @@ async function main() {
   }
 
   console.log(`\n  ✓ Connection ramp complete`);
-  console.log(
-    `    Success: ${metrics.connectionSuccesses}, Failed: ${metrics.connectionFailures}`,
-  );
+  console.log(`    Success: ${metrics.connectionSuccesses}, Failed: ${metrics.connectionFailures}`);
 
   // ── Phase 3: Sustained throughput ─────────────────────────────────────────
   console.log(`\nRunning sustained throughput test for ${SUSTAIN_DURATION_MS / 1000}s...`);
@@ -261,7 +261,15 @@ async function main() {
   console.log("\nDisconnecting...");
   clearInterval(reportInterval);
   intervals.forEach((iv) => clearInterval(iv));
-  await Promise.all(activeSockets.map((s) => new Promise((r) => { s.disconnect(); setTimeout(r, 100); })));
+  await Promise.all(
+    activeSockets.map(
+      (s) =>
+        new Promise((r) => {
+          s.disconnect();
+          setTimeout(r, 100);
+        }),
+    ),
+  );
 
   // ── Results ────────────────────────────────────────────────────────────────
   const totalDuration = (Date.now() - metrics.startTime) / 1000;
@@ -319,8 +327,7 @@ async function main() {
   );
   console.log(`\n  Results written to: ${outPath}`);
 
-  const allPass =
-    results.connections.pass && results.throughput.pass && results.latency.pass;
+  const allPass = results.connections.pass && results.throughput.pass && results.latency.pass;
 
   process.exit(allPass ? 0 : 1);
 }

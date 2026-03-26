@@ -11,6 +11,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    "public/sw.js",
+    "tests/load/**",
+    "scripts/**",
   ]),
   {
     plugins: {
@@ -33,7 +36,8 @@ const eslintConfig = defineConfig([
         "error",
         {
           selector: "CallExpression[callee.name='useEffect'] CallExpression[callee.name='fetch']",
-          message: "Do not use fetch() inside useEffect. Use React Query (useQuery) or server actions instead.",
+          message:
+            "Do not use fetch() inside useEffect. Use React Query (useQuery) or server actions instead.",
         },
         // No hardcoded UI strings — bilingual support requires useTranslations() from next-intl
         {

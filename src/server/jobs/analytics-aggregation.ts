@@ -34,8 +34,8 @@ function parseLocation(raw: string | null): { city: string | null; country: stri
     .map((p) => p.trim())
     .filter(Boolean);
   if (parts.length === 0) return null;
-  const country = parts[parts.length - 1];
-  const city = parts.length > 1 ? parts[parts.length - 2] : null;
+  const country = parts[parts.length - 1]!;
+  const city = parts.length > 1 ? parts[parts.length - 2]! : null;
   return { country, city };
 }
 

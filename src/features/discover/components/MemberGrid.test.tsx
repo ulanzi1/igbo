@@ -9,6 +9,17 @@ vi.mock("next-intl", () => ({
 
 vi.mock("@/i18n/navigation", () => ({
   useRouter: () => ({ push: vi.fn() }),
+  Link: ({
+    href,
+    children,
+    className,
+    "aria-label": ariaLabel,
+  }: {
+    href: string;
+    children: React.ReactNode;
+    className?: string;
+    "aria-label"?: string;
+  }) => React.createElement("a", { href, className, "aria-label": ariaLabel }, children),
 }));
 
 vi.mock("@/features/chat/actions/create-conversation", () => ({

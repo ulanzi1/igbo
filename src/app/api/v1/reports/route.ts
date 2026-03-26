@@ -47,19 +47,19 @@ async function getContentAuthorId(contentType: string, contentId: string): Promi
     case "comment": {
       // postInteractions comments
       const postCommentRows = await db
-        .select({ userId: communityPostComments.userId })
+        .select({ authorId: communityPostComments.authorId })
         .from(communityPostComments)
         .where(eq(communityPostComments.id, contentId))
         .limit(1);
-      if (postCommentRows[0]) return postCommentRows[0].userId;
+      if (postCommentRows[0]) return postCommentRows[0].authorId;
 
       // article comments
       const articleCommentRows = await db
-        .select({ userId: communityArticleComments.userId })
+        .select({ authorId: communityArticleComments.authorId })
         .from(communityArticleComments)
         .where(eq(communityArticleComments.id, contentId))
         .limit(1);
-      return articleCommentRows[0]?.userId ?? null;
+      return articleCommentRows[0]?.authorId ?? null;
     }
 
     case "article": {
@@ -120,14 +120,12 @@ export const POST = withApiHandler(
 
     const parsed = reportSchema.safeParse(body);
     if (!parsed.success) {
-      return errorResponse(
-        {
-          title: "Validation Error",
-          status: 400,
-          detail: parsed.error.issues[0]?.message ?? "Invalid input",
-        },
-        400,
-      );
+      return errorResponse({
+        type: "about:blank",
+        title: "Validation Error",
+        status: 400,
+        detail: parsed.error.issues[0]?.message ?? "Invalid input",
+      });
     }
 
     const { contentType, contentId, reasonCategory, reasonText } = parsed.data;
@@ -135,16 +133,23 @@ export const POST = withApiHandler(
     // Verify target exists and get author for self-report check
     const authorId = await getContentAuthorId(contentType, contentId);
     if (authorId === null) {
-      return errorResponse({ title: "Not Found", status: 404, detail: "Content not found" }, 404);
+      return errorResponse({
+        type: "about:blank",
+        title: "Not Found",
+        status: 404,
+        detail: "Content not found",
+      });
     }
 
     // Prevent self-reporting (member contentType: authorId IS the contentId)
     const ownerId = contentType === "member" ? contentId : authorId;
     if (ownerId === reporterId) {
-      return errorResponse(
-        { title: "Bad Request", status: 400, detail: "You cannot report your own content" },
-        400,
-      );
+      return errorResponse({
+        type: "about:blank",
+        title: "Bad Request",
+        status: 400,
+        detail: "You cannot report your own content",
+      });
     }
 
     const report = await createReport(

@@ -272,11 +272,9 @@ Follow the same `vi.mock("@/db")` pattern used by `posts.test.ts` and `feed.test
 // @vitest-environment node
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-const mockInsert = vi
-  .fn()
-  .mockReturnValue({
-    values: vi.fn().mockReturnValue({ returning: vi.fn().mockResolvedValue([]) }),
-  });
+const mockInsert = vi.fn().mockReturnValue({
+  values: vi.fn().mockReturnValue({ returning: vi.fn().mockResolvedValue([]) }),
+});
 const mockSelect = vi.fn().mockReturnValue({
   from: vi.fn().mockReturnValue({
     where: vi.fn().mockReturnValue({

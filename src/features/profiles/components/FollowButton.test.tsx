@@ -2,6 +2,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@/test/test-utils";
 import { FollowButton } from "./FollowButton";
+import { expectNoA11yViolations } from "@/test/a11y-utils";
 
 vi.mock("next-intl", () => ({
   useTranslations: (namespace?: string) => (key: string, params?: Record<string, unknown>) => {
@@ -115,5 +116,12 @@ describe("FollowButton", () => {
 
     const btn = screen.getByRole("button");
     expect(btn.getAttribute("aria-label")).toContain(TARGET_NAME);
+  });
+
+  it("has no accessibility violations", async () => {
+    const { container } = render(
+      <FollowButton targetUserId={TARGET_ID} targetName={TARGET_NAME} />,
+    );
+    await expectNoA11yViolations(container);
   });
 });
