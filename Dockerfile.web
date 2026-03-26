@@ -17,8 +17,8 @@ COPY . .
 
 # NEXT_PUBLIC_* vars are baked into the client bundle at build time.
 # Provide them as Docker build args in your CI/Dokploy build settings.
-ARG NEXT_PUBLIC_APP_URL
-ARG NEXT_PUBLIC_REALTIME_URL
+ARG NEXT_PUBLIC_APP_URL=http://localhost:3000
+ARG NEXT_PUBLIC_REALTIME_URL=http://localhost:3001
 ARG HETZNER_S3_PUBLIC_URL
 ARG HETZNER_S3_ENDPOINT
 ARG HETZNER_S3_PUBLIC_URL_ARG
