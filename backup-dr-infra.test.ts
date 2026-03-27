@@ -595,7 +595,55 @@ describe("Review fixes — wal-archive.sh checks ENABLE_WAL_ARCHIVING", () => {
   });
 });
 
-describe("Review fixes — restore-pitr.sh documents pg_basebackup limitation", () => {
+describe("base-backup.sh — weekly physical base backup (TD-1 PITR fix)", () => {
+  const scriptPath = resolve(ROOT, "scripts/backup/base-backup.sh");
+  let content = "";
+
+  beforeAll(() => {
+    if (existsSync(scriptPath)) {
+      content = readFileSync(scriptPath, "utf-8");
+    }
+  });
+
+  it("scripts/backup/base-backup.sh exists", () => {
+    expect(existsSync(scriptPath)).toBe(true);
+  });
+
+  it("uses pg_basebackup for physical backup", () => {
+    expect(content).toContain("pg_basebackup");
+    // Verify pg_basebackup is the actual command used (not pg_dump)
+    expect(content).toMatch(/if ! pg_basebackup/);
+  });
+
+  it("uploads to S3 base-backups/ prefix", () => {
+    expect(content).toContain("base-backups/");
+  });
+
+  it("compresses backup as tar.gz", () => {
+    expect(content).toContain("tar -czf");
+  });
+
+  it("validates archive is non-empty (> 1MB)", () => {
+    expect(content).toContain("1048576");
+  });
+
+  it("verifies S3 upload succeeded", () => {
+    expect(content).toContain("s3_verify_failed");
+  });
+
+  it("cleans up local temp files", () => {
+    expect(content).toContain("rm -f");
+    expect(content).toContain("rm -rf");
+  });
+
+  it("uses structured JSON logging", () => {
+    expect(content).toContain("log_json");
+    expect(content).toContain("base_backup_started");
+    expect(content).toContain("base_backup_completed");
+  });
+});
+
+describe("restore-pitr.sh — uses pg_basebackup physical backup (TD-1 fix)", () => {
   const scriptPath = resolve(ROOT, "scripts/backup/restore-pitr.sh");
   let content = "";
 
@@ -605,12 +653,47 @@ describe("Review fixes — restore-pitr.sh documents pg_basebackup limitation", 
     }
   });
 
-  it("restore-pitr.sh warns about pg_basebackup requirement", () => {
-    expect(content).toContain("pg_basebackup");
+  it("restore-pitr.sh uses physical base backup from base-backups/ prefix", () => {
+    expect(content).toContain("base-backups/");
+  });
+
+  it("replaces PGDATA with physical backup (not pg_restore)", () => {
+    expect(content).toContain("tar -xzf");
+    expect(content).not.toContain("pg_restore");
+  });
+
+  it("preserves pg_wal symlink if present", () => {
+    expect(content).toContain("pg_wal");
+    expect(content).toContain("readlink");
+  });
+
+  it("references recovery_target_time for PITR", () => {
+    expect(content).toContain("recovery_target_time");
+  });
+
+  it("configures restore_command for WAL replay", () => {
+    expect(content).toContain("restore_command");
+    expect(content).toContain("wal-archive");
   });
 });
 
-describe("Review fixes — runbook documents PITR limitation", () => {
+describe("crontab includes weekly base-backup schedule", () => {
+  const crontabPath = resolve(ROOT, "scripts/backup/crontab");
+  let content = "";
+
+  beforeAll(() => {
+    if (existsSync(crontabPath)) {
+      content = readFileSync(crontabPath, "utf-8");
+    }
+  });
+
+  it("crontab has weekly base-backup.sh entry (Sunday 3:00 AM)", () => {
+    expect(content).toContain("base-backup.sh");
+    expect(content).toMatch(/0 3 \* \* 0/);
+  });
+});
+
+describe("runbook documents pg_basebackup PITR pipeline", () => {
   const runbookPath = resolve(ROOT, "docs/backup-recovery-runbook.md");
   let content = "";
 
@@ -620,7 +703,19 @@ describe("Review fixes — runbook documents PITR limitation", () => {
     }
   });
 
-  it("runbook notes PITR requires pg_basebackup", () => {
+  it("runbook references pg_basebackup", () => {
     expect(content).toContain("pg_basebackup");
+  });
+
+  it("runbook describes three-tier backup strategy", () => {
+    expect(content).toContain("Weekly pg_basebackup");
+  });
+
+  it("runbook S3 structure includes base-backups/ prefix", () => {
+    expect(content).toContain("base-backups/");
+  });
+
+  it("runbook PITR section no longer has limitation warning", () => {
+    expect(content).not.toContain("not functional");
   });
 });

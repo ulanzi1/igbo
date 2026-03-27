@@ -1,14 +1,15 @@
 # OBIGBO Backup & Disaster Recovery Runbook
 
 **RTO Target:** < 4 hours (full platform recovery from backup)
-**RPO Target:** < 24 hours (daily dump) / < 5 minutes (WAL archiving)
+**RPO Target:** < 24 hours (daily dump) / < 5 minutes (pg_basebackup + WAL archiving PITR)
 
 ## Overview
 
 OBIGBO uses a two-tier backup strategy:
 
 1. **Daily pg_dump** — Full database snapshot at 2:00 AM UTC, uploaded to Hetzner Object Storage. Provides RPO of up to 24 hours.
-2. **WAL archiving** — PostgreSQL write-ahead logs uploaded to S3 continuously (every ~5 minutes via `archive_timeout`). Enables point-in-time recovery (PITR) to any moment in the last 30 days with RPO of ~5 minutes.
+2. **Weekly pg_basebackup** — Physical base backup every Sunday at 3:00 AM UTC. Required as the base for WAL-based PITR.
+3. **WAL archiving** — PostgreSQL write-ahead logs uploaded to S3 continuously (every ~5 minutes via `archive_timeout`). Combined with physical base backup, enables point-in-time recovery (PITR) to any moment with RPO of ~5 minutes.
 
 ---
 
@@ -37,6 +38,10 @@ s3://igbo-backups/
     2026-03-02T020000Z.dump
     ...
     2026-03-24T020000Z.dump
+  base-backups/
+    2026-03-02T030000Z.tar.gz  ← weekly physical backup (pg_basebackup, for PITR)
+    2026-03-09T030000Z.tar.gz
+    ...
   wal-archive/
     000000010000000000000001   ← WAL segments (continuous)
     000000010000000000000002
@@ -54,6 +59,7 @@ s3://igbo-backups/
 | Component                   | Location                          | Schedule                  |
 | --------------------------- | --------------------------------- | ------------------------- |
 | `backup.sh`                 | Backup sidecar `/scripts/backup/` | Daily 2:00 AM UTC         |
+| `base-backup.sh`            | Backup sidecar                    | Weekly Sunday 3:00 AM UTC |
 | `retention-cleanup.sh`      | Backup sidecar                    | Daily 3:30 AM UTC         |
 | `verify-backup.sh`          | Backup sidecar                    | Monthly 4:00 AM UTC (1st) |
 | `check-backup-freshness.sh` | Backup sidecar                    | Daily 5:00 AM UTC         |
@@ -200,14 +206,14 @@ Notify the engineering team and relevant stakeholders of recovery completion, in
 
 ## Section 4 — Point-in-Time Recovery
 
-> **Known Limitation:** The current backup pipeline uses `pg_dump` (logical backups). PostgreSQL PITR
-> requires a physical base backup (`pg_basebackup`) for WAL replay to work correctly. Until a
-> `pg_basebackup`-based backup is added, this PITR procedure is **not functional** for launch.
-> Use Section 3 (Full Recovery from Daily Backup) instead. The daily `pg_dump` satisfies NFR-R5
-> (RPO < 24 hours). WAL archiving infrastructure is in place and will become functional once
-> `pg_basebackup` is added to the pipeline.
-
 **Use for:** Data corruption where you know the corruption timestamp and need to recover to just before it.
+
+PITR uses a physical base backup (`pg_basebackup`, created weekly by `base-backup.sh`) combined with continuous WAL archiving to replay the database to any point in time with ~5-minute RPO.
+
+### Prerequisites
+
+- A physical base backup must exist in `s3://BUCKET/base-backups/` (created by `base-backup.sh`, runs weekly Sunday 3:00 AM UTC)
+- WAL segments must be archived in `s3://BUCKET/wal-archive/` (continuous via `archive_command`)
 
 ### Identify the corruption timestamp
 
@@ -218,8 +224,8 @@ Notify the engineering team and relevant stakeholders of recovery completion, in
 ### Run PITR
 
 ```bash
-# Stop application containers
-docker compose -f docker-compose.prod.yml stop web realtime
+# Stop ALL containers (PostgreSQL must be stopped for PGDATA replacement)
+docker compose -f docker-compose.prod.yml stop web realtime postgres
 
 # Run PITR to target timestamp (ISO 8601)
 docker exec -it backup /scripts/backup/restore-pitr.sh "2026-03-24T15:30:00Z"
@@ -227,8 +233,8 @@ docker exec -it backup /scripts/backup/restore-pitr.sh "2026-03-24T15:30:00Z"
 
 The script will:
 
-1. Download the most recent daily backup as a base
-2. Restore it to the database
+1. Download the most recent physical base backup (pg_basebackup) from S3
+2. Replace PGDATA contents with the physical backup
 3. Configure PostgreSQL recovery to replay WAL until the target time
 
 ### Complete recovery
@@ -342,4 +348,4 @@ During a recovery incident:
 
 ---
 
-_Last updated: Story 12.4 — Backup, Recovery & Disaster Recovery_
+_Last updated: Epic 12 retro — TD-1 PITR fix (pg_basebackup added)_

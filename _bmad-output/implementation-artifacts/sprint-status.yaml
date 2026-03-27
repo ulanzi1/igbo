@@ -169,3 +169,4 @@ development_status:
   12-6-load-testing-performance-verification: done
   12-7-accessibility-testing-verification: done
   epic-12-retrospective: done # LG-1–LG-5 launch gates defined; SN-1–SN-4 structural non-negotiables; PITR risk acceptance required; "if it's not proven in reality, it's not done" — 2026-03-27
+  epic-12-retro-action-items: done # LG-1–LG-5 executed; TD-1 PITR fixed (pg_basebackup), TD-3 maintenance page nested HTML fixed, TD-4 seeder already had visibility distribution; SN-1–SN-4 adopted in story template + DoD checklist; stale loadtest test fixed — 2026-03-27

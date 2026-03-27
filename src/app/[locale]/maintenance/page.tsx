@@ -4,7 +4,12 @@
  * Minimal deps to ensure page renders even when the DB is unavailable.
  * i18n strings hardcoded (next-intl provider may not be available during maintenance).
  * HTTP 503 is set via middleware redirect; this page just displays content.
+ *
+ * NOTE: Renders as a standard page component within the Next.js layout.
+ * No nested document tags — those come from the root layout.
  */
+
+import type { Metadata } from "next";
 
 interface MaintenancePageProps {
   params: Promise<{ locale: string }>;
@@ -26,94 +31,87 @@ const strings = {
   },
 };
 
+export const metadata: Metadata = {
+  title: "Scheduled Maintenance — OBIGBO",
+};
+
 export default async function MaintenancePage({ params }: MaintenancePageProps) {
   const { locale } = await params;
   const t = locale === "ig" ? strings.ig : strings.en;
 
   return (
-    <html lang={locale}>
-      <head>
-        <meta charSet="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <title>{t.title} — OBIGBO</title>
-        <style>{`
-          * { box-sizing: border-box; margin: 0; padding: 0; }
-          body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #f9fafb;
-            color: #111827;
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 2rem;
-          }
-          .container {
-            max-width: 480px;
-            width: 100%;
-            text-align: center;
-          }
-          .logo-wrap {
-            margin-bottom: 2rem;
-          }
-          h1 {
-            font-size: 1.5rem;
-            font-weight: 700;
-            margin-bottom: 1rem;
-            color: #111827;
-          }
-          p {
-            font-size: 1rem;
-            color: #6b7280;
-            line-height: 1.6;
-            margin-bottom: 0.75rem;
-          }
-          .badge {
-            display: inline-block;
-            background: #fef3c7;
-            color: #92400e;
-            border: 1px solid #fcd34d;
-            border-radius: 9999px;
-            padding: 0.25rem 0.875rem;
-            font-size: 0.875rem;
-            font-weight: 500;
-            margin-bottom: 1.5rem;
-          }
-        `}</style>
-      </head>
-      <body>
-        <div className="container">
-          <div className="logo-wrap">
-            {/* OBIGBO logo — inline SVG, no external assets */}
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 80 80"
-              width="64"
-              height="64"
-              aria-label="OBIGBO logo"
-              role="img"
+    <div
+      style={{
+        minHeight: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "2rem",
+        fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+        background: "#f9fafb",
+        color: "#111827",
+      }}
+    >
+      <div style={{ maxWidth: 480, width: "100%", textAlign: "center" }}>
+        <div style={{ marginBottom: "2rem" }}>
+          {/* OBIGBO logo — inline SVG, no external assets */}
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 80 80"
+            width={64}
+            height={64}
+            aria-label="OBIGBO logo"
+            role="img"
+          >
+            <circle cx="40" cy="40" r="38" fill="#22c55e" />
+            <text
+              x="40"
+              y="52"
+              textAnchor="middle"
+              fontFamily="-apple-system, sans-serif"
+              fontWeight="bold"
+              fontSize="28"
+              fill="white"
             >
-              <circle cx="40" cy="40" r="38" fill="#22c55e" />
-              <text
-                x="40"
-                y="52"
-                textAnchor="middle"
-                fontFamily="-apple-system, sans-serif"
-                fontWeight="bold"
-                fontSize="28"
-                fill="white"
-              >
-                OB
-              </text>
-            </svg>
-          </div>
-          <span className="badge">Maintenance</span>
-          <h1>{t.title}</h1>
-          <p>{t.message}</p>
-          <p>{t.apology}</p>
-          <p>{t.expectedReturn}</p>
+              OB
+            </text>
+          </svg>
         </div>
-      </body>
-    </html>
+        <span
+          style={{
+            display: "inline-block",
+            background: "#fef3c7",
+            color: "#92400e",
+            border: "1px solid #fcd34d",
+            borderRadius: 9999,
+            padding: "0.25rem 0.875rem",
+            fontSize: "0.875rem",
+            fontWeight: 500,
+            marginBottom: "1.5rem",
+          }}
+        >
+          Maintenance
+        </span>
+        <h1
+          style={{
+            fontSize: "1.5rem",
+            fontWeight: 700,
+            marginBottom: "1rem",
+            color: "#111827",
+          }}
+        >
+          {t.title}
+        </h1>
+        <p style={{ fontSize: "1rem", color: "#6b7280", lineHeight: 1.6, marginBottom: "0.75rem" }}>
+          {t.message}
+        </p>
+        <p style={{ fontSize: "1rem", color: "#6b7280", lineHeight: 1.6, marginBottom: "0.75rem" }}>
+          {t.apology}
+        </p>
+        <p style={{ fontSize: "1rem", color: "#6b7280", lineHeight: 1.6, marginBottom: "0.75rem" }}>
+          {t.expectedReturn}
+        </p>
+      </div>
+    </div>
   );
 }

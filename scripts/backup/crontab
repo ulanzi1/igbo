@@ -10,5 +10,8 @@
 # Monthly backup verification on 1st of month at 4:00 AM UTC
 0 4 1 * * /scripts/backup/verify-backup.sh >> /proc/1/fd/1 2>&1
 
+# Weekly physical base backup (pg_basebackup) — Sunday 3:00 AM UTC (required for PITR)
+0 3 * * 0 /scripts/backup/base-backup.sh >> /proc/1/fd/1 2>&1
+
 # Daily freshness check at 5:00 AM UTC (3 hours after backup — verifies recent backup exists)
 0 5 * * * /scripts/backup/check-backup-freshness.sh >> /proc/1/fd/1 2>&1

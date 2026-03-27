@@ -283,10 +283,10 @@ describe("k6 scripts — threshold config exported (Task 3.7)", () => {
     expect(content).toContain("200");
   });
 
-  it("api-endpoints.js implements Auth.js CSRF setup()", () => {
+  it("api-endpoints.js implements pre-generated session cookie setup()", () => {
     expect(content).toContain("export function setup");
-    expect(content).toContain("csrfToken");
-    expect(content).toContain("/api/auth/csrf");
+    expect(content).toContain("sessionCookies");
+    expect(content).toContain("COOKIES_FILE");
   });
 });
 
