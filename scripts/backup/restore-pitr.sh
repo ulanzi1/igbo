@@ -3,16 +3,16 @@ set -euo pipefail
 
 # ─────────────────────────────────────────────────────────────────────────────
 # OBIGBO Point-in-Time Recovery (PITR) Script
-# Recovers the database to a specific timestamp using WAL archiving.
+# Recovers the database to a specific timestamp using physical base backup
+# (pg_basebackup) + WAL replay.
 # Usage: restore-pitr.sh <ISO8601_timestamp>
 #   Example: restore-pitr.sh "2026-03-24T15:30:00Z"
 #
-# ⚠️  KNOWN LIMITATION: This script uses pg_dump (logical backup) as the base
-#     restore, then configures WAL replay. WAL replay requires a PHYSICAL base
-#     backup (pg_basebackup), not a logical one. Until a pg_basebackup-based
-#     backup is implemented, PITR via WAL replay will NOT produce correct results.
-#     For launch, use restore.sh (full daily backup restore) instead.
-#     TODO: Add pg_basebackup to the backup pipeline to enable true PITR.
+# Prerequisites:
+#   - A physical base backup must exist in s3://BUCKET/base-backups/
+#     (created by base-backup.sh, runs weekly Sunday 3:00 AM UTC)
+#   - WAL segments must be archived in s3://BUCKET/wal-archive/
+#   - PostgreSQL and application containers must be stopped before running
 # ─────────────────────────────────────────────────────────────────────────────
 
 export AWS_ACCESS_KEY_ID="${BACKUP_S3_ACCESS_KEY_ID}"
@@ -21,8 +21,7 @@ export AWS_DEFAULT_REGION="${BACKUP_S3_REGION:-us-east-1}"
 export PGPASSWORD="${POSTGRES_PASSWORD}"
 
 PGDATA="${PGDATA:-/var/lib/postgresql/data}"
-DB_HOST="${DB_HOST:-postgres}"
-RESTORE_FILE="/tmp/pitr-base.dump"
+RESTORE_ARCHIVE="/tmp/pitr-base.tar.gz"
 
 log_json() {
   local level="$1"
@@ -42,13 +41,15 @@ fi
 
 echo ""
 echo "=========================================================="
-echo "  POINT-IN-TIME RECOVERY"
+echo "  POINT-IN-TIME RECOVERY (pg_basebackup + WAL replay)"
 echo "  Target time:       ${TARGET_TIME}"
-echo "  Target database:   ${POSTGRES_DB} on ${DB_HOST}"
 echo "  PGDATA:            ${PGDATA}"
 echo "=========================================================="
 echo ""
-echo "Ensure web + realtime containers are stopped before proceeding."
+echo "WARNING: This will REPLACE the contents of PGDATA with the"
+echo "physical base backup and replay WAL to the target time."
+echo ""
+echo "Ensure PostgreSQL, web, and realtime containers are STOPPED."
 echo ""
 read -r -p "Type 'yes' to confirm and proceed: " CONFIRM
 
@@ -59,38 +60,50 @@ fi
 
 log_json "info" ',"message":"pitr_started","target_time":"'"${TARGET_TIME}"'"'
 
-# ─── Download latest base backup ──────────────────────────────────────────
-echo "Finding most recent base backup before target time..."
+# ─── Download latest physical base backup before target time ──────────────
+echo "Finding most recent physical base backup..."
 BACKUP_KEY=$(aws s3api list-objects-v2 \
   --bucket "${BACKUP_S3_BUCKET}" \
-  --prefix "daily/" \
+  --prefix "base-backups/" \
   --query "sort_by(Contents, &LastModified)[-1].Key" \
   --output text \
   --endpoint-url "${BACKUP_S3_ENDPOINT}")
 
 if [ -z "${BACKUP_KEY}" ] || [ "${BACKUP_KEY}" = "None" ]; then
   log_json "error" ',"message":"pitr_failed","reason":"no_base_backup_found"'
+  echo ""
+  echo "ERROR: No physical base backup found in s3://${BACKUP_S3_BUCKET}/base-backups/"
+  echo "Run base-backup.sh first to create a pg_basebackup physical backup."
   exit 1
 fi
 
-echo "Using base backup: ${BACKUP_KEY}"
-aws s3 cp "s3://${BACKUP_S3_BUCKET}/${BACKUP_KEY}" "${RESTORE_FILE}" \
+echo "Using physical base backup: ${BACKUP_KEY}"
+aws s3 cp "s3://${BACKUP_S3_BUCKET}/${BACKUP_KEY}" "${RESTORE_ARCHIVE}" \
   --endpoint-url "${BACKUP_S3_ENDPOINT}"
 
-# ─── Restore base backup ──────────────────────────────────────────────────
-echo "Restoring base backup..."
-pg_restore \
-  -h "${DB_HOST}" \
-  -U "${POSTGRES_USER}" \
-  -d "${POSTGRES_DB}" \
-  --clean \
-  --if-exists \
-  "${RESTORE_FILE}"
+# ─── Replace PGDATA with physical backup ─────────────────────────────────
+echo "Clearing existing PGDATA and extracting physical backup..."
 
-rm -f "${RESTORE_FILE}"
+# Safety: preserve pg_wal if it's on a separate volume (common in production)
+if [ -L "${PGDATA}/pg_wal" ]; then
+  WAL_LINK_TARGET=$(readlink -f "${PGDATA}/pg_wal")
+  echo "pg_wal is a symlink to ${WAL_LINK_TARGET} — will preserve"
+fi
+
+# Remove existing data
+rm -rf "${PGDATA:?}"/*
+
+# Extract physical backup into PGDATA
+tar -xzf "${RESTORE_ARCHIVE}" --strip-components=1 -C "${PGDATA}"
+rm -f "${RESTORE_ARCHIVE}"
+
+# Restore pg_wal symlink if it existed
+if [ -n "${WAL_LINK_TARGET:-}" ]; then
+  rm -rf "${PGDATA}/pg_wal"
+  ln -s "${WAL_LINK_TARGET}" "${PGDATA}/pg_wal"
+fi
 
 # ─── Configure recovery (PostgreSQL 12+ style) ────────────────────────────
-# PostgreSQL 12+: uses recovery.signal + postgresql.auto.conf instead of recovery.conf
 RECOVERY_CONF="${PGDATA}/postgresql.auto.conf"
 RECOVERY_SIGNAL="${PGDATA}/recovery.signal"
 
@@ -109,10 +122,11 @@ EOF
 touch "${RECOVERY_SIGNAL}"
 
 echo ""
+echo "Physical base backup restored to ${PGDATA}"
 echo "Recovery configuration written to ${RECOVERY_CONF}"
 echo "recovery.signal created at ${RECOVERY_SIGNAL}"
 echo ""
-echo "PostgreSQL will enter recovery mode on next start and apply WAL until ${TARGET_TIME}"
+echo "PostgreSQL will enter recovery mode on next start and replay WAL until ${TARGET_TIME}"
 echo ""
 echo "Next steps:"
 echo "  1. Restart the PostgreSQL container"

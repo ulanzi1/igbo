@@ -53,9 +53,10 @@ describe("Maintenance page — static 503 page (Tasks 7.1, 7.2)", () => {
     expect(content).toMatch(/Nhazigharị/);
   });
 
-  it("maintenance page renders full HTML document", () => {
-    expect(content).toMatch(/<html/);
-    expect(content).toMatch(/<body/);
+  it("maintenance page renders as standard component (no nested html/body)", () => {
+    expect(content).not.toMatch(/<html/);
+    expect(content).not.toMatch(/<body/);
+    expect(content).toMatch(/minHeight.*100vh/);
   });
 
   it("maintenance page has OBIGBO logo or branding", () => {
