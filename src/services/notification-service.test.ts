@@ -154,12 +154,12 @@ describe("notification-service module loading", () => {
     expect(handlerRef.current.has("member.approved")).toBe(true);
   });
 
-  it("does NOT register post.reacted listener (deferred until posts exist)", () => {
-    expect(handlerRef.current.has("post.reacted")).toBe(false);
+  it("registers post.reacted listener", () => {
+    expect(handlerRef.current.has("post.reacted")).toBe(true);
   });
 
-  it("does NOT register post.commented listener (deferred until posts exist)", () => {
-    expect(handlerRef.current.has("post.commented")).toBe(false);
+  it("registers post.commented listener", () => {
+    expect(handlerRef.current.has("post.commented")).toBe(true);
   });
 
   it("registers message.sent listener (Story 9.2 — first-DM email)", () => {

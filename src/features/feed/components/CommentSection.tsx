@@ -112,11 +112,8 @@ export function CommentSection({
 
       setInputValue("");
       setReplyTo(null);
-      setLocalCount((c) => {
-        const newCount = c + 1;
-        onCommentCountChange?.(newCount);
-        return newCount;
-      });
+      setLocalCount((c) => c + 1);
+      onCommentCountChange?.(localCount + 1);
       // Reset and refetch from scratch to include the new comment
       setHasFetched(false);
       setComments([]);

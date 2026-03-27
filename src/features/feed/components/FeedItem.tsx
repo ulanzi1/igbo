@@ -110,6 +110,7 @@ export function FeedItem({
 
   return (
     <article
+      id={`post-${post.id}`}
       className="rounded-lg border border-border bg-card p-4 space-y-3"
       aria-label={t("postByAuthor", { name: post.authorDisplayName })}
     >

@@ -37,6 +37,7 @@ export interface PostCommentedEvent extends BaseEvent {
   postId: string;
   commentId: string;
   userId: string;
+  postAuthorId: string; // post author to notify (not the commenter)
 }
 
 // --- Message Events ---
