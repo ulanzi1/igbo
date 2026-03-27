@@ -1286,6 +1286,91 @@
       "hoursAgo": "{count}h gara aga",
       "daysAgo": "{count}d gara aga"
     },
+    "member_approved": {
+      "title": "Nnọọ na OBIGBO!",
+      "body": "Anabatala ndị otu gị. Malite ịchọpụta obodo."
+    },
+    "new_follower": {
+      "title": "Onye na-eso ọhụrụ",
+      "body": "Mmadụ malitere ịso gị."
+    },
+    "new_message": {
+      "title": "Ozi ọhụrụ",
+      "body": "Ị nwere ozi kpọmkwem ọhụrụ."
+    },
+    "mention": {
+      "title": "Akpọrọ aha gị"
+    },
+    "post_reacted": {
+      "title": "Mmadụ mere mmeghachi omume na post gị",
+      "body": "Post gị natara mmeghachi omume ọhụrụ."
+    },
+    "post_commented": {
+      "title": "Nkọwa ọhụrụ na post gị",
+      "body": "Mmadụ dere nkọwa na post gị."
+    },
+    "points_throttled": {
+      "title": "Erubela oke akara",
+      "body": "Ị ruzuola oke akara oge nke a."
+    },
+    "article_published": {
+      "title": "Ebipụtala akụkọ gị!",
+      "body": "Akụkọ gị dị ndụ ugbu a na ikpo okwu."
+    },
+    "article_rejected": {
+      "title": "Anaghị anabata akụkọ",
+      "body": "Anaghị anabata ihe ndekọ akụkọ gị."
+    },
+    "article_revision_requested": {
+      "title": "Arịrịọ mgbanwe",
+      "body": "Akụkọ gị chọrọ mgbanwe tupu e bipụta ya."
+    },
+    "group_join_request": {
+      "title": "Arịrịọ isonye ọhụrụ",
+      "body": "Mmadụ chọrọ isonye na otu gị."
+    },
+    "group_join_approved": {
+      "title": "Anabatala arịrịọ isonye",
+      "body": "Anabatala gị na otu ahụ."
+    },
+    "group_join_rejected": {
+      "title": "Ajụrụ arịrịọ isonye",
+      "body": "Anaghị anabata arịrịọ isonye otu gị."
+    },
+    "group_leader_assigned": {
+      "title": "Ị bụ onye ndu otu ugbu a",
+      "body": "Ewelitela gị ka ị bụrụ onye ndu otu."
+    },
+    "group_member_muted": {
+      "title": "Akwụsịla olu gị",
+      "body": "Akwụsịla olu gị na otu."
+    },
+    "group_member_banned": {
+      "title": "Ewepụrụ gị n'otu",
+      "body": "Ewepụrụ gị na otu."
+    },
+    "group_ownership_transferred": {
+      "title": "Enyefela otu",
+      "body": "Ị bụ onye nwe otu ugbu a."
+    },
+    "group_archived": {
+      "title": "Edeziri otu",
+      "body": "Edeziri otu ị nọ na ya."
+    },
+    "discipline": {
+      "warning": {
+        "title": "Ịdọ aka na ntị iwu obodo",
+        "body": "Ị natara ịdọ aka na ntị maka mmebi iwu obodo."
+      },
+      "suspension": {
+        "title": "Akwụsịla akaụntụ",
+        "body": "Akwụsịrịla akaụntụ gị nwa oge."
+      },
+      "lifted": {
+        "title": "Ewepụla mkwụsị",
+        "body": "Ewepụla mkwụsị akaụntụ gị."
+      }
+    },
     "event_waitlist_promoted": {
       "title": "Ewepụtara gị na ndepụta ndọdọ!"
     },

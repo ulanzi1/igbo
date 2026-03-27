@@ -160,7 +160,7 @@ development_status:
   epic-11-stabilization: done # 12 tasks completed: admin nav, contrast, status tags, leaderboard sort, suspend redirect, discipline emails, warning banner, banned login, moderation preview+reporter, report abuse warning, keyword enhancements, test fixes — 2026-03-23
 
   # Epic 12: Platform Operations & Infrastructure
-  epic-12: in-progress
+  epic-12: done
   12-1-ci-cd-pipeline: done
   12-2-production-deployment-infrastructure: done
   12-3-monitoring-logging-alerting: done
@@ -168,4 +168,4 @@ development_status:
   12-5-resilience-graceful-degradation: done
   12-6-load-testing-performance-verification: done
   12-7-accessibility-testing-verification: done
-  epic-12-retrospective: optional
+  epic-12-retrospective: done # LG-1–LG-5 launch gates defined; SN-1–SN-4 structural non-negotiables; PITR risk acceptance required; "if it's not proven in reality, it's not done" — 2026-03-27

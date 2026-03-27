@@ -6,6 +6,21 @@ import { cn } from "@/lib/utils";
 import { useRouter } from "@/i18n/navigation";
 import type { PlatformNotification } from "@/db/schema/platform-notifications";
 
+/**
+ * Resolve notification text — if it looks like an i18n key (e.g. "notifications.member_approved.title"),
+ * strip the "notifications." prefix and translate via the Notifications namespace.
+ * Falls back to raw text for dynamic content (e.g. event titles, feedback strings).
+ */
+function resolveNotificationText(text: string, t: ReturnType<typeof useTranslations>): string {
+  if (text.startsWith("notifications.")) {
+    const key = text.slice("notifications.".length);
+    if (t.has(key)) {
+      return t(key);
+    }
+  }
+  return text;
+}
+
 interface NotificationItemProps {
   notification: PlatformNotification;
   onRead?: (id: string) => void;
@@ -65,9 +80,11 @@ export function NotificationItem({ notification, onRead }: NotificationItemProps
             !notification.isRead ? "font-semibold text-foreground" : "font-normal text-foreground",
           )}
         >
-          {notification.title}
+          {resolveNotificationText(notification.title, t)}
         </p>
-        <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{notification.body}</p>
+        <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
+          {resolveNotificationText(notification.body, t)}
+        </p>
         <p className="mt-1 text-xs text-muted-foreground/70">
           {formatTimeAgo(notification.createdAt, t)}
         </p>

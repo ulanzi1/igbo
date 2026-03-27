@@ -77,6 +77,21 @@ export function FeedList({
   const allPosts = data?.pages.flatMap((p) => p.posts) ?? [];
   const isColdStart = data?.pages[0]?.isColdStart ?? false;
 
+  // Scroll to post when navigating via notification link (e.g. /feed#post-{id})
+  const hasScrolledRef = useRef(false);
+  useEffect(() => {
+    if (hasScrolledRef.current || allPosts.length === 0) return;
+    const hash = window.location.hash;
+    if (!hash) return;
+    const el = document.querySelector(hash);
+    if (el) {
+      hasScrolledRef.current = true;
+      requestAnimationFrame(() => {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+      });
+    }
+  }, [allPosts.length]);
+
   // Initial loading
   if (isLoading) {
     return (

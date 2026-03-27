@@ -17,6 +17,8 @@ import type {
   MessageMentionedEvent,
   MessageSentEvent,
   NotificationCreatedEvent,
+  PostReactedEvent,
+  PostCommentedEvent,
   GroupJoinRequestedEvent,
   GroupJoinApprovedEvent,
   GroupJoinRejectedEvent,
@@ -190,10 +192,33 @@ if (globalForNotif.__notifHandlersRegistered) {
     });
   });
 
-  // NOTE: post.reacted, post.commented, and message.sent handlers are intentionally
-  // deferred — their event types do not carry the target recipient's ID (post author
-  // or message recipient). These will be implemented when the posts (Epic 4) and
-  // chat (Epic 2) features are built and the event types include authorId/recipientId.
+  // ─── Post Interaction Notifications ──────────────────────────────────────────
+
+  eventBus.on("post.reacted", async (payload: PostReactedEvent) => {
+    // Don't notify if the reactor is the author (self-reactions blocked by service, but guard anyway)
+    if (payload.userId === payload.authorId) return;
+    await deliverNotification({
+      userId: payload.authorId,
+      actorId: payload.userId,
+      type: "post_interaction",
+      title: "notifications.post_reacted.title",
+      body: "notifications.post_reacted.body",
+      link: `/feed#post-${payload.postId}`,
+    });
+  });
+
+  eventBus.on("post.commented", async (payload: PostCommentedEvent) => {
+    // Don't notify if commenting on own post
+    if (!payload.postAuthorId || payload.userId === payload.postAuthorId) return;
+    await deliverNotification({
+      userId: payload.postAuthorId,
+      actorId: payload.userId,
+      type: "post_interaction",
+      title: "notifications.post_commented.title",
+      body: "notifications.post_commented.body",
+      link: `/feed#post-${payload.postId}`,
+    });
+  });
 
   eventBus.on("member.followed", async (payload: MemberFollowedEvent) => {
     await deliverNotification({

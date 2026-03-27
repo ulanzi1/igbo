@@ -106,6 +106,9 @@ export async function addComment(
     }
   }
 
+  // Fetch post author for notification (before insert to avoid extra query in event handler)
+  const postOwnerId = await getPostAuthorId(postId);
+
   try {
     const comment = await insertComment({ postId, authorId, content, parentCommentId });
 
@@ -114,6 +117,7 @@ export async function addComment(
         postId,
         commentId: comment.id,
         userId: authorId,
+        postAuthorId: postOwnerId ?? "",
         timestamp: new Date().toISOString(),
       });
     } catch {

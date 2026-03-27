@@ -1286,6 +1286,91 @@
       "hoursAgo": "{count}h ago",
       "daysAgo": "{count}d ago"
     },
+    "member_approved": {
+      "title": "Welcome to OBIGBO!",
+      "body": "Your membership has been approved. Start exploring the community."
+    },
+    "new_follower": {
+      "title": "New follower",
+      "body": "Someone started following you."
+    },
+    "new_message": {
+      "title": "New message",
+      "body": "You have a new direct message."
+    },
+    "mention": {
+      "title": "You were mentioned"
+    },
+    "post_reacted": {
+      "title": "Someone reacted to your post",
+      "body": "Your post received a new reaction."
+    },
+    "post_commented": {
+      "title": "New comment on your post",
+      "body": "Someone commented on your post."
+    },
+    "points_throttled": {
+      "title": "Points limit reached",
+      "body": "You've reached your points earning limit for this period."
+    },
+    "article_published": {
+      "title": "Your article has been published!",
+      "body": "Your article is now live on the platform."
+    },
+    "article_rejected": {
+      "title": "Article not approved",
+      "body": "Your article submission was not approved."
+    },
+    "article_revision_requested": {
+      "title": "Revision requested",
+      "body": "Your article needs revisions before it can be published."
+    },
+    "group_join_request": {
+      "title": "New join request",
+      "body": "Someone wants to join your group."
+    },
+    "group_join_approved": {
+      "title": "Join request approved",
+      "body": "You've been accepted into the group."
+    },
+    "group_join_rejected": {
+      "title": "Join request declined",
+      "body": "Your group join request was not approved."
+    },
+    "group_leader_assigned": {
+      "title": "You're now a group leader",
+      "body": "You've been promoted to group leader."
+    },
+    "group_member_muted": {
+      "title": "You've been muted",
+      "body": "You've been muted in a group."
+    },
+    "group_member_banned": {
+      "title": "Removed from group",
+      "body": "You've been removed from a group."
+    },
+    "group_ownership_transferred": {
+      "title": "Group ownership transferred",
+      "body": "You are now the owner of a group."
+    },
+    "group_archived": {
+      "title": "Group archived",
+      "body": "A group you belong to has been archived."
+    },
+    "discipline": {
+      "warning": {
+        "title": "Community guidelines warning",
+        "body": "You have received a warning for a community guidelines violation."
+      },
+      "suspension": {
+        "title": "Account suspended",
+        "body": "Your account has been temporarily suspended."
+      },
+      "lifted": {
+        "title": "Suspension lifted",
+        "body": "Your account suspension has been lifted."
+      }
+    },
     "event_waitlist_promoted": {
       "title": "You've been moved off the waitlist!"
     },
