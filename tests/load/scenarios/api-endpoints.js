@@ -53,10 +53,14 @@ export function setup() {
   for (let i = 1; i <= 20; i++) {
     const email = `loadtest-${i}@test.local`;
 
-    // Step 1: Get CSRF token
+    // Step 1: Get CSRF token + csrf cookie (k6 cookie jar stores it automatically)
     const csrfRes = http.get(`${BASE_URL}/api/auth/csrf`);
-    const csrfData = JSON.parse(csrfRes.body);
-    const csrfToken = csrfData.csrfToken;
+    let csrfToken;
+    try {
+      csrfToken = JSON.parse(csrfRes.body).csrfToken;
+    } catch (_) {
+      // ignore
+    }
 
     if (!csrfToken) {
       console.warn(`Could not get CSRF token for ${email}`);
@@ -64,31 +68,27 @@ export function setup() {
       continue;
     }
 
-    // Step 2: Authenticate
+    // Step 2: Authenticate — Auth.js expects URL-encoded form data, not JSON.
+    // k6's cookie jar forwards the authjs.csrf-token cookie automatically.
     const loginRes = http.post(
       `${BASE_URL}/api/auth/callback/credentials`,
-      JSON.stringify({
-        csrfToken,
-        email,
-        password: "LoadTest123!",
-        redirect: false,
-        json: true,
-      }),
+      `csrfToken=${encodeURIComponent(csrfToken)}&email=${encodeURIComponent(email)}&password=${encodeURIComponent("LoadTest123!")}`,
       {
         headers: {
-          "Content-Type": "application/json",
+          "Content-Type": "application/x-www-form-urlencoded",
         },
-        redirects: 0,
+        redirects: 0, // stop at the 302 — session cookie is in this response
       },
     );
 
-    // Extract session cookie from Set-Cookie header
-    const setCookie = loginRes.headers["Set-Cookie"] || "";
+    // Extract session cookie from Set-Cookie header (may be array or string)
+    const setCookieRaw = loginRes.headers["Set-Cookie"] || "";
+    const setCookie = Array.isArray(setCookieRaw) ? setCookieRaw.join("; ") : setCookieRaw;
     const sessionMatch = setCookie.match(/(authjs\.session-token|next-auth\.session-token)=[^;]+/);
     const sessionCookie = sessionMatch ? sessionMatch[0] : null;
 
     if (!sessionCookie) {
-      console.warn(`Auth failed for ${email} (status: ${loginRes.status})`);
+      console.warn(`Auth failed for ${email} (status: ${loginRes.status}, setCookie: ${setCookie.substring(0, 100)})`);
       sessionCookies.push(null);
     } else {
       sessionCookies.push(sessionCookie);
