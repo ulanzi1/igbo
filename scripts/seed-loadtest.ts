@@ -140,7 +140,7 @@ async function seedMembers(): Promise<string[]> {
       email: faker.internet.email().toLowerCase(),
       emailVerified: new Date(),
       name: faker.person.fullName(),
-      phone: faker.phone.number(),
+      phone: faker.phone.number({ style: "national" }).slice(0, 20),
       locationCity: faker.location.city(),
       locationState: faker.location.state(),
       locationCountry: faker.location.countryCode(),
