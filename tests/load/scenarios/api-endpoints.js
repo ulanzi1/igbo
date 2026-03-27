@@ -39,60 +39,35 @@ const requestErrors = new Counter("request_errors");
 
 const BASE_URL = __ENV.BASE_URL || "http://localhost:3000";
 
+// ─── Pre-load session cookies (init stage — open() only works here) ──────────
+
+let _preloadedCookies = null;
+const cookiesFile = __ENV.COOKIES_FILE;
+if (cookiesFile) {
+  try {
+    _preloadedCookies = JSON.parse(open(cookiesFile));
+  } catch (_) {
+    // ignore — will fall back to unauthenticated
+  }
+}
+
 /**
  * k6 setup() — called once before VUs start.
- * Authenticates each of the 20 test users and returns their session cookies.
  *
- * Auth.js v5 credential flow:
- * 1. GET /api/auth/csrf → extract csrfToken
- * 2. POST /api/auth/callback/credentials → capture session cookie
+ * Auth flow uses challenge tokens + MFA which k6 cannot drive natively.
+ * Pre-generate session cookies via:
+ *   REDIS_URL=... node k6-auth-setup.mjs > /tmp/k6-cookies.json
+ *
+ * Then pass the path via:  --env COOKIES_FILE=/tmp/k6-cookies.json
  */
 export function setup() {
-  const sessionCookies = [];
+  const sessionCookies = _preloadedCookies || [];
 
-  for (let i = 1; i <= 20; i++) {
-    const email = `loadtest-${i}@test.local`;
-
-    // Step 1: Get CSRF token + csrf cookie (k6 cookie jar stores it automatically)
-    const csrfRes = http.get(`${BASE_URL}/api/auth/csrf`);
-    let csrfToken;
-    try {
-      csrfToken = JSON.parse(csrfRes.body).csrfToken;
-    } catch (_) {
-      // ignore
-    }
-
-    if (!csrfToken) {
-      console.warn(`Could not get CSRF token for ${email}`);
-      sessionCookies.push(null);
-      continue;
-    }
-
-    // Step 2: Authenticate — Auth.js expects URL-encoded form data, not JSON.
-    // k6's cookie jar forwards the authjs.csrf-token cookie automatically.
-    const loginRes = http.post(
-      `${BASE_URL}/api/auth/callback/credentials`,
-      `csrfToken=${encodeURIComponent(csrfToken)}&email=${encodeURIComponent(email)}&password=${encodeURIComponent("LoadTest123!")}`,
-      {
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        redirects: 0, // stop at the 302 — session cookie is in this response
-      },
-    );
-
-    // Extract session cookie from Set-Cookie header (may be array or string)
-    const setCookieRaw = loginRes.headers["Set-Cookie"] || "";
-    const setCookie = Array.isArray(setCookieRaw) ? setCookieRaw.join("; ") : setCookieRaw;
-    const sessionMatch = setCookie.match(/(authjs\.session-token|next-auth\.session-token)=[^;]+/);
-    const sessionCookie = sessionMatch ? sessionMatch[0] : null;
-
-    if (!sessionCookie) {
-      console.warn(`Auth failed for ${email} (status: ${loginRes.status}, setCookie: ${setCookie.substring(0, 100)})`);
-      sessionCookies.push(null);
-    } else {
-      sessionCookies.push(sessionCookie);
-    }
+  const authed = sessionCookies.filter(Boolean).length;
+  if (authed > 0) {
+    console.log(`Loaded ${authed} session cookies`);
+  } else {
+    console.warn("No session cookies — running unauthenticated");
   }
 
   return { sessionCookies };
