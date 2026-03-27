@@ -147,6 +147,9 @@ async function seedMembers(): Promise<string[]> {
   );
 
   // Bulk members — 500 per batch
+  // Ensure unique emails to avoid onConflictDoNothing silently dropping rows
+  // (which causes FK violations when creating profiles for missing users)
+  const seenEmails = new Set(knownUserRows.map((r) => r.email));
   const BULK_COUNT = MEMBER_COUNT - KNOWN_USER_COUNT;
   const allBulkRows = Array.from({ length: BULK_COUNT }, () => {
     const id = randomUUID();
@@ -158,9 +161,14 @@ async function seedMembers(): Promise<string[]> {
         : roleRoll < 0.03
           ? ("MODERATOR" as const)
           : ("MEMBER" as const);
+    let email: string;
+    do {
+      email = faker.internet.email().toLowerCase();
+    } while (seenEmails.has(email));
+    seenEmails.add(email);
     return {
       id,
-      email: faker.internet.email().toLowerCase(),
+      email,
       emailVerified: new Date(),
       name: faker.person.fullName(),
       phone: faker.phone.number({ style: "national" }).slice(0, 20),
