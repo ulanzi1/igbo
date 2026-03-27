@@ -62,6 +62,27 @@ function chunk<T>(arr: T[], size: number): T[][] {
   return chunks;
 }
 
+/** Wraps a DB insert to log the root cause clearly before Bun truncates the output */
+async function safeInsert<T>(label: string, fn: () => Promise<T>): Promise<T> {
+  try {
+    return await fn();
+  } catch (err: unknown) {
+    const e = err as {
+      cause?: { message?: string; code?: string; detail?: string };
+      message?: string;
+    };
+    console.error(`\n❌ DB INSERT FAILED [${label}]`);
+    if (e.cause) {
+      console.error(`  PostgresError: ${e.cause.message}`);
+      console.error(`  code: ${e.cause.code}`);
+      if (e.cause.detail) console.error(`  detail: ${e.cause.detail}`);
+    } else {
+      console.error(`  error: ${e.message}`);
+    }
+    throw err;
+  }
+}
+
 /** Power-law random: most values are small, a few are large */
 function powerLawRandom(min: number, max: number, exponent = 2): number {
   const u = Math.random();
@@ -121,7 +142,9 @@ async function seedMembers(): Promise<string[]> {
     };
   });
 
-  await db.insert(authUsers).values(knownUserRows).onConflictDoNothing();
+  await safeInsert("known-users", () =>
+    db.insert(authUsers).values(knownUserRows).onConflictDoNothing(),
+  );
 
   // Bulk members — 500 per batch
   const BULK_COUNT = MEMBER_COUNT - KNOWN_USER_COUNT;
@@ -169,8 +192,11 @@ async function seedMembers(): Promise<string[]> {
     };
   });
 
-  for (const batch of chunk(allBulkRows, 500)) {
-    await db.insert(authUsers).values(batch).onConflictDoNothing();
+  const userBatches = chunk(allBulkRows, 500);
+  for (let i = 0; i < userBatches.length; i++) {
+    await safeInsert(`auth-users-batch-${i}`, () =>
+      db.insert(authUsers).values(userBatches[i]!).onConflictDoNothing(),
+    );
   }
 
   // Insert community profiles for all users
@@ -203,8 +229,11 @@ async function seedMembers(): Promise<string[]> {
     updatedAt: new Date(),
   }));
 
-  for (const batch of chunk(profileRows, BATCH_SIZE)) {
-    await db.insert(communityProfiles).values(batch).onConflictDoNothing();
+  const profileBatches = chunk(profileRows, BATCH_SIZE);
+  for (let i = 0; i < profileBatches.length; i++) {
+    await safeInsert(`profiles-batch-${i}`, () =>
+      db.insert(communityProfiles).values(profileBatches[i]!).onConflictDoNothing(),
+    );
   }
 
   console.info(`  ✓ ${userIds.length} members + profiles inserted`);
@@ -562,6 +591,14 @@ async function main() {
 }
 
 main().catch((err) => {
-  console.error("Seeder failed:", err);
+  // Log the root cause clearly — Drizzle wraps PostgresError and GitHub Actions truncates stack traces
+  if (err?.cause) {
+    console.error("Seeder failed (root cause):", err.cause.message ?? err.cause);
+    console.error("  code:", err.cause.code);
+    console.error("  detail:", err.cause.detail);
+    console.error("  column:", err.cause.column);
+    console.error("  table:", err.cause.table_name ?? err.cause.table);
+  }
+  console.error("Seeder failed:", err.message ?? err);
   process.exit(1);
 });
