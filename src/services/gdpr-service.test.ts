@@ -210,6 +210,34 @@ describe("requestAccountDeletion", () => {
       expect.objectContaining({ userId: USER_ID }),
     );
   });
+
+  it("throws 409 when user is BANNED", async () => {
+    mockFindUserById.mockResolvedValue({ ...mockUser, accountStatus: "BANNED" });
+    await expect(requestAccountDeletion(USER_ID, "password")).rejects.toMatchObject({
+      status: 409,
+    });
+  });
+
+  it("throws 409 when user is SUSPENDED", async () => {
+    mockFindUserById.mockResolvedValue({ ...mockUser, accountStatus: "SUSPENDED" });
+    await expect(requestAccountDeletion(USER_ID, "password")).rejects.toMatchObject({
+      status: 409,
+    });
+  });
+
+  it("throws 409 when user is already PENDING_DELETION", async () => {
+    mockFindUserById.mockResolvedValue({ ...mockUser, accountStatus: "PENDING_DELETION" });
+    await expect(requestAccountDeletion(USER_ID, "password")).rejects.toMatchObject({
+      status: 409,
+    });
+  });
+
+  it("throws 409 when user is ANONYMIZED", async () => {
+    mockFindUserById.mockResolvedValue({ ...mockUser, accountStatus: "ANONYMIZED" });
+    await expect(requestAccountDeletion(USER_ID, "password")).rejects.toMatchObject({
+      status: 409,
+    });
+  });
 });
 
 describe("cancelAccountDeletion", () => {
@@ -231,10 +259,43 @@ describe("cancelAccountDeletion", () => {
     const token = "valid-cancel-token";
     mockRedisGet.mockResolvedValue(token);
     mockRedisDel.mockResolvedValue(1);
+    mockFindUserById.mockResolvedValue({ ...mockUser, accountStatus: "PENDING_DELETION" });
 
     await cancelAccountDeletion(token, USER_ID);
 
     expect(mockDbUpdate).toHaveBeenCalled();
+    expect(mockRedisDel).toHaveBeenCalledWith(`gdpr:cancel:${USER_ID}`);
+  });
+
+  it("throws 409 when user is not in PENDING_DELETION status", async () => {
+    const token = "valid-cancel-token";
+    mockRedisGet.mockResolvedValue(token);
+    mockFindUserById.mockResolvedValue({ ...mockUser, accountStatus: "APPROVED" });
+
+    await expect(cancelAccountDeletion(token, USER_ID)).rejects.toMatchObject({
+      status: 409,
+    });
+  });
+
+  it("throws 409 when user is ANONYMIZED (token replay after anonymization)", async () => {
+    const token = "valid-cancel-token";
+    mockRedisGet.mockResolvedValue(token);
+    mockFindUserById.mockResolvedValue({ ...mockUser, accountStatus: "ANONYMIZED" });
+
+    await expect(cancelAccountDeletion(token, USER_ID)).rejects.toMatchObject({
+      status: 409,
+    });
+  });
+
+  it("throws 409 and cleans up Redis token when user not found", async () => {
+    const token = "valid-cancel-token";
+    mockRedisGet.mockResolvedValue(token);
+    mockRedisDel.mockResolvedValue(1);
+    mockFindUserById.mockResolvedValue(null);
+
+    await expect(cancelAccountDeletion(token, USER_ID)).rejects.toMatchObject({
+      status: 409,
+    });
     expect(mockRedisDel).toHaveBeenCalledWith(`gdpr:cancel:${USER_ID}`);
   });
 });

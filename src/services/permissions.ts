@@ -237,13 +237,21 @@ export async function requireAuthenticatedSession(): Promise<{ userId: string; r
   }
   // Authoritative DB status check — JWT does not carry real-time account status
   const user = await findUserById(session.user.id);
-  if (user?.accountStatus === "BANNED") {
+  if (!user) {
+    const { ApiError } = await import("@/lib/api-error");
+    throw new ApiError({ title: "Unauthorized", status: 401, detail: "User not found" });
+  }
+  if (user.accountStatus === "BANNED") {
     const { ApiError } = await import("@/lib/api-error");
     throw new ApiError({ title: "Forbidden", status: 403, type: "account_banned" });
   }
-  if (user?.accountStatus === "SUSPENDED") {
+  if (user.accountStatus === "SUSPENDED") {
     const { ApiError } = await import("@/lib/api-error");
     throw new ApiError({ title: "Forbidden", status: 403, type: "account_suspended" });
+  }
+  if (user.accountStatus === "PENDING_DELETION" || user.accountStatus === "ANONYMIZED") {
+    const { ApiError } = await import("@/lib/api-error");
+    throw new ApiError({ title: "Forbidden", status: 403, type: "account_inactive" });
   }
   return { userId: session.user.id, role: session.user.role };
 }

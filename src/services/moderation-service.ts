@@ -34,21 +34,35 @@ const REDIS_KEYWORDS_TTL = 300; // 5 minutes
  * This is a known limitation of the spike; a Unicode-aware word boundary is a future epic item.
  */
 async function getCachedKeywords(): Promise<Keyword[]> {
-  const redis = getRedisClient();
-  const cached = await redis.get(REDIS_KEYWORDS_KEY);
-  if (cached !== null) {
-    // F4: Explicit reconstruction after JSON.parse (per project pattern: Epic 8 retro AI-2).
-    // Values are plain strings, so reconstruction is a type-level assertion; safe for this schema.
-    const parsed = JSON.parse(cached) as Array<{
-      keyword: string;
-      category: string;
-      severity: "low" | "medium" | "high";
-    }>;
-    return parsed.map((k) => ({
-      keyword: k.keyword,
-      category: k.category,
-      severity: k.severity,
-    }));
+  // Try Redis cache first; fall back to direct DB if Redis is unavailable
+  try {
+    const redis = getRedisClient();
+    const cached = await redis.get(REDIS_KEYWORDS_KEY);
+    if (cached !== null) {
+      // F4: Explicit reconstruction after JSON.parse (per project pattern: Epic 8 retro AI-2).
+      // Values are plain strings, so reconstruction is a type-level assertion; safe for this schema.
+      const parsed = JSON.parse(cached) as Array<{
+        keyword: string;
+        category: string;
+        severity: "low" | "medium" | "high";
+      }>;
+      return parsed.map((k) => ({
+        keyword: k.keyword,
+        category: k.category,
+        severity: k.severity,
+      }));
+    }
+  } catch (err) {
+    // Redis unavailable — fall through to DB direct (content must still be scanned)
+    console.warn(
+      JSON.stringify({
+        level: "warn",
+        msg: "moderation.keywords.redis_unavailable",
+        error: String(err),
+        note: "Falling back to direct DB query for moderation keywords",
+      }),
+    );
+    return getActiveKeywords();
   }
 
   const keywords = await getActiveKeywords();
@@ -70,7 +84,12 @@ async function getCachedKeywords(): Promise<Keyword[]> {
     );
   }
 
-  await redis.set(REDIS_KEYWORDS_KEY, JSON.stringify(keywords), "EX", REDIS_KEYWORDS_TTL);
+  try {
+    const redis = getRedisClient();
+    await redis.set(REDIS_KEYWORDS_KEY, JSON.stringify(keywords), "EX", REDIS_KEYWORDS_TTL);
+  } catch {
+    // Cache write failure is non-critical — keywords fetched from DB directly next time
+  }
   return keywords;
 }
 

@@ -389,4 +389,31 @@ describe("requireAuthenticatedSession — account status enforcement", () => {
       type: "account_suspended",
     });
   });
+
+  it("throws 401 when findUserById returns null (deleted user)", async () => {
+    mockAuth.mockResolvedValue({ user: { id: USER_ID, role: "MEMBER" } });
+    mockFindUserById.mockResolvedValue(null);
+
+    await expect(requireAuthenticatedSession()).rejects.toMatchObject({ status: 401 });
+  });
+
+  it("throws 403 with account_inactive type when user is PENDING_DELETION", async () => {
+    mockAuth.mockResolvedValue({ user: { id: USER_ID, role: "MEMBER" } });
+    mockFindUserById.mockResolvedValue({ id: USER_ID, accountStatus: "PENDING_DELETION" });
+
+    await expect(requireAuthenticatedSession()).rejects.toMatchObject({
+      status: 403,
+      type: "account_inactive",
+    });
+  });
+
+  it("throws 403 with account_inactive type when user is ANONYMIZED", async () => {
+    mockAuth.mockResolvedValue({ user: { id: USER_ID, role: "MEMBER" } });
+    mockFindUserById.mockResolvedValue({ id: USER_ID, accountStatus: "ANONYMIZED" });
+
+    await expect(requireAuthenticatedSession()).rejects.toMatchObject({
+      status: 403,
+      type: "account_inactive",
+    });
+  });
 });

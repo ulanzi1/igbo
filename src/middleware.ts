@@ -197,6 +197,16 @@ export async function middleware(request: NextRequest) {
             response.headers.set("X-Request-Id", requestId);
             return response;
           }
+          if (
+            currentUser?.accountStatus === "PENDING_DELETION" ||
+            currentUser?.accountStatus === "ANONYMIZED"
+          ) {
+            const locale = pathname.split("/")[1];
+            const loginUrl = new URL(`/${locale}/login`, request.url);
+            const response = NextResponse.redirect(loginUrl);
+            response.headers.set("X-Request-Id", requestId);
+            return response;
+          }
         } catch {
           // Non-critical — continue with JWT-derived status if DB unavailable
         }

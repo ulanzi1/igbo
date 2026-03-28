@@ -1,5 +1,5 @@
 import "server-only";
-import { createHash, randomBytes } from "node:crypto";
+import { createHash, randomBytes, randomInt } from "node:crypto";
 import { randomUUID } from "node:crypto";
 import bcryptjs from "bcryptjs";
 import { generateSecret, generateURI, verifySync } from "otplib";
@@ -36,6 +36,8 @@ const PASSWORD_RESET_TTL_MS = 60 * 60 * 1000; // 1 hour
 const EMAIL_OTP_TTL = 300; // 5 minutes
 const EMAIL_OTP_RATE_LIMIT = 3; // per 15 min
 const EMAIL_OTP_RATE_WINDOW_MS = 15 * 60 * 1000;
+const PASSWORD_RESET_RATE_LIMIT = 3; // per 15 min per email
+const PASSWORD_RESET_RATE_WINDOW_MS = 15 * 60 * 1000;
 const MFA_VERIFY_RATE_LIMIT = 5; // max attempts per challenge token
 const MFA_VERIFY_RATE_WINDOW = 900; // 15 minutes
 
@@ -171,6 +173,7 @@ export async function initiateLogin(
   // Ban check: show specific ban message for banned accounts (still timing-safe)
   if (user?.accountStatus === "BANNED") {
     await bcryptjs.compare(password, DUMMY_HASH); // timing safety
+    await recordFailedAttempt(email, ip); // prevent lockout-behavior oracle
     return {
       status: "banned",
       reason: user.adminNotes ?? "Terms of Service violation",
@@ -380,7 +383,7 @@ export async function sendEmailOtp(userId: string, challengeToken: string): Prom
     throw new ApiError({ title: "Too Many Requests", status: 429, detail: "Rate limit exceeded" });
   }
 
-  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  const otp = randomInt(100000, 1000000).toString();
   const redis = getRedisClient();
   await redis.set(`email_otp:${userId}`, otp, "EX", EMAIL_OTP_TTL);
 
@@ -434,6 +437,14 @@ export async function generatePasswordSetToken(userId: string): Promise<string> 
 }
 
 export async function requestPasswordReset(email: string): Promise<void> {
+  // Rate limit per email to prevent reset-email flooding
+  const rlResult = await checkRateLimit(
+    `password_reset_rl:${email.toLowerCase()}`,
+    PASSWORD_RESET_RATE_LIMIT,
+    PASSWORD_RESET_RATE_WINDOW_MS,
+  );
+  if (!rlResult.allowed) return; // silent — no enumeration leak
+
   // Always return success — prevent enumeration
   const user = await findUserByEmail(email);
   if (!user || user.accountStatus !== "APPROVED") return;
@@ -493,6 +504,10 @@ export async function resetPassword(rawToken: string, newPassword: string): Prom
 
   const passwordHash = await hashPassword(newPassword);
 
+  // Fetch session tokens BEFORE deleting them from DB — needed for Redis eviction
+  const sessions = await findActiveSessionsByUserId(tokenRecord.userId);
+  const sessionTokens = sessions.map((s) => s.sessionToken);
+
   // Update password, mark token used, and delete sessions atomically
   await db.transaction(async (tx) => {
     await tx
@@ -507,9 +522,7 @@ export async function resetPassword(rawToken: string, newPassword: string): Prom
   });
 
   // Evict all sessions from Redis cache (best-effort, non-transactional)
-  const sessions = await findActiveSessionsByUserId(tokenRecord.userId);
-  const tokens = sessions.map((s) => s.sessionToken);
-  await evictAllUserSessions(tokens);
+  await evictAllUserSessions(sessionTokens);
 
   const user = await findUserById(tokenRecord.userId);
   if (user) {

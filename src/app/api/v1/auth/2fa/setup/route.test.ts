@@ -19,6 +19,12 @@ vi.mock("@/db/queries/auth-queries", () => ({
 }));
 vi.mock("@/lib/request-context", () => ({
   runWithContext: vi.fn((_ctx: unknown, fn: () => unknown) => fn()),
+  getRequestContext: vi.fn(() => undefined),
+}));
+vi.mock("@/lib/rate-limiter", () => ({
+  checkRateLimit: vi
+    .fn()
+    .mockResolvedValue({ allowed: true, remaining: 4, resetAt: Date.now() + 900_000, limit: 5 }),
 }));
 
 import { GET, POST } from "./route";
@@ -93,6 +99,20 @@ describe("GET /api/v1/auth/2fa/setup", () => {
     expect(res.status).toBe(400);
   });
 
+  it("returns 429 when rate limited", async () => {
+    const { checkRateLimit } = await import("@/lib/rate-limiter");
+    vi.mocked(checkRateLimit).mockResolvedValueOnce({
+      allowed: false,
+      remaining: 0,
+      resetAt: Date.now() + 900_000,
+      limit: 5,
+    });
+    mockGetChallenge.mockResolvedValue({ userId: "user-1", mfaVerified: false });
+
+    const res = await GET(makeGetRequest("valid-token"));
+    expect(res.status).toBe(429);
+  });
+
   it("returns 401 when user is not approved", async () => {
     mockGetChallenge.mockResolvedValue({ userId: "user-1", mfaVerified: false });
     mockFindUserById.mockResolvedValue({
@@ -141,6 +161,19 @@ describe("POST /api/v1/auth/2fa/setup", () => {
 
   it("returns 400 for missing required fields", async () => {
     const res = await POST(makePostRequest({ challengeToken: "tok" }));
+    expect(res.status).toBe(400);
+  });
+
+  it("returns 400 when challenge is already mfaVerified (replay)", async () => {
+    mockGetChallenge.mockResolvedValue({ userId: "user-1", mfaVerified: true });
+
+    const res = await POST(
+      makePostRequest({
+        challengeToken: "token-abc",
+        secret: "JBSWY3DPEHPK3PXP",
+        code: "123456",
+      }),
+    );
     expect(res.status).toBe(400);
   });
 

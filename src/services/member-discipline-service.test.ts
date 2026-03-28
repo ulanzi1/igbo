@@ -117,8 +117,25 @@ describe("issueWarning", () => {
 });
 
 describe("issueSuspension", () => {
-  it("updates account status to SUSPENDED and evicts sessions", async () => {
-    buildUpdateChain();
+  beforeEach(() => {
+    // issueSuspension now uses db.transaction for atomic status + discipline record
+    const mockTxUpdate = vi.fn().mockReturnValue({
+      set: vi.fn().mockReturnValue({
+        where: vi.fn().mockResolvedValue(undefined),
+      }),
+    });
+    const mockTxInsert = vi.fn().mockReturnValue({
+      values: vi.fn().mockReturnValue({
+        returning: vi.fn().mockResolvedValue([{ id: "disc-1" }]),
+      }),
+    });
+    const mockTx = { update: mockTxUpdate, insert: mockTxInsert };
+    mockDbTransaction.mockImplementation(async (fn: (tx: typeof mockTx) => Promise<unknown>) =>
+      fn(mockTx),
+    );
+  });
+
+  it("uses a transaction to atomically update status and create discipline record", async () => {
     await issueSuspension({
       targetUserId: "user-1",
       adminId: "admin-1",
@@ -126,19 +143,15 @@ describe("issueSuspension", () => {
       durationHours: 24,
     });
 
-    expect(mockDbUpdate).toHaveBeenCalled();
+    expect(mockDbTransaction).toHaveBeenCalledTimes(1);
     expect(mockEvictAllUserSessions).toHaveBeenCalledWith(["tok-1"]);
     expect(mockDeleteAllSessionsForUser).toHaveBeenCalledWith("user-1");
-    expect(mockCreateDisciplineAction).toHaveBeenCalledWith(
-      expect.objectContaining({ actionType: "suspension" }),
-    );
     expect(mockLogAdminAction).toHaveBeenCalledWith(
       expect.objectContaining({ action: "SUSPEND_MEMBER" }),
     );
   });
 
   it("emits account.status_changed with SUSPENDED newStatus", async () => {
-    buildUpdateChain();
     await issueSuspension({
       targetUserId: "user-1",
       adminId: "admin-1",
@@ -155,36 +168,110 @@ describe("issueSuspension", () => {
       }),
     );
   });
+
+  it("returns the discipline action id from the transaction", async () => {
+    const result = await issueSuspension({
+      targetUserId: "user-1",
+      adminId: "admin-1",
+      reason: "Harassment",
+      durationHours: 24,
+    });
+
+    expect(result).toEqual({ id: "disc-1" });
+  });
+
+  it("throws 409 when user is already SUSPENDED", async () => {
+    mockFindUserById.mockResolvedValue({ id: "user-1", accountStatus: "SUSPENDED" });
+    await expect(
+      issueSuspension({
+        targetUserId: "user-1",
+        adminId: "admin-1",
+        reason: "Harassment",
+        durationHours: 24,
+      }),
+    ).rejects.toMatchObject({ status: 409 });
+    expect(mockDbTransaction).not.toHaveBeenCalled();
+  });
+
+  it("throws 404 when target user not found", async () => {
+    mockFindUserById.mockResolvedValue(null);
+    await expect(
+      issueSuspension({
+        targetUserId: "user-1",
+        adminId: "admin-1",
+        reason: "Harassment",
+        durationHours: 24,
+      }),
+    ).rejects.toMatchObject({ status: 404 });
+  });
 });
 
 describe("issueBan", () => {
-  it("updates account status to BANNED and evicts sessions", async () => {
-    buildUpdateChain();
+  beforeEach(() => {
+    // issueBan now uses db.transaction for atomic status + discipline record
+    const mockTxUpdate = vi.fn().mockReturnValue({
+      set: vi.fn().mockReturnValue({
+        where: vi.fn().mockResolvedValue(undefined),
+      }),
+    });
+    const mockTxInsert = vi.fn().mockReturnValue({
+      values: vi.fn().mockReturnValue({
+        returning: vi.fn().mockResolvedValue([{ id: "disc-1" }]),
+      }),
+    });
+    const mockTx = { update: mockTxUpdate, insert: mockTxInsert };
+    mockDbTransaction.mockImplementation(async (fn: (tx: typeof mockTx) => Promise<unknown>) =>
+      fn(mockTx),
+    );
+  });
+
+  it("uses a transaction to atomically update status and create discipline record", async () => {
     await issueBan({
       targetUserId: "user-1",
       adminId: "admin-1",
       reason: "Severe violation",
     });
 
-    expect(mockDbUpdate).toHaveBeenCalled();
+    expect(mockDbTransaction).toHaveBeenCalledTimes(1);
     expect(mockEvictAllUserSessions).toHaveBeenCalledWith(["tok-1"]);
     expect(mockDeleteAllSessionsForUser).toHaveBeenCalledWith("user-1");
-    expect(mockCreateDisciplineAction).toHaveBeenCalledWith(
-      expect.objectContaining({ actionType: "ban" }),
-    );
     expect(mockLogAdminAction).toHaveBeenCalledWith(
       expect.objectContaining({ action: "BAN_MEMBER" }),
     );
   });
 
   it("emits account.status_changed with BANNED newStatus", async () => {
-    buildUpdateChain();
     await issueBan({ targetUserId: "user-1", adminId: "admin-1", reason: "Severe violation" });
 
     expect(mockEventBusEmit).toHaveBeenCalledWith(
       "account.status_changed",
       expect.objectContaining({ newStatus: "BANNED" }),
     );
+  });
+
+  it("returns the discipline action id from the transaction", async () => {
+    const result = await issueBan({
+      targetUserId: "user-1",
+      adminId: "admin-1",
+      reason: "Severe violation",
+    });
+
+    expect(result).toEqual({ id: "disc-1" });
+  });
+
+  it("throws 409 when user is already BANNED", async () => {
+    mockFindUserById.mockResolvedValue({ id: "user-1", accountStatus: "BANNED" });
+    await expect(
+      issueBan({ targetUserId: "user-1", adminId: "admin-1", reason: "Severe violation" }),
+    ).rejects.toMatchObject({ status: 409 });
+    expect(mockDbTransaction).not.toHaveBeenCalled();
+  });
+
+  it("throws 404 when target user not found", async () => {
+    mockFindUserById.mockResolvedValue(null);
+    await expect(
+      issueBan({ targetUserId: "user-1", adminId: "admin-1", reason: "Severe violation" }),
+    ).rejects.toMatchObject({ status: 404 });
   });
 });
 
