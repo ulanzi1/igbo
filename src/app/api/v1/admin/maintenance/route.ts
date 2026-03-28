@@ -96,6 +96,12 @@ export const POST = withApiHandler(async (request: Request) => {
 
   await upsertPlatformSetting(MAINTENANCE_SETTING_KEY, newSetting, adminId);
 
+  // Sync process.env so middleware enforcement takes effect immediately (same process).
+  // LIMITATION: Only affects this container. For multi-instance K8s deployments, add
+  // Redis pub/sub broadcast so all instances update in-memory state. Acceptable for
+  // current single-server Docker Compose architecture.
+  process.env.MAINTENANCE_MODE = enabled ? "true" : "false";
+
   // Update Redis cache for the client-side banner
   try {
     const redis = getRedisClient();

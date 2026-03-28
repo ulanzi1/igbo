@@ -96,9 +96,9 @@ describe("scripts/deploy.sh (Task 8.2)", () => {
     expect(content).toContain("set -euo pipefail");
   });
 
-  it("checks for 'healthy' status in response body (not just HTTP 200)", () => {
+  it("checks for 'ok' status in response body (not just HTTP 200)", () => {
     const content = readFileSync(scriptPath, "utf-8");
-    expect(content).toContain('"healthy"');
+    expect(content).toContain('"ok"');
   });
 
   it("exports WEB_IMAGE and REALTIME_IMAGE for docker compose", () => {

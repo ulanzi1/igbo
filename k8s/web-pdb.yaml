@@ -1,0 +1,12 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: igbo-web-pdb
+  namespace: igbo
+  labels:
+    app: igbo-web
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: igbo-web

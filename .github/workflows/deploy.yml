@@ -81,13 +81,15 @@ jobs:
         run: ssh-keyscan -H "${{ secrets.STAGING_HOST }}" >> ~/.ssh/known_hosts
 
       # Capture currently running image tags BEFORE deploying so rollback can restore them
+      # Uses docker compose images to get the correct image for each service (avoids
+      # container name prefix issues with docker inspect)
       - name: Capture current image tags for rollback
         id: prev-tags
         run: |
           PREV_WEB=$(ssh "${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }}" \
-            'docker inspect --format="{{index .RepoTags 0}}" igbo-web 2>/dev/null || echo ""')
+            'cd ~/igbo && docker compose -f docker-compose.prod.yml images web --format json 2>/dev/null | python3 -c "import sys,json; imgs=json.load(sys.stdin); print(imgs[0][\"Repository\"]+\":\"+imgs[0][\"Tag\"]) if imgs else print(\"\")" 2>/dev/null || echo ""')
           PREV_REALTIME=$(ssh "${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }}" \
-            'docker inspect --format="{{index .RepoTags 0}}" igbo-realtime 2>/dev/null || echo ""')
+            'cd ~/igbo && docker compose -f docker-compose.prod.yml images realtime --format json 2>/dev/null | python3 -c "import sys,json; imgs=json.load(sys.stdin); print(imgs[0][\"Repository\"]+\":\"+imgs[0][\"Tag\"]) if imgs else print(\"\")" 2>/dev/null || echo ""')
           echo "prev_web_tag=${PREV_WEB}" >> "$GITHUB_OUTPUT"
           echo "prev_realtime_tag=${PREV_REALTIME}" >> "$GITHUB_OUTPUT"
 
@@ -133,9 +135,9 @@ jobs:
         id: prev-tags
         run: |
           PREV_WEB=$(ssh "${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }}" \
-            'docker inspect --format="{{index .RepoTags 0}}" igbo-web 2>/dev/null || echo ""')
+            'cd ~/igbo && docker compose -f docker-compose.prod.yml images web --format json 2>/dev/null | python3 -c "import sys,json; imgs=json.load(sys.stdin); print(imgs[0][\"Repository\"]+\":\"+imgs[0][\"Tag\"]) if imgs else print(\"\")" 2>/dev/null || echo ""')
           PREV_REALTIME=$(ssh "${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }}" \
-            'docker inspect --format="{{index .RepoTags 0}}" igbo-realtime 2>/dev/null || echo ""')
+            'cd ~/igbo && docker compose -f docker-compose.prod.yml images realtime --format json 2>/dev/null | python3 -c "import sys,json; imgs=json.load(sys.stdin); print(imgs[0][\"Repository\"]+\":\"+imgs[0][\"Tag\"]) if imgs else print(\"\")" 2>/dev/null || echo ""')
           echo "prev_web_tag=${PREV_WEB}" >> "$GITHUB_OUTPUT"
           echo "prev_realtime_tag=${PREV_REALTIME}" >> "$GITHUB_OUTPUT"
 

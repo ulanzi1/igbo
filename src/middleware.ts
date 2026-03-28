@@ -6,6 +6,11 @@ import { routing } from "./i18n/routing";
 import { db } from "@/db";
 import { authUsers } from "@/db/schema/auth-users";
 import { getActiveSuspension } from "@/db/queries/member-discipline";
+import {
+  getCachedAccountStatus,
+  setCachedAccountStatus,
+  type CachedAccountStatus,
+} from "@/lib/account-status-cache";
 
 export const runtime = "nodejs";
 
@@ -167,29 +172,55 @@ export async function middleware(request: NextRequest) {
         }
       }
       // Stale JWT guard: JWT accountStatus may be APPROVED but DB may say SUSPENDED/BANNED
-      // (happens when admin suspends/bans a user who is already logged in)
+      // (happens when admin suspends/bans a user who is already logged in).
+      // Uses Redis cache (30s TTL) to avoid DB queries on every request.
       if (decoded?.accountStatus === "APPROVED" && decoded?.id) {
         try {
-          const [currentUser] = await db
-            .select({ accountStatus: authUsers.accountStatus })
-            .from(authUsers)
-            .where(eq(authUsers.id, decoded.id as string))
-            .limit(1);
-          if (currentUser?.accountStatus === "SUSPENDED" && !pathname.includes("/suspended")) {
+          const userId = decoded.id as string;
+          let cached = await getCachedAccountStatus(userId);
+
+          // Cache miss — query DB and populate cache
+          if (!cached) {
+            const [currentUser] = await db
+              .select({ accountStatus: authUsers.accountStatus })
+              .from(authUsers)
+              .where(eq(authUsers.id, userId))
+              .limit(1);
+
+            if (currentUser) {
+              const cacheEntry: CachedAccountStatus = {
+                accountStatus: currentUser.accountStatus,
+              };
+
+              if (currentUser.accountStatus === "SUSPENDED") {
+                const suspension = await getActiveSuspension(userId);
+                if (suspension?.suspensionEndsAt) {
+                  cacheEntry.suspensionEndsAt = suspension.suspensionEndsAt.toISOString();
+                }
+                if (suspension?.reason) {
+                  cacheEntry.suspensionReason = suspension.reason;
+                }
+              }
+
+              await setCachedAccountStatus(userId, cacheEntry);
+              cached = cacheEntry;
+            }
+          }
+
+          if (cached?.accountStatus === "SUSPENDED" && !pathname.includes("/suspended")) {
             const locale = pathname.split("/")[1];
             const suspendedUrl = new URL(`/${locale}/suspended`, request.url);
-            const suspension = await getActiveSuspension(decoded.id as string);
-            if (suspension?.suspensionEndsAt) {
-              suspendedUrl.searchParams.set("until", suspension.suspensionEndsAt.toISOString());
+            if (cached.suspensionEndsAt) {
+              suspendedUrl.searchParams.set("until", cached.suspensionEndsAt);
             }
-            if (suspension?.reason) {
-              suspendedUrl.searchParams.set("reason", suspension.reason);
+            if (cached.suspensionReason) {
+              suspendedUrl.searchParams.set("reason", cached.suspensionReason);
             }
             const response = NextResponse.redirect(suspendedUrl);
             response.headers.set("X-Request-Id", requestId);
             return response;
           }
-          if (currentUser?.accountStatus === "BANNED") {
+          if (cached?.accountStatus === "BANNED") {
             const locale = pathname.split("/")[1];
             const loginUrl = new URL(`/${locale}/login`, request.url);
             loginUrl.searchParams.set("banned", "true");
@@ -198,8 +229,8 @@ export async function middleware(request: NextRequest) {
             return response;
           }
           if (
-            currentUser?.accountStatus === "PENDING_DELETION" ||
-            currentUser?.accountStatus === "ANONYMIZED"
+            cached?.accountStatus === "PENDING_DELETION" ||
+            cached?.accountStatus === "ANONYMIZED"
           ) {
             const locale = pathname.split("/")[1];
             const loginUrl = new URL(`/${locale}/login`, request.url);
@@ -208,7 +239,7 @@ export async function middleware(request: NextRequest) {
             return response;
           }
         } catch {
-          // Non-critical — continue with JWT-derived status if DB unavailable
+          // Non-critical — continue with JWT-derived status if DB/Redis unavailable
         }
       }
       if (decoded?.accountStatus === "APPROVED" && decoded?.profileCompleted === false) {

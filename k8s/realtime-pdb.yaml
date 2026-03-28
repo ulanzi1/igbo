@@ -1,0 +1,12 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: igbo-realtime-pdb
+  namespace: igbo
+  labels:
+    app: igbo-realtime
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: igbo-realtime

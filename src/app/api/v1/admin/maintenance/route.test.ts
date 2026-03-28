@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 // ─── Mocks ───────────────────────────────────────────────────────────────────
 
@@ -52,12 +52,26 @@ function makeRequest(method: string, body?: object): Request {
   });
 }
 
+let savedMaintenanceMode: string | undefined;
+
 beforeEach(() => {
   vi.clearAllMocks();
+  // Save and clear MAINTENANCE_MODE so the route's process.env side effect doesn't leak
+  savedMaintenanceMode = process.env.MAINTENANCE_MODE;
+  delete process.env.MAINTENANCE_MODE;
   mockRequireAdminSession.mockResolvedValue({ adminId: "admin-1" });
   mockGetPlatformSetting.mockResolvedValue(defaultSetting);
   mockUpsertPlatformSetting.mockResolvedValue(undefined);
   mockLogAdminAction.mockResolvedValue(undefined);
+});
+
+afterEach(() => {
+  // Restore original env var state
+  if (savedMaintenanceMode !== undefined) {
+    process.env.MAINTENANCE_MODE = savedMaintenanceMode;
+  } else {
+    delete process.env.MAINTENANCE_MODE;
+  }
 });
 
 describe("GET /api/v1/admin/maintenance", () => {

@@ -43,7 +43,10 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
-RUN addgroup --system --gid 1001 nodejs \
+# psql is needed for the one-shot migration container (deploy.sh runs migrations
+# via `docker compose run --entrypoint sh web` before starting the app)
+RUN apk add --no-cache postgresql16-client \
+ && addgroup --system --gid 1001 nodejs \
  && adduser --system --uid 1001 nextjs
 
 # Public assets
@@ -53,14 +56,9 @@ COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# Drizzle migration files — allows running `npx drizzle-kit migrate` from this container
-# Run as root (before USER nextjs) so the files are readable
-COPY --from=builder /app/drizzle.config.ts ./drizzle.config.ts
+# SQL migration files — used by deploy.sh to run migrations via psql before starting the app
+# Only raw SQL files are needed, not Drizzle tooling or node_modules
 COPY --from=builder /app/src/db/migrations ./src/db/migrations
-COPY --from=builder /app/src/db/schema ./src/db/schema
-COPY --from=builder /app/src/server/jobs ./src/server/jobs
-COPY --from=builder /app/tsconfig.json ./tsconfig.json
-COPY --from=builder /app/node_modules ./node_modules
 
 USER nextjs
 
