@@ -24,7 +24,7 @@ spec:
     spec:
       containers:
         - name: realtime
-          image: ghcr.io/your-org/igbo-realtime:latest
+          image: ghcr.io/REPLACE_WITH_YOUR_ORG/igbo-realtime:latest # TODO: replace with your GitHub org
           ports:
             - containerPort: 3001
               name: http

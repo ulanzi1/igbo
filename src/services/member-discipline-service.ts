@@ -15,6 +15,7 @@ import { memberDisciplineActions } from "@/db/schema/member-discipline";
 import { logAdminAction } from "@/services/audit-logger";
 import { eventBus } from "@/services/event-bus";
 import { ApiError } from "@/lib/api-error";
+import { invalidateCachedAccountStatus } from "@/lib/account-status-cache";
 
 // ─── Session eviction helper ──────────────────────────────────────────────────
 
@@ -115,6 +116,8 @@ export async function issueSuspension(
 
   // Invalidate all sessions immediately (outside transaction — Redis is non-transactional)
   await evictUserSessions(targetUserId);
+  // Clear middleware account-status cache so stale JWT guard picks up the change immediately
+  await invalidateCachedAccountStatus(targetUserId);
 
   await logAdminAction({
     actorId: adminId,
@@ -187,6 +190,7 @@ export async function issueBan(params: IssueDisciplineParams): Promise<{ id: str
 
   // Invalidate all sessions immediately (outside transaction — Redis is non-transactional)
   await evictUserSessions(targetUserId);
+  await invalidateCachedAccountStatus(targetUserId);
 
   await logAdminAction({
     actorId: adminId,
@@ -234,6 +238,7 @@ export async function liftExpiredSuspensions(now: Date): Promise<number> {
       .where(eq(authUsers.id, suspension.userId));
 
     await expireDisciplineAction(suspension.id);
+    await invalidateCachedAccountStatus(suspension.userId);
 
     await logAdminAction({
       actorId: "system",
@@ -306,6 +311,8 @@ export async function liftSuspensionEarly(params: {
   });
 
   // 4. Side effects outside transaction
+  await invalidateCachedAccountStatus(userId);
+
   await logAdminAction({
     actorId: adminId,
     action: "LIFT_SUSPENSION",

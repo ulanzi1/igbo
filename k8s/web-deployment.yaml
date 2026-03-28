@@ -19,7 +19,7 @@ spec:
     spec:
       containers:
         - name: web
-          image: ghcr.io/your-org/igbo-web:latest
+          image: ghcr.io/REPLACE_WITH_YOUR_ORG/igbo-web:latest # TODO: replace with your GitHub org
           ports:
             - containerPort: 3000
               name: http

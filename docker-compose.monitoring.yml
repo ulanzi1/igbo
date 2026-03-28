@@ -6,15 +6,18 @@ services:
     cpus: 0.5
     ports:
       - "9090:9090"
-    volumes:
-      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - ./monitoring/prometheus/alert-rules.yml:/etc/prometheus/alert-rules.yml:ro
-      - prometheusdata:/prometheus
+    env_file: .env
+    entrypoint: ["/bin/sh", "/etc/prometheus/entrypoint.sh"]
     command:
       - "--config.file=/etc/prometheus/prometheus.yml"
       - "--storage.tsdb.path=/prometheus"
       - "--web.console.libraries=/usr/share/prometheus/console_libraries"
       - "--web.console.templates=/usr/share/prometheus/consoles"
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml.tpl:ro
+      - ./monitoring/prometheus/entrypoint.sh:/etc/prometheus/entrypoint.sh:ro
+      - ./monitoring/prometheus/alert-rules.yml:/etc/prometheus/alert-rules.yml:ro
+      - prometheusdata:/prometheus
     networks:
       - app-network
 
@@ -61,8 +64,14 @@ services:
     cpus: 0.2
     ports:
       - "9093:9093"
+    env_file: .env
+    entrypoint: ["/bin/sh", "/etc/alertmanager/entrypoint.sh"]
+    command:
+      - "--config.file=/etc/alertmanager/alertmanager.yml"
+      - "--storage.path=/alertmanager"
     volumes:
-      - ./monitoring/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - ./monitoring/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml.tpl:ro
+      - ./monitoring/alertmanager/entrypoint.sh:/etc/alertmanager/entrypoint.sh:ro
     networks:
       - app-network
 
@@ -70,6 +79,11 @@ volumes:
   prometheusdata:
   grafanadata:
 
+# NOTE: app-network must be created by docker-compose.prod.yml first.
+# Start prod stack before monitoring: docker compose -f docker-compose.prod.yml up -d
+# Then start monitoring: docker compose -f docker-compose.monitoring.yml up -d
+# Alternatively, create manually: docker network create igbo_app-network
 networks:
   app-network:
     external: true
+    name: igbo_app-network

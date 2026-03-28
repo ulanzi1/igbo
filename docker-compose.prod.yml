@@ -119,7 +119,7 @@ services:
     volumes:
       - redisdata:/data
     healthcheck:
-      test: ["CMD-SHELL", "redis-cli -a ${REDIS_PASSWORD} ping | grep -q PONG"]
+      test: ["CMD-SHELL", "REDISCLI_AUTH=${REDIS_PASSWORD} redis-cli ping | grep -q PONG"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -179,7 +179,10 @@ services:
       # Allow script edits without rebuild in dev (override at runtime)
       - ./scripts/backup:/scripts/backup:ro
       # Docker socket for monthly verify-backup.sh (creates temp PostgreSQL container for restore test)
-      # Security: read-only mount limits access to Docker daemon management operations
+      # SECURITY NOTE: Even read-only, Docker socket access allows inspecting all containers,
+      # images, and volumes. If the backup sidecar is compromised, this is a privilege escalation
+      # vector. For hardened deployments, remove this mount and run verify-backup.sh manually
+      # from the host: docker exec backup /scripts/backup/verify-backup.sh
       - /var/run/docker.sock:/var/run/docker.sock:ro
     healthcheck:
       test: ["CMD", "pgrep", "crond"]
@@ -197,4 +200,5 @@ volumes:
 
 networks:
   app-network:
+    name: igbo_app-network
     driver: bridge

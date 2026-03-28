@@ -15,8 +15,8 @@
 # The script exports WEB_IMAGE and REALTIME_IMAGE env vars so docker-compose.prod.yml
 # resolves its `image: ${WEB_IMAGE}` / `image: ${REALTIME_IMAGE}` fields to the GHCR refs.
 #
-# Health check: asserts BOTH HTTP 200 AND {"status":"healthy"} in body.
-# A "degraded" response (HTTP 200, realtime down) is treated as a failed deploy.
+# Health check: asserts BOTH HTTP 200 AND {"status":"ok"} in body.
+# A "degraded" response (HTTP 200, DB/Redis down) is treated as a failed deploy.
 #
 # Exit codes:
 #   0 — Deployment successful, health check passed
@@ -37,7 +37,7 @@ WAIT_INTERVAL=10
 log() { echo "[$(date -u '+%Y-%m-%dT%H:%M:%SZ')] [deploy.sh] $*"; }
 
 # ─── Health check function ───────────────────────────────────────────────────
-# Returns 0 if status == "healthy", 1 otherwise
+# Returns 0 if status == "ok", 1 otherwise
 check_health() {
   local url="$1"
   local attempts="${2:-$MAX_ATTEMPTS}"
@@ -54,12 +54,12 @@ check_health() {
         python3 -c "import sys, json; print(json.load(sys.stdin).get('status', ''))" \
         2>/dev/null || echo "")
 
-      if [ "$STATUS" = "healthy" ]; then
-        log "Health check passed (status=healthy)."
+      if [ "$STATUS" = "ok" ]; then
+        log "Health check passed (status=ok)."
         return 0
       fi
 
-      log "Health check returned status='${STATUS}' (expected 'healthy')"
+      log "Health check returned status='${STATUS}' (expected 'ok')"
     else
       log "Health check request failed — no response from ${url}"
     fi
@@ -78,6 +78,87 @@ export REALTIME_IMAGE="$NEW_REALTIME_IMAGE"
 
 log "Pulling images from registry..."
 docker compose -f "$COMPOSE_FILE" pull
+
+# ─── Ensure postgres is running before migrations ────────────────────────────
+# On first deploy or after a rollback, postgres may not be running yet.
+# Start only infra services (postgres + redis) — not the app containers.
+log "Ensuring postgres is running..."
+docker compose -f "$COMPOSE_FILE" up -d postgres redis
+
+# Wait for postgres to be healthy (configurable, default 60s)
+PG_WAIT_ATTEMPTS="${PG_WAIT_ATTEMPTS:-30}"
+PG_READY=false
+for i in $(seq 1 "$PG_WAIT_ATTEMPTS"); do
+  if docker compose -f "$COMPOSE_FILE" exec -T postgres pg_isready -q 2>/dev/null; then
+    log "Postgres is ready."
+    PG_READY=true
+    break
+  fi
+  log "Waiting for postgres... attempt $i/$PG_WAIT_ATTEMPTS"
+  sleep 2
+done
+
+if [ "$PG_READY" = "false" ]; then
+  log "ERROR: Postgres did not become ready after $((PG_WAIT_ATTEMPTS * 2))s. Aborting deploy."
+  MIGRATION_FAILED=true
+fi
+
+# ─── Run database migrations BEFORE starting application containers ─────────
+# Uses a one-shot container from the new web image (which ships SQL files).
+# Runs against the already-running postgres service. Migrations are idempotent
+# (IF NOT EXISTS / DO $$ guards) so re-running is safe.
+# CRITICAL: Migration failure aborts the deploy and triggers rollback.
+# Only run migrations if postgres is ready
+if [ "${MIGRATION_FAILED:-false}" = "false" ]; then
+  log "Running database migrations..."
+  # `docker compose run` inherits env_file (.env) from the web service definition,
+  # which provides POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB.
+  # Migrations are sorted explicitly (not relying on filesystem glob order).
+  if ! docker compose -f "$COMPOSE_FILE" run --rm -T --no-deps \
+    --entrypoint sh web -c \
+    ': "${POSTGRES_PASSWORD:?POSTGRES_PASSWORD not set}"
+     export PGPASSWORD="${POSTGRES_PASSWORD}"
+     FAIL=0
+     for f in $(ls src/db/migrations/*.sql | sort); do
+       echo "[migrate] Applying: $f"
+       if psql \
+         -h "${DB_HOST:-postgres}" \
+         -U "${POSTGRES_USER:-igbo}" \
+         -d "${POSTGRES_DB:-igbo}" \
+         -v ON_ERROR_STOP=1 \
+         -f "$f" 2>&1; then
+         echo "[migrate] SUCCESS: $f"
+       else
+         echo "[migrate] ERROR: Failed on $f"
+         FAIL=1
+         break
+       fi
+     done
+     exit $FAIL'; then
+    log "ERROR: Database migration failed. Aborting deploy."
+    MIGRATION_FAILED=true
+  fi
+fi
+
+if [ "${MIGRATION_FAILED:-false}" = "true" ]; then
+  # Trigger rollback if previous images are available
+  if [ -n "$PREV_WEB_IMAGE" ] && [ -n "$PREV_REALTIME_IMAGE" ]; then
+    log "Initiating rollback due to migration failure → web: $PREV_WEB_IMAGE, realtime: $PREV_REALTIME_IMAGE"
+    export WEB_IMAGE="$PREV_WEB_IMAGE"
+    export REALTIME_IMAGE="$PREV_REALTIME_IMAGE"
+    docker compose -f "$COMPOSE_FILE" pull 2>/dev/null || \
+      log "Warning: Could not pull previous images — using local cached images"
+    docker compose -f "$COMPOSE_FILE" up -d
+    if check_health "$HEALTH_URL" 3 10; then
+      log "Rollback successful after migration failure."
+    else
+      log "CRITICAL: Rollback health check also failed. Manual intervention required."
+    fi
+  else
+    log "WARNING: No previous image tags — cannot rollback. Manual intervention required."
+  fi
+  exit 1
+fi
 
 log "Starting containers..."
 docker compose -f "$COMPOSE_FILE" up -d
