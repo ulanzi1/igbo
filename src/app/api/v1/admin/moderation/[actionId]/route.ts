@@ -96,7 +96,13 @@ export const PATCH = withApiHandler(async (request: Request) => {
     throw new ApiError({ title: "Bad Request", status: 400, detail: "Invalid action ID" });
   }
 
-  const body = (await request.json()) as unknown;
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    throw new ApiError({ title: "Bad Request", status: 400, detail: "Invalid JSON body" });
+  }
+
   const parsed = patchSchema.safeParse(body);
   if (!parsed.success) {
     throw new ApiError({
@@ -110,6 +116,15 @@ export const PATCH = withApiHandler(async (request: Request) => {
 
   const item = await getModerationActionById(actionId);
   if (!item) throw new ApiError({ title: "Not Found", status: 404 });
+
+  // Prevent double-actioning: item must be pending
+  if (item.status !== "pending") {
+    throw new ApiError({
+      title: "Conflict",
+      status: 409,
+      detail: `Item already ${item.status}`,
+    });
+  }
 
   const now = new Date();
 

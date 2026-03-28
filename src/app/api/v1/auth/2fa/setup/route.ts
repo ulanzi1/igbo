@@ -5,6 +5,7 @@ import { ApiError } from "@/lib/api-error";
 import { getChallenge } from "@/server/auth/config";
 import { generate2faSecret, verify2faAndComplete } from "@/services/auth-service";
 import { findUserById } from "@/db/queries/auth-queries";
+import { checkRateLimit } from "@/lib/rate-limiter";
 
 const setupInitSchema = z.object({
   challengeToken: z.string().min(1),
@@ -31,6 +32,12 @@ export const GET = withApiHandler(async (request: Request) => {
     throw new ApiError({ title: "Bad Request", status: 400, detail: "Invalid challenge token" });
   }
 
+  // Rate limit secret generation per challenge token (5 per 15 min)
+  const rl = await checkRateLimit(`2fa_setup:${parsed.data.challengeToken}`, 5, 15 * 60 * 1000);
+  if (!rl.allowed) {
+    throw new ApiError({ title: "Too Many Requests", status: 429, detail: "Rate limit exceeded" });
+  }
+
   const user = await findUserById(challenge.userId);
   if (!user || user.accountStatus !== "APPROVED") {
     throw new ApiError({ title: "Unauthorized", status: 401 });
@@ -53,7 +60,7 @@ export const POST = withApiHandler(async (request: Request) => {
   const { challengeToken, secret, code } = parsed.data;
 
   const challenge = await getChallenge(challengeToken);
-  if (!challenge) {
+  if (!challenge || challenge.mfaVerified) {
     throw new ApiError({ title: "Bad Request", status: 400, detail: "Invalid challenge token" });
   }
 

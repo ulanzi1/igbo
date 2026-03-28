@@ -120,8 +120,7 @@ export const POST = withApiHandler(
 
     const parsed = reportSchema.safeParse(body);
     if (!parsed.success) {
-      return errorResponse({
-        type: "about:blank",
+      throw new ApiError({
         title: "Validation Error",
         status: 400,
         detail: parsed.error.issues[0]?.message ?? "Invalid input",

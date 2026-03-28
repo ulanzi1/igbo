@@ -24,10 +24,26 @@ export function generateExportToken(): string {
   return randomUUID().replace(/-/g, "") + randomUUID().replace(/-/g, "");
 }
 
+/** Account statuses that cannot request deletion (discipline must be resolved first). */
+const DELETION_BLOCKED_STATUSES = new Set([
+  "BANNED",
+  "SUSPENDED",
+  "PENDING_DELETION",
+  "ANONYMIZED",
+]);
+
 export async function requestAccountDeletion(userId: string, password: string): Promise<void> {
   const user = await findUserById(userId);
   if (!user) {
     throw new ApiError({ title: "Not Found", status: 404, detail: "User not found" });
+  }
+
+  if (DELETION_BLOCKED_STATUSES.has(user.accountStatus)) {
+    throw new ApiError({
+      title: "Conflict",
+      status: 409,
+      detail: `Cannot request deletion: account status is ${user.accountStatus}`,
+    });
   }
 
   if (!user.passwordHash) {
@@ -89,6 +105,19 @@ export async function cancelAccountDeletion(token: string, userId: string): Prom
       title: "Bad Request",
       status: 400,
       detail: "Invalid or expired cancellation token",
+    });
+  }
+
+  // Verify user is actually in PENDING_DELETION — prevent token replay after
+  // cancellation or anonymization, and prevent restoring a BANNED/SUSPENDED account.
+  const user = await findUserById(userId);
+  if (!user || user.accountStatus !== "PENDING_DELETION") {
+    // Clean up the token since it's no longer valid for this state
+    await redis.del(`gdpr:cancel:${userId}`);
+    throw new ApiError({
+      title: "Conflict",
+      status: 409,
+      detail: "Account is not pending deletion",
     });
   }
 

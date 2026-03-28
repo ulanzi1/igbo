@@ -64,4 +64,25 @@ describe("requireAdminSession", () => {
 
     await expect(requireAdminSession()).rejects.toMatchObject({ status: 403 });
   });
+
+  it("throws 401 when findUserById returns null (deleted admin)", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "admin-1", role: "ADMIN" } });
+    mockFindUserById.mockResolvedValue(null);
+
+    await expect(requireAdminSession()).rejects.toMatchObject({ status: 401 });
+  });
+
+  it("throws 403 when admin account is PENDING_DELETION", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "admin-1", role: "ADMIN" } });
+    mockFindUserById.mockResolvedValue({ id: "admin-1", accountStatus: "PENDING_DELETION" });
+
+    await expect(requireAdminSession()).rejects.toMatchObject({ status: 403 });
+  });
+
+  it("throws 403 when admin account is ANONYMIZED", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "admin-1", role: "ADMIN" } });
+    mockFindUserById.mockResolvedValue({ id: "admin-1", accountStatus: "ANONYMIZED" });
+
+    await expect(requireAdminSession()).rejects.toMatchObject({ status: 403 });
+  });
 });

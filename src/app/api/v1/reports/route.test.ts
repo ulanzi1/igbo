@@ -138,16 +138,14 @@ describe("POST /api/v1/reports", () => {
     await expect(POST(req)).rejects.toMatchObject({ status: 400 });
   });
 
-  it("returns 400 for invalid contentType", async () => {
+  it("throws 400 for invalid contentType", async () => {
     const req = makeRequest({ ...VALID_BODY, contentType: "unknown" });
-    const res = await POST(req);
-    expect(res.status).toBe(400);
+    await expect(POST(req)).rejects.toMatchObject({ status: 400 });
   });
 
-  it("returns 400 for missing reasonCategory", async () => {
+  it("throws 400 for missing reasonCategory", async () => {
     const req = makeRequest({ contentType: "post", contentId: "some-id" });
-    const res = await POST(req);
-    expect(res.status).toBe(400);
+    await expect(POST(req)).rejects.toMatchObject({ status: 400 });
   });
 
   it("returns 404 when content target not found", async () => {
@@ -250,24 +248,25 @@ describe("POST /api/v1/reports", () => {
     }
   });
 
-  it("returns 400 for non-UUID contentId", async () => {
+  it("throws 400 for non-UUID contentId", async () => {
     const req = makeRequest({ ...VALID_BODY, contentId: "not-a-uuid" });
-    const res = await POST(req);
-    expect(res.status).toBe(400);
+    await expect(POST(req)).rejects.toMatchObject({ status: 400 });
   });
 
   it("blocks self-report for member contentType", async () => {
     // member contentType: contentId IS the userId being reported
+    const selfUserId = "00000000-0000-4000-8000-000000000001";
+    mockRequireAuthenticatedSession.mockResolvedValueOnce({ userId: selfUserId, role: "MEMBER" });
     mockDbSelect.mockReturnValue({
       from: vi.fn().mockReturnValue({
         where: vi.fn().mockReturnValue({
-          limit: vi.fn().mockResolvedValue([{ id: "user-1" }]),
+          limit: vi.fn().mockResolvedValue([{ id: selfUserId }]),
         }),
       }),
     });
     const req = makeRequest({
       contentType: "member",
-      contentId: "user-1", // same as session userId
+      contentId: selfUserId, // same as session userId
       reasonCategory: "impersonation",
     });
     const res = await POST(req);

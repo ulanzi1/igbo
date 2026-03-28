@@ -76,27 +76,45 @@ export async function issueSuspension(
 
   // Get current status before change for event payload
   const currentUser = await findUserById(targetUserId);
-  const oldStatus = currentUser?.accountStatus ?? "APPROVED";
+  if (!currentUser) {
+    throw new ApiError({ title: "Not Found", status: 404, detail: "Target user not found" });
+  }
+  if (currentUser.accountStatus === "SUSPENDED") {
+    throw new ApiError({ title: "Conflict", status: 409, detail: "User is already suspended" });
+  }
+  const oldStatus = currentUser.accountStatus;
 
-  // Update account status to SUSPENDED
-  await db
-    .update(authUsers)
-    .set({ accountStatus: "SUSPENDED", updatedAt: new Date() })
-    .where(eq(authUsers.id, targetUserId));
+  // Atomic: update account status + insert discipline record in a single transaction.
+  // Prevents orphaned SUSPENDED status without a matching discipline record (which the
+  // lift-expired-suspensions job relies on to auto-restore the account).
+  const result = await db.transaction(async (tx) => {
+    await tx
+      .update(authUsers)
+      .set({ accountStatus: "SUSPENDED", updatedAt: new Date() })
+      .where(eq(authUsers.id, targetUserId));
 
-  // Invalidate all sessions immediately
-  await evictUserSessions(targetUserId);
+    const rows = await tx
+      .insert(memberDisciplineActions)
+      .values({
+        userId: targetUserId,
+        moderationActionId: moderationActionId ?? null,
+        sourceType: moderationActionId ? "moderation_action" : "manual",
+        actionType: "suspension",
+        reason,
+        notes: notes ?? null,
+        suspensionEndsAt,
+        issuedBy: adminId,
+        status: "active",
+      })
+      .returning({ id: memberDisciplineActions.id });
 
-  const result = await createDisciplineAction({
-    userId: targetUserId,
-    moderationActionId: moderationActionId ?? null,
-    sourceType: moderationActionId ? "moderation_action" : "manual",
-    actionType: "suspension",
-    reason,
-    notes: notes ?? null,
-    suspensionEndsAt,
-    issuedBy: adminId,
+    const id = rows[0]?.id;
+    if (!id) throw new Error("Insert returned no id");
+    return { id };
   });
+
+  // Invalidate all sessions immediately (outside transaction — Redis is non-transactional)
+  await evictUserSessions(targetUserId);
 
   await logAdminAction({
     actorId: adminId,
@@ -133,26 +151,42 @@ export async function issueBan(params: IssueDisciplineParams): Promise<{ id: str
   const { targetUserId, moderationActionId, adminId, reason, notes } = params;
 
   const currentUser = await findUserById(targetUserId);
-  const oldStatus = currentUser?.accountStatus ?? "APPROVED";
+  if (!currentUser) {
+    throw new ApiError({ title: "Not Found", status: 404, detail: "Target user not found" });
+  }
+  if (currentUser.accountStatus === "BANNED") {
+    throw new ApiError({ title: "Conflict", status: 409, detail: "User is already banned" });
+  }
+  const oldStatus = currentUser.accountStatus;
 
-  // Update account status to BANNED
-  await db
-    .update(authUsers)
-    .set({ accountStatus: "BANNED", updatedAt: new Date() })
-    .where(eq(authUsers.id, targetUserId));
+  // Atomic: update account status + insert discipline record in a single transaction.
+  const result = await db.transaction(async (tx) => {
+    await tx
+      .update(authUsers)
+      .set({ accountStatus: "BANNED", updatedAt: new Date() })
+      .where(eq(authUsers.id, targetUserId));
 
-  // Invalidate all sessions immediately
-  await evictUserSessions(targetUserId);
+    const rows = await tx
+      .insert(memberDisciplineActions)
+      .values({
+        userId: targetUserId,
+        moderationActionId: moderationActionId ?? null,
+        sourceType: moderationActionId ? "moderation_action" : "manual",
+        actionType: "ban",
+        reason,
+        notes: notes ?? null,
+        issuedBy: adminId,
+        status: "active",
+      })
+      .returning({ id: memberDisciplineActions.id });
 
-  const result = await createDisciplineAction({
-    userId: targetUserId,
-    moderationActionId: moderationActionId ?? null,
-    sourceType: moderationActionId ? "moderation_action" : "manual",
-    actionType: "ban",
-    reason,
-    notes: notes ?? null,
-    issuedBy: adminId,
+    const id = rows[0]?.id;
+    if (!id) throw new Error("Insert returned no id");
+    return { id };
   });
+
+  // Invalidate all sessions immediately (outside transaction — Redis is non-transactional)
+  await evictUserSessions(targetUserId);
 
   await logAdminAction({
     actorId: adminId,

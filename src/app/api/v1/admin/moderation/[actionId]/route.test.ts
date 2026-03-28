@@ -405,6 +405,38 @@ describe("PATCH /api/v1/admin/moderation/[actionId]", () => {
     expect(mockSoftDeleteArticleByModeration).not.toHaveBeenCalled();
   });
 
+  it("returns 409 when item already reviewed (double-action guard)", async () => {
+    const reviewedItem = { ...MOCK_ITEM, status: "reviewed" as const };
+    mockGetModerationActionById.mockResolvedValue(reviewedItem);
+
+    const res = await PATCH(makeRequest("PATCH", { action: "approve" }));
+    expect(res.status).toBe(409);
+    expect(mockUpdateModerationAction).not.toHaveBeenCalled();
+  });
+
+  it("returns 409 when item already dismissed", async () => {
+    const dismissedItem = { ...MOCK_ITEM, status: "dismissed" as const };
+    mockGetModerationActionById.mockResolvedValue(dismissedItem);
+
+    const res = await PATCH(makeRequest("PATCH", { action: "warn", reason: "Spam" }));
+    expect(res.status).toBe(409);
+    expect(mockIssueWarning).not.toHaveBeenCalled();
+  });
+
+  it("returns 400 for malformed JSON body", async () => {
+    const req = new Request(`https://example.com/api/v1/admin/moderation/${VALID_UUID}`, {
+      method: "PATCH",
+      headers: {
+        Host: "example.com",
+        Origin: "https://example.com",
+        "Content-Type": "application/json",
+      },
+      body: "not-json{",
+    });
+    const res = await PATCH(req);
+    expect(res.status).toBe(400);
+  });
+
   // Regression: existing approve/remove/dismiss still work after extension
   it("regression: approve still works after route extension", async () => {
     const updatedItem = { ...MOCK_ITEM, status: "reviewed" as const };
