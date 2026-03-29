@@ -12,6 +12,23 @@ concurrency:
 jobs:
   # ─── Parallel quality checks ────────────────────────────────────────────────
 
+  audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
+          restore-keys: ${{ runner.os }}-bun-
+      - run: bun install --frozen-lockfile
+      - name: Check for critical/high vulnerabilities
+        run: npm audit --audit-level=high
+
   lint:
     name: Lint
     runs-on: ubuntu-latest
@@ -248,5 +265,5 @@ jobs:
           uploadArtifacts: true
           temporaryPublicStorage: false
 
-# Branch protection note: all 4 parallel jobs (lint, typecheck, test, build) must be configured
+# Branch protection note: all 5 parallel jobs (audit, lint, typecheck, test, build) must be configured
 # as required status checks in GitHub repository settings → Branches → Branch protection rules.
