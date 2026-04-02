@@ -13,7 +13,10 @@
     "lint": "turbo run lint",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "prepare": "husky"
+    "prepare": "husky",
+    "db:migrate": "pnpm --filter @igbo/db db:migrate",
+    "db:journal-sync": "pnpm --filter @igbo/db db:journal-sync",
+    "db:journal-check": "pnpm --filter @igbo/db db:journal-check"
   },
   "devDependencies": {
     "husky": "^9.1.7",
@@ -38,6 +41,9 @@
       "prettier --write"
     ],
     "packages/config/**/*.{ts,tsx,mts}": [
+      "prettier --write"
+    ],
+    "packages/db/**/*.{ts,mts}": [
       "prettier --write"
     ],
     "*.{json,css,md,yml,yaml}": [

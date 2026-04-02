@@ -3,13 +3,6 @@ import { describe, it, expect, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
-vi.mock("@/env", () => ({
-  env: {
-    DATABASE_URL: "postgresql://test:test@localhost:5432/test",
-    DATABASE_POOL_SIZE: 1,
-  },
-}));
-
 vi.mock("@igbo/db", () => ({
   db: {
     select: vi.fn(),

@@ -73,7 +73,7 @@ COPY --from=builder --chown=nextjs:nodejs /app/apps/community/.next/static ./.ne
 
 # SQL migration files — used by deploy.sh to run migrations via psql before starting the app
 # Only raw SQL files are needed, not Drizzle tooling or node_modules
-COPY --from=builder /app/apps/community/src/db/migrations ./apps/community/src/db/migrations
+COPY --from=builder /app/packages/db/src/migrations ./packages/db/src/migrations
 
 USER nextjs
 
