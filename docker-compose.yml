@@ -83,7 +83,7 @@ services:
 
 # Cron configuration for background jobs:
 # Production: Use docker/crontab with a cron sidecar container
-# Development: Run jobs manually via `npm run jobs:run -- --all` or `npm run jobs:run -- <job-name>`
+# Development: Run jobs manually via `pnpm --filter @igbo/community jobs:run -- --all` or `pnpm --filter @igbo/community jobs:run -- <job-name>`
 
 volumes:
   pgdata:

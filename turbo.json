@@ -1,0 +1,26 @@
+{
+  "globalEnv": [
+    "SKIP_ENV_VALIDATION",
+    "DATABASE_URL",
+    "REDIS_URL",
+    "ADMIN_EMAIL",
+    "ADMIN_PASSWORD",
+    "AUTH_SECRET",
+    "HETZNER_S3_ENDPOINT",
+    "HETZNER_S3_REGION",
+    "HETZNER_S3_BUCKET",
+    "HETZNER_S3_ACCESS_KEY_ID",
+    "HETZNER_S3_SECRET_ACCESS_KEY",
+    "HETZNER_S3_PUBLIC_URL",
+    "NEXT_PUBLIC_APP_URL",
+    "NEXT_PUBLIC_REALTIME_URL",
+    "NODE_ENV"
+  ],
+  "tasks": {
+    "build": { "dependsOn": ["^build"], "outputs": [".next/**", "dist/**"] },
+    "dev": { "cache": false, "persistent": true },
+    "test": { "dependsOn": ["^build"] },
+    "lint": {},
+    "typecheck": { "dependsOn": ["^build"] }
+  }
+}

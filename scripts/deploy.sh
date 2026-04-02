@@ -119,7 +119,7 @@ if [ "${MIGRATION_FAILED:-false}" = "false" ]; then
     ': "${POSTGRES_PASSWORD:?POSTGRES_PASSWORD not set}"
      export PGPASSWORD="${POSTGRES_PASSWORD}"
      FAIL=0
-     for f in $(ls src/db/migrations/*.sql | sort); do
+     for f in $(ls apps/community/src/db/migrations/*.sql | sort); do
        echo "[migrate] Applying: $f"
        if psql \
          -h "${DB_HOST:-postgres}" \
