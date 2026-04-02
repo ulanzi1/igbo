@@ -132,7 +132,7 @@ describe("playwright.config.ts (Task 8.3)", () => {
 
   it("runs standalone server with explicit PORT=3000 in CI mode", () => {
     const content = readFileSync(configPath, "utf-8");
-    expect(content).toContain("PORT=3000 node .next/standalone/server.js");
+    expect(content).toContain("PORT=3000 node .next/standalone/apps/community/server.js");
   });
 
   it("runs npm run dev in non-CI mode", () => {
