@@ -9,6 +9,8 @@ export async function register() {
     initAuthRedis(getRedisClient());
 
     // Wire EventBus to receive permission denied events from @igbo/auth
-    setPermissionDeniedHandler((event) => eventBus.emit("member.permission_denied", event));
+    setPermissionDeniedHandler((event) => {
+      eventBus.emit("member.permission_denied", event);
+    });
   }
 }
