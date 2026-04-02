@@ -1,6 +1,6 @@
 import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
-import type { RelatedArticle } from "@/db/queries/articles";
+import type { RelatedArticle } from "@igbo/db/queries/articles";
 
 interface ArticleRelatedSuggestionsProps {
   articles: RelatedArticle[];

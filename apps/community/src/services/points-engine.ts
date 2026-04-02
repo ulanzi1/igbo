@@ -3,15 +3,15 @@ import { eventBus } from "@/services/event-bus";
 import { awardPoints } from "@/lib/points-lua-runner";
 import { POINTS_CONFIG, BADGE_MULTIPLIERS } from "@igbo/config/points";
 import { getRedisClient } from "@/lib/redis";
-import { getUserBadgeWithCache } from "@/db/queries/badges";
+import { getUserBadgeWithCache } from "@igbo/db/queries/badges";
 import {
   insertPointsLedgerEntry,
   getPointsRuleByActivityType,
   getUserPointsTotal,
   logPointsThrottle,
-} from "@/db/queries/points";
-import { getPlatformSetting } from "@/db/queries/platform-settings";
-import { getPostContentLength } from "@/db/queries/posts";
+} from "@igbo/db/queries/points";
+import { getPlatformSetting } from "@igbo/db/queries/platform-settings";
+import { getPostContentLength } from "@igbo/db/queries/posts";
 
 // ─── Cached daily cap (avoids DB query per points award) ─────────────────────
 const DAILY_CAP_CACHE_TTL_MS = 60_000; // 60 seconds

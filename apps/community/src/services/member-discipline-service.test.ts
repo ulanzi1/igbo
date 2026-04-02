@@ -16,22 +16,22 @@ const mockDbTransaction = vi.hoisted(() => vi.fn());
 const mockLogAdminAction = vi.hoisted(() => vi.fn());
 const mockEventBusEmit = vi.hoisted(() => vi.fn());
 
-vi.mock("@/db", () => ({
+vi.mock("@igbo/db", () => ({
   db: {
     update: mockDbUpdate,
     transaction: mockDbTransaction,
   },
 }));
 
-vi.mock("@/db/schema/auth-users", () => ({
+vi.mock("@igbo/db/schema/auth-users", () => ({
   authUsers: { id: "id", accountStatus: "account_status", updatedAt: "updated_at" },
 }));
 
-vi.mock("@/db/queries/auth-queries", () => ({
+vi.mock("@igbo/db/queries/auth-queries", () => ({
   findUserById: mockFindUserById,
 }));
 
-vi.mock("@/db/queries/auth-sessions", () => ({
+vi.mock("@igbo/db/queries/auth-sessions", () => ({
   findActiveSessionsByUserId: mockFindActiveSessionsByUserId,
   deleteAllSessionsForUser: mockDeleteAllSessionsForUser,
 }));
@@ -40,7 +40,7 @@ vi.mock("@/server/auth/redis-session-cache", () => ({
   evictAllUserSessions: mockEvictAllUserSessions,
 }));
 
-vi.mock("@/db/schema/member-discipline", () => ({
+vi.mock("@igbo/db/schema/member-discipline", () => ({
   memberDisciplineActions: {
     id: "id",
     status: "status",
@@ -49,7 +49,7 @@ vi.mock("@/db/schema/member-discipline", () => ({
   },
 }));
 
-vi.mock("@/db/queries/member-discipline", () => ({
+vi.mock("@igbo/db/queries/member-discipline", () => ({
   createDisciplineAction: mockCreateDisciplineAction,
   getDisciplineActionById: mockGetDisciplineActionById,
   listSuspensionsExpiringBefore: mockListSuspensionsExpiringBefore,

@@ -14,16 +14,16 @@ vi.mock("@/services/permissions", () => ({
   requireAuthenticatedSession: (...args: unknown[]) => mockRequireAuthenticatedSession(...args),
 }));
 
-vi.mock("@/db/queries/chat-conversations", () => ({
+vi.mock("@igbo/db/queries/chat-conversations", () => ({
   getConversationById: (...args: unknown[]) => mockGetConversationById(...args),
   isConversationMember: (...args: unknown[]) => mockIsConversationMember(...args),
 }));
 
-vi.mock("@/db/queries/chat-messages", () => ({
+vi.mock("@igbo/db/queries/chat-messages", () => ({
   getMessageById: (...args: unknown[]) => mockGetMessageById(...args),
 }));
 
-vi.mock("@/db/queries/block-mute", () => ({
+vi.mock("@igbo/db/queries/block-mute", () => ({
   isBlocked: (...args: unknown[]) => mockIsBlocked(...args),
 }));
 

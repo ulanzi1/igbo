@@ -2,7 +2,7 @@ import { withApiHandler } from "@/server/api/middleware";
 import { successResponse } from "@/lib/api-response";
 import { ApiError } from "@/lib/api-error";
 import { requireAuthenticatedSession } from "@/services/permissions";
-import { getFollowingPage } from "@/db/queries/follows";
+import { getFollowingPage } from "@igbo/db/queries/follows";
 import { RATE_LIMIT_PRESETS } from "@/services/rate-limiter";
 
 // GET /api/v1/members/[userId]/following  → { members: FollowListMember[], nextCursor: string | null }

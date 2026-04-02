@@ -13,7 +13,7 @@ import { ApiError } from "@/lib/api-error";
 import { runJob } from "@/server/jobs/job-runner";
 import { UPLOAD_CATEGORY_MIME_TYPES, UPLOAD_SIZE_LIMITS } from "@igbo/config/upload";
 import type { UploadCategory } from "@igbo/config/upload";
-import { createFileUpload, getFileUploadByKey } from "@/db/queries/file-uploads";
+import { createFileUpload, getFileUploadByKey } from "@igbo/db/queries/file-uploads";
 
 function getS3Client(): S3Client {
   return new S3Client({

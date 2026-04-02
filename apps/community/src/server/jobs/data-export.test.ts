@@ -23,22 +23,22 @@ vi.mock("@/env", () => ({
   },
 }));
 
-vi.mock("@/db", () => ({
+vi.mock("@igbo/db", () => ({
   db: {
     select: () => mockDbChain,
     update: () => mockDbChain,
   },
 }));
 
-vi.mock("@/db/schema/gdpr", () => ({
+vi.mock("@igbo/db/schema/gdpr", () => ({
   gdprExportRequests: { status: "status", id: "id", userId: "user_id" },
 }));
 
-vi.mock("@/db/schema/auth-users", () => ({
+vi.mock("@igbo/db/schema/auth-users", () => ({
   authUsers: { id: "id" },
 }));
 
-vi.mock("@/db/schema/community-profiles", () => ({
+vi.mock("@igbo/db/schema/community-profiles", () => ({
   communityProfiles: { userId: "user_id" },
   communitySocialLinks: { userId: "user_id" },
 }));

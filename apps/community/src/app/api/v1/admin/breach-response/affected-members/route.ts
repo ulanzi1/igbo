@@ -2,8 +2,8 @@ import { withApiHandler } from "@/server/api/middleware";
 import { successResponse } from "@/lib/api-response";
 import { ApiError } from "@/lib/api-error";
 import { requireAdminSession } from "@/lib/admin-auth";
-import { db } from "@/db";
-import { authUsers } from "@/db/schema/auth-users";
+import { db } from "@igbo/db";
+import { authUsers } from "@igbo/db/schema/auth-users";
 import { gte, lte, and } from "drizzle-orm";
 
 const handler = async (request: Request) => {

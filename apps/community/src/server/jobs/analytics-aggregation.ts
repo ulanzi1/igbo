@@ -1,7 +1,7 @@
 import "server-only";
 import { registerJob } from "@/server/jobs/job-runner";
-import { db } from "@/db";
-import { upsertSnapshotsForDate } from "@/db/queries/analytics";
+import { db } from "@igbo/db";
+import { upsertSnapshotsForDate } from "@igbo/db/queries/analytics";
 import { sql } from "drizzle-orm";
 
 type MetricType =

@@ -43,6 +43,9 @@ importers:
       "@igbo/config":
         specifier: workspace:*
         version: link:../../packages/config
+      "@igbo/db":
+        specifier: workspace:*
+        version: link:../../packages/db
       "@radix-ui/react-tooltip":
         specifier: ^1.2.8
         version: 1.2.8(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)

@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useRef, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import type { MessageSearchResult } from "@/db/queries/chat-conversations";
+import type { MessageSearchResult } from "@igbo/db/queries/chat-conversations";
 
 const MIN_QUERY_LENGTH = 3;
 const DEBOUNCE_MS = 300;

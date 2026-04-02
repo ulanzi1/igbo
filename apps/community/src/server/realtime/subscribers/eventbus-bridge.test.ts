@@ -9,21 +9,21 @@ vi.mock("@igbo/config/realtime", () => ({
   NAMESPACE_CHAT: "/chat",
 }));
 
-vi.mock("@/db/queries/group-channels", () => ({
+vi.mock("@igbo/db/queries/group-channels", () => ({
   listGroupChannels: vi.fn().mockResolvedValue([]),
 }));
 
 const mockDbSelect = vi.hoisted(() => vi.fn());
-vi.mock("@/db", () => ({
+vi.mock("@igbo/db", () => ({
   db: { select: (...args: unknown[]) => mockDbSelect(...args) },
 }));
 
-vi.mock("@/db/schema/chat-messages", () => ({
+vi.mock("@igbo/db/schema/chat-messages", () => ({
   chatMessages: { id: "id", conversationId: "conversation_id" },
 }));
 
 const mockCreateNotification = vi.hoisted(() => vi.fn().mockResolvedValue({}));
-vi.mock("@/db/queries/notifications", () => ({
+vi.mock("@igbo/db/queries/notifications", () => ({
   createNotification: (...args: unknown[]) => mockCreateNotification(...args),
 }));
 

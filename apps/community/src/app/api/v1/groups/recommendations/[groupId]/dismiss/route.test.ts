@@ -2,7 +2,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("server-only", () => ({}));
-vi.mock("@/db", () => ({ db: {} }));
+vi.mock("@igbo/db", () => ({ db: {} }));
 
 const mockRequireAuthenticatedSession = vi.fn();
 const mockDismissGroupRecommendation = vi.fn();
@@ -12,7 +12,7 @@ vi.mock("@/services/permissions", () => ({
   requireAuthenticatedSession: (...args: unknown[]) => mockRequireAuthenticatedSession(...args),
 }));
 
-vi.mock("@/db/queries/recommendations", () => ({
+vi.mock("@igbo/db/queries/recommendations", () => ({
   dismissGroupRecommendation: (...args: unknown[]) => mockDismissGroupRecommendation(...args),
 }));
 

@@ -4,7 +4,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 // ─── Mocks ───────────────────────────────────────────────────────────────────
 
 const mockDbExecute = vi.fn();
-vi.mock("@/db", () => ({
+vi.mock("@igbo/db", () => ({
   db: { execute: (...args: unknown[]) => mockDbExecute(...args) },
 }));
 

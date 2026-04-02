@@ -59,7 +59,7 @@ vi.mock("@/components/ui/dialog", () => ({
     React.createElement("h2", null, children),
 }));
 
-vi.mock("@/db/queries/chat-conversations", () => ({}));
+vi.mock("@igbo/db/queries/chat-conversations", () => ({}));
 
 import { MessageSearch } from "./MessageSearch";
 

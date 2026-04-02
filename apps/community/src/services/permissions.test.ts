@@ -10,7 +10,7 @@ const mockEventBusEmit = vi.fn();
 const mockFindUserById = vi.fn();
 const mockAuth = vi.fn();
 
-vi.mock("@/db/queries/auth-permissions", () => ({
+vi.mock("@igbo/db/queries/auth-permissions", () => ({
   getUserMembershipTier: (...args: unknown[]) => mockGetUserMembershipTier(...args),
 }));
 
@@ -18,7 +18,7 @@ vi.mock("@/services/event-bus", () => ({
   eventBus: { emit: (...args: unknown[]) => mockEventBusEmit(...args) },
 }));
 
-vi.mock("@/db/queries/auth-queries", () => ({
+vi.mock("@igbo/db/queries/auth-queries", () => ({
   findUserById: (...args: unknown[]) => mockFindUserById(...args),
 }));
 
@@ -27,13 +27,13 @@ vi.mock("@/server/auth/config", () => ({
 }));
 
 // Required: canPublishArticle dynamically imports articles queries for weekly count check
-vi.mock("@/db/queries/articles", () => ({
+vi.mock("@igbo/db/queries/articles", () => ({
   countWeeklyArticleSubmissions: vi.fn().mockResolvedValue(0),
 }));
 
 // Required: canPublishArticle dynamically imports points queries for effective limit
 const mockGetEffectiveArticleLimit = vi.fn().mockResolvedValue(1);
-vi.mock("@/db/queries/points", () => ({
+vi.mock("@igbo/db/queries/points", () => ({
   getEffectiveArticleLimit: (...args: unknown[]) => mockGetEffectiveArticleLimit(...args),
 }));
 
@@ -134,7 +134,7 @@ describe("canPublishArticle", () => {
   it("allows PROFESSIONAL users within dynamic limit", async () => {
     mockGetUserMembershipTier.mockResolvedValue("PROFESSIONAL");
     mockGetEffectiveArticleLimit.mockResolvedValue(2); // earned 500+ pts
-    const { countWeeklyArticleSubmissions } = await import("@/db/queries/articles");
+    const { countWeeklyArticleSubmissions } = await import("@igbo/db/queries/articles");
     (countWeeklyArticleSubmissions as ReturnType<typeof vi.fn>).mockResolvedValue(1); // used 1 of 2
     const result = await canPublishArticle("user-1");
     expect(result.allowed).toBe(true);
@@ -143,7 +143,7 @@ describe("canPublishArticle", () => {
   it("denies PROFESSIONAL at dynamic limit (weeklyCount >= effectiveLimit)", async () => {
     mockGetUserMembershipTier.mockResolvedValue("PROFESSIONAL");
     mockGetEffectiveArticleLimit.mockResolvedValue(2);
-    const { countWeeklyArticleSubmissions } = await import("@/db/queries/articles");
+    const { countWeeklyArticleSubmissions } = await import("@igbo/db/queries/articles");
     (countWeeklyArticleSubmissions as ReturnType<typeof vi.fn>).mockResolvedValue(2); // at limit
     const result = await canPublishArticle("user-1");
     expect(result.allowed).toBe(false);
@@ -152,7 +152,7 @@ describe("canPublishArticle", () => {
   it("allows TOP_TIER with elevated dynamic limit", async () => {
     mockGetUserMembershipTier.mockResolvedValue("TOP_TIER");
     mockGetEffectiveArticleLimit.mockResolvedValue(5); // earned 7500+ pts
-    const { countWeeklyArticleSubmissions } = await import("@/db/queries/articles");
+    const { countWeeklyArticleSubmissions } = await import("@igbo/db/queries/articles");
     (countWeeklyArticleSubmissions as ReturnType<typeof vi.fn>).mockResolvedValue(4); // within 5
     const result = await canPublishArticle("user-1");
     expect(result.allowed).toBe(true);

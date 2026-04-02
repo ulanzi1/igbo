@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { CommentSection } from "./CommentSection";
-import type { PostComment } from "@/db/queries/post-interactions";
+import type { PostComment } from "@igbo/db/queries/post-interactions";
 
 vi.mock("../actions/add-comment", () => ({ addCommentAction: vi.fn() }));
 vi.mock("./CommentItem", () => ({

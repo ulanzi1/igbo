@@ -10,17 +10,17 @@ import {
   updateGroupMemberMutedUntil,
   removeGroupMember,
   listGroupLeaders,
-} from "@/db/queries/groups";
+} from "@igbo/db/queries/groups";
 import { logGroupModerationAction } from "@/services/audit-logger";
 import {
   getDefaultChannelConversationId,
   listAllChannelConversationIds,
   addMembersToConversation,
-} from "@/db/queries/group-channels";
-import { db } from "@/db";
-import { communityProfiles } from "@/db/schema/community-profiles";
+} from "@igbo/db/queries/group-channels";
+import { db } from "@igbo/db";
+import { communityProfiles } from "@igbo/db/schema/community-profiles";
 import { eq } from "drizzle-orm";
-import { getPlatformSetting } from "@/db/queries/platform-settings";
+import { getPlatformSetting } from "@igbo/db/queries/platform-settings";
 import { eventBus } from "@/services/event-bus";
 import { messageService } from "@/services/message-service";
 

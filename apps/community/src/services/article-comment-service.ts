@@ -1,9 +1,9 @@
 import "server-only";
 import { ApiError } from "@/lib/api-error";
 import { eventBus } from "@/services/event-bus";
-import { addArticleComment, listArticleComments } from "@/db/queries/article-comments";
-import type { ArticleCommentItem } from "@/db/queries/article-comments";
-import { getArticleByIdForAdmin } from "@/db/queries/articles";
+import { addArticleComment, listArticleComments } from "@igbo/db/queries/article-comments";
+import type { ArticleCommentItem } from "@igbo/db/queries/article-comments";
+import { getArticleByIdForAdmin } from "@igbo/db/queries/articles";
 
 export async function addComment(
   userId: string,

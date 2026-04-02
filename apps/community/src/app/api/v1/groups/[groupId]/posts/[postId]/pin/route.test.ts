@@ -11,11 +11,11 @@ vi.mock("@/services/permissions", () => ({
   requireAuthenticatedSession: (...args: unknown[]) => mockRequireAuthenticatedSession(...args),
 }));
 
-vi.mock("@/db/queries/groups", () => ({
+vi.mock("@igbo/db/queries/groups", () => ({
   getGroupMember: (...args: unknown[]) => mockGetGroupMember(...args),
 }));
 
-vi.mock("@/db/queries/posts", () => ({
+vi.mock("@igbo/db/queries/posts", () => ({
   togglePostPin: (...args: unknown[]) => mockTogglePostPin(...args),
 }));
 
@@ -40,8 +40,8 @@ const mockDb = vi.hoisted(() => ({
   select: vi.fn(),
 }));
 
-vi.mock("@/db", () => ({ db: mockDb }));
-vi.mock("@/db/schema/community-posts", () => ({
+vi.mock("@igbo/db", () => ({ db: mockDb }));
+vi.mock("@igbo/db/schema/community-posts", () => ({
   communityPosts: {
     id: "id",
     isPinned: "is_pinned",

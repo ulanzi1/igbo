@@ -12,7 +12,7 @@ vi.mock("@/services/permissions", () => ({
 
 const mockCreateReport = vi.hoisted(() => vi.fn());
 const mockCountReporterReportsLast24h = vi.hoisted(() => vi.fn().mockResolvedValue(0));
-vi.mock("@/db/queries/reports", () => ({
+vi.mock("@igbo/db/queries/reports", () => ({
   createReport: (...args: unknown[]) => mockCreateReport(...args),
   countReporterReportsLast24h: (...args: unknown[]) => mockCountReporterReportsLast24h(...args),
 }));
@@ -24,26 +24,26 @@ vi.mock("@/services/event-bus", () => ({
 
 // DB mocks for content target lookup
 const mockDbSelect = vi.hoisted(() => vi.fn());
-vi.mock("@/db", () => ({
+vi.mock("@igbo/db", () => ({
   db: { select: (...args: unknown[]) => mockDbSelect(...args) },
 }));
 
-vi.mock("@/db/schema/community-posts", () => ({
+vi.mock("@igbo/db/schema/community-posts", () => ({
   communityPosts: { id: "id", authorId: "author_id", deletedAt: "deleted_at" },
 }));
-vi.mock("@/db/schema/post-interactions", () => ({
+vi.mock("@igbo/db/schema/post-interactions", () => ({
   communityPostComments: { id: "id", userId: "user_id" },
 }));
-vi.mock("@/db/schema/community-article-comments", () => ({
+vi.mock("@igbo/db/schema/community-article-comments", () => ({
   communityArticleComments: { id: "id", userId: "user_id" },
 }));
-vi.mock("@/db/schema/community-articles", () => ({
+vi.mock("@igbo/db/schema/community-articles", () => ({
   communityArticles: { id: "id", authorId: "author_id", deletedAt: "deleted_at" },
 }));
-vi.mock("@/db/schema/chat-messages", () => ({
+vi.mock("@igbo/db/schema/chat-messages", () => ({
   chatMessages: { id: "id", senderId: "sender_id" },
 }));
-vi.mock("@/db/schema/auth-users", () => ({
+vi.mock("@igbo/db/schema/auth-users", () => ({
   authUsers: { id: "id", accountStatus: "account_status", deletedAt: "deleted_at" },
 }));
 

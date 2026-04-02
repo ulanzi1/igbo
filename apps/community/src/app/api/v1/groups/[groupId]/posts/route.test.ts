@@ -12,11 +12,11 @@ vi.mock("@/services/permissions", () => ({
   requireAuthenticatedSession: (...args: unknown[]) => mockRequireAuthenticatedSession(...args),
 }));
 
-vi.mock("@/db/queries/groups", () => ({
+vi.mock("@igbo/db/queries/groups", () => ({
   getGroupMember: (...args: unknown[]) => mockGetGroupMember(...args),
 }));
 
-vi.mock("@/db/queries/feed", () => ({
+vi.mock("@igbo/db/queries/feed", () => ({
   getGroupFeedPosts: (...args: unknown[]) => mockGetGroupFeedPosts(...args),
 }));
 
@@ -25,7 +25,7 @@ vi.mock("@/services/post-service", () => ({
 }));
 
 const mockListPendingGroupPosts = vi.fn();
-vi.mock("@/db/queries/posts", () => ({
+vi.mock("@igbo/db/queries/posts", () => ({
   listPendingGroupPosts: (...args: unknown[]) => mockListPendingGroupPosts(...args),
 }));
 

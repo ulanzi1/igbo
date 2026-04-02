@@ -2,7 +2,7 @@ import { setRequestLocale, getTranslations } from "next-intl/server";
 import { auth } from "@/server/auth/config";
 import { redirect } from "next/navigation";
 import { SearchResultsContent } from "@/features/discover/components/SearchResultsContent";
-import type { SearchFilters } from "@/db/queries/search";
+import type { SearchFilters } from "@igbo/db/queries/search";
 
 export async function generateMetadata({
   params,

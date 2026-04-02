@@ -11,7 +11,7 @@ vi.mock("@/services/permissions", () => ({
   requireAuthenticatedSession: (...args: unknown[]) => mockRequireAuthenticatedSession(...args),
 }));
 
-vi.mock("@/db/queries/notifications", () => ({
+vi.mock("@igbo/db/queries/notifications", () => ({
   getNotifications: (...args: unknown[]) => mockGetNotifications(...args),
   getUnreadCount: (...args: unknown[]) => mockGetUnreadCount(...args),
 }));

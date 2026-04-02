@@ -18,7 +18,7 @@ vi.mock("@/server/auth/config", () => ({
 }));
 
 const mockGetProfileByUserId = vi.fn();
-vi.mock("@/db/queries/community-profiles", () => ({
+vi.mock("@igbo/db/queries/community-profiles", () => ({
   getProfileByUserId: (...args: unknown[]) => mockGetProfileByUserId(...args),
 }));
 

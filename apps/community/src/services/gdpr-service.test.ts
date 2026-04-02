@@ -23,7 +23,7 @@ vi.mock("@/env", () => ({
   },
 }));
 
-vi.mock("@/db/queries/auth-queries", () => ({
+vi.mock("@igbo/db/queries/auth-queries", () => ({
   findUserById: (...args: unknown[]) => mockFindUserById(...args),
 }));
 
@@ -32,7 +32,7 @@ vi.mock("@/services/auth-service", () => ({
   hashPassword: vi.fn(),
 }));
 
-vi.mock("@/db/queries/gdpr", () => ({
+vi.mock("@igbo/db/queries/gdpr", () => ({
   createExportRequest: (...args: unknown[]) => mockCreateExportRequest(...args),
   updateExportRequest: (...args: unknown[]) => mockUpdateExportRequest(...args),
   findAccountsPendingAnonymization: (...args: unknown[]) =>
@@ -49,7 +49,7 @@ const mockDbChain = {
   values: vi.fn().mockResolvedValue([]),
 };
 
-vi.mock("@/db", () => ({
+vi.mock("@igbo/db", () => ({
   db: {
     update: (...args: unknown[]) => {
       mockDbUpdate(...args);
@@ -88,7 +88,7 @@ vi.mock("@/server/jobs/job-runner", () => ({
   registerJob: vi.fn(),
 }));
 
-vi.mock("@/db/schema/auth-users", () => ({
+vi.mock("@igbo/db/schema/auth-users", () => ({
   authUsers: {
     id: "id",
     accountStatus: "account_status",
@@ -96,11 +96,11 @@ vi.mock("@/db/schema/auth-users", () => ({
   },
 }));
 
-vi.mock("@/db/schema/community-profiles", () => ({
+vi.mock("@igbo/db/schema/community-profiles", () => ({
   communityProfiles: { userId: "user_id" },
 }));
 
-vi.mock("@/db/schema/audit-logs", () => ({
+vi.mock("@igbo/db/schema/audit-logs", () => ({
   auditLogs: {},
 }));
 

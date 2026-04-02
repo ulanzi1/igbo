@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
-import type { AuthorArticleListItem } from "@/db/queries/articles";
+import type { AuthorArticleListItem } from "@igbo/db/queries/articles";
 
 interface MyArticlesListProps {
   articles: AuthorArticleListItem[];

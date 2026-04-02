@@ -12,7 +12,7 @@ vi.mock("@/lib/admin-auth", () => ({
   requireAdminSession: (...a: unknown[]) => mockRequireAdminSession(...a),
 }));
 
-vi.mock("@/db/queries/platform-settings", () => ({
+vi.mock("@igbo/db/queries/platform-settings", () => ({
   getPlatformSetting: (...a: unknown[]) => mockGetPlatformSetting(...a),
   upsertPlatformSetting: (...a: unknown[]) => mockUpsertPlatformSetting(...a),
 }));

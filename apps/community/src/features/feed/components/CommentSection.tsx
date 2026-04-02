@@ -6,7 +6,7 @@ import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { CommentItem } from "./CommentItem";
 import { addCommentAction } from "../actions/add-comment";
-import type { PostComment } from "@/db/queries/post-interactions";
+import type { PostComment } from "@igbo/db/queries/post-interactions";
 
 interface CommentSectionProps {
   postId: string;

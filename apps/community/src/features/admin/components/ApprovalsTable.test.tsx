@@ -23,7 +23,7 @@ vi.mock("sonner", () => ({
 }));
 
 import { ApprovalsTable } from "./ApprovalsTable";
-import type { AuthUser } from "@/db/schema/auth-users";
+import type { AuthUser } from "@igbo/db/schema/auth-users";
 
 const makeApplication = (id: string): AuthUser => ({
   id,

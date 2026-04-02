@@ -11,7 +11,7 @@ import {
   getConversationMemberCount,
   checkGroupBlockConflict,
   softDeleteConversation,
-} from "@/db/queries/chat-conversations";
+} from "@igbo/db/queries/chat-conversations";
 import { messageService } from "@/services/message-service";
 import { RATE_LIMIT_PRESETS } from "@/services/rate-limiter";
 import { MAX_GROUP_MEMBERS } from "@igbo/config/chat";
@@ -72,7 +72,7 @@ const postHandler = async (request: Request) => {
   }
 
   // Check if user exists (avoid FK violation → 500 on nonexistent user)
-  const { getProfileByUserId } = await import("@/db/queries/community-profiles");
+  const { getProfileByUserId } = await import("@igbo/db/queries/community-profiles");
   const newMemberProfile = await getProfileByUserId(newUserId);
   if (!newMemberProfile) {
     throw new ApiError({ title: "Not Found", status: 404, detail: "User not found" });
@@ -173,7 +173,7 @@ const deleteHandler = async (request: Request) => {
   }
 
   // Send system message before removing (so sender_id is still valid)
-  const { getProfileByUserId } = await import("@/db/queries/community-profiles");
+  const { getProfileByUserId } = await import("@igbo/db/queries/community-profiles");
   const leaverProfile = await getProfileByUserId(userId);
   const leaverName = leaverProfile?.displayName ?? "A member";
   await messageService.sendSystemMessage(

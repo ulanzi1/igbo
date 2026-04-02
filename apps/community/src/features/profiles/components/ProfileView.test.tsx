@@ -2,7 +2,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@/test/test-utils";
 import { ProfileView } from "./ProfileView";
-import type { CommunityProfile, CommunitySocialLink } from "@/db/schema/community-profiles";
+import type { CommunityProfile, CommunitySocialLink } from "@igbo/db/schema/community-profiles";
 
 const mockPush = vi.fn();
 const mockCreateOrFind = vi.fn();

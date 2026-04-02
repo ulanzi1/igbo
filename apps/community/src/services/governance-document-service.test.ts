@@ -12,7 +12,7 @@ const mockGetDocumentBySlug = vi.fn();
 const mockGetDocumentById = vi.fn();
 const mockLogAdminAction = vi.fn();
 
-vi.mock("@/db/queries/governance-documents", () => ({
+vi.mock("@igbo/db/queries/governance-documents", () => ({
   createDocument: (...a: unknown[]) => mockCreateDocument(...a),
   updateDocument: (...a: unknown[]) => mockUpdateDocument(...a),
   publishDocument: (...a: unknown[]) => mockPublishDocument(...a),

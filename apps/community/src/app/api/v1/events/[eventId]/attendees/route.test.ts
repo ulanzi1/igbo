@@ -41,14 +41,14 @@ vi.mock("@/services/event-service", () => ({
   getJoinToken: vi.fn(),
 }));
 
-vi.mock("@/db/queries/events", () => ({
+vi.mock("@igbo/db/queries/events", () => ({
   getEventById: vi.fn(),
   getAttendeeStatus: vi.fn(),
 }));
 
 import { requireAuthenticatedSession } from "@/services/permissions";
 import { listEventAttendees } from "@/services/event-service";
-import { getEventById } from "@/db/queries/events";
+import { getEventById } from "@igbo/db/queries/events";
 
 const makeRequest = () =>
   new Request("http://localhost/api/v1/events/event-1/attendees", {

@@ -22,7 +22,7 @@ vi.mock("@/services/permissions", () => ({
   isAdmin: (...args: unknown[]) => mockIsAdmin(...args),
 }));
 
-vi.mock("@/db/queries/admin-approvals", () => ({
+vi.mock("@igbo/db/queries/admin-approvals", () => ({
   getApplicationById: (...args: unknown[]) => mockGetApplicationById(...args),
   updateApplicationStatus: vi.fn(),
   listApplications: vi.fn(),
@@ -40,7 +40,7 @@ vi.mock("@/services/event-bus", () => ({
   eventBus: { emit: vi.fn() },
 }));
 
-vi.mock("@/db/queries/auth-queries", () => ({
+vi.mock("@igbo/db/queries/auth-queries", () => ({
   findUserById: vi.fn(),
 }));
 

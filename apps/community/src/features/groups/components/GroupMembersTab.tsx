@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { VerificationBadge } from "@/components/shared/VerificationBadge";
-import type { GroupMemberRole } from "@/db/schema/community-groups";
+import type { GroupMemberRole } from "@igbo/db/schema/community-groups";
 
 interface GroupMemberItem {
   userId: string;

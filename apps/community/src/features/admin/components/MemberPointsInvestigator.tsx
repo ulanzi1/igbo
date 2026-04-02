@@ -6,7 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "next/navigation";
 import { useRouter } from "@/i18n/navigation";
 import { VerificationBadge } from "@/components/shared/VerificationBadge";
-import type { BadgeType } from "@/db/schema/community-badges";
+import type { BadgeType } from "@igbo/db/schema/community-badges";
 
 interface MemberSearchResult {
   userId: string;

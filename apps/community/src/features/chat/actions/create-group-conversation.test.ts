@@ -20,7 +20,7 @@ vi.mock("@/services/permissions", () => ({
   requireAuthenticatedSession: vi.fn().mockResolvedValue({ userId: CURRENT_USER }),
 }));
 
-vi.mock("@/db/queries/chat-conversations", () => ({
+vi.mock("@igbo/db/queries/chat-conversations", () => ({
   createConversation: (...args: unknown[]) => mockCreate(...args),
   checkBlocksAmongMembers: (...args: unknown[]) => mockCheckBlocks(...args),
 }));

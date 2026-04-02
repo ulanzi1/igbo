@@ -8,12 +8,12 @@ import {
   getOriginalPostEmbed,
   type ToggleReactionResult,
   type PostComment,
-} from "@/db/queries/post-interactions";
-import { insertPost, getPostGroupId, getPostAuthorId } from "@/db/queries/posts";
-import { getGroupMemberFull } from "@/db/queries/groups";
+} from "@igbo/db/queries/post-interactions";
+import { insertPost, getPostGroupId, getPostAuthorId } from "@igbo/db/queries/posts";
+import { getGroupMemberFull } from "@igbo/db/queries/groups";
 import { eventBus } from "@/services/event-bus";
 import { ApiError } from "@/lib/api-error";
-import type { PostReactionType } from "@/db/schema/post-interactions";
+import type { PostReactionType } from "@igbo/db/schema/post-interactions";
 
 export type { ToggleReactionResult, PostComment };
 

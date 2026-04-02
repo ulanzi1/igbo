@@ -45,7 +45,7 @@ vi.mock("sonner", () => ({
 }));
 
 import { ApplicationRow } from "./ApplicationRow";
-import type { AuthUser } from "@/db/schema/auth-users";
+import type { AuthUser } from "@igbo/db/schema/auth-users";
 
 const mockApplication: AuthUser = {
   id: "app-uuid-1",

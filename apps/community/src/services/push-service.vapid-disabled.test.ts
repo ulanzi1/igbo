@@ -21,7 +21,7 @@ vi.mock("web-push", () => ({
 const mockGetUserPushSubscriptions = vi.hoisted(() => vi.fn());
 const mockDeletePushSubscriptionByEndpoint = vi.hoisted(() => vi.fn());
 
-vi.mock("@/db/queries/push-subscriptions", () => ({
+vi.mock("@igbo/db/queries/push-subscriptions", () => ({
   getUserPushSubscriptions: (...args: unknown[]) => mockGetUserPushSubscriptions(...args),
   deletePushSubscriptionByEndpoint: (...args: unknown[]) =>
     mockDeletePushSubscriptionByEndpoint(...args),

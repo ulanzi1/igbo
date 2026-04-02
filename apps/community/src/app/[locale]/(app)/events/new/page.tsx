@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { auth } from "@/server/auth/config";
 import { canCreateEvent } from "@/services/permissions";
-import { getGroupsForUserMembership } from "@/db/queries/groups";
+import { getGroupsForUserMembership } from "@igbo/db/queries/groups";
 import { EventForm } from "@/features/events/components/EventForm";
 
 export const dynamic = "force-dynamic";

@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { BilingualEditorPane } from "./BilingualEditorPane";
 import { ArticleMetaForm } from "./ArticleMetaForm";
 import { saveDraftAction, submitArticleAction } from "../actions/article-actions";
-import type { ArticleCategory, ArticleVisibility } from "@/db/schema/community-articles";
+import type { ArticleCategory, ArticleVisibility } from "@igbo/db/schema/community-articles";
 
 interface ArticleEditorState {
   enTitle: string;

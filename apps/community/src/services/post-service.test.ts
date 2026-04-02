@@ -10,11 +10,11 @@ vi.mock("@/services/permissions", () => ({
   getMaxFeedPostsPerWeek: vi.fn(),
 }));
 
-vi.mock("@/db/queries/auth-permissions", () => ({
+vi.mock("@igbo/db/queries/auth-permissions", () => ({
   getUserMembershipTier: vi.fn(),
 }));
 
-vi.mock("@/db/queries/posts", () => ({
+vi.mock("@igbo/db/queries/posts", () => ({
   getWeeklyFeedPostCount: vi.fn(),
   insertPost: vi.fn(),
   insertPostMedia: vi.fn(),
@@ -25,7 +25,7 @@ vi.mock("@/services/event-bus", () => ({
   eventBus: { emit: vi.fn() },
 }));
 
-vi.mock("@/db/queries/groups", () => ({
+vi.mock("@igbo/db/queries/groups", () => ({
   getGroupById: vi.fn(),
   getGroupMember: vi.fn(),
   getGroupMemberFull: vi.fn(),
@@ -33,15 +33,15 @@ vi.mock("@/db/queries/groups", () => ({
 
 import { createFeedPost, createGroupPost } from "./post-service";
 import { canCreateFeedPost, getMaxFeedPostsPerWeek } from "@/services/permissions";
-import { getUserMembershipTier } from "@/db/queries/auth-permissions";
+import { getUserMembershipTier } from "@igbo/db/queries/auth-permissions";
 import {
   getWeeklyFeedPostCount,
   insertPost,
   insertPostMedia,
   resolveFileUploadUrls,
-} from "@/db/queries/posts";
+} from "@igbo/db/queries/posts";
 import { eventBus } from "@/services/event-bus";
-import { getGroupById, getGroupMember, getGroupMemberFull } from "@/db/queries/groups";
+import { getGroupById, getGroupMember, getGroupMemberFull } from "@igbo/db/queries/groups";
 
 const mockCanCreateFeedPost = vi.mocked(canCreateFeedPost);
 const mockGetGroupById = vi.mocked(getGroupById);

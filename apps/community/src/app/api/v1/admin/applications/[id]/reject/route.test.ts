@@ -9,7 +9,7 @@ vi.mock("@/services/admin-approval-service", () => ({
   rejectApplication: (...args: unknown[]) => mockRejectApplication(...args),
 }));
 
-vi.mock("@/db/queries/auth-queries", () => ({ findUserById: vi.fn() }));
+vi.mock("@igbo/db/queries/auth-queries", () => ({ findUserById: vi.fn() }));
 vi.mock("@/lib/admin-auth", () => ({ requireAdminSession: vi.fn() }));
 vi.mock("@/services/permissions", () => ({ isAdmin: vi.fn() }));
 vi.mock("@/services/event-bus", () => ({ eventBus: { emit: vi.fn() } }));

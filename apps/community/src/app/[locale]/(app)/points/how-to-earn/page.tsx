@@ -1,5 +1,5 @@
 import { getTranslations } from "next-intl/server";
-import { getActivePointsRules, getAllPostingLimits } from "@/db/queries/points";
+import { getActivePointsRules, getAllPostingLimits } from "@igbo/db/queries/points";
 import { BADGE_MULTIPLIERS } from "@igbo/config/points";
 
 export const revalidate = 60;

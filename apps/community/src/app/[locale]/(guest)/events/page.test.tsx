@@ -30,7 +30,7 @@ vi.mock("@/i18n/navigation", () => ({
   getPathname: vi.fn(),
 }));
 
-vi.mock("@/db/queries/events", () => ({
+vi.mock("@igbo/db/queries/events", () => ({
   listUpcomingEvents: vi.fn().mockResolvedValue([]),
   createEvent: vi.fn(),
   getEventById: vi.fn(),
@@ -54,7 +54,7 @@ vi.mock("@/features/events/components/CreateEventButton", () => ({
   CreateEventButton: () => <button data-testid="create-event-btn">Create Event</button>,
 }));
 
-import { listUpcomingEvents } from "@/db/queries/events";
+import { listUpcomingEvents } from "@igbo/db/queries/events";
 import EventsPage from "./page";
 
 describe("EventsPage", () => {

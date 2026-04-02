@@ -3,7 +3,7 @@ import { withApiHandler } from "@/server/api/middleware";
 import { requireAuthenticatedSession } from "@/services/permissions";
 import { successResponse } from "@/lib/api-response";
 import { ApiError } from "@/lib/api-error";
-import { setQuietHours, isUserInQuietHours } from "@/db/queries/notification-preferences";
+import { setQuietHours, isUserInQuietHours } from "@igbo/db/queries/notification-preferences";
 import { getRedisClient } from "@/lib/redis";
 
 const quietHoursSchema = z.object({

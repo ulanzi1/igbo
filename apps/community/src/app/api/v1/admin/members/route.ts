@@ -2,9 +2,9 @@ import { withApiHandler } from "@/server/api/middleware";
 import { successResponse } from "@/lib/api-response";
 import { ApiError } from "@/lib/api-error";
 import { requireAdminSession } from "@/lib/admin-auth";
-import { db } from "@/db";
-import { authUsers } from "@/db/schema/auth-users";
-import { communityProfiles } from "@/db/schema/community-profiles";
+import { db } from "@igbo/db";
+import { authUsers } from "@igbo/db/schema/auth-users";
+import { communityProfiles } from "@igbo/db/schema/community-profiles";
 import { eq, isNull, and, ilike, or, sql } from "drizzle-orm";
 
 const ALLOWED_TIERS = ["BASIC", "PROFESSIONAL", "TOP_TIER"] as const;

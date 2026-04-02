@@ -23,7 +23,7 @@ vi.mock("@/features/profiles/hooks/use-profile", () => ({
 }));
 
 import { SocialLinksManager } from "./SocialLinksManager";
-import type { CommunitySocialLink } from "@/db/schema/community-profiles";
+import type { CommunitySocialLink } from "@igbo/db/schema/community-profiles";
 
 const linkedFacebook: CommunitySocialLink = {
   userId: "u1",

@@ -11,7 +11,7 @@ vi.mock("@/lib/admin-auth", () => ({
   requireAdminSession: (...args: unknown[]) => mockRequireAdminSession(...args),
 }));
 
-vi.mock("@/db/queries/moderation", () => ({
+vi.mock("@igbo/db/queries/moderation", () => ({
   updateModerationKeyword: (...args: unknown[]) => mockUpdateModerationKeyword(...args),
   deleteModerationKeyword: (...args: unknown[]) => mockDeleteModerationKeyword(...args),
 }));

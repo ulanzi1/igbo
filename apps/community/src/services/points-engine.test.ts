@@ -22,7 +22,7 @@ const mockGetPointsRule = vi.hoisted(() =>
 );
 const mockGetUserPointsTotal = vi.hoisted(() => vi.fn().mockResolvedValue(10));
 const mockLogPointsThrottle = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
-vi.mock("@/db/queries/points", () => ({
+vi.mock("@igbo/db/queries/points", () => ({
   insertPointsLedgerEntry: (...args: unknown[]) => mockInsertLedgerEntry(...args),
   getPointsRuleByActivityType: (...args: unknown[]) => mockGetPointsRule(...args),
   getUserPointsTotal: (...args: unknown[]) => mockGetUserPointsTotal(...args),
@@ -30,7 +30,7 @@ vi.mock("@/db/queries/points", () => ({
 }));
 
 const mockGetPostContentLength = vi.hoisted(() => vi.fn().mockResolvedValue(50)); // default: 50 chars (passes gate)
-vi.mock("@/db/queries/posts", () => ({
+vi.mock("@igbo/db/queries/posts", () => ({
   getPostContentLength: (...args: unknown[]) => mockGetPostContentLength(...args),
   insertPost: vi.fn(),
   getPostGroupId: vi.fn(),
@@ -50,12 +50,12 @@ vi.mock("@/services/event-bus", () => ({
 }));
 
 const mockGetUserBadgeWithCache = vi.hoisted(() => vi.fn().mockResolvedValue(null));
-vi.mock("@/db/queries/badges", () => ({
+vi.mock("@igbo/db/queries/badges", () => ({
   getUserBadgeWithCache: (...args: unknown[]) => mockGetUserBadgeWithCache(...args),
 }));
 
 const mockGetPlatformSetting = vi.hoisted(() => vi.fn().mockResolvedValue(100));
-vi.mock("@/db/queries/platform-settings", () => ({
+vi.mock("@igbo/db/queries/platform-settings", () => ({
   getPlatformSetting: (...args: unknown[]) => mockGetPlatformSetting(...args),
 }));
 

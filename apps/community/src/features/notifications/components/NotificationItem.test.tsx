@@ -2,7 +2,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@/test/test-utils";
 import { NotificationItem } from "./NotificationItem";
-import type { PlatformNotification } from "@/db/schema/platform-notifications";
+import type { PlatformNotification } from "@igbo/db/schema/platform-notifications";
 
 const mockPush = vi.fn();
 

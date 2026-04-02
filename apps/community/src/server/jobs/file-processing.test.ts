@@ -35,7 +35,7 @@ const mockFindProcessingFileUploads = vi.fn();
 const mockFindPendingScanFileUploads = vi.fn();
 const mockUpdateFileUpload = vi.fn();
 
-vi.mock("@/db/queries/file-uploads", () => ({
+vi.mock("@igbo/db/queries/file-uploads", () => ({
   findProcessingFileUploads: (...args: unknown[]) => mockFindProcessingFileUploads(...args),
   findPendingScanFileUploads: (...args: unknown[]) => mockFindPendingScanFileUploads(...args),
   updateFileUpload: (...args: unknown[]) => mockUpdateFileUpload(...args),

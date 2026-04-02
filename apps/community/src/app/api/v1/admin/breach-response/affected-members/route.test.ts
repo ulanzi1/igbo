@@ -12,7 +12,7 @@ vi.mock("@/lib/admin-auth", () => ({
   requireAdminSession: (...args: unknown[]) => mockRequireAdminSession(...args),
 }));
 
-vi.mock("@/db", () => {
+vi.mock("@igbo/db", () => {
   const selectChain = {
     from: vi.fn().mockReturnThis(),
     where: mockSelectWhere,
@@ -24,7 +24,7 @@ vi.mock("@/db", () => {
   };
 });
 
-vi.mock("@/db/schema/auth-users", () => ({
+vi.mock("@igbo/db/schema/auth-users", () => ({
   authUsers: {
     id: "id",
     email: "email",

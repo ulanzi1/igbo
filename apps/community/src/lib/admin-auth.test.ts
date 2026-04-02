@@ -9,7 +9,7 @@ vi.mock("@/server/auth/config", () => ({
 }));
 
 const mockFindUserById = vi.hoisted(() => vi.fn());
-vi.mock("@/db/queries/auth-queries", () => ({
+vi.mock("@igbo/db/queries/auth-queries", () => ({
   findUserById: mockFindUserById,
 }));
 

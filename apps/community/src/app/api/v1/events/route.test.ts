@@ -56,7 +56,7 @@ vi.mock("@/services/event-service", () => ({
   UpdateEventSchema: { safeParse: vi.fn() },
 }));
 
-vi.mock("@/db/queries/events", () => ({
+vi.mock("@igbo/db/queries/events", () => ({
   listUpcomingEvents: vi.fn().mockResolvedValue([]),
   createEvent: vi.fn(),
   getEventById: vi.fn(),
@@ -86,7 +86,7 @@ vi.mock("@/services/rate-limiter", () => ({
 
 import { requireAuthenticatedSession } from "@/services/permissions";
 import { createEvent } from "@/services/event-service";
-import { listUpcomingEvents, listPastEvents, listMyRsvps } from "@/db/queries/events";
+import { listUpcomingEvents, listPastEvents, listMyRsvps } from "@igbo/db/queries/events";
 import { CreateEventSchema } from "@/services/event-service";
 
 const makeRequest = (method: string, body?: unknown) =>

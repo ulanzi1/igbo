@@ -9,7 +9,7 @@ vi.mock("@/services/permissions", () => ({
   requireAuthenticatedSession: (...args: unknown[]) => mockRequireAuthenticatedSession(...args),
 }));
 
-vi.mock("@/db/queries/search", () => ({
+vi.mock("@igbo/db/queries/search", () => ({
   runGlobalSearch: (...args: unknown[]) => mockRunGlobalSearch(...args),
 }));
 

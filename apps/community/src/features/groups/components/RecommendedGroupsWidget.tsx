@@ -6,7 +6,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@/i18n/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { RecommendedGroupItem } from "@/db/queries/recommendations";
+import type { RecommendedGroupItem } from "@igbo/db/queries/recommendations";
 
 export function RecommendedGroupsWidget() {
   const t = useTranslations("Groups");

@@ -8,14 +8,14 @@ vi.mock("server-only", () => ({}));
 const mockAddArticleComment = vi.fn();
 const mockListArticleComments = vi.fn();
 
-vi.mock("@/db/queries/article-comments", () => ({
+vi.mock("@igbo/db/queries/article-comments", () => ({
   addArticleComment: (...args: unknown[]) => mockAddArticleComment(...args),
   listArticleComments: (...args: unknown[]) => mockListArticleComments(...args),
 }));
 
 const mockGetArticleByIdForAdmin = vi.fn();
 
-vi.mock("@/db/queries/articles", () => ({
+vi.mock("@igbo/db/queries/articles", () => ({
   createArticle: vi.fn(),
   updateArticle: vi.fn(),
   submitArticleForReview: vi.fn(),
