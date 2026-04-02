@@ -29,14 +29,4 @@ declare module "next-auth" {
   }
 }
 
-declare module "next-auth/jwt" {
-  interface JWT {
-    id: string;
-    role: "MEMBER" | "ADMIN" | "MODERATOR" | "JOB_SEEKER" | "EMPLOYER" | "JOB_ADMIN";
-    accountStatus: string;
-    profileCompleted: boolean;
-    membershipTier: "BASIC" | "PROFESSIONAL" | "TOP_TIER";
-  }
-}
-
 export {};

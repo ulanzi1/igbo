@@ -246,15 +246,27 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       return token;
     },
     async session({ session, token }) {
-      session.user.id = token.id;
-      session.user.role = token.role;
-      session.user.accountStatus = token.accountStatus;
-      session.user.profileCompleted = token.profileCompleted;
-      session.user.membershipTier = token.membershipTier ?? "BASIC";
-      session.user.image = (token.picture as string | null | undefined) ?? null;
+      // Cast to concrete shape — augmenting next-auth/jwt is done in consuming apps,
+      // not in this package (next-auth/jwt re-exports from @auth/core which isn't a
+      // direct dep here, so declare module augmentation fails standalone typecheck).
+      type AppToken = {
+        id: string;
+        role: "MEMBER" | "ADMIN" | "MODERATOR" | "JOB_SEEKER" | "EMPLOYER" | "JOB_ADMIN";
+        accountStatus: string;
+        profileCompleted: boolean;
+        membershipTier: "BASIC" | "PROFESSIONAL" | "TOP_TIER" | undefined;
+        picture?: string | null;
+      };
+      const t = token as unknown as AppToken;
+      session.user.id = t.id;
+      session.user.role = t.role;
+      session.user.accountStatus = t.accountStatus;
+      session.user.profileCompleted = t.profileCompleted;
+      session.user.membershipTier = t.membershipTier ?? "BASIC";
+      session.user.image = t.picture ?? null;
       // Create a short-lived JWT for Socket.IO auth (realtime server verifies with same AUTH_SECRET)
       const secret = new TextEncoder().encode(getAuthSecret());
-      session.sessionToken = await new SignJWT({ id: token.id })
+      session.sessionToken = await new SignJWT({ id: t.id })
         .setProtectedHeader({ alg: "HS256" })
         .setExpirationTime("1h")
         .sign(secret);
