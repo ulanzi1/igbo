@@ -4,7 +4,7 @@ import { withApiHandler } from "@/server/api/middleware";
 import { successResponse } from "@/lib/api-response";
 import { ApiError } from "@/lib/api-error";
 import { requireAuthenticatedSession } from "@/services/permissions";
-import { getGroupMember } from "@/db/queries/groups";
+import { getGroupMember } from "@igbo/db/queries/groups";
 import { createChannel, listChannelsForGroup } from "@/services/group-channel-service";
 import { RATE_LIMIT_PRESETS } from "@/services/rate-limiter";
 import { z } from "zod/v4";

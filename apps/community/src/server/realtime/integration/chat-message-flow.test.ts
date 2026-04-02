@@ -38,7 +38,7 @@ const mockGetReactionsForMessages = vi.hoisted(() => vi.fn());
 const mockGetUsersWhoBlocked = vi.hoisted(() => vi.fn());
 const mockGetFileUploadById = vi.hoisted(() => vi.fn());
 
-vi.mock("@/db/queries/chat-conversations", () => ({
+vi.mock("@igbo/db/queries/chat-conversations", () => ({
   getUserConversationIds: (...args: unknown[]) => mockGetUserConversationIds(...args),
   isConversationMember: (...args: unknown[]) => mockIsConversationMember(...args),
   markConversationRead: (...args: unknown[]) => mockMarkConversationRead(...args),
@@ -46,25 +46,25 @@ vi.mock("@/db/queries/chat-conversations", () => ({
   getConversationMembers: (...args: unknown[]) => mockGetConversationMembers(...args),
 }));
 
-vi.mock("@/db/queries/chat-messages", () => ({
+vi.mock("@igbo/db/queries/chat-messages", () => ({
   getMessagesSince: (...args: unknown[]) => mockGetMessagesSince(...args),
 }));
 
-vi.mock("@/db/queries/chat-message-attachments", () => ({
+vi.mock("@igbo/db/queries/chat-message-attachments", () => ({
   getAttachmentsForMessages: (...args: unknown[]) => mockGetAttachmentsForMessages(...args),
 }));
 
-vi.mock("@/db/queries/chat-message-reactions", () => ({
+vi.mock("@igbo/db/queries/chat-message-reactions", () => ({
   getReactionsForMessages: (...args: unknown[]) => mockGetReactionsForMessages(...args),
 }));
 
 // Exposed via dynamic import inside checkIfAnyMemberBlocked
-vi.mock("@/db/queries/block-mute", () => ({
+vi.mock("@igbo/db/queries/block-mute", () => ({
   getUsersWhoBlocked: (...args: unknown[]) => mockGetUsersWhoBlocked(...args),
 }));
 
 // Exposed via dynamic import inside validateAttachments
-vi.mock("@/db/queries/file-uploads", () => ({
+vi.mock("@igbo/db/queries/file-uploads", () => ({
   getFileUploadById: (...args: unknown[]) => mockGetFileUploadById(...args),
 }));
 

@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter, Link } from "@/i18n/navigation";
 import { VerificationBadge } from "@/components/shared/VerificationBadge";
-import type { BadgeType } from "@/db/schema/community-badges";
+import type { BadgeType } from "@igbo/db/schema/community-badges";
 
 interface LeaderboardUser {
   userId: string;

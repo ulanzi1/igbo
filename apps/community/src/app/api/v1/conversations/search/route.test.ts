@@ -9,7 +9,7 @@ vi.mock("@/services/permissions", () => ({
   requireAuthenticatedSession: (...args: unknown[]) => mockRequireAuthenticatedSession(...args),
 }));
 
-vi.mock("@/db/queries/chat-conversations", () => ({
+vi.mock("@igbo/db/queries/chat-conversations", () => ({
   searchMessages: (...args: unknown[]) => mockSearchMessages(...args),
 }));
 

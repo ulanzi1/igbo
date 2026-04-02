@@ -2,7 +2,7 @@ import { withApiHandler } from "@/server/api/middleware";
 import { successResponse } from "@/lib/api-response";
 import { ApiError } from "@/lib/api-error";
 import { requireAdminSession } from "@/lib/admin-auth";
-import { listAuditLogs } from "@/db/queries/audit-logs";
+import { listAuditLogs } from "@igbo/db/queries/audit-logs";
 import { z } from "zod/v4";
 
 const querySchema = z.object({

@@ -34,7 +34,7 @@ vi.mock("@/services/event-bus", () => ({
   eventBus: { on: mockEventBusOn, emit: mockEventBusEmit },
 }));
 
-vi.mock("@/db/queries/notifications", () => ({
+vi.mock("@igbo/db/queries/notifications", () => ({
   createNotification: (...args: unknown[]) => mockCreateNotification(...args),
   markNotificationRead: (...args: unknown[]) => mockMarkNotificationRead(...args),
   markAllNotificationsRead: (...args: unknown[]) => mockMarkAllNotificationsRead(...args),
@@ -49,16 +49,16 @@ vi.mock("@/lib/redis", () => ({
   getRedisClient: () => mockGetRedisPublisher(), // router uses getRedisClient for DnD check
 }));
 
-vi.mock("@/db/queries/chat-conversations", () => ({
+vi.mock("@igbo/db/queries/chat-conversations", () => ({
   getConversationNotificationPreference: (...args: unknown[]) =>
     mockGetConversationNotificationPreference(...args),
 }));
 
-vi.mock("@/db/queries/groups", () => ({
+vi.mock("@igbo/db/queries/groups", () => ({
   listGroupLeaders: vi.fn().mockResolvedValue([]),
 }));
 
-vi.mock("@/db/queries/auth-queries", () => ({
+vi.mock("@igbo/db/queries/auth-queries", () => ({
   findUserById: (...args: unknown[]) => mockFindUserById(...args),
   findUserByEmail: vi.fn(),
 }));
@@ -73,7 +73,7 @@ vi.mock("@/services/push-service", () => ({
   sendPushNotifications: (...args: unknown[]) => mockSendPushNotifications(...args),
 }));
 
-vi.mock("@/db/queries/notification-preferences", () => ({
+vi.mock("@igbo/db/queries/notification-preferences", () => ({
   getNotificationPreferences: vi.fn().mockResolvedValue({}),
   DEFAULT_PREFERENCES: {
     message: { inApp: true, email: true, push: true },
@@ -91,7 +91,7 @@ const mockGetEventById = vi.hoisted(() => vi.fn());
 const mockTransferGroupOwnership = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
 const mockDbSelect = vi.hoisted(() => vi.fn());
 
-vi.mock("@/db", () => ({
+vi.mock("@igbo/db", () => ({
   db: {
     select: (...args: unknown[]) => mockDbSelect(...args),
   },
@@ -101,7 +101,7 @@ vi.mock("@/services/group-service", () => ({
   transferGroupOwnership: (...args: unknown[]) => mockTransferGroupOwnership(...args),
 }));
 
-vi.mock("@/db/queries/events", () => ({
+vi.mock("@igbo/db/queries/events", () => ({
   getEventById: (...args: unknown[]) => mockGetEventById(...args),
   getAttendeeStatus: vi.fn(),
   rsvpToEvent: vi.fn(),
@@ -116,7 +116,7 @@ vi.mock("@/db/queries/events", () => ({
 
 // Import module once — listeners are registered at load time and captured by handlerRef
 import { markNotificationAsRead, markAllNotificationsAsRead } from "./notification-service";
-import { getNotificationPreferences } from "@/db/queries/notification-preferences";
+import { getNotificationPreferences } from "@igbo/db/queries/notification-preferences";
 
 // ─── Tests ───────────────────────────────────────────────────────────────────
 

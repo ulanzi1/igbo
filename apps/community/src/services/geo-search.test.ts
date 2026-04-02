@@ -4,13 +4,13 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 vi.mock("server-only", () => ({}));
 
 const mockDbExecute = vi.fn();
-vi.mock("@/db", () => ({
+vi.mock("@igbo/db", () => ({
   db: { execute: (...args: unknown[]) => mockDbExecute(...args) },
 }));
 
 const mockGetBlockedUserIds = vi.fn();
 const mockGetUsersWhoBlocked = vi.fn();
-vi.mock("@/db/queries/block-mute", () => ({
+vi.mock("@igbo/db/queries/block-mute", () => ({
   getBlockedUserIds: (...args: unknown[]) => mockGetBlockedUserIds(...args),
   getUsersWhoBlocked: (...args: unknown[]) => mockGetUsersWhoBlocked(...args),
 }));

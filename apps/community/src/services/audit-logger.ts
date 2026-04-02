@@ -1,11 +1,11 @@
 import "server-only";
-import { db } from "@/db";
-import { auditLogs } from "@/db/schema/audit-logs";
-import { logModerationEntry } from "@/db/queries/group-moderation";
+import { db } from "@igbo/db";
+import { auditLogs } from "@igbo/db/schema/audit-logs";
+import { logModerationEntry } from "@igbo/db/queries/group-moderation";
 import type {
   GroupModerationAction,
   GroupModerationTargetType,
-} from "@/db/schema/group-moderation-logs";
+} from "@igbo/db/schema/group-moderation-logs";
 
 export type AdminAction =
   | "APPROVE_APPLICATION"

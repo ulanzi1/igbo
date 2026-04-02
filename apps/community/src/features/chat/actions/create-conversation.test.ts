@@ -28,13 +28,13 @@ vi.mock("@/services/permissions", () => ({
   requireAuthenticatedSession: vi.fn().mockResolvedValue({ userId: CURRENT_USER }),
 }));
 
-vi.mock("@/db/queries/chat-conversations", () => ({
+vi.mock("@igbo/db/queries/chat-conversations", () => ({
   findExistingDirectConversation: (...args: unknown[]) => mockFindExisting(...args),
   getConversationById: (...args: unknown[]) => mockGetById(...args),
   createConversation: (...args: unknown[]) => mockCreate(...args),
 }));
 
-vi.mock("@/db/queries/block-mute", () => ({
+vi.mock("@igbo/db/queries/block-mute", () => ({
   isBlocked: (...args: unknown[]) => mockIsBlocked(...args),
 }));
 

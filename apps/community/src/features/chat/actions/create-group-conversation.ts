@@ -1,7 +1,7 @@
 "use server";
 
 import { requireAuthenticatedSession } from "@/services/permissions";
-import { createConversation, checkBlocksAmongMembers } from "@/db/queries/chat-conversations";
+import { createConversation, checkBlocksAmongMembers } from "@igbo/db/queries/chat-conversations";
 import { MAX_GROUP_MEMBERS } from "@igbo/config/chat";
 import { eventBus } from "@/services/event-bus";
 

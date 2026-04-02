@@ -7,11 +7,12 @@ import {
   updateModerationAction,
   listModerationKeywords,
   updateModerationKeyword,
-} from "@/db/queries/moderation";
-import { listMemberDisciplineHistory } from "@/db/queries/member-discipline";
-import { softDeletePostByModeration, getPostContentForModeration } from "@/db/queries/posts";
-import { softDeleteArticleByModeration, getArticleByIdForAdmin } from "@/db/queries/articles";
+} from "@igbo/db/queries/moderation";
+import { listMemberDisciplineHistory } from "@igbo/db/queries/member-discipline";
+import { softDeletePostByModeration, getPostContentForModeration } from "@igbo/db/queries/posts";
+import { softDeleteArticleByModeration, getArticleByIdForAdmin } from "@igbo/db/queries/articles";
 import { issueWarning, issueSuspension, issueBan } from "@/services/member-discipline-service";
+import { invalidateKeywordCache } from "@/services/moderation-service";
 import { eventBus } from "@/services/event-bus";
 import { z } from "zod/v4";
 import { tiptapJsonToPlainText } from "@/features/articles/utils/tiptap-to-html";
@@ -152,6 +153,7 @@ export const PATCH = withApiHandler(async (request: Request) => {
       );
       if (match) {
         await updateModerationKeyword(match.id, { isActive: false });
+        await invalidateKeywordCache();
       }
     }
   } else if (action === "remove") {

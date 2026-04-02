@@ -21,7 +21,7 @@ vi.mock("@/services/daily-video-service", () => ({
 const mockGetEventById = vi.fn();
 const mockGetAttendeeStatus = vi.fn();
 
-vi.mock("@/db/queries/events", () => ({
+vi.mock("@igbo/db/queries/events", () => ({
   createEvent: vi.fn(),
   updateEvent: vi.fn().mockResolvedValue({}),
   cancelEvent: vi.fn(),
@@ -34,15 +34,15 @@ vi.mock("@/db/queries/events", () => ({
   listEventAttendees: vi.fn(),
 }));
 
-vi.mock("@/db/queries/auth-permissions", () => ({
+vi.mock("@igbo/db/queries/auth-permissions", () => ({
   getUserMembershipTier: vi.fn(),
 }));
 
-vi.mock("@/db/queries/groups", () => ({
+vi.mock("@igbo/db/queries/groups", () => ({
   getUserPlatformRole: vi.fn(),
 }));
 
-vi.mock("@/db/queries/platform-settings", () => ({
+vi.mock("@igbo/db/queries/platform-settings", () => ({
   getPlatformSetting: vi.fn(),
 }));
 
@@ -79,14 +79,14 @@ vi.mock("@/env", () => ({
 const mockDbSelect = vi.fn();
 const mockDbUpdate = vi.fn();
 
-vi.mock("@/db", () => ({
+vi.mock("@igbo/db", () => ({
   db: {
     select: (...args: unknown[]) => mockDbSelect(...args),
     update: (...args: unknown[]) => mockDbUpdate(...args),
   },
 }));
 
-vi.mock("@/db/schema/community-events", () => ({
+vi.mock("@igbo/db/schema/community-events", () => ({
   communityEvents: { id: "id", recordingExpiresAt: "recording_expires_at" },
   recordingStatusEnum: { enumValues: ["pending", "mirroring", "ready", "lost"] },
 }));
@@ -111,9 +111,9 @@ import {
   getRecordingDownloadUrl,
   preserveRecording,
 } from "./event-service";
-import { getUserMembershipTier } from "@/db/queries/auth-permissions";
-import { getUserPlatformRole } from "@/db/queries/groups";
-import { getPlatformSetting } from "@/db/queries/platform-settings";
+import { getUserMembershipTier } from "@igbo/db/queries/auth-permissions";
+import { getUserPlatformRole } from "@igbo/db/queries/groups";
+import { getPlatformSetting } from "@igbo/db/queries/platform-settings";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 const EVENT_ID = "event-abc";

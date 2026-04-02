@@ -5,7 +5,7 @@ import {
   consumeVerificationToken,
   findTokenByHash,
   transitionUserToApprovalPending,
-} from "@/db/queries/auth-queries";
+} from "@igbo/db/queries/auth-queries";
 import { eventBus } from "@/services/event-bus";
 import { enqueueEmailJob } from "@/services/email-service";
 import { env } from "@/env";

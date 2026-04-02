@@ -1,5 +1,5 @@
 import "server-only";
-import { db } from "@/db";
+import { db } from "@igbo/db";
 import { sql } from "drizzle-orm";
 import { getRedisClient } from "@/lib/redis";
 import type { Redis } from "ioredis";

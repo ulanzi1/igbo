@@ -10,7 +10,7 @@ import {
   setRecordingMirror,
   markRecordingLost,
   updateMirrorRetrySchedule,
-} from "@/db/queries/events";
+} from "@igbo/db/queries/events";
 import { logAdminAction } from "@/services/audit-logger";
 
 const MAX_RETRY_COUNT = 20; // ~5 days at 6h intervals

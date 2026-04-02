@@ -19,7 +19,7 @@ vi.mock("@/services/permissions", () => ({
   isAdmin: (...args: unknown[]) => mockIsAdmin(...args),
 }));
 
-vi.mock("@/db/queries/auth-queries", () => ({
+vi.mock("@igbo/db/queries/auth-queries", () => ({
   findUserById: vi.fn(),
 }));
 

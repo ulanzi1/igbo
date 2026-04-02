@@ -14,7 +14,7 @@ vi.mock("@/services/permissions", () => ({
   requireAuthenticatedSession: (...args: unknown[]) => mockRequireAuthenticatedSession(...args),
 }));
 
-vi.mock("@/db/queries/chat-conversations", () => ({
+vi.mock("@igbo/db/queries/chat-conversations", () => ({
   getUserConversations: (...args: unknown[]) => mockGetUserConversations(...args),
   createConversation: (...args: unknown[]) => mockCreateConversation(...args),
   findExistingDirectConversation: (...args: unknown[]) =>
@@ -22,7 +22,7 @@ vi.mock("@/db/queries/chat-conversations", () => ({
   getConversationById: (...args: unknown[]) => mockGetConversationById(...args),
 }));
 
-vi.mock("@/db/queries/block-mute", () => ({
+vi.mock("@igbo/db/queries/block-mute", () => ({
   isBlocked: (...args: unknown[]) => mockIsBlocked(...args),
   getBlockedUserIds: (...args: unknown[]) => mockGetBlockedUserIds(...args),
 }));

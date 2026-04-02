@@ -4,7 +4,7 @@ import { ApiError } from "@/lib/api-error";
 import { requireAdminSession } from "@/lib/admin-auth";
 import { admin2faReset } from "@/services/auth-service";
 import { logAdminAction } from "@/services/audit-logger";
-import { findUserById } from "@/db/queries/auth-queries";
+import { findUserById } from "@igbo/db/queries/auth-queries";
 
 export const POST = withApiHandler(async (request: Request) => {
   const { adminId } = await requireAdminSession(request);

@@ -2,8 +2,8 @@ import { withApiHandler } from "@/server/api/middleware";
 import { successResponse } from "@/lib/api-response";
 import { ApiError } from "@/lib/api-error";
 import { requireAdminSession } from "@/lib/admin-auth";
-import { getModerationActionById } from "@/db/queries/moderation";
-import { getMessageById, getConversationMessages } from "@/db/queries/chat-messages";
+import { getModerationActionById } from "@igbo/db/queries/moderation";
+import { getMessageById, getConversationMessages } from "@igbo/db/queries/chat-messages";
 import { logAdminAction } from "@/services/audit-logger";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

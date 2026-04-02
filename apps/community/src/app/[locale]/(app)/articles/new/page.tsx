@@ -3,7 +3,7 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { auth } from "@/server/auth/config";
 import { canPublishArticle, PERMISSION_MATRIX } from "@/services/permissions";
-import { getUserMembershipTier } from "@/db/queries/auth-permissions";
+import { getUserMembershipTier } from "@igbo/db/queries/auth-permissions";
 import { ArticleEditor } from "@/features/articles";
 
 export const dynamic = "force-dynamic";

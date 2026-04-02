@@ -6,13 +6,13 @@ vi.mock("server-only", () => ({}));
 const mockInsert = vi.fn();
 const mockValues = vi.fn();
 
-vi.mock("@/db", () => ({
+vi.mock("@igbo/db", () => ({
   db: {
     insert: (...args: unknown[]) => mockInsert(...args),
   },
 }));
 
-vi.mock("@/db/schema/audit-logs", () => ({
+vi.mock("@igbo/db/schema/audit-logs", () => ({
   auditLogs: { __table: "audit_logs" },
 }));
 

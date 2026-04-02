@@ -4,7 +4,7 @@ import { successResponse } from "@/lib/api-response";
 import { ApiError } from "@/lib/api-error";
 import { getChallenge } from "@/server/auth/config";
 import { generate2faSecret, verify2faAndComplete } from "@/services/auth-service";
-import { findUserById } from "@/db/queries/auth-queries";
+import { findUserById } from "@igbo/db/queries/auth-queries";
 import { checkRateLimit } from "@/lib/rate-limiter";
 
 const setupInitSchema = z.object({

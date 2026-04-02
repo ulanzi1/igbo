@@ -9,7 +9,7 @@ import {
   getBlockedUserIds,
   getUsersWhoBlocked,
   getUsersWhoMuted,
-} from "@/db/queries/block-mute";
+} from "@igbo/db/queries/block-mute";
 
 /**
  * BlockService — shared query filters for block/mute checks.

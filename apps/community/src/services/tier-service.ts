@@ -1,10 +1,10 @@
 import "server-only";
-import { getUserMembershipTier, updateUserMembershipTier } from "@/db/queries/auth-permissions";
-import { findActiveSessionsByUserId } from "@/db/queries/auth-sessions";
+import { getUserMembershipTier, updateUserMembershipTier } from "@igbo/db/queries/auth-permissions";
+import { findActiveSessionsByUserId } from "@igbo/db/queries/auth-sessions";
 import { evictAllUserSessions } from "@/server/auth/redis-session-cache";
 import { logAdminAction } from "@/services/audit-logger";
 import { eventBus } from "@/services/event-bus";
-import type { MembershipTier } from "@/db/queries/auth-permissions";
+import type { MembershipTier } from "@igbo/db/queries/auth-permissions";
 
 export type { MembershipTier };
 

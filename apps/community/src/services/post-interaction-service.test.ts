@@ -9,7 +9,7 @@ import {
 } from "./post-interaction-service";
 
 vi.mock("server-only", () => ({}));
-vi.mock("@/db/queries/post-interactions", () => ({
+vi.mock("@igbo/db/queries/post-interactions", () => ({
   toggleReaction: vi.fn(),
   insertComment: vi.fn(),
   softDeleteComment: vi.fn(),
@@ -17,12 +17,12 @@ vi.mock("@/db/queries/post-interactions", () => ({
   incrementShareCount: vi.fn(),
   getOriginalPostEmbed: vi.fn(),
 }));
-vi.mock("@/db/queries/posts", () => ({
+vi.mock("@igbo/db/queries/posts", () => ({
   insertPost: vi.fn(),
   getPostGroupId: vi.fn(),
   getPostAuthorId: vi.fn().mockResolvedValue("author-user-id"),
 }));
-vi.mock("@/db/queries/groups", () => ({
+vi.mock("@igbo/db/queries/groups", () => ({
   getGroupMemberFull: vi.fn(),
 }));
 vi.mock("@/services/event-bus", () => ({
@@ -35,9 +35,9 @@ import {
   softDeleteComment,
   incrementShareCount,
   getOriginalPostEmbed,
-} from "@/db/queries/post-interactions";
-import { insertPost, getPostGroupId, getPostAuthorId } from "@/db/queries/posts";
-import { getGroupMemberFull } from "@/db/queries/groups";
+} from "@igbo/db/queries/post-interactions";
+import { insertPost, getPostGroupId, getPostAuthorId } from "@igbo/db/queries/posts";
+import { getGroupMemberFull } from "@igbo/db/queries/groups";
 import { eventBus } from "@/services/event-bus";
 import { ApiError } from "@/lib/api-error";
 

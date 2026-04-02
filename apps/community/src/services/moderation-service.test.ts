@@ -35,7 +35,7 @@ vi.mock("@/services/event-bus", () => ({
   eventBus: { on: mockEventBusOn, emit: mockEventBusEmit },
 }));
 
-vi.mock("@/db/queries/moderation", () => ({
+vi.mock("@igbo/db/queries/moderation", () => ({
   getActiveKeywords: (...args: unknown[]) => mockGetActiveKeywords(...args),
   insertModerationAction: (...args: unknown[]) => mockInsertModerationAction(...args),
   getRecentPostsForScan: (...args: unknown[]) => mockGetRecentPostsForScan(...args),
@@ -43,18 +43,18 @@ vi.mock("@/db/queries/moderation", () => ({
 }));
 
 const mockGetReportCountByContent = vi.hoisted(() => vi.fn().mockResolvedValue(1));
-vi.mock("@/db/queries/reports", () => ({
+vi.mock("@igbo/db/queries/reports", () => ({
   getReportCountByContent: (...args: unknown[]) => mockGetReportCountByContent(...args),
 }));
 
-vi.mock("@/db/queries/posts", () => ({
+vi.mock("@igbo/db/queries/posts", () => ({
   getPostContent: (...args: unknown[]) => mockGetPostContent(...args),
   getPostContentLength: vi.fn(),
   getPostAuthorId: vi.fn(),
   getPostGroupId: vi.fn(),
 }));
 
-vi.mock("@/db/queries/articles", () => ({
+vi.mock("@igbo/db/queries/articles", () => ({
   getArticleContent: (...args: unknown[]) => mockGetArticleContent(...args),
 }));
 

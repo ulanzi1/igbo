@@ -5,5 +5,5 @@ export type {
   FeedPostOriginal,
   FeedPage,
   GetFeedOptions,
-} from "@/db/queries/feed";
+} from "@igbo/db/queries/feed";
 export type { FeedSortMode, FeedFilter } from "@igbo/config/feed";

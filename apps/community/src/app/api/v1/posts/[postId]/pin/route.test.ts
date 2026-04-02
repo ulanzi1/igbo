@@ -23,8 +23,8 @@ const mockDb = vi.hoisted(() => ({
   update: vi.fn(),
 }));
 
-vi.mock("@/db", () => ({ db: mockDb }));
-vi.mock("@/db/schema/community-posts", () => ({
+vi.mock("@igbo/db", () => ({ db: mockDb }));
+vi.mock("@igbo/db/schema/community-posts", () => ({
   communityPosts: {
     id: "id",
     isPinned: "is_pinned",

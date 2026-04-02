@@ -1,8 +1,8 @@
 "use server";
 
-import { searchMembersByName } from "@/db/queries/community-profiles";
+import { searchMembersByName } from "@igbo/db/queries/community-profiles";
 
-export type { MemberSearchResult } from "@/db/queries/community-profiles";
+export type { MemberSearchResult } from "@igbo/db/queries/community-profiles";
 
 export async function searchMembers(
   query: string,

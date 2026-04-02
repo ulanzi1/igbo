@@ -12,10 +12,10 @@ import {
   getUserConversationIds,
   isConversationMember,
   markConversationRead,
-} from "@/db/queries/chat-conversations";
-import { getMessagesSince } from "@/db/queries/chat-messages";
-import { getAttachmentsForMessages } from "@/db/queries/chat-message-attachments";
-import { getReactionsForMessages } from "@/db/queries/chat-message-reactions";
+} from "@igbo/db/queries/chat-conversations";
+import { getMessagesSince } from "@igbo/db/queries/chat-messages";
+import { getAttachmentsForMessages } from "@igbo/db/queries/chat-message-attachments";
+import { getReactionsForMessages } from "@igbo/db/queries/chat-message-reactions";
 import { messageService } from "@/services/message-service";
 
 const MAX_ATTACHMENTS_PER_MESSAGE = 10;
@@ -479,8 +479,8 @@ async function autoJoinConversations(
  */
 async function checkIfAnyMemberBlocked(conversationId: string, senderId: string): Promise<boolean> {
   try {
-    const { getConversationMembers } = await import("@/db/queries/chat-conversations");
-    const { getUsersWhoBlocked } = await import("@/db/queries/block-mute");
+    const { getConversationMembers } = await import("@igbo/db/queries/chat-conversations");
+    const { getUsersWhoBlocked } = await import("@igbo/db/queries/block-mute");
 
     const [members, blockerIds] = await Promise.all([
       getConversationMembers(conversationId),
@@ -511,7 +511,7 @@ async function checkIfAnyMemberBlocked(conversationId: string, senderId: string)
  */
 async function validateAttachments(fileUploadIds: string[], senderId: string): Promise<boolean> {
   try {
-    const { getFileUploadById } = await import("@/db/queries/file-uploads");
+    const { getFileUploadById } = await import("@igbo/db/queries/file-uploads");
 
     for (const id of fileUploadIds) {
       const upload = await getFileUploadById(id);

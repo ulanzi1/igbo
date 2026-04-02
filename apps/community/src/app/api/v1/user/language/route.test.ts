@@ -11,7 +11,7 @@ vi.mock("@/services/permissions", () => ({
   requireAuthenticatedSession: (...args: unknown[]) => mockRequireAuthenticatedSession(...args),
 }));
 
-vi.mock("@/db/queries/auth-queries", () => ({
+vi.mock("@igbo/db/queries/auth-queries", () => ({
   updateLanguagePreference: (...args: unknown[]) => mockUpdateLanguagePreference(...args),
   findUserByEmail: vi.fn(),
   findUserById: vi.fn(),

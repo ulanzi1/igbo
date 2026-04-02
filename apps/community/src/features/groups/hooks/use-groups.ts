@@ -1,8 +1,8 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import type { GroupListItem, DirectoryGroupItem } from "@/db/queries/groups";
-import type { GroupMemberRole, GroupMemberStatus } from "@/db/schema/community-groups";
+import type { GroupListItem, DirectoryGroupItem } from "@igbo/db/queries/groups";
+import type { GroupMemberRole, GroupMemberStatus } from "@igbo/db/schema/community-groups";
 
 interface UseGroupsParams {
   nameFilter?: string;

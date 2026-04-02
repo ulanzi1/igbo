@@ -1,17 +1,17 @@
 import "server-only";
 import { canCreateFeedPost, getMaxFeedPostsPerWeek } from "@/services/permissions";
-import { getUserMembershipTier } from "@/db/queries/auth-permissions";
+import { getUserMembershipTier } from "@igbo/db/queries/auth-permissions";
 import {
   getWeeklyFeedPostCount,
   insertPost,
   insertPostMedia,
   resolveFileUploadUrls,
-} from "@/db/queries/posts";
-import { getGroupById, getGroupMemberFull } from "@/db/queries/groups";
+} from "@igbo/db/queries/posts";
+import { getGroupById, getGroupMemberFull } from "@igbo/db/queries/groups";
 import { eventBus } from "@/services/event-bus";
 
 // Re-export for use in Server Action
-export type { CreatePostData, CreatePostMediaData } from "@/db/queries/posts";
+export type { CreatePostData, CreatePostMediaData } from "@igbo/db/queries/posts";
 
 export interface CreateFeedPostInput {
   authorId: string;

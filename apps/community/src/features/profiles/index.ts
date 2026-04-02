@@ -28,7 +28,7 @@ export { RetakeTourButton } from "./components/RetakeTourButton";
 export { FollowButton } from "./components/FollowButton";
 export { FollowList } from "./components/FollowList";
 export { useFollow } from "./hooks/use-follow";
-export type { FollowListMember } from "@/db/queries/follows";
+export type { FollowListMember } from "@igbo/db/queries/follows";
 export type {
   UpdateProfileData,
   PrivacySettings as PrivacySettingsType,

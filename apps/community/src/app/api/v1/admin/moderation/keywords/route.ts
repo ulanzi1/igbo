@@ -2,8 +2,9 @@ import { withApiHandler } from "@/server/api/middleware";
 import { successResponse } from "@/lib/api-response";
 import { ApiError } from "@/lib/api-error";
 import { requireAdminSession } from "@/lib/admin-auth";
-import { listModerationKeywords, addModerationKeyword } from "@/db/queries/moderation";
+import { listModerationKeywords, addModerationKeyword } from "@igbo/db/queries/moderation";
 import { eventBus } from "@/services/event-bus";
+import { invalidateKeywordCache } from "@/services/moderation-service";
 import { z } from "zod/v4";
 
 const addSchema = z.object({
@@ -38,6 +39,7 @@ export const POST = withApiHandler(async (request: Request) => {
   }
 
   const keyword = await addModerationKeyword({ ...parsed.data, createdBy: adminId });
+  await invalidateKeywordCache();
 
   try {
     eventBus.emit("moderation.keyword_added", {

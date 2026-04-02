@@ -5,7 +5,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const mockGetExportRequestByToken = vi.fn();
 
-vi.mock("@/db/queries/gdpr", () => ({
+vi.mock("@igbo/db/queries/gdpr", () => ({
   getExportRequestByToken: (...args: unknown[]) => mockGetExportRequestByToken(...args),
   createExportRequest: vi.fn(),
   getUserExportRequests: vi.fn(),

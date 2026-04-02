@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { auth } from "@/server/auth/config";
-import { getGroupById, getGroupMember } from "@/db/queries/groups";
+import { getGroupById, getGroupMember } from "@igbo/db/queries/groups";
 import { GroupSettings } from "@/features/groups";
 
 export const dynamic = "force-dynamic"; // Personalized — never cache at SSR level

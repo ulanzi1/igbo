@@ -11,7 +11,7 @@ vi.mock("@/services/event-bus", () => ({
   eventBus: { emit: vi.fn(), on: vi.fn() },
 }));
 
-vi.mock("@/db/queries/articles", () => ({
+vi.mock("@igbo/db/queries/articles", () => ({
   listPendingArticles: vi.fn(),
   listPublishedArticles: vi.fn(),
   getArticleByIdForAdmin: vi.fn(),
@@ -38,7 +38,7 @@ import {
   rejectArticleById,
   requestRevisionById,
   toggleArticleFeature,
-} from "@/db/queries/articles";
+} from "@igbo/db/queries/articles";
 import {
   listPendingArticlesForAdmin,
   listPublishedArticlesForAdmin,

@@ -23,23 +23,23 @@ vi.mock("@/lib/admin-auth", () => ({
   requireAdminSession: (...args: unknown[]) => mockRequireAdminSession(...args),
 }));
 
-vi.mock("@/db/queries/moderation", () => ({
+vi.mock("@igbo/db/queries/moderation", () => ({
   getModerationActionById: (...args: unknown[]) => mockGetModerationActionById(...args),
   updateModerationAction: (...args: unknown[]) => mockUpdateModerationAction(...args),
   listModerationKeywords: (...args: unknown[]) => mockListModerationKeywords(...args),
   updateModerationKeyword: (...args: unknown[]) => mockUpdateModerationKeyword(...args),
 }));
 
-vi.mock("@/db/queries/member-discipline", () => ({
+vi.mock("@igbo/db/queries/member-discipline", () => ({
   listMemberDisciplineHistory: (...args: unknown[]) => mockListMemberDisciplineHistory(...args),
 }));
 
-vi.mock("@/db/queries/posts", () => ({
+vi.mock("@igbo/db/queries/posts", () => ({
   softDeletePostByModeration: (...args: unknown[]) => mockSoftDeletePostByModeration(...args),
   getPostContentForModeration: (...args: unknown[]) => mockGetPostContentForModeration(...args),
 }));
 
-vi.mock("@/db/queries/articles", () => ({
+vi.mock("@igbo/db/queries/articles", () => ({
   softDeleteArticleByModeration: (...args: unknown[]) => mockSoftDeleteArticleByModeration(...args),
   getArticleByIdForAdmin: (...args: unknown[]) => mockGetArticleByIdForAdmin(...args),
 }));
@@ -55,7 +55,7 @@ vi.mock("@/services/member-discipline-service", () => ({
 }));
 
 vi.mock("@/services/event-bus", () => ({
-  eventBus: { emit: (...args: unknown[]) => mockEventBusEmit(...args) },
+  eventBus: { emit: (...args: unknown[]) => mockEventBusEmit(...args), on: vi.fn() },
 }));
 
 vi.mock("@/lib/request-context", () => ({

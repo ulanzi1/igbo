@@ -2,7 +2,7 @@
 
 import { saveDraft, submitArticle } from "@/services/article-service";
 import { requireAuthenticatedSession } from "@/services/permissions";
-import type { ArticleCategory, ArticleVisibility } from "@/db/schema/community-articles";
+import type { ArticleCategory, ArticleVisibility } from "@igbo/db/schema/community-articles";
 
 interface SaveDraftActionInput {
   articleId?: string;

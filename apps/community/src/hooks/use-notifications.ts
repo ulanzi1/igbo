@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSocket } from "./use-socket";
-import type { PlatformNotification } from "@/db/schema/platform-notifications";
+import type { PlatformNotification } from "@igbo/db/schema/platform-notifications";
 
 interface NotificationsResponse {
   notifications: PlatformNotification[];

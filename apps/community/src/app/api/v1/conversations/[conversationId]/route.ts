@@ -7,7 +7,7 @@ import {
   getConversationById,
   markConversationRead,
   getConversationWithMembers,
-} from "@/db/queries/chat-conversations";
+} from "@igbo/db/queries/chat-conversations";
 import { RATE_LIMIT_PRESETS } from "@/services/rate-limiter";
 
 // ── GET /api/v1/conversations/[conversationId] ────────────────────────────────

@@ -6,12 +6,12 @@ import {
   insertModerationAction,
   getRecentPostsForScan,
   getRecentArticlesForScan,
-} from "@/db/queries/moderation";
-import { getPostContent } from "@/db/queries/posts";
-import { getArticleContent } from "@/db/queries/articles";
+} from "@igbo/db/queries/moderation";
+import { getPostContent } from "@igbo/db/queries/posts";
+import { getArticleContent } from "@igbo/db/queries/articles";
 import { scanContent } from "@/lib/moderation-scanner";
 import { tiptapJsonToPlainText } from "@/features/articles/utils/tiptap-to-html";
-import { getReportCountByContent } from "@/db/queries/reports";
+import { getReportCountByContent } from "@igbo/db/queries/reports";
 import type {
   PostPublishedEvent,
   ArticlePublishedEvent,
@@ -91,6 +91,19 @@ async function getCachedKeywords(): Promise<Keyword[]> {
     // Cache write failure is non-critical — keywords fetched from DB directly next time
   }
   return keywords;
+}
+
+/**
+ * Invalidate the active keywords Redis cache.
+ * Called by API routes after keyword mutations (add/update/delete).
+ * Non-critical: failure is swallowed.
+ */
+export async function invalidateKeywordCache(): Promise<void> {
+  try {
+    await getRedisClient().del(REDIS_KEYWORDS_KEY);
+  } catch {
+    // Non-critical — cache will expire naturally
+  }
 }
 
 /**

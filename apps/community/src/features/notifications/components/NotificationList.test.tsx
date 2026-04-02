@@ -2,7 +2,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@/test/test-utils";
 import { NotificationList } from "./NotificationList";
-import type { PlatformNotification } from "@/db/schema/platform-notifications";
+import type { PlatformNotification } from "@igbo/db/schema/platform-notifications";
 
 vi.mock("next-intl", () => ({
   useTranslations: () => (key: string, params?: Record<string, unknown>) => {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import type { AuthUser } from "@/db/schema/auth-users";
+import type { AuthUser } from "@igbo/db/schema/auth-users";
 
 interface ApplicationsResponse {
   data: AuthUser[];

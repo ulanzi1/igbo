@@ -10,7 +10,7 @@ vi.mock("@igbo/config/realtime", () => ({
 }));
 
 const mockGetNotifications = vi.fn();
-vi.mock("@/db/queries/notifications", () => ({
+vi.mock("@igbo/db/queries/notifications", () => ({
   getNotifications: (...args: unknown[]) => mockGetNotifications(...args),
 }));
 

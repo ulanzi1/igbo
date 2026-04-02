@@ -2,7 +2,7 @@ import { withApiHandler } from "@/server/api/middleware";
 import { successResponse } from "@/lib/api-response";
 import { ApiError } from "@/lib/api-error";
 import { requireAuthenticatedSession } from "@/services/permissions";
-import { updateLanguagePreference } from "@/db/queries/auth-queries";
+import { updateLanguagePreference } from "@igbo/db/queries/auth-queries";
 import { z } from "zod/v4";
 import { auth } from "@/server/auth/config";
 import { RATE_LIMIT_PRESETS } from "@/services/rate-limiter";

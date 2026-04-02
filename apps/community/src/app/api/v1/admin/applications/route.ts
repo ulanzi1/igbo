@@ -1,7 +1,7 @@
 import { withApiHandler } from "@/server/api/middleware";
 import { successResponse } from "@/lib/api-response";
 import { getApplicationsList } from "@/services/admin-approval-service";
-import type { ApplicationStatus } from "@/db/queries/admin-approvals";
+import type { ApplicationStatus } from "@igbo/db/queries/admin-approvals";
 import { ApiError } from "@/lib/api-error";
 
 const ALLOWED_STATUSES: ApplicationStatus[] = [

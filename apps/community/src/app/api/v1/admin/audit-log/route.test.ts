@@ -24,7 +24,7 @@ vi.mock("@/lib/admin-auth", () => ({
   requireAdminSession: (...args: unknown[]) => mockRequireAdminSession(...args),
 }));
 
-vi.mock("@/db/queries/audit-logs", () => ({
+vi.mock("@igbo/db/queries/audit-logs", () => ({
   listAuditLogs: (...args: unknown[]) => mockListAuditLogs(...args),
 }));
 

@@ -24,12 +24,12 @@ import { io as ioc, type Socket as ClientSocket } from "socket.io-client";
 import type Redis from "ioredis";
 
 // ── Group channels mock (needed because eventbus-bridge now imports listGroupChannels) ──
-vi.mock("@/db/queries/group-channels", () => ({
+vi.mock("@igbo/db/queries/group-channels", () => ({
   listGroupChannels: vi.fn().mockResolvedValue([]),
 }));
 
 // ── Moderation bridge mocks (eventbus-bridge now imports db + chat-messages for content events) ──
-vi.mock("@/db", () => ({
+vi.mock("@igbo/db", () => ({
   db: {
     select: vi.fn().mockReturnValue({
       from: vi.fn().mockReturnValue({
@@ -39,7 +39,7 @@ vi.mock("@/db", () => ({
   },
 }));
 
-vi.mock("@/db/schema/chat-messages", () => ({
+vi.mock("@igbo/db/schema/chat-messages", () => ({
   chatMessages: { id: "id", conversationId: "conversation_id" },
 }));
 
@@ -60,7 +60,7 @@ vi.mock("@igbo/config/realtime", () => ({
 
 // ── DB query mock ──────────────────────────────────────────────────────────────
 const mockGetNotifications = vi.hoisted(() => vi.fn());
-vi.mock("@/db/queries/notifications", () => ({
+vi.mock("@igbo/db/queries/notifications", () => ({
   getNotifications: (...args: unknown[]) => mockGetNotifications(...args),
   createNotification: vi.fn(),
   markNotificationRead: vi.fn(),

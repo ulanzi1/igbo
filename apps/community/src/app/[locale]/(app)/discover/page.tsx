@@ -1,7 +1,7 @@
 import { setRequestLocale, getTranslations } from "next-intl/server";
 import { auth } from "@/server/auth/config";
 import { redirect } from "next/navigation";
-import { getProfileByUserId } from "@/db/queries/community-profiles";
+import { getProfileByUserId } from "@igbo/db/queries/community-profiles";
 import { DiscoverContent } from "@/features/discover/components/DiscoverContent";
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {

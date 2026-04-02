@@ -46,7 +46,7 @@ vi.mock("@/services/event-service", () => ({
   UpdateEventSchema: { safeParse: vi.fn() },
 }));
 
-vi.mock("@/db/queries/events", () => ({
+vi.mock("@igbo/db/queries/events", () => ({
   getAttendeeStatus: vi.fn(),
   listUpcomingEvents: vi.fn(),
   listPastEvents: vi.fn(),
@@ -71,7 +71,7 @@ vi.mock("@/services/rate-limiter", () => ({
 
 import { requireAuthenticatedSession } from "@/services/permissions";
 import { rsvpToEvent, cancelEventRsvp } from "@/services/event-service";
-import { getAttendeeStatus } from "@/db/queries/events";
+import { getAttendeeStatus } from "@igbo/db/queries/events";
 
 const makeRsvpRequest = (method: string) =>
   new Request("http://localhost/api/v1/events/event-1/rsvp", {

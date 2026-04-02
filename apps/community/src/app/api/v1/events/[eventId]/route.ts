@@ -6,8 +6,8 @@ import { successResponse } from "@/lib/api-response";
 import { ApiError } from "@/lib/api-error";
 import { requireAuthenticatedSession } from "@/services/permissions";
 import { updateEvent, cancelEvent, UpdateEventSchema } from "@/services/event-service";
-import { getEventById } from "@/db/queries/events";
-import { getGroupById } from "@/db/queries/groups";
+import { getEventById } from "@igbo/db/queries/events";
+import { getGroupById } from "@igbo/db/queries/groups";
 import { RATE_LIMIT_PRESETS } from "@/services/rate-limiter";
 import { auth } from "@/server/auth/config";
 import { z } from "zod/v4";
@@ -36,7 +36,7 @@ const getHandler = async (request: Request) => {
         // Not authenticated — return 404 (do not leak event existence)
         throw new ApiError({ title: "Not Found", status: 404 });
       }
-      const { getGroupMember } = await import("@/db/queries/groups");
+      const { getGroupMember } = await import("@igbo/db/queries/groups");
       const membership = await getGroupMember(event.groupId, session.user.id);
       if (!membership || membership.status !== "active") {
         throw new ApiError({ title: "Not Found", status: 404 });

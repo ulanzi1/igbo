@@ -4,7 +4,7 @@ import { env } from "@/env";
 import {
   getUserPushSubscriptions,
   deletePushSubscriptionByEndpoint,
-} from "@/db/queries/push-subscriptions";
+} from "@igbo/db/queries/push-subscriptions";
 
 export interface PushPayload {
   title: string;

@@ -1,6 +1,6 @@
 import { withApiHandler } from "@/server/api/middleware";
 import { successResponse } from "@/lib/api-response";
-import { isUserInQuietHours } from "@/db/queries/notification-preferences";
+import { isUserInQuietHours } from "@igbo/db/queries/notification-preferences";
 import { ApiError } from "@/lib/api-error";
 
 export const GET = withApiHandler(async (req: Request) => {

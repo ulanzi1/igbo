@@ -9,7 +9,7 @@ vi.mock("@/env", () => ({
 }));
 
 // Mock the db module
-vi.mock("@/db", () => ({
+vi.mock("@igbo/db", () => ({
   db: {
     execute: vi.fn(),
   },
@@ -32,7 +32,7 @@ describe("GET /api/health", () => {
   });
 
   it("returns healthy status with db and redis connected", async () => {
-    const { db } = await import("@/db");
+    const { db } = await import("@igbo/db");
     vi.mocked(db.execute).mockResolvedValue([{ result: 1 }] as never);
 
     const { GET } = await import("./route");
@@ -47,7 +47,7 @@ describe("GET /api/health", () => {
   });
 
   it("returns degraded status when db is down", async () => {
-    const { db } = await import("@/db");
+    const { db } = await import("@igbo/db");
     vi.mocked(db.execute).mockRejectedValue(new Error("Connection refused"));
 
     const { GET } = await import("./route");
@@ -60,7 +60,7 @@ describe("GET /api/health", () => {
   });
 
   it("returns degraded status when redis is down", async () => {
-    const { db } = await import("@/db");
+    const { db } = await import("@igbo/db");
     vi.mocked(db.execute).mockResolvedValue([{ result: 1 }] as never);
     mockPing.mockRejectedValueOnce(new Error("Connection refused"));
 

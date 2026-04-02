@@ -10,10 +10,10 @@ import {
   getArticleForEditing,
   countWeeklyArticleSubmissions,
   upsertArticleTags,
-} from "@/db/queries/articles";
-import { getUserMembershipTier } from "@/db/queries/auth-permissions";
-import type { MembershipTier } from "@/db/queries/auth-permissions";
-import type { ArticleCategory, ArticleVisibility } from "@/db/schema/community-articles";
+} from "@igbo/db/queries/articles";
+import { getUserMembershipTier } from "@igbo/db/queries/auth-permissions";
+import type { MembershipTier } from "@igbo/db/queries/auth-permissions";
+import type { ArticleCategory, ArticleVisibility } from "@igbo/db/schema/community-articles";
 
 /** Map DB visibility enum values to PERMISSION_MATRIX values for validation. */
 const VISIBILITY_DB_TO_MATRIX: Record<string, string> = {
@@ -216,7 +216,7 @@ export async function submitArticle(
 export async function getArticleForEditingService(
   authorId: string,
   articleId: string,
-): Promise<typeof import("@/db/schema/community-articles").communityArticles.$inferSelect> {
+): Promise<typeof import("@igbo/db/schema/community-articles").communityArticles.$inferSelect> {
   const article = await getArticleForEditing(articleId, authorId);
   if (!article) {
     throw new ApiError({ title: "Not Found", status: 404, detail: "Article not found" });

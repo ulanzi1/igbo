@@ -11,11 +11,11 @@ vi.mock("@/services/permissions", () => ({
   requireAuthenticatedSession: (...args: unknown[]) => mockRequireAuthenticatedSession(...args),
 }));
 
-vi.mock("@/db/queries/groups", () => ({
+vi.mock("@igbo/db/queries/groups", () => ({
   getGroupMember: (...args: unknown[]) => mockGetGroupMember(...args),
 }));
 
-vi.mock("@/db/queries/group-channels", () => ({
+vi.mock("@igbo/db/queries/group-channels", () => ({
   listGroupFiles: (...args: unknown[]) => mockListGroupFiles(...args),
 }));
 
