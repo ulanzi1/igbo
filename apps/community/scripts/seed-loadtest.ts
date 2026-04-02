@@ -19,14 +19,14 @@ import { faker } from "@faker-js/faker";
 import { randomUUID } from "crypto";
 
 // Import schema tables directly — no server-only imports via @/db
-import { authUsers } from "../src/db/schema/auth-users";
-import { communityProfiles } from "../src/db/schema/community-profiles";
-import { communityMemberFollows } from "../src/db/schema/community-connections";
-import { communityGroups, communityGroupMembers } from "../src/db/schema/community-groups";
-import { communityGroupChannels } from "../src/db/schema/community-group-channels";
-import { communityPosts } from "../src/db/schema/community-posts";
-import { chatConversations, chatConversationMembers } from "../src/db/schema/chat-conversations";
-import { chatMessages } from "../src/db/schema/chat-messages";
+import { authUsers } from "@igbo/db/schema/auth-users";
+import { communityProfiles } from "@igbo/db/schema/community-profiles";
+import { communityMemberFollows } from "@igbo/db/schema/community-connections";
+import { communityGroups, communityGroupMembers } from "@igbo/db/schema/community-groups";
+import { communityGroupChannels } from "@igbo/db/schema/community-group-channels";
+import { communityPosts } from "@igbo/db/schema/community-posts";
+import { chatConversations, chatConversationMembers } from "@igbo/db/schema/chat-conversations";
+import { chatMessages } from "@igbo/db/schema/chat-messages";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // DB connection — dedicated loadtest instance, never the app's DATABASE_URL

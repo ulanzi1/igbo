@@ -41,7 +41,6 @@ vi.mock("../index", () => ({
   },
 }));
 
-
 import {
   getNotificationPreferences,
   upsertNotificationPreference,

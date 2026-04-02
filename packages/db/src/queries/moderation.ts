@@ -9,7 +9,7 @@ import { authUsers } from "../schema/auth-users";
 import { memberDisciplineActions } from "../schema/member-discipline";
 
 // Keyword type inlined — avoids app-local moderation-scanner dependency
-type Keyword = { keyword: string; category: string; severity: string };
+type Keyword = { keyword: string; category: string; severity: "low" | "medium" | "high" };
 import type { PlatformModerationKeyword } from "../schema/moderation";
 
 const reporterUsers = alias(authUsers, "reporter_users");

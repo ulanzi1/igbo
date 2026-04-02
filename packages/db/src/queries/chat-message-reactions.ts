@@ -3,10 +3,7 @@ import { eq, inArray, and } from "drizzle-orm";
 import { db } from "../index";
 import { chatMessageReactions } from "../schema/chat-message-reactions";
 
-export type {
-  ChatMessageReaction,
-  NewChatMessageReaction,
-} from "../schema/chat-message-reactions";
+export type { ChatMessageReaction, NewChatMessageReaction } from "../schema/chat-message-reactions";
 import type { ChatMessageReaction } from "../schema/chat-message-reactions";
 
 // ── Reaction CRUD ───────────────────────────────────────────────────────────────

@@ -104,7 +104,8 @@ export async function resolveFileUploadUrls(
     .where(inArray(platformFileUploads.id, fileUploadIds));
   const result = new Map<string, { mediaUrl: string; fileType: string }>();
   for (const row of rows) {
-    const mediaUrl = row.processedUrl ?? `${process.env.HETZNER_S3_PUBLIC_URL ?? ""}/${row.objectKey}`;
+    const mediaUrl =
+      row.processedUrl ?? `${process.env.HETZNER_S3_PUBLIC_URL ?? ""}/${row.objectKey}`;
     result.set(row.id, { mediaUrl, fileType: row.fileType ?? "" });
   }
   return result;
