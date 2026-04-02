@@ -205,16 +205,16 @@ describe("Seeder — scripts/seed-loadtest.ts (Task 2)", () => {
     expect(existsSync(seederPath)).toBe(true);
   });
 
-  it("imports from src/db/schema/auth-users", () => {
-    expect(seederContent).toContain("src/db/schema/auth-users");
+  it("imports from @igbo/db/schema/auth-users", () => {
+    expect(seederContent).toContain("@igbo/db/schema/auth-users");
   });
 
-  it("imports from src/db/schema/community-profiles", () => {
-    expect(seederContent).toContain("src/db/schema/community-profiles");
+  it("imports from @igbo/db/schema/community-profiles", () => {
+    expect(seederContent).toContain("@igbo/db/schema/community-profiles");
   });
 
-  it("imports from src/db/schema/community-groups", () => {
-    expect(seederContent).toContain("src/db/schema/community-groups");
+  it("imports from @igbo/db/schema/community-groups", () => {
+    expect(seederContent).toContain("@igbo/db/schema/community-groups");
   });
 
   it("does NOT import db from @/db (uses dedicated loadtest connection)", () => {
