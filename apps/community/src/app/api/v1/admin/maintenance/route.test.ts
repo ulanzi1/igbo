@@ -26,8 +26,10 @@ vi.mock("@/lib/redis", () => ({
 }));
 
 const mockSentryCaptureMessage = vi.fn();
+const mockSentryCaptureException = vi.fn();
 vi.mock("@sentry/nextjs", () => ({
   captureMessage: (...args: unknown[]) => mockSentryCaptureMessage(...args),
+  captureException: (...args: unknown[]) => mockSentryCaptureException(...args),
 }));
 
 import { GET, POST } from "./route";

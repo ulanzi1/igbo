@@ -1,10 +1,17 @@
 import { defineConfig } from "vitest/config";
+import { loadEnv } from "vite";
 import path from "path";
+
+// Load all .env / .env.local / .env.test / .env.test.local vars into process.env
+// Vitest v4 does not auto-populate process.env from .env files; loadEnv with an
+// empty prefix picks up every variable regardless of prefix.
+const testEnv = loadEnv("test", path.resolve(__dirname), "");
 
 export default defineConfig({
   test: {
     globals: true,
     environment: "jsdom",
+    env: testEnv,
     setupFiles: ["./src/test/setup.ts"],
     include: ["src/**/*.test.{ts,tsx}", "*.test.ts"],
     coverage: {
