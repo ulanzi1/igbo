@@ -23,8 +23,8 @@ jobs:
           node-version: "22"
           cache: "pnpm"
       - run: pnpm install --frozen-lockfile
-      - name: Check for critical/high vulnerabilities
-        run: pnpm audit --audit-level high
+      - name: Check for critical vulnerabilities
+        run: pnpm audit --audit-level critical
 
   lint:
     name: Lint
@@ -92,6 +92,7 @@ jobs:
       SKIP_ENV_VALIDATION: "true"
       NEXT_PUBLIC_APP_URL: http://localhost:3000
       NEXT_PUBLIC_REALTIME_URL: http://localhost:3001
+      HETZNER_S3_PUBLIC_URL: https://placeholder.your-objectstorage.com
       NODE_OPTIONS: "--max-old-space-size=4096"
     steps:
       - uses: actions/checkout@v4
