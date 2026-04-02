@@ -57,3 +57,5 @@ _bmad
 # Load test results (generated files, not source)
 tests/load/results/
 !tests/load/results/.gitkeep
+# Build output
+dist
