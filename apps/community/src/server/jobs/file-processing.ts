@@ -7,8 +7,8 @@ import {
   findProcessingFileUploads,
   findPendingScanFileUploads,
   updateFileUpload,
-} from "@/db/queries/file-uploads";
-import type { PlatformFileUpload } from "@/db/queries/file-uploads";
+} from "@igbo/db/queries/file-uploads";
+import type { PlatformFileUpload } from "@igbo/db/queries/file-uploads";
 import { fetchFileBuffer, deleteObject } from "@/services/file-upload-service";
 import { env } from "@/env";
 import { IMAGE_SRCSET_WIDTHS } from "@igbo/config/upload";

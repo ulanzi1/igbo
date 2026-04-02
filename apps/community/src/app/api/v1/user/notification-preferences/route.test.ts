@@ -8,7 +8,7 @@ vi.mock("@/services/permissions", () => ({
 vi.mock("@/lib/request-context", () => ({
   runWithContext: vi.fn((_ctx: unknown, fn: () => unknown) => fn()),
 }));
-vi.mock("@/db/queries/notification-preferences", () => ({
+vi.mock("@igbo/db/queries/notification-preferences", () => ({
   getNotificationPreferences: vi.fn().mockResolvedValue({}),
   upsertNotificationPreference: vi.fn().mockResolvedValue(undefined),
   DEFAULT_PREFERENCES: {
@@ -21,7 +21,7 @@ import { requireAuthenticatedSession } from "@/services/permissions";
 import {
   getNotificationPreferences,
   upsertNotificationPreference,
-} from "@/db/queries/notification-preferences";
+} from "@igbo/db/queries/notification-preferences";
 import { ApiError } from "@/lib/api-error";
 
 const mockRequireAuth = vi.mocked(requireAuthenticatedSession);

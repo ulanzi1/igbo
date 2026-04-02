@@ -11,7 +11,7 @@ vi.mock("@/services/block-service", () => ({
 const mockGetConversationNotificationPreference = vi.hoisted(() =>
   vi.fn().mockResolvedValue("all"),
 );
-vi.mock("@/db/queries/chat-conversations", () => ({
+vi.mock("@igbo/db/queries/chat-conversations", () => ({
   getConversationNotificationPreference: (...args: unknown[]) =>
     mockGetConversationNotificationPreference(...args),
 }));
@@ -30,7 +30,7 @@ vi.mock("@/env", () => ({
 }));
 
 const mockGetNotificationPreferences = vi.hoisted(() => vi.fn().mockResolvedValue({}));
-vi.mock("@/db/queries/notification-preferences", () => ({
+vi.mock("@igbo/db/queries/notification-preferences", () => ({
   getNotificationPreferences: (...args: unknown[]) => mockGetNotificationPreferences(...args),
   DEFAULT_PREFERENCES: {
     message: { inApp: true, email: true, push: true },

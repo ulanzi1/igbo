@@ -11,7 +11,7 @@ vi.mock("@/services/permissions", () => ({
   requireAuthenticatedSession: (...args: unknown[]) => mockRequireAuthenticatedSession(...args),
 }));
 
-vi.mock("@/db/queries/follows", () => ({
+vi.mock("@igbo/db/queries/follows", () => ({
   getFollowingPage: (...args: unknown[]) => mockGetFollowingPage(...args),
 }));
 

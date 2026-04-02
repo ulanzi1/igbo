@@ -8,8 +8,8 @@ import {
   findExistingDirectConversation,
   getConversationById,
   checkBlocksAmongMembers,
-} from "@/db/queries/chat-conversations";
-import { isBlocked, getBlockedUserIds } from "@/db/queries/block-mute";
+} from "@igbo/db/queries/chat-conversations";
+import { isBlocked, getBlockedUserIds } from "@igbo/db/queries/block-mute";
 import { RATE_LIMIT_PRESETS } from "@/services/rate-limiter";
 import { MAX_GROUP_MEMBERS } from "@igbo/config/chat";
 import { eventBus } from "@/services/event-bus";

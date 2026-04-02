@@ -3,9 +3,9 @@ import { withApiHandler } from "@/server/api/middleware";
 import { successResponse } from "@/lib/api-response";
 import { ApiError } from "@/lib/api-error";
 import { requireAuthenticatedSession } from "@/services/permissions";
-import { getGroupById, getGroupMember } from "@/db/queries/groups";
-import { getPostGroupId } from "@/db/queries/posts";
-import { softDeleteGroupComment } from "@/db/queries/post-interactions";
+import { getGroupById, getGroupMember } from "@igbo/db/queries/groups";
+import { getPostGroupId } from "@igbo/db/queries/posts";
+import { softDeleteGroupComment } from "@igbo/db/queries/post-interactions";
 import { logGroupModerationAction } from "@/services/audit-logger";
 import { RATE_LIMIT_PRESETS } from "@/services/rate-limiter";
 

@@ -4,7 +4,7 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { auth } from "@/server/auth/config";
 import { getOnboardingState } from "@/services/onboarding-service";
-import { findUserById } from "@/db/queries/auth-queries";
+import { findUserById } from "@igbo/db/queries/auth-queries";
 import { renderMarkdown } from "@/lib/render-markdown";
 import { OnboardingWizard } from "@/features/profiles";
 import { redirect } from "@/i18n/navigation";

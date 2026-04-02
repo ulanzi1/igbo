@@ -11,6 +11,7 @@ COPY pnpm-workspace.yaml pnpm-lock.yaml turbo.json ./
 COPY package.json ./
 COPY apps/community/package.json ./apps/community/package.json
 COPY packages/config/package.json ./packages/config/package.json
+COPY packages/db/package.json ./packages/db/package.json
 
 RUN pnpm install --frozen-lockfile
 
@@ -19,6 +20,10 @@ COPY tsconfig.base.json ./
 COPY apps/community/tsconfig.json ./apps/community/tsconfig.json
 COPY apps/community/src/ ./apps/community/src/
 COPY packages/ ./packages/
+
+# Build workspace packages so their dist/ exports resolve at runtime
+# (esbuild --packages=external leaves @igbo/* imports as runtime requires)
+RUN pnpm --filter @igbo/config build && pnpm --filter @igbo/db build
 
 # --tsconfig resolves @/* aliases from tsconfig paths
 # --packages=external marks ALL node_modules as external — never breaks as deps grow

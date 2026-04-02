@@ -197,12 +197,12 @@ export function useRealTimersForReactQuery() {
  *   transaction: vi.fn(),
  * }));
  *
- * vi.mock("@/db", () => ({ db: mockDb })); // ✅ safe — mockDb is already initialised
+ * vi.mock("@igbo/db", () => ({ db: mockDb })); // ✅ safe — mockDb is already initialised
  * ```
  *
  * ❌ WRONG — TDZ error when factory runs before const is initialised:
  * ```ts
- * vi.mock("@/db", () => ({ db: mockDb })); // ❌ mockDb not yet defined
+ * vi.mock("@igbo/db", () => ({ db: mockDb })); // ❌ mockDb not yet defined
  * const mockDb = { select: vi.fn() };
  * ```
  *
@@ -234,10 +234,10 @@ export function useRealTimersForReactQuery() {
  */
 
 /**
- * ⚠️ eventbus-bridge @/db/queries/* import cascade.
+ * ⚠️ eventbus-bridge @igbo/db/queries/* import cascade.
  *
  * Root cause: `src/server/realtime/eventbus-bridge.ts` imports query files at the top level.
- * Any new `import ... from "@/db/queries/new-file"` in that bridge causes `@/db` to load,
+ * Any new `import ... from "@igbo/db/queries/new-file"` in that bridge causes `@/db` to load,
  * which triggers env validation — breaking BOTH `eventbus-bridge.test.ts` AND
  * `notification-flow.test.ts` (the integration test that imports the bridge).
  *
@@ -246,13 +246,13 @@ export function useRealTimersForReactQuery() {
  *
  * ```ts
  * // In eventbus-bridge.test.ts AND notification-flow.test.ts:
- * vi.mock("@/db/queries/new-file", () => ({
+ * vi.mock("@igbo/db/queries/new-file", () => ({
  *   newQueryFn: vi.fn().mockResolvedValue([]),
  * }));
  * ```
  *
  * Rule: Every new query file imported in the bridge requires a mock in both files.
- * Never bare-mock (`vi.mock("@/db/queries/new-file")`) — always use an explicit factory.
+ * Never bare-mock (`vi.mock("@igbo/db/queries/new-file")`) — always use an explicit factory.
  *
  * First hit: Story 5.3 group-channels import. Repeated in Story 5.4 groups import.
  */

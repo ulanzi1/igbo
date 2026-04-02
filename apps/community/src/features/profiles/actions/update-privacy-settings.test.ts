@@ -11,13 +11,13 @@ vi.mock("@/services/profile-service", () => ({
   updatePrivacySettings: vi.fn(),
 }));
 
-vi.mock("@/db", () => ({ db: {} }));
-vi.mock("@/db/schema/community-profiles", () => ({
+vi.mock("@igbo/db", () => ({ db: {} }));
+vi.mock("@igbo/db/schema/community-profiles", () => ({
   communityProfiles: {},
   communitySocialLinks: {},
 }));
-vi.mock("@/db/queries/community-profiles", () => ({}));
-vi.mock("@/db/queries/community-social-links", () => ({}));
+vi.mock("@igbo/db/queries/community-profiles", () => ({}));
+vi.mock("@igbo/db/queries/community-social-links", () => ({}));
 vi.mock("@/services/event-bus", () => ({ eventBus: { emit: vi.fn() } }));
 
 import { updatePrivacySettingsAction } from "./update-privacy-settings";

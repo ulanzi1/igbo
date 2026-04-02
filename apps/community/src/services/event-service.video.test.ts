@@ -33,15 +33,15 @@ vi.mock("@aws-sdk/s3-request-presigner", () => ({
   getSignedUrl: vi.fn().mockResolvedValue("https://presigned.example.com/download"),
 }));
 
-vi.mock("@/db/queries/auth-permissions", () => ({
+vi.mock("@igbo/db/queries/auth-permissions", () => ({
   getUserMembershipTier: vi.fn().mockResolvedValue("TOP_TIER"),
 }));
 
-vi.mock("@/db/queries/groups", () => ({
+vi.mock("@igbo/db/queries/groups", () => ({
   getUserPlatformRole: vi.fn().mockResolvedValue("MEMBER"),
 }));
 
-vi.mock("@/db/queries/platform-settings", () => ({
+vi.mock("@igbo/db/queries/platform-settings", () => ({
   getPlatformSetting: vi.fn().mockResolvedValue(53_687_091_200),
 }));
 
@@ -68,7 +68,7 @@ const mockGetAttendeeStatus = vi.fn();
 const mockMarkAttended = vi.fn();
 const mockListEventAttendees = vi.fn();
 
-vi.mock("@/db/queries/events", () => ({
+vi.mock("@igbo/db/queries/events", () => ({
   createEvent: vi.fn(),
   updateEvent: vi.fn().mockResolvedValue({}),
   cancelEvent: vi.fn(),

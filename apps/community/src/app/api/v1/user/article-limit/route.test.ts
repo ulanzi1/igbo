@@ -5,24 +5,24 @@ vi.mock("server-only", () => ({}));
 vi.mock("@/services/permissions", () => ({
   requireAuthenticatedSession: vi.fn().mockResolvedValue({ userId: "user-1", role: "MEMBER" }),
 }));
-vi.mock("@/db/queries/auth-permissions", () => ({
+vi.mock("@igbo/db/queries/auth-permissions", () => ({
   getUserMembershipTier: vi.fn().mockResolvedValue("PROFESSIONAL"),
 }));
-vi.mock("@/db/queries/points", () => ({
+vi.mock("@igbo/db/queries/points", () => ({
   getUserPointsTotal: vi.fn().mockResolvedValue(0),
   getEffectiveArticleLimit: vi.fn().mockResolvedValue(1),
 }));
-vi.mock("@/db/queries/articles", () => ({
+vi.mock("@igbo/db/queries/articles", () => ({
   countWeeklyArticleSubmissions: vi.fn().mockResolvedValue(0),
 }));
 
 const mockDbSelect = vi.fn();
-vi.mock("@/db", () => ({
+vi.mock("@igbo/db", () => ({
   db: {
     select: (...args: unknown[]) => mockDbSelect(...args),
   },
 }));
-vi.mock("@/db/schema/platform-posting-limits", () => ({
+vi.mock("@igbo/db/schema/platform-posting-limits", () => ({
   platformPostingLimits: {
     tier: "tier",
     baseLimit: "base_limit",
@@ -41,9 +41,9 @@ vi.mock("@/lib/request-context", () => ({
 
 import { GET } from "./route";
 import { requireAuthenticatedSession } from "@/services/permissions";
-import { getUserMembershipTier } from "@/db/queries/auth-permissions";
-import { getUserPointsTotal, getEffectiveArticleLimit } from "@/db/queries/points";
-import { countWeeklyArticleSubmissions } from "@/db/queries/articles";
+import { getUserMembershipTier } from "@igbo/db/queries/auth-permissions";
+import { getUserPointsTotal, getEffectiveArticleLimit } from "@igbo/db/queries/points";
+import { countWeeklyArticleSubmissions } from "@igbo/db/queries/articles";
 import { ApiError } from "@/lib/api-error";
 
 const mockRequireAuth = vi.mocked(requireAuthenticatedSession);

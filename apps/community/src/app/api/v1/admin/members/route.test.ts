@@ -10,13 +10,13 @@ vi.mock("@/lib/admin-auth", () => ({
   requireAdminSession: (...args: unknown[]) => mockRequireAdminSession(...args),
 }));
 
-vi.mock("@/db", () => ({
+vi.mock("@igbo/db", () => ({
   db: {
     select: (...args: unknown[]) => mockDbSelect(...args),
   },
 }));
 
-vi.mock("@/db/schema/auth-users", () => ({
+vi.mock("@igbo/db/schema/auth-users", () => ({
   authUsers: {
     id: "id",
     email: "email",
@@ -29,7 +29,7 @@ vi.mock("@/db/schema/auth-users", () => ({
   },
 }));
 
-vi.mock("@/db/schema/community-profiles", () => ({
+vi.mock("@igbo/db/schema/community-profiles", () => ({
   communityProfiles: { userId: "user_id", displayName: "display_name" },
 }));
 

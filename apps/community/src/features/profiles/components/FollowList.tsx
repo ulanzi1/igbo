@@ -7,7 +7,7 @@ import { Link } from "@/i18n/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { FollowButton } from "./FollowButton";
-import type { FollowListMember } from "@/db/queries/follows";
+import type { FollowListMember } from "@igbo/db/queries/follows";
 
 interface FollowListProps {
   userId: string; // Whose followers/following to load

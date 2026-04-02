@@ -1,13 +1,13 @@
 import "server-only";
 import { filterNotificationRecipients } from "@/services/block-service";
-import { getConversationNotificationPreference } from "@/db/queries/chat-conversations";
+import { getConversationNotificationPreference } from "@igbo/db/queries/chat-conversations";
 import { getRedisClient } from "@/lib/redis";
-import type { NotificationType } from "@/db/schema/platform-notifications";
+import type { NotificationType } from "@igbo/db/schema/platform-notifications";
 import {
   getNotificationPreferences,
   DEFAULT_PREFERENCES,
   type NotificationTypeKey,
-} from "@/db/queries/notification-preferences";
+} from "@igbo/db/queries/notification-preferences";
 
 export interface ChannelDecision {
   suppressed: boolean;

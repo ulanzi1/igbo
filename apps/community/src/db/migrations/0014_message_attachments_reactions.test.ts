@@ -10,7 +10,7 @@ vi.mock("@/env", () => ({
   },
 }));
 
-vi.mock("@/db", () => ({
+vi.mock("@igbo/db", () => ({
   db: {
     select: vi.fn(),
     insert: vi.fn(),
@@ -23,7 +23,7 @@ vi.mock("@/db", () => ({
 describe("Migration 0014 – schema definitions", () => {
   describe("chat_message_attachments schema", () => {
     it("exports chatMessageAttachments table with correct columns", async () => {
-      const { chatMessageAttachments } = await import("@/db/schema/chat-message-attachments");
+      const { chatMessageAttachments } = await import("@igbo/db/schema/chat-message-attachments");
       expect(chatMessageAttachments).toBeDefined();
       const columns = chatMessageAttachments;
       expect(columns.id).toBeDefined();
@@ -38,7 +38,7 @@ describe("Migration 0014 – schema definitions", () => {
 
     it("exports ChatMessageAttachment type", async () => {
       type CheckExport =
-        typeof import("@/db/schema/chat-message-attachments").ChatMessageAttachment;
+        typeof import("@igbo/db/schema/chat-message-attachments").ChatMessageAttachment;
       const result = true as const;
       expect(result).toBe(true);
     });
@@ -46,7 +46,7 @@ describe("Migration 0014 – schema definitions", () => {
 
   describe("chat_message_reactions schema", () => {
     it("exports chatMessageReactions table with correct columns", async () => {
-      const { chatMessageReactions } = await import("@/db/schema/chat-message-reactions");
+      const { chatMessageReactions } = await import("@igbo/db/schema/chat-message-reactions");
       expect(chatMessageReactions).toBeDefined();
       expect(chatMessageReactions.messageId).toBeDefined();
       expect(chatMessageReactions.userId).toBeDefined();
@@ -55,7 +55,8 @@ describe("Migration 0014 – schema definitions", () => {
     });
 
     it("exports ChatMessageReaction type", async () => {
-      type CheckExport = typeof import("@/db/schema/chat-message-reactions").ChatMessageReaction;
+      type CheckExport =
+        typeof import("@igbo/db/schema/chat-message-reactions").ChatMessageReaction;
       const result = true as const;
       expect(result).toBe(true);
     });
@@ -64,13 +65,13 @@ describe("Migration 0014 – schema definitions", () => {
   describe("db/index.ts schema registration", () => {
     it("registers chatMessageAttachments schema", async () => {
       vi.resetModules();
-      vi.mock("@/db", async (importOriginal) => {
-        const mod = await importOriginal<typeof import("@/db")>();
+      vi.mock("@igbo/db", async (importOriginal) => {
+        const mod = await importOriginal<typeof import("@igbo/db")>();
         return mod;
       });
 
-      const { chatMessageAttachments } = await import("@/db/schema/chat-message-attachments");
-      const { chatMessageReactions } = await import("@/db/schema/chat-message-reactions");
+      const { chatMessageAttachments } = await import("@igbo/db/schema/chat-message-attachments");
+      const { chatMessageReactions } = await import("@igbo/db/schema/chat-message-reactions");
       expect(chatMessageAttachments).toBeDefined();
       expect(chatMessageReactions).toBeDefined();
     });

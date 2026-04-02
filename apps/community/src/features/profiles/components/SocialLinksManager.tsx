@@ -3,7 +3,7 @@ import { useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useUnlinkSocialAccount } from "@/features/profiles/hooks/use-profile";
-import type { CommunitySocialLink } from "@/db/schema/community-profiles";
+import type { CommunitySocialLink } from "@igbo/db/schema/community-profiles";
 import type { SocialProvider } from "@/features/profiles/types";
 
 const PROVIDERS: { key: SocialProvider; label: string }[] = [

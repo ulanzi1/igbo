@@ -3,7 +3,7 @@ import { withApiHandler } from "@/server/api/middleware";
 import { successResponse } from "@/lib/api-response";
 import { requireAuthenticatedSession } from "@/services/permissions";
 import { listEventAttendees } from "@/services/event-service";
-import { getEventById } from "@/db/queries/events";
+import { getEventById } from "@igbo/db/queries/events";
 import { ApiError } from "@/lib/api-error";
 
 const getHandler = async (request: Request) => {

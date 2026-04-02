@@ -19,7 +19,7 @@ const mockDbRemoveReaction = vi.hoisted(() => vi.fn());
 const mockDbTransaction = vi.hoisted(() => vi.fn());
 const mockDbUpdate = vi.hoisted(() => vi.fn());
 
-vi.mock("@/db/queries/chat-messages", () => ({
+vi.mock("@igbo/db/queries/chat-messages", () => ({
   createMessage: (...args: unknown[]) => mockCreateMessage(...args),
   getMessageById: (...args: unknown[]) => mockGetMessageById(...args),
   getMessageByIdUnfiltered: (...args: unknown[]) => mockGetMessageByIdUnfiltered(...args),
@@ -28,23 +28,23 @@ vi.mock("@/db/queries/chat-messages", () => ({
   getThreadReplies: (...args: unknown[]) => mockGetThreadRepliesDb(...args),
 }));
 
-vi.mock("@/db/queries/chat-message-attachments", () => ({
+vi.mock("@igbo/db/queries/chat-message-attachments", () => ({
   getAttachmentsForMessages: (...args: unknown[]) => mockGetAttachmentsForMessages(...args),
 }));
 
-vi.mock("@/db/queries/chat-message-reactions", () => ({
+vi.mock("@igbo/db/queries/chat-message-reactions", () => ({
   addReaction: (...args: unknown[]) => mockDbAddReaction(...args),
   removeReaction: (...args: unknown[]) => mockDbRemoveReaction(...args),
   getReactionsForMessages: (...args: unknown[]) => mockGetReactionsForMessages(...args),
 }));
 
-vi.mock("@/db/queries/file-uploads", () => ({
+vi.mock("@igbo/db/queries/file-uploads", () => ({
   getFileUploadById: (...args: unknown[]) => mockGetFileUploadById(...args),
 }));
 
 const mockDbSelect = vi.hoisted(() => vi.fn());
 
-vi.mock("@/db", () => ({
+vi.mock("@igbo/db", () => ({
   db: {
     transaction: (...args: unknown[]) => mockDbTransaction(...args),
     update: (...args: unknown[]) => mockDbUpdate(...args),
@@ -52,7 +52,7 @@ vi.mock("@/db", () => ({
   },
 }));
 
-vi.mock("@/db/schema/chat-messages", () => ({
+vi.mock("@igbo/db/schema/chat-messages", () => ({
   chatMessages: {
     id: {},
     conversationId: {},
@@ -64,16 +64,16 @@ vi.mock("@/db/schema/chat-messages", () => ({
   },
 }));
 
-vi.mock("@/db/schema/chat-conversations", () => ({
+vi.mock("@igbo/db/schema/chat-conversations", () => ({
   chatConversations: { id: {}, type: {}, updatedAt: {} },
   chatConversationMembers: { conversationId: {}, userId: {} },
 }));
 
-vi.mock("@/db/schema/auth-users", () => ({
+vi.mock("@igbo/db/schema/auth-users", () => ({
   authUsers: { id: {}, name: {} },
 }));
 
-vi.mock("@/db/schema/chat-message-attachments", () => ({
+vi.mock("@igbo/db/schema/chat-message-attachments", () => ({
   chatMessageAttachments: {
     id: {},
     messageId: {},

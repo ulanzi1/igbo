@@ -9,7 +9,7 @@ vi.mock("@/services/points-engine", () => ({
   getUserPointsBalance: vi.fn().mockResolvedValue(42),
   getBadgeMultiplier: vi.fn().mockResolvedValue(1),
 }));
-vi.mock("@/db/queries/points", () => ({
+vi.mock("@igbo/db/queries/points", () => ({
   getPointsSummaryStats: vi.fn().mockResolvedValue({ total: 42, thisWeek: 5, thisMonth: 20 }),
 }));
 vi.mock("@/lib/request-context", () => ({
@@ -20,7 +20,7 @@ vi.mock("@/lib/request-context", () => ({
 import { GET } from "./route";
 import { requireAuthenticatedSession } from "@/services/permissions";
 import { getUserPointsBalance } from "@/services/points-engine";
-import { getPointsSummaryStats } from "@/db/queries/points";
+import { getPointsSummaryStats } from "@igbo/db/queries/points";
 import { ApiError } from "@/lib/api-error";
 
 const mockRequireAuth = vi.mocked(requireAuthenticatedSession);

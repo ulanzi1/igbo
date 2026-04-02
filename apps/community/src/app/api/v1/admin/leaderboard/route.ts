@@ -2,7 +2,7 @@ import { withApiHandler } from "@/server/api/middleware";
 import { successResponse } from "@/lib/api-response";
 import { ApiError } from "@/lib/api-error";
 import { requireAdminSession } from "@/lib/admin-auth";
-import { getTopPointsEarners, getThrottledUsersReport } from "@/db/queries/points";
+import { getTopPointsEarners, getThrottledUsersReport } from "@igbo/db/queries/points";
 import { z } from "zod/v4";
 
 const VALID_ACTIVITY_TYPES = ["like_received", "event_attended", "article_published"] as const;

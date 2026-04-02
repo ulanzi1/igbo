@@ -37,7 +37,7 @@ vi.mock("@/features/profiles", () => ({
 }));
 
 import { EditProfileForm } from "./EditProfileForm";
-import type { CommunityProfile } from "@/db/schema/community-profiles";
+import type { CommunityProfile } from "@igbo/db/schema/community-profiles";
 
 const baseProfile: CommunityProfile = {
   userId: "u1",

@@ -12,7 +12,7 @@ import { ArticleLimitProgress } from "@/features/dashboard/components/ArticleLim
 import { Link } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { LedgerHistoryRow } from "@/db/queries/points";
+import type { LedgerHistoryRow } from "@igbo/db/queries/points";
 
 interface PointsSummary {
   total: number;

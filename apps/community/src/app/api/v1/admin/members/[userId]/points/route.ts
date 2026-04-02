@@ -7,7 +7,7 @@ import {
   getPointsSummaryStats,
   getPointsLedgerHistory,
   getUserThrottleHistory,
-} from "@/db/queries/points";
+} from "@igbo/db/queries/points";
 import { z } from "zod/v4";
 
 const VALID_ACTIVITY_TYPES = ["like_received", "event_attended", "article_published"] as const;

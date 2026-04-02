@@ -1,7 +1,7 @@
 import "server-only";
 import { sql } from "drizzle-orm";
-import { db } from "@/db";
-import { getBlockedUserIds, getUsersWhoBlocked } from "@/db/queries/block-mute";
+import { db } from "@igbo/db";
+import { getBlockedUserIds, getUsersWhoBlocked } from "@igbo/db/queries/block-mute";
 
 export const GEO_FALLBACK_THRESHOLD = 5; // exported for tests
 

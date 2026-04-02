@@ -6,7 +6,7 @@ import {
   getPublishedArticleBySlug,
   getArticleTagsById,
   getRelatedArticles,
-} from "@/db/queries/articles";
+} from "@igbo/db/queries/articles";
 import { tiptapJsonToHtml } from "@/features/articles/utils/tiptap-to-html";
 import { ArticleLanguageToggle } from "@/features/articles/components/ArticleLanguageToggle";
 import { ArticleViewTracker } from "@/features/articles/components/ArticleViewTracker";

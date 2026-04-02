@@ -4,15 +4,15 @@ import { withApiHandler } from "@/server/api/middleware";
 import { successResponse, errorResponse } from "@/lib/api-response";
 import { requireAuthenticatedSession } from "@/services/permissions";
 import { RATE_LIMIT_PRESETS } from "@/services/rate-limiter";
-import { createReport, countReporterReportsLast24h } from "@/db/queries/reports";
+import { createReport, countReporterReportsLast24h } from "@igbo/db/queries/reports";
 import { eventBus } from "@/services/event-bus";
-import { db } from "@/db";
-import { communityPosts } from "@/db/schema/community-posts";
-import { communityPostComments } from "@/db/schema/post-interactions";
-import { communityArticleComments } from "@/db/schema/community-article-comments";
-import { communityArticles } from "@/db/schema/community-articles";
-import { chatMessages } from "@/db/schema/chat-messages";
-import { authUsers } from "@/db/schema/auth-users";
+import { db } from "@igbo/db";
+import { communityPosts } from "@igbo/db/schema/community-posts";
+import { communityPostComments } from "@igbo/db/schema/post-interactions";
+import { communityArticleComments } from "@igbo/db/schema/community-article-comments";
+import { communityArticles } from "@igbo/db/schema/community-articles";
+import { chatMessages } from "@igbo/db/schema/chat-messages";
+import { authUsers } from "@igbo/db/schema/auth-users";
 import { ApiError } from "@/lib/api-error";
 
 const reportSchema = z.object({

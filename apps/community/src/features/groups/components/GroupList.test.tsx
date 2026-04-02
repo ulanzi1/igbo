@@ -4,7 +4,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { GroupList } from "./GroupList";
-import type { DirectoryGroupItem } from "@/db/queries/groups";
+import type { DirectoryGroupItem } from "@igbo/db/queries/groups";
 
 vi.mock("next-intl", () => ({
   useTranslations: () => (key: string, params?: Record<string, unknown>) => {

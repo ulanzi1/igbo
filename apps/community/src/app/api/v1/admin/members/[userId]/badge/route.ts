@@ -3,10 +3,10 @@ import { successResponse, errorResponse } from "@/lib/api-response";
 import { ApiError } from "@/lib/api-error";
 import { requireAdminSession } from "@/lib/admin-auth";
 import { getRedisClient } from "@/lib/redis";
-import { upsertUserBadge, deleteUserBadge, invalidateBadgeCache } from "@/db/queries/badges";
-import { db } from "@/db";
-import { auditLogs } from "@/db/schema/audit-logs";
-import { authUsers } from "@/db/schema/auth-users";
+import { upsertUserBadge, deleteUserBadge, invalidateBadgeCache } from "@igbo/db/queries/badges";
+import { db } from "@igbo/db";
+import { auditLogs } from "@igbo/db/schema/audit-logs";
+import { authUsers } from "@igbo/db/schema/auth-users";
 import { eq } from "drizzle-orm";
 import { z } from "zod/v4";
 

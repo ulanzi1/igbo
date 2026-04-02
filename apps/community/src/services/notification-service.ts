@@ -4,10 +4,10 @@ import {
   createNotification,
   markNotificationRead,
   markAllNotificationsRead,
-} from "@/db/queries/notifications";
+} from "@igbo/db/queries/notifications";
 import { getRedisPublisher } from "@/lib/redis";
-import { listGroupLeaders } from "@/db/queries/groups";
-import { findUserById } from "@/db/queries/auth-queries";
+import { listGroupLeaders } from "@igbo/db/queries/groups";
+import { findUserById } from "@igbo/db/queries/auth-queries";
 import { enqueueEmailJob } from "@/services/email-service";
 import { sendPushNotifications } from "@/services/push-service";
 import { notificationRouter } from "@/services/notification-router";
@@ -38,7 +38,7 @@ import type {
   RecordingExpiringWarningEvent,
   PointsThrottledEvent,
 } from "@/types/events";
-import type { NotificationType } from "@/db/schema/platform-notifications";
+import type { NotificationType } from "@igbo/db/schema/platform-notifications";
 
 /**
  * NotificationService — listens to EventBus events, creates notification
@@ -343,7 +343,7 @@ if (globalForNotif.__notifHandlersRegistered) {
 
   eventBus.on("group.archived", async (payload: GroupArchivedEvent) => {
     // Look up all active members to notify them
-    const { listActiveGroupMemberIds } = await import("@/db/queries/group-channels");
+    const { listActiveGroupMemberIds } = await import("@igbo/db/queries/group-channels");
     const memberIds = await listActiveGroupMemberIds(payload.groupId);
     for (const userId of memberIds) {
       await deliverNotification({
@@ -466,8 +466,9 @@ if (globalForNotif.__notifHandlersRegistered) {
     if (!suspendedStatuses.includes(payload.newStatus)) return;
 
     // Find all groups where user is creator and trigger ownership transfer
-    const { db } = await import("@/db");
-    const { communityGroups, communityGroupMembers } = await import("@/db/schema/community-groups");
+    const { db } = await import("@igbo/db");
+    const { communityGroups, communityGroupMembers } =
+      await import("@igbo/db/schema/community-groups");
     const { and, eq, sql } = await import("drizzle-orm");
 
     const creatorGroups = await db
@@ -531,7 +532,7 @@ if (globalForNotif.__notifHandlersRegistered) {
   // ─── Recording Failure Notifications (Story 7.4) ──────────────────────────
 
   eventBus.on("recording.mirror_failed", async (payload: RecordingMirrorFailedEvent) => {
-    const { getEventById } = await import("@/db/queries/events");
+    const { getEventById } = await import("@igbo/db/queries/events");
     const event = await getEventById(payload.eventId);
     if (!event) return;
 
@@ -548,7 +549,7 @@ if (globalForNotif.__notifHandlersRegistered) {
   // ─── Recording Expiry Warning Notifications (Story 7.4) ───────────────────
 
   eventBus.on("recording.expiring_warning", async (payload: RecordingExpiringWarningEvent) => {
-    const { getEventById } = await import("@/db/queries/events");
+    const { getEventById } = await import("@igbo/db/queries/events");
     const event = await getEventById(payload.eventId);
     if (!event) return;
 

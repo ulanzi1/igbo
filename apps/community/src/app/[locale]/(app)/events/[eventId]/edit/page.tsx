@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { auth } from "@/server/auth/config";
-import { getEventById } from "@/db/queries/events";
+import { getEventById } from "@igbo/db/queries/events";
 import { EventForm } from "@/features/events/components/EventForm";
 
 export const dynamic = "force-dynamic";

@@ -5,7 +5,7 @@ import { withApiHandler } from "@/server/api/middleware";
 import { successResponse } from "@/lib/api-response";
 import { requireAuthenticatedSession } from "@/services/permissions";
 import { rsvpToEvent, cancelEventRsvp } from "@/services/event-service";
-import { getAttendeeStatus } from "@/db/queries/events";
+import { getAttendeeStatus } from "@igbo/db/queries/events";
 import { RATE_LIMIT_PRESETS } from "@/services/rate-limiter";
 
 // ─── GET ──────────────────────────────────────────────────────────────────────

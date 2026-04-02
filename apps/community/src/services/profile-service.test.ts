@@ -3,13 +3,13 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
-vi.mock("@/db/queries/community-profiles", () => ({
+vi.mock("@igbo/db/queries/community-profiles", () => ({
   updateProfileFields: vi.fn(),
   updatePrivacySettings: vi.fn(),
   getProfileWithSocialLinks: vi.fn(),
 }));
 
-vi.mock("@/db/queries/community-social-links", () => ({
+vi.mock("@igbo/db/queries/community-social-links", () => ({
   upsertSocialLink: vi.fn(),
   deleteSocialLink: vi.fn(),
 }));
@@ -18,8 +18,8 @@ vi.mock("@/services/event-bus", () => ({
   eventBus: { emit: vi.fn() },
 }));
 
-vi.mock("@/db", () => ({ db: {} }));
-vi.mock("@/db/schema/community-profiles", () => ({
+vi.mock("@igbo/db", () => ({ db: {} }));
+vi.mock("@igbo/db/schema/community-profiles", () => ({
   communityProfiles: {},
   communitySocialLinks: {},
 }));
@@ -34,8 +34,8 @@ import {
 import {
   updateProfileFields,
   updatePrivacySettings as updatePrivacyQuery,
-} from "@/db/queries/community-profiles";
-import { upsertSocialLink, deleteSocialLink } from "@/db/queries/community-social-links";
+} from "@igbo/db/queries/community-profiles";
+import { upsertSocialLink, deleteSocialLink } from "@igbo/db/queries/community-social-links";
 import { eventBus } from "@/services/event-bus";
 
 const mockUpdateProfileFields = vi.mocked(updateProfileFields);

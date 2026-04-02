@@ -10,7 +10,7 @@ import type {
   GroupJoinType,
   GroupPostingPermission,
   GroupCommentingPermission,
-} from "@/db/schema/community-groups";
+} from "@igbo/db/schema/community-groups";
 
 interface GroupCreationFormProps {
   canCreate: boolean;

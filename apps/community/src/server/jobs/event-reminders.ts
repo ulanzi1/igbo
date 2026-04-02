@@ -5,7 +5,7 @@ import {
   listEventsNeedingReminder,
   listRegisteredAttendeeUserIds,
   markReminderSent,
-} from "@/db/queries/events";
+} from "@igbo/db/queries/events";
 
 // Reminder windows: [windowStartMs, windowEndMs] = [farthest, closest] before start
 // A 5-minute invocation cadence means each scan covers ±2.5 minutes of slack.

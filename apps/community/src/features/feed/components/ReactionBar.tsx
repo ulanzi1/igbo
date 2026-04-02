@@ -3,7 +3,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { reactToPostAction } from "../actions/react-to-post";
-import type { PostReactionType } from "@/db/schema/post-interactions";
+import type { PostReactionType } from "@igbo/db/schema/post-interactions";
 
 const REACTION_EMOJIS: Record<PostReactionType, string> = {
   like: "👍",

@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { auth } from "@/server/auth/config";
-import { listArticlesByAuthor } from "@/db/queries/articles";
+import { listArticlesByAuthor } from "@igbo/db/queries/articles";
 import { MyArticlesList } from "@/features/articles/components/MyArticlesList";
 
 export const dynamic = "force-dynamic";

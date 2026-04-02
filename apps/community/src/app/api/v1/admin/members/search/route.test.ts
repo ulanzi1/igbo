@@ -10,7 +10,7 @@ vi.mock("@/lib/admin-auth", () => ({
   requireAdminSession: (...a: unknown[]) => mockRequireAdminSession(...a),
 }));
 
-vi.mock("@/db/queries/points", () => ({
+vi.mock("@igbo/db/queries/points", () => ({
   searchMembersForAdmin: (...a: unknown[]) => mockSearchMembersForAdmin(...a),
 }));
 

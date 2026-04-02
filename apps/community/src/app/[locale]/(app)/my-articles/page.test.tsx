@@ -30,7 +30,7 @@ vi.mock("@/server/auth/config", () => ({
   auth: (...args: unknown[]) => mockAuth(...args),
 }));
 
-vi.mock("@/db/queries/articles", () => ({
+vi.mock("@igbo/db/queries/articles", () => ({
   listArticlesByAuthor: (...args: unknown[]) => mockListArticlesByAuthor(...args),
 }));
 

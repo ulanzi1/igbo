@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import { getEventById } from "@/db/queries/events";
-import { getGroupById } from "@/db/queries/groups";
+import { getEventById } from "@igbo/db/queries/events";
+import { getGroupById } from "@igbo/db/queries/groups";
 import { EventFormatBadge } from "@/features/events/components/EventFormatBadge";
 import { EventStatusBadge } from "@/features/events/components/EventStatusBadge";
 import { EventMembershipGate } from "@/features/events/components/EventMembershipGate";

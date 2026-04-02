@@ -3,9 +3,9 @@ import createMiddleware from "next-intl/middleware";
 import { NextRequest, NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { routing } from "./i18n/routing";
-import { db } from "@/db";
-import { authUsers } from "@/db/schema/auth-users";
-import { getActiveSuspension } from "@/db/queries/member-discipline";
+import { db } from "@igbo/db";
+import { authUsers } from "@igbo/db/schema/auth-users";
+import { getActiveSuspension } from "@igbo/db/queries/member-discipline";
 import {
   getCachedAccountStatus,
   setCachedAccountStatus,

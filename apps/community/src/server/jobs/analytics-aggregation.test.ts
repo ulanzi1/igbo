@@ -7,11 +7,11 @@ const mockUpsertSnapshotsForDate = vi.hoisted(() => vi.fn());
 const mockDbExecute = vi.hoisted(() => vi.fn());
 const mockRegisterJob = vi.hoisted(() => vi.fn());
 
-vi.mock("@/db/queries/analytics", () => ({
+vi.mock("@igbo/db/queries/analytics", () => ({
   upsertSnapshotsForDate: mockUpsertSnapshotsForDate,
 }));
 
-vi.mock("@/db", () => ({
+vi.mock("@igbo/db", () => ({
   db: {
     execute: mockDbExecute,
   },

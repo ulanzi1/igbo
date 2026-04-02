@@ -5,7 +5,7 @@ import { withApiHandler } from "@/server/api/middleware";
 import { successResponse } from "@/lib/api-response";
 import { ApiError } from "@/lib/api-error";
 import { requireAuthenticatedSession } from "@/services/permissions";
-import { getGroupById, getGroupMember, listPendingMembers } from "@/db/queries/groups";
+import { getGroupById, getGroupMember, listPendingMembers } from "@igbo/db/queries/groups";
 import { updateGroupSettings } from "@/services/group-service";
 import { RATE_LIMIT_PRESETS } from "@/services/rate-limiter";
 

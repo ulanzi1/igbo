@@ -7,13 +7,13 @@ vi.mock("@/server/auth/config", () => ({
   auth: vi.fn(),
 }));
 
-vi.mock("@/db/queries/community-profiles", () => ({
+vi.mock("@igbo/db/queries/community-profiles", () => ({
   getPublicProfileForViewer: vi.fn(),
   getProfileWithSocialLinks: vi.fn(),
 }));
 
-vi.mock("@/db", () => ({ db: {} }));
-vi.mock("@/db/schema/community-profiles", () => ({
+vi.mock("@igbo/db", () => ({ db: {} }));
+vi.mock("@igbo/db/schema/community-profiles", () => ({
   communityProfiles: {},
   communitySocialLinks: {},
 }));
@@ -32,7 +32,7 @@ import { auth } from "@/server/auth/config";
 import {
   getPublicProfileForViewer,
   getProfileWithSocialLinks,
-} from "@/db/queries/community-profiles";
+} from "@igbo/db/queries/community-profiles";
 
 const mockAuth = vi.mocked(auth);
 const mockGetPublicProfile = vi.mocked(getPublicProfileForViewer);

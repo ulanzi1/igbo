@@ -2,7 +2,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("server-only", () => ({}));
-vi.mock("@/db/queries/follows", () => ({
+vi.mock("@igbo/db/queries/follows", () => ({
   followMember: vi.fn(),
   unfollowMember: vi.fn(),
   isFollowing: vi.fn(),
@@ -10,7 +10,7 @@ vi.mock("@/db/queries/follows", () => ({
 vi.mock("@/services/event-bus", () => ({ eventBus: { emit: vi.fn() } }));
 
 import { followUser, unfollowUser, isUserFollowing } from "./follow-service";
-import { followMember, unfollowMember, isFollowing } from "@/db/queries/follows";
+import { followMember, unfollowMember, isFollowing } from "@igbo/db/queries/follows";
 import { eventBus } from "@/services/event-bus";
 
 const mockFollowMember = vi.mocked(followMember);

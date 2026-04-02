@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { withApiHandler } from "@/server/api/middleware";
 import { successResponse } from "@/lib/api-response";
-import { db } from "@/db";
+import { db } from "@igbo/db";
 import { sql } from "drizzle-orm";
 import { getRedisClient } from "@/lib/redis";
 

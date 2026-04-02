@@ -11,7 +11,7 @@ import {
   requestRevisionById,
   toggleArticleFeature,
   type PaginatedArticleListOptions,
-} from "@/db/queries/articles";
+} from "@igbo/db/queries/articles";
 
 export async function listPendingArticlesForAdmin(
   request: Request,

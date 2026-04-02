@@ -3,14 +3,14 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
-vi.mock("@/db/queries/feed", () => ({
+vi.mock("@igbo/db/queries/feed", () => ({
   getTotalPostCount: vi.fn(),
   getFollowedUserIds: vi.fn(),
   getFeedPosts: vi.fn(),
 }));
 
 import { getFeed } from "./feed-service";
-import { getTotalPostCount, getFollowedUserIds, getFeedPosts } from "@/db/queries/feed";
+import { getTotalPostCount, getFollowedUserIds, getFeedPosts } from "@igbo/db/queries/feed";
 
 const mockGetTotalPostCount = vi.mocked(getTotalPostCount);
 const mockGetFollowedUserIds = vi.mocked(getFollowedUserIds);

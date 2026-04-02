@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
-vi.mock("@/db/queries/events", () => ({
+vi.mock("@igbo/db/queries/events", () => ({
   createEvent: vi.fn(),
   getEventById: vi.fn(),
   updateEvent: vi.fn(),
@@ -79,15 +79,15 @@ vi.mock("@aws-sdk/s3-request-presigner", () => ({
   getSignedUrl: vi.fn().mockResolvedValue("https://presigned.example.com/download"),
 }));
 
-vi.mock("@/db/queries/auth-permissions", () => ({
+vi.mock("@igbo/db/queries/auth-permissions", () => ({
   getUserMembershipTier: vi.fn().mockResolvedValue("TOP_TIER"),
 }));
 
-vi.mock("@/db/queries/groups", () => ({
+vi.mock("@igbo/db/queries/groups", () => ({
   getUserPlatformRole: vi.fn().mockResolvedValue("MEMBER"),
 }));
 
-vi.mock("@/db/queries/platform-settings", () => ({
+vi.mock("@igbo/db/queries/platform-settings", () => ({
   getPlatformSetting: vi.fn().mockResolvedValue(53_687_091_200),
 }));
 
@@ -97,7 +97,7 @@ import {
   rsvpToEvent as dbRsvpToEvent,
   cancelRsvp as dbCancelRsvp,
   cancelAllEventRsvps,
-} from "@/db/queries/events";
+} from "@igbo/db/queries/events";
 import { canCreateEvent } from "@/services/permissions";
 import { eventBus } from "@/services/event-bus";
 
@@ -305,7 +305,7 @@ describe("event-service", () => {
 
   describe("updateEvent", () => {
     it("emits event.updated EventBus event on success", async () => {
-      const { updateEvent: dbUpdate } = await import("@/db/queries/events");
+      const { updateEvent: dbUpdate } = await import("@igbo/db/queries/events");
       vi.mocked(dbUpdate).mockResolvedValue(mockEvent);
       const { updateEvent } = await import("./event-service");
       await updateEvent("user-1", "event-1", { title: "New Title" });
@@ -348,7 +348,7 @@ describe("event-service", () => {
     });
 
     it("sets dateChangeType='postponed' when new startTime is later than current", async () => {
-      const { updateEvent: dbUpdate } = await import("@/db/queries/events");
+      const { updateEvent: dbUpdate } = await import("@igbo/db/queries/events");
       vi.mocked(dbUpdate).mockResolvedValue(mockEvent);
       const { updateEvent } = await import("./event-service");
       const newStart = new Date("2031-06-01T10:00:00Z").toISOString(); // later than mockEvent.startTime (2030-01-01)
@@ -364,7 +364,7 @@ describe("event-service", () => {
     });
 
     it("sets dateChangeType='preponed' when new startTime is earlier than current", async () => {
-      const { updateEvent: dbUpdate } = await import("@/db/queries/events");
+      const { updateEvent: dbUpdate } = await import("@igbo/db/queries/events");
       vi.mocked(dbUpdate).mockResolvedValue(mockEvent);
       // mockEvent.startTime is 2030-01-01T10:00:00Z; newStart is in 2029
       const newStart = new Date("2029-06-01T10:00:00Z").toISOString();
@@ -385,7 +385,7 @@ describe("event-service", () => {
     });
 
     it("does not set dateChangeType when startTime not in payload", async () => {
-      const { updateEvent: dbUpdate } = await import("@/db/queries/events");
+      const { updateEvent: dbUpdate } = await import("@igbo/db/queries/events");
       vi.mocked(dbUpdate).mockResolvedValue(mockEvent);
       const { updateEvent } = await import("./event-service");
       await updateEvent("user-1", "event-1", { title: "Updated title" });
@@ -394,7 +394,7 @@ describe("event-service", () => {
     });
 
     it("emits event.updated with dateChangeType when date changes", async () => {
-      const { updateEvent: dbUpdate } = await import("@/db/queries/events");
+      const { updateEvent: dbUpdate } = await import("@igbo/db/queries/events");
       vi.mocked(dbUpdate).mockResolvedValue(mockEvent);
       const { updateEvent } = await import("./event-service");
       const newStart = new Date("2031-06-01T10:00:00Z").toISOString(); // later than mockEvent.startTime (2030-01-01)
@@ -408,7 +408,7 @@ describe("event-service", () => {
 
   describe("cancelEvent", () => {
     it("emits event.cancelled EventBus event on success", async () => {
-      const { cancelEvent: dbCancel } = await import("@/db/queries/events");
+      const { cancelEvent: dbCancel } = await import("@igbo/db/queries/events");
       vi.mocked(dbCancel).mockResolvedValue(true);
       const { cancelEvent } = await import("./event-service");
       await cancelEvent("user-1", "event-1", "Venue unavailable");
@@ -427,7 +427,7 @@ describe("event-service", () => {
     });
 
     it("calls cancelAllEventRsvps after cancelling event", async () => {
-      const { cancelEvent: dbCancel } = await import("@/db/queries/events");
+      const { cancelEvent: dbCancel } = await import("@igbo/db/queries/events");
       vi.mocked(dbCancel).mockResolvedValue(true);
       const { cancelEvent } = await import("./event-service");
       await cancelEvent("user-1", "event-1", "reason");
@@ -435,7 +435,7 @@ describe("event-service", () => {
     });
 
     it("emits event.cancelled after cascading RSVP cancellations", async () => {
-      const { cancelEvent: dbCancel } = await import("@/db/queries/events");
+      const { cancelEvent: dbCancel } = await import("@igbo/db/queries/events");
       vi.mocked(dbCancel).mockResolvedValue(true);
       const { cancelEvent } = await import("./event-service");
       await cancelEvent("user-1", "event-1", "reason");
@@ -446,7 +446,7 @@ describe("event-service", () => {
     });
 
     it("passes reason to dbCancelEvent", async () => {
-      const { cancelEvent: dbCancel } = await import("@/db/queries/events");
+      const { cancelEvent: dbCancel } = await import("@igbo/db/queries/events");
       vi.mocked(dbCancel).mockResolvedValue(true);
       const { cancelEvent } = await import("./event-service");
       await cancelEvent("user-1", "event-1", "Venue flooded");
@@ -454,7 +454,7 @@ describe("event-service", () => {
     });
 
     it("emits event.cancelled with reason in payload", async () => {
-      const { cancelEvent: dbCancel } = await import("@/db/queries/events");
+      const { cancelEvent: dbCancel } = await import("@igbo/db/queries/events");
       vi.mocked(dbCancel).mockResolvedValue(true);
       const { cancelEvent } = await import("./event-service");
       await cancelEvent("user-1", "event-1", "Weather emergency");
