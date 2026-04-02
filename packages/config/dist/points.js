@@ -1,0 +1,8 @@
+import {
+  BADGE_MULTIPLIERS,
+  POINTS_CONFIG
+} from "./chunk-2TET46WG.js";
+export {
+  BADGE_MULTIPLIERS,
+  POINTS_CONFIG
+};
