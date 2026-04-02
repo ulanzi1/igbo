@@ -270,19 +270,23 @@ jobs:
       - name: Start standalone server
         run: |
           if [ -f apps/community/.next/standalone/apps/community/server.js ]; then
-            PORT=3000 node apps/community/.next/standalone/apps/community/server.js &
+            PORT=3000 node apps/community/.next/standalone/apps/community/server.js >/tmp/server.log 2>&1 &
           else
-            PORT=3000 node apps/community/.next/standalone/server.js &
+            PORT=3000 node apps/community/.next/standalone/server.js >/tmp/server.log 2>&1 &
           fi
+          echo "Server PID: $!"
       - name: Wait for server to be ready
         run: |
-          for i in $(seq 1 15); do
+          for i in $(seq 1 20); do
             curl -sf http://localhost:3000/en > /dev/null && echo "Server ready after ${i} attempts" && break
-            echo "Waiting for server... attempt $i/15"
-            sleep 2
+            echo "Waiting for server... attempt $i/20"
+            sleep 3
           done
-          # Fail fast if server never started (loop exited without break)
-          curl -sf http://localhost:3000/en > /dev/null || { echo "Server failed to start after 30s"; exit 1; }
+          if ! curl -sf http://localhost:3000/en > /dev/null; then
+            echo "=== Server failed to start. Startup log: ==="
+            cat /tmp/server.log
+            exit 1
+          fi
       - name: Run Lighthouse CI
         uses: treosh/lighthouse-ci-action@v12
         with:

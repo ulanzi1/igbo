@@ -1,3 +1,4 @@
+import path from "path";
 import type { NextConfig } from "next";
 import createNextIntlPlugin from "next-intl/plugin";
 import withSerwistInit from "@serwist/next";
@@ -98,6 +99,10 @@ const s3ImagePattern = (() => {
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  // In pnpm workspaces, Next.js file tracing must start from the monorepo root so it
+  // can resolve workspace packages (e.g. @igbo/config, @next/env) into the standalone
+  // bundle. Without this, the standalone server crashes with "Cannot find module" errors.
+  outputFileTracingRoot: path.join(__dirname, "../../"),
   reactStrictMode: true,
   poweredByHeader: false,
   transpilePackages: ["@igbo/config"],
