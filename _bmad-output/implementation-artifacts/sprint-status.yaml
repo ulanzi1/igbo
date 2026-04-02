@@ -186,7 +186,7 @@ development_status:
   portal-epic-0: in-progress
   p-0-1-monorepo-structure-igbo-config: done
   p-0-2a-igbo-db-extraction-read-layer: done
-  p-0-2b-migration-system-journal: backlog
+  p-0-2b-migration-system-journal: done
   p-0-3a-igbo-auth-extraction: backlog
   p-0-3b-cross-subdomain-sso: backlog
   p-0-3c-safari-itp-compatibility: backlog

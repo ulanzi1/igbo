@@ -92,7 +92,7 @@ jobs:
       - name: Run database migrations
         env:
           DATABASE_URL: postgres://postgres:loadtestpassword@localhost:5432/igbo_loadtest
-        run: pnpm --filter @igbo/community db:migrate
+        run: pnpm --filter @igbo/db db:migrate
 
       - name: Seed load test data
         env:
