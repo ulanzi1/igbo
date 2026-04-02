@@ -22,18 +22,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: oven-sh/setup-bun@v2
+      - uses: pnpm/action-setup@v4
         with:
-          bun-version: latest
+          version: latest
 
-      - uses: actions/cache@v4
+      - uses: actions/setup-node@v4
         with:
-          path: ~/.bun/install/cache
-          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
-          restore-keys: ${{ runner.os }}-bun-
+          node-version: "22"
+          cache: "pnpm"
 
       - name: Install dependencies
-        run: bun install --frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       # Install k6 via official GitHub Action — pinned to prevent nightly instability
       - uses: grafana/setup-k6-action@v1
@@ -95,33 +94,33 @@ jobs:
       - name: Run database migrations
         env:
           DATABASE_URL: postgres://postgres:loadtestpassword@localhost:5432/igbo_loadtest
-        run: bun run db:migrate
+        run: pnpm --filter @igbo/community db:migrate
 
       - name: Seed load test data
         env:
           LOADTEST_DATABASE_URL: postgres://postgres:loadtestpassword@localhost:5432/igbo_loadtest
-        run: bun run test:load:seed
+        run: pnpm --filter @igbo/community test:load:seed
 
       - name: Run k6 HTTP load tests
         env:
           BASE_URL: http://localhost:3000
-        run: bun run test:load:http
+        run: pnpm --filter @igbo/community test:load:http
 
       - name: Run WebSocket load tests
         env:
           BASE_URL: http://localhost:3000
           REALTIME_URL: http://localhost:3001
-        run: bun run test:load:ws
+        run: pnpm --filter @igbo/community test:load:ws
 
       - name: Generate load test report
-        run: bun run test:load:report
+        run: pnpm --filter @igbo/community test:load:report
 
       - name: Upload load test results
         if: always() # Upload even on failure so we can diagnose regressions
         uses: actions/upload-artifact@v4
         with:
           name: load-test-results-${{ github.run_number }}
-          path: tests/load/results/
+          path: apps/community/tests/load/results/
           retention-days: 30
 
       - name: Tear down Docker stack

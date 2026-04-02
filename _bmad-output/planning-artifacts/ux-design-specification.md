@@ -2,16 +2,16 @@
 stepsCompleted: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
 lastStep: 14
 inputDocuments:
-  - product-brief-igbo-2026-02-18.md
-  - prd.md
-  - prd-validation-report.md
-lastEdited: "2026-02-19"
+  - product-brief-igbo-2026-03-29.md
+  - prd-v2.md
+  - project-context.md
+lastEdited: "2026-04-01"
 ---
 
-# UX Design Specification — igbo
+# UX Design Specification -- igbo Job Portal
 
 **Author:** Dev
-**Date:** 2026-02-19
+**Date:** 2026-03-31
 
 ---
 
@@ -19,3355 +19,3489 @@ lastEdited: "2026-02-19"
 
 ### Project Vision
 
-igbo is the first purpose-built digital home for the Igbo diaspora — a real-time, mobile-first community web platform that makes scattered community members discoverable, connected, and engaged across the globe. The MVP delivers the community core: admin-approved membership, real-time Slack-style chat, member directory with geographic discovery, groups, events with integrated video, bilingual articles for cultural preservation, a points-based engagement system, and comprehensive admin tools. The platform serves a user spectrum from tech-savvy young professionals in Houston to elders in Enugu who need their grandchildren's help to navigate — and the UX must serve both without compromise.
+The igbo Job Portal is a community-exclusive employment marketplace at `job.[domain]` — a separate Next.js application sharing infrastructure (SSO, chat, DB, Redis, notifications) with the existing igbo community platform. The core thesis: **"Discovery is open. Participation is exclusive."** Anyone can find jobs via Google; only community members can apply, message, and be trusted.
+
+The portal inverts the standard marketplace trust problem by *harvesting* trust from an existing verified community rather than building it from scratch. Pre-built identity, verification badges, engagement history, and named referrals create hiring signals that no generic job platform can replicate.
 
 ### Target Users
 
-| Persona                                    | Age/Location     | Tech Comfort | Primary UX Need                                         | Device                     |
-| ------------------------------------------ | ---------------- | ------------ | ------------------------------------------------------- | -------------------------- |
-| **Chidi** — Diaspora Young Professional    | 28, Houston      | High         | Discovery, social feed, chat — "find my people"         | Mobile-first               |
-| **Adaeze** — Young Person Back Home        | 22, Lagos        | Medium-High  | Mentorship, career inspiration, articles                | Mobile, variable bandwidth |
-| **Chief Okonkwo** — Elder Knowledge Keeper | 67, Enugu        | Low          | Publish cultural content, simple navigation, large text | Assisted mobile/desktop    |
-| **Ngozi** — Community Leader               | 45, London       | Medium-High  | Group management, event coordination, announcements     | Desktop + mobile           |
-| **Emeka** — New Discoverer                 | 34, Kuala Lumpur | Medium       | Guest browsing, sign-up, member discovery               | Mobile                     |
-| **Admin Amaka** — Platform Administrator   | 38, Volunteer    | High         | Queue processing, moderation, analytics — 45 min/day    | Desktop                    |
+| Persona | Role | Priority | Primary Device | Tech Comfort |
+|---------|------|----------|----------------|--------------|
+| **Chioma** (Lagos, 38) | High-volume local employer | Tier 1 | Desktop + mobile | Medium |
+| **Adaeze** (Lagos, 22) | Early career job seeker | Tier 1 | Mobile, variable bandwidth | Medium-High |
+| **Job Admin Kene** (35) | Trust & safety gatekeeper | Tier 1 | Desktop | High |
+| **Emeka** (Toronto, 42) | Diaspora employer, remote hiring | Tier 2 | Desktop + mobile | High |
+| **Obinna** (Abuja, 34) | Experienced professional switcher | Tier 2 | Mobile | Medium-High |
+| **Amara** (London, 29) | Diaspora remote seeker | Tier 3 | Mobile | Medium-High |
+
+Plus: **Guest Visitors** (acquisition channel — discover via Google/shared links, convert on Apply) and **Passive Members** (browsers, sharers, referrers who drive organic growth).
 
 ### Key Design Challenges
 
-1. **Elder-to-Youth Spectrum** — Serving Chief Okonkwo (67, low tech) and Chidi (28, high expectations) on the same platform requires progressive complexity: simple surface, powerful depth
-2. **Navigation Overload** — 9+ top-level destinations in MVP; mobile bottom tab bar allows max 5. Information architecture must prioritize ruthlessly
-3. **The Empty Room** — Launch with ~500 members across 15+ countries means most city searches return zero. Geographic fallback must transform "no results" into expanding discovery
-4. **Chat as Heartbeat** — Leading business metric (20+ messages/user/month) competing against WhatsApp/Slack user expectations. Must coexist clearly with news feed
-5. **Intentional Friction** — Admin-approved membership creates up to 48-hour wait. UX must frame this as exclusive welcome, not bureaucratic delay
-6. **Bilingual Everything** — English + Igbo toggle affects layouts, typography (diacritics/tone marks), and content authoring across every screen
-7. **Global Connectivity Variance** — Members in Lagos, Enugu, KL face inconsistent connectivity. Lite PWA, aggressive image optimization, and graceful degradation are UX-critical
+1. **Two-Sided Device Split** — Job seekers are mobile-first (Adaeze on variable bandwidth in Lagos, Amara on the go in London) while employers need desktop-class ATS workflows (candidate review, pipeline management, multi-job dashboards). The same platform must feel native on both — thumb-friendly apply flow AND information-dense employer dashboard.
+
+2. **WhatsApp Behavior Displacement** — The incumbent behavior is composing a WhatsApp message in 30 seconds. The portal must match WhatsApp's speed for posting and exceed it dramatically in what happens after posting — structured applications, visibility, tracking, and trust signals. If the "after" isn't decisively better, employers won't switch.
+
+3. **Trust Signal Legibility & Decision Speed** — Community verification badges, engagement history, named referrals, and skill overlap indicators are the portal's structural advantage. These signals must be glanceable *and actionable* — enabling employers to move from "view" to "shortlist" in seconds, not minutes. If trust signals are buried or visually noisy, employers won't use them in shortlisting decisions.
+
+4. **Cold Start Double Problem (Seekers)** — New seekers have no profile (progressive nudges needed) AND the marketplace may have few listings at launch. Empty states must feel like *opportunity loading*, not *dead platform*. The apprenticeship featured section must feel alive even with 5-10 listings.
+
+5. **Guest-to-Member Conversion Friction** — Guests see everything (full listings, salary, company profiles) but hit a wall at "Apply." The transition from browsing to signup must feel like *unlocking*, not *gatekeeping*. The return-to-job-after-signup flow must be seamless.
+
+6. **Admin Efficiency Under Volume** — Job Admins must review 6+ postings in < 20 minutes with high confidence. The review queue needs enough context at a glance (poster profile, salary plausibility signals, company history) to enable fast approve/reject without deep investigation for clean postings.
+
+7. **Application Quality vs Quantity Tradeoff** — One-click apply lowers friction, but risks low-quality or mass applications. The system must balance ease of applying with subtle friction (e.g., profile completeness nudges, skill alignment feedback before submission) to maintain high-quality applications and avoid employer overwhelm.
+
+8. **Employer Cold Start Experience** — First-time employers have no company profile or prior postings. The job posting flow must feel guided, lightweight, and confidence-building — inline company creation, salary guidance, field examples — avoiding the feeling of a complex form or compliance burden.
+
+9. **Notification Signal vs Noise** — Real-time updates (new applications, messages, status changes) must feel valuable, not overwhelming. Over-notification reduces trust; under-notification kills responsiveness. The system must prioritize high-signal events and batch low-priority updates into daily digests.
 
 ### Design Opportunities
 
-1. **Geographic Discovery as Magic Moment** — Animated search expansion (city → state → country) can feel like watching your people appear. No other platform does this.
-2. **Cultural Visual Identity** — Igbo art traditions (uli, nsibidi) can inform a design system that says "built for us" beyond generic blue
-3. **Gamification Psychology** — Points + badges (3x/6x/10x multipliers) feeding into governance voting power creates a meaningful engagement loop, not just vanity metrics
-4. **Assisted Onboarding** — Explicit "Help someone join" flow for elders supported by family members, turning a limitation into an intergenerational feature
-5. **Chat-Feed Convergence** — Group chat messages elevated to feed posts, feed announcements sparking chat threads — bridging synchronous and asynchronous engagement
+1. **"Viewed by Employer" as Emotional Differentiator** — No major African job board provides this. The simple passive signal "Viewed by employer — March 30" solves the black hole problem and creates an emotional moment that drives retention and word-of-mouth.
+
+2. **Apprenticeship Section as Cultural Identity** — If designed as a living community bulletin board (mentor faces, skills being taught, progress indicators) rather than a filtered job list, this section becomes the portal's emotional heart and visual signature. No competitor has this.
+
+3. **Explainability Tags as Trust Builders** — "Matches 4 of your skills," "Same city," "Experience fits" — human-readable pills instead of opaque percentages. This transparency pattern makes matching feel *fair and understandable*, building trust in the system itself.
+
+4. **Community Context on Candidate Cards** — Showing verification badge, membership duration, and engagement level alongside skills and experience creates a hiring signal that LinkedIn can't replicate. This is the trust-harvested advantage made visible.
+
+5. **One-Click Apply with Auto-Fill** — Community profile data (name, location, interests) pre-populates the job seeker profile. The path from "I'm interested" to "I've applied" can be shorter than any generic platform.
+
+6. **Economic Identity Layer** — Over time, a user's profile evolves from social identity to economic identity — skills, work history, endorsements, referrals. The portal can make this progression visible, reinforcing long-term engagement and trust within the community. The job portal isn't just a feature; it's a new dimension of who members are.
 
 ## Core User Experience
 
 ### Defining Experience
 
-**The Core Action is Connection — Not Just Messaging.**
+The igbo Job Portal is a **two-sided marketplace** where the core loop is employer-side — post, receive applications, hire — but it only works if the seeker experience feeds it with quality applications. Both sides must feel effortless in their primary zone.
 
-igbo's defining experience is the full arc of community connection: discovering someone from your culture who lives in your city, reaching out, chatting, sharing a photo of your grandmother's recipe or a video of last weekend's cultural festival, commenting on each other's milestones, and eventually meeting face-to-face. Messaging is the tool — connection is the outcome.
+**The Core Loop:**
+Employer posts job → Seekers discover and apply → Employer reviews with trust signals → Shortlist/hire → Both sides return
 
-The platform's core loop is: **Discover → Connect → Engage → Share → Belong**
-
-- **Discover** — Find community members near you or who share your interests
-- **Connect** — Send that first message, join a group, RSVP to an event
-- **Engage** — Chat in real-time, comment on posts, attend video meetings
-- **Share** — Post photos of family gatherings, videos of festival celebrations, articles preserving cultural knowledge
-- **Belong** — Feel the steady pulse of your community alive around you, every day
-
-Every screen, every interaction, every navigation choice must serve this loop. If a feature doesn't help users discover, connect, engage, share, or belong — it doesn't belong in the MVP.
+The Week 6 validation gate tests this loop explicitly: 20-30 seeded jobs, 5+ applications per job, >50% viewed. If this loop doesn't work, nothing else matters.
 
 ### Platform Strategy
 
-**Mobile-first responsive web (Lite PWA) with desktop excellence.**
+**Design Priority:** Seeker mobile FIRST — employer desktop optimized for efficiency.
 
-- **Primary platform:** Mobile web (Chrome, Safari, Samsung Internet) — community members will check igbo on their phones the way they check WhatsApp today
-- **Secondary platform:** Desktop web — power users (Ngozi managing groups, Amaka processing admin queues, Chief Okonkwo composing articles with his granddaughter's help)
-- **PWA features:** Installable on home screen, push notifications, smart caching for variable connectivity
-- **Offline consideration:** Graceful degradation — cached feed content, queued messages sent on reconnect, offline fallback page
-- **Touch-first design:** All interactive elements 44x44px minimum, swipe gestures for common actions, pull-to-refresh patterns
-- **Bandwidth sensitivity:** Lazy-loaded images, compressed video thumbnails, progressive image loading, audio-only fallback for video meetings
-- **Breakpoints:** Mobile (< 768px), Tablet (768-1024px), Desktop (> 1024px)
+- **Seekers (Mobile-first):** Single-column layouts, thumb-friendly tap targets (44px+), fast page loads on variable bandwidth (Lagos, Enugu), skeleton loaders for slow connections. The entire browse-to-apply flow must work flawlessly on a phone held in one hand.
+- **Employers (Desktop-optimized):** Information-dense layouts with tables, side panels, multi-column candidate views. Must still function on mobile for quick actions (read notifications, view applications, send messages) — but full ATS pipeline management is a desktop experience.
+- **Job Admins (Desktop-primary, mobile-viewable):** Review queue designed for rapid throughput on large screens. Mobile must support viewing flagged postings and context (e.g., from a notification) — but approve/reject actions are desktop-primary.
+- **Guests (Mobile + Desktop):** Full job listings, salary, company profiles visible without auth. SEO-optimized SSR pages. Apply triggers signup with seamless return-to-job.
+
+**Breakpoints:** Mobile (< 768px), Tablet (768-1024px), Desktop (> 1024px) — consistent with main igbo platform.
+
+**Network Resilience:** Skeleton loaders and fallback states during slow connections. Application submission failures show clear error with retry. No offline queueing in MVP.
+
+**Emotional Context of Use:**
+
+| Persona | When They Arrive | Emotional State | Design Implication |
+|---------|-----------------|----------------|-------------------|
+| **Adaeze** (seeker) | Evening after work/class, commute, idle moments | Anxious, hopeful, possibly discouraged from other platforms | Lead with reassurance — match quality, "viewed" signals, progress indicators. Don't open with empty states or cold search bars. |
+| **Chioma** (employer) | Monday morning, kitchen short-staffed; or Sunday evening, planning the week | Rushed and urgent, OR deliberate and evaluative | Unread count and new application alerts front and center. Dashboard must answer "what needs my attention?" in 2 seconds. |
+| **Emeka** (diaspora employer) | Between meetings, reviewing candidates on commute or after hours | Deliberate but time-constrained | Candidate cards must be self-contained — full decision context without drilling in. |
+| **Kene** (Job Admin) | Morning routine, batch processing queue | Focused, efficiency-minded, pattern-scanning | Queue must enable flow state — minimal context switching, inline poster context, one-click approve for clean postings. |
+| **Guest** | Clicked a Google result or WhatsApp link | Curious but uncommitted, evaluating whether to invest | Full transparency (salary, company, description) builds trust before the signup gate. No teasing or content hiding. |
 
 ### Effortless Interactions
 
-**Everything in the core loop must feel effortless. Zero friction on these critical paths:**
+**Seeker Effortless Zone — Discovery + Apply:**
 
-| Interaction                   | Must Feel Like                                                            | Never Feel Like                                                    |
-| ----------------------------- | ------------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| **Finding members near you**  | Watching your people appear on a map — expansive, hopeful, magical        | Querying a database with no results — cold, dead, empty            |
-| **Sending first message**     | Walking up to someone at a community gathering and saying hello           | Filling out a contact form and waiting for a reply                 |
-| **Joining a group**           | Being welcomed into a room where people know your name                    | Requesting access and waiting for approval (except private groups) |
-| **Watching community videos** | Sitting in your uncle's living room watching festival footage together    | Buffering, loading, "video not available in your region"           |
-| **Sharing photos/videos**     | Passing your phone around at a family dinner — "look at this!"            | Uploading to a file manager with metadata fields                   |
-| **Reading articles**          | An elder sitting on the veranda telling you a story                       | Scrolling through a blog with ads and pop-ups                      |
-| **Attending a video event**   | Walking into a town hall and finding a seat                               | Downloading software, creating accounts, entering meeting codes    |
-| **Checking your feed**        | Catching up with the neighborhood — who's doing what, what happened today | Scrolling through an algorithmic void of strangers                 |
-| **Commenting/reacting**       | Nodding along, laughing, clapping — natural human responses               | Composing formal written feedback                                  |
-| **Switching languages**       | As natural as switching between English and Igbo mid-sentence             | A settings page buried three levels deep                           |
+- Smart matching surfaces relevant jobs automatically ("Jobs for you") — no manual searching required to find value
+- Job listing cards show everything needed to decide: title, company, salary, location, match tags — one glance
+- Apply flow: tap Apply → profile auto-filled from community data → default resume attached → submit. Target: < 30 seconds
+- Skill alignment feedback before submission: "Matches 4 of 6 required skills" — helps seekers self-select quality applications
+- Progressive profile: first apply requires only display name + location + 1 skill (all auto-fillable). Deeper profile grows over time through nudges, not gates
+
+**Employer Effortless Zone — Decision-Making:**
+
+- Candidate cards show trust signals at a glance: verification badge, skill overlap count, referral badge, engagement level — no clicking required to assess quality
+- Shortlist action is accessible directly from the candidate card — minimal interaction to advance status
+- ATS pipeline status advancement requires minimal interaction (single action per transition)
+- Unread indicators and application counts surface what needs attention without scanning
+- Returning employers: company pre-filled, previous posting as template, submit in < 2 minutes
+
+**Admin Effortless Zone — Throughput:**
+
+- Review queue shows poster context inline: community profile, engagement level, previous postings, company verification status
+- Clean postings: approve in one click with no investigation needed
+- Suspicious postings: red flag signals (new account, unusual salary, vague description) surfaced automatically
+- Batch approve for trusted employer fast-lane postings
+
+**Graceful Negative Outcomes:**
+
+Negative moments are retention surfaces, not edge cases. Each must provide a clear emotional landing and a concrete next step.
+
+| Negative Moment | What the User Sees | Design Response |
+|----------------|-------------------|-----------------|
+| **Application Rejected** | Status changes to "Rejected" | Empathetic tone ("This role has been filled / moved forward with other candidates"), not a bare red badge. Immediately followed by "Jobs you match" — related listings based on the same skills. Never a dead end. |
+| **Empty Search Results** | No jobs match filters or search query | "No exact matches — here are recently posted jobs in [your location]" with option to broaden filters. If truly empty (cold start), show "Be the first to know" email alert signup + apprenticeship featured section. |
+| **Expired/Closed Listing** | User clicks a shared link or bookmark to a closed job | "This position is no longer accepting applications" with company profile link ("See other jobs from [Company]") + similar active listings. Never a 404 — always a warm redirect. |
+| **Zero "Jobs for You" Matches** | New seeker with sparse profile gets no smart matches | "Add more skills to unlock better matches" with inline skill tag input. Show trending jobs in their location as fallback. Frame as "your matches will improve" not "nothing for you." |
+| **Application Not Viewed (Extended)** | 5+ days with no "Viewed by employer" signal | Subtle reassurance: "Employers typically review applications within a few days" — not a notification, just a contextual note on the status page. Prevents anxiety spiral. |
 
 ### Critical Success Moments
 
-**Make-or-Break Moments — If These Fail, The Platform Fails:**
-
-1. **The Discovery Moment** — Emeka searches "Kuala Lumpur." If the result is a blank page, he leaves. If the UI gracefully expands to "3 members in Malaysia... 47 in Southeast Asia" with faces, names, and bios — he stays forever. This moment must never feel empty.
-
-2. **The First Message** — Chidi finds a member in Dallas who grew up in the same town. He clicks "Message." If there's any friction — a signup wall, a loading screen, a confusing interface — the moment dies. That first message must go from thought to sent in under 5 seconds.
-
-3. **The Cultural Content Moment** — A diaspora member in London opens igbo and sees a video of a traditional wedding ceremony from home. Their eyes well up. They share it with their group. They comment. They call their mother. This emotional reaction is the platform's deepest engagement driver. Media must load fast, play smoothly, and be easy to share.
-
-4. **The Town Hall Moment** — Ngozi's virtual event with 120 members. If video stutters, if the join process requires a download, if the chat sidebar doesn't work — 120 people have a bad experience and tell others. Video events must "just work."
-
-5. **The Admin Morning** — Amaka opens the admin dashboard at 7 AM. If the queues are unclear, if she can't process 4 applications in 10 minutes, if the moderation tools are clunky — she burns out and stops volunteering. Admin efficiency is community survival.
-
-6. **The Elder's First Article** — Chief Okonkwo's granddaughter submits his story. If the editor is complex, if the bilingual toggle is confusing, if the approval takes days with no feedback — he gives up. And his stories die with him.
+| Moment | Persona | What Happens | If We Nail It | If We Fail |
+|--------|---------|-------------|---------------|------------|
+| **First Apply** | Adaeze | Finds a job, taps Apply, profile auto-fills, submitted in seconds | "That was easier than anything I've used" | "Why do I need to fill out all this?" — abandons |
+| **First Application Arrives** | Chioma | Gets notification, opens dashboard, sees candidate with trust signals | "I can already tell this person is worth talking to" | "This looks like every other job board" |
+| **"Viewed by Employer"** | Adaeze | Passive signal appears on application status | "They actually saw me — this platform works" | Never appears → black hole → churn |
+| **First Shortlist Decision** | Chioma | Scans candidate card, sees skill overlap + badge + referral, acts on Shortlist | "I made that decision in 10 seconds" | "I need to click through 5 screens to evaluate" |
+| **First Message** | Both | Employer messages candidate through platform chat | "We're already talking — no email switching" | "I have to leave the platform to contact them" |
+| **Guest Clicks Apply** | Guest | Sees full listing, clicks Apply, redirected to signup, returns to job after joining | "Joining was worth it for this opportunity" | "I lost the job I was looking at" — abandons |
+| **First Job Post** | Chioma | Fills form with inline company creation, submits in < 5 min | "That was faster than I expected" | "This is a compliance form, not a job post" |
+| **Admin Queue Morning** | Kene | Opens queue, reviews 6 postings in < 20 min with context at a glance | "I can trust my decisions at this speed" | "I need to investigate every posting" |
+| **First "No Jobs" Experience** | Adaeze / Guest | Opens portal → few or no listings match their search | "There's not much yet, but I can see what's coming and I'll be first" — stays subscribed | "Empty. Dead platform." — leaves and doesn't return |
+| **First Rejection** | Adaeze | Application status changes to "Rejected" | "At least I know — and here are other jobs I match" — applies again | "Rejected with no context, no next step" — churns |
+| **Second Job Post** | Chioma | Returns to post another job after first successful hire | "Company pre-filled, template ready, posted in 2 minutes" — becomes habitual | "I have to set everything up again" — goes back to WhatsApp |
+| **First High-Quality Match** | Adaeze / Chioma | Seeker sees a highly relevant job with strong match tags, OR employer sees a strong candidate with trust signals | "This system *understands* what I need" — trust in platform deepens | Generic results, no differentiation from Indeed — system feels dumb |
+| **First Return Visit** | Adaeze | Comes back the next day — "Jobs for you" has updated, application status changed | "Things are happening — this platform is alive and working for me" — retention locked in | Nothing changed, no new activity — feels stale, stops returning |
 
 ### Experience Principles
 
-These five principles guide every UX decision in igbo:
+1. **Speed-to-Value Over Completeness** — Users should experience value before they finish setting up. Seekers browse and find relevant jobs before completing a profile. Employers see their first application before they've optimized their company page. Don't gate value behind setup.
 
-**1. Connection Before Content**
-Every screen should show _people_, not just information. Avatars, names, online indicators, member counts, "people you may know" — the platform must feel populated and alive. Content (articles, events, posts) is the _reason_ people connect, but the people are always the focus.
+2. **Trust at a Glance** — Every trust signal (verification badge, referral, skill overlap, engagement level) must be readable in under 2 seconds without clicking. If an employer has to investigate to find trust, the advantage is lost.
 
-**2. Progressive Complexity**
-The surface is simple enough for Chief Okonkwo. The depth is rich enough for Ngozi. New users see a clean feed, a search bar, and a chat icon. Power users discover group management, event creation, analytics, and moderation tools. Complexity reveals itself as users grow — never overwhelms on arrival.
+3. **Guided, Not Gated** — Progressive disclosure over hard gates. Minimum requirements are minimal (1 skill to apply, company name to post). Everything else is nudged through contextual prompts ("Add more skills to improve your match score") not blocked by mandatory forms.
 
-**3. Cultural Warmth Over Corporate Polish**
-igbo should feel like a community gathering, not a SaaS product. Warm colors, human language ("Welcome home, Chidi" not "Dashboard"), celebration of milestones ("Your article reached 100 readers!"), and visual identity rooted in Igbo artistic traditions. The design system should make a member in Houston feel a connection to Enugu the moment they open the app.
+4. **Negative Moments Are Design Moments** — Rejection, empty states, and zero results are not edge cases — they are critical UX surfaces. Every negative moment must provide a clear next step: related jobs after rejection, expanding search after zero results, "be first when jobs arrive" after empty state.
 
-**4. No Dead Ends**
-Every "no results" has a next step. Every empty state has a suggestion. Every completed action has a "what's next." The platform never leaves a user staring at a blank page. Geographic search expands. Empty feeds suggest groups. New profiles prompt "complete your bio." The UX always has momentum.
+5. **Return Speed Rewards Loyalty** — The second time is always faster than the first. Returning employers get pre-filled forms and templates. Returning seekers get smarter matches. The platform gets better at serving you the more you use it.
 
-**5. Effortless Media, Emotional Impact**
-Photos and videos of community life — weddings, festivals, gatherings, cultural ceremonies — are the emotional core of the platform. Media sharing must be as frictionless as WhatsApp (tap, select, send), media consumption must be smooth regardless of bandwidth (progressive loading, adaptive quality), and media in the feed must stop the scroll and create feeling.
+6. **Design for Primary, Support Secondary** — Seekers primarily discover and apply on mobile; employers primarily review and manage on desktop. Each experience is optimized for its primary device, while remaining fully functional on secondary devices.
+
+7. **Quality Friction Is Invisible Friction** — The system makes quality applications feel effortless — not by removing friction, but by making friction feel like help. "You match 4 of 6 skills" isn't a gate, it's a confidence signal. "Add a headline to stand out" isn't a requirement, it's coaching. Subtle quality nudges that feel like guidance, not barriers.
 
 ## Desired Emotional Response
 
 ### Primary Emotional Goals
 
-**Discovery + Pride: The Twin Engines of igbo's Emotional Experience**
+**Core Emotional Center: "Recognized and valued within the community."**
 
-Every interaction on igbo should amplify two core feelings:
+This is the emotional through-line that connects every persona and every interaction. The portal must make each user feel that their participation matters — not as a transaction on a generic platform, but as a contribution to a shared economic ecosystem.
 
-1. **The Excitement of Discovery** — The thrill of finding your people in unexpected places. A community member in your city you never knew existed. A cultural event happening next weekend in your country. An elder's article that explains a tradition you only half-remembered. A group of professionals in your industry who share your heritage. igbo should feel like a treasure chest that keeps revealing new connections, new knowledge, new belonging — every time you open it.
+| Persona | Primary Emotion | What Triggers It |
+|---------|----------------|-----------------|
+| **Adaeze** (seeker) | **Seen** — "Someone actually looked at my application" | "Viewed by employer" signal, status change notifications, match tags that show the system understands her skills |
+| **Chioma** (employer) | **Empowered** — "I found the right person without going external" | Qualified applications from verified community members arriving within 48 hours |
+| **Emeka** (diaspora employer) | **Proud** — "I'm giving back by hiring and mentoring from within" | Apprenticeship posting flow, seeing community context on candidates |
+| **Kene** (Job Admin) | **Trusted** — "My judgment protects the community" | Efficient review queue, clear signals, pattern detection tools |
+| **Guest** | **Intrigued** — "This is worth joining for" | Full transparency (salary, company, description) + the visible community layer they can't access yet |
 
-2. **The Pride of Cultural Identity** — The deep, warm pride of seeing your culture celebrated, preserved, and thriving across the globe. Not as a footnote on someone else's platform, but as the _entire purpose_ of the space. When Chidi sees 47 Igbo community members across the United States, he doesn't just feel connected — he feels _proud_ that his people are everywhere, achieving, preserving, building. The platform should make cultural identity feel like a superpower, not a niche.
+**The Word-of-Mouth Emotion: Surprised trust + ownership.**
+
+*"This actually works — and it's ours."*
+
+Two emotions fused together:
+- **Surprised trust** — "I didn't expect a community platform to work this well for hiring. Applications arrived. Employers responded. The matching was relevant." The surprise comes from exceeding expectations set by generic platforms and WhatsApp chaos.
+- **Ownership** — "This isn't LinkedIn's job board filtered for Igbo people. This is *ours*. Built for us, governed by us, trusted because of us." The portal's community exclusivity isn't a limitation — it's the source of pride.
+
+The moment users recommend the platform is when expectation meets reality faster than anticipated.
 
 ### Emotional Journey Mapping
 
-| Stage                          | User Moment                                                              | Target Emotion                                                                | Design Implication                                                                                                                                            |
-| ------------------------------ | ------------------------------------------------------------------------ | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **First Visit (Guest)**        | Emeka lands on the splash page from a Twitter link                       | **Curiosity + Recognition** — "This is about _my_ people?"                    | Cultural visual identity in hero section, real member photos, community stats that show global presence                                                       |
-| **Browsing as Guest**          | Emeka reads an article about cultural heritage, sees upcoming events     | **Intrigue + FOMO** — "There's a whole world here I'm not part of yet"        | Show enough to create desire, gate enough to create urgency. Gentle CTAs: "Join to connect with 500+ members worldwide"                                       |
-| **Application Submitted**      | Emeka fills out the contact form, waits for approval                     | **Anticipation + Validation** — "I'm being welcomed into something exclusive" | Confirmation page with warmth: "We're reviewing your application. Welcome home soon." Status email within 24 hours.                                           |
-| **First Login**                | Chidi logs in, completes profile, takes feature tour                     | **Excitement + Orientation** — "There's so much here, and it's all for us"    | Guided onboarding that shows people first (not features), suggests groups by interest, surfaces nearby members immediately                                    |
-| **The Discovery Moment**       | Chidi searches Houston, finds members in Texas                           | **Awe + Belonging** — "My people are here. I'm not alone."                    | Geographic fallback with expanding animation, member cards with photos and bios, immediate "Send Message" action                                              |
-| **First Message Sent**         | Chidi messages a member from his hometown in Dallas                      | **Connection + Warmth** — "This person _gets_ me"                             | Instant delivery, typing indicator, warm empty state: "Start the conversation — you share a hometown"                                                         |
-| **Consuming Cultural Content** | A member watches a video of a traditional wedding ceremony from home     | **Nostalgia + Pride + Joy** — Eyes welling up, heart full                     | Smooth video playback, prominent share button, comments showing emotional reactions from others: "This reminds me of home"                                    |
-| **Attending a Virtual Event**  | Adaeze joins a mentorship session, meets a diaspora professional         | **Inspiration + Hope** — "My future is bigger than I thought"                 | Seamless video join, welcoming waiting room, visible attendee count showing community size                                                                    |
-| **Publishing an Article**      | Chief Okonkwo's article goes live, comments arrive from around the world | **Legacy + Purpose** — "My stories will live forever"                         | Publication celebration moment, real-time comment notifications, reader count milestone celebrations                                                          |
-| **Participating in Community** | Ngozi runs a town hall, sees 120 attendees engaged                       | **Leadership + Impact** — "I'm building something that matters"               | Event analytics showing reach, attendee engagement indicators, post-event summary                                                                             |
-| **Returning Daily**            | Chidi opens igbo during morning coffee                                   | **Comfort + Ritual** — "Let me check in with my people"                       | Fresh feed content, unread message indicators, "What's happening today" event prompts                                                                         |
-| **When Things Go Wrong**       | Search returns no results, video lags, application takes 2 days          | **Patience + Trust** — "They care, they'll fix it"                            | Human responses: feedback forms that acknowledge, invitations to online meetings to connect with community leaders, "not yet" language instead of "not found" |
+| Stage | Seeker (Adaeze) | Employer (Chioma) | Guest |
+|-------|----------------|-------------------|-------|
+| **Discovery** | Curious → Hopeful ("Jobs for you shows relevant matches — maybe this is different") | Skeptical → Interested ("Let me try posting here instead of WhatsApp") | Intrigued → Evaluating ("Full salary visible, real company profiles — this is legitimate") |
+| **First Action** | Nervous → Relieved ("Apply was instant — profile auto-filled, one tap") | Uncertain → Guided ("The form is simple, it's showing me examples, company creation is inline") | Motivated → Committed ("I want this job enough to join the community") |
+| **Waiting** | Anxious → Reassured ("Viewed by employer — March 30" — someone is looking) | Anticipating → Satisfied ("3 applications already, with trust signals I can evaluate at a glance") | N/A — converted to member |
+| **Outcome (Positive)** | Accomplished → Grateful ("I got shortlisted through my own community's platform") | Confident → Proud ("I hired from within — no external recruiter needed") | — |
+| **Outcome (Negative)** | Disappointed → Resilient ("Rejected, but here are 4 other jobs I match — I'll try again") | Frustrated → Supported ("No strong candidates yet — system suggests broadening skills or extending deadline") | — |
+| **Return** | Belonging → Invested ("My matches are better, my profile is stronger, this is working for me") | Efficient → Habitual ("Second post took 2 minutes — this is my default now") | — |
 
 ### Micro-Emotions
 
-**Critical Micro-Emotion Pairs — Where igbo Must Land on the Right Side:**
+Ordered by priority — each pair represents a critical emotional boundary where design decisions determine whether the user stays or leaves.
 
-| Positive (Target)  | Negative (Avoid) | When It Matters Most                                                   |
-| ------------------ | ---------------- | ---------------------------------------------------------------------- |
-| **Belonging**      | Isolation        | Member directory search, group discovery, feed browsing                |
-| **Pride**          | Embarrassment    | Cultural content sharing, profile display, language toggle             |
-| **Confidence**     | Confusion        | Navigation, first-time flows, admin tools                              |
-| **Trust**          | Skepticism       | Application process, data privacy, admin decisions                     |
-| **Excitement**     | Boredom          | Feed content, event discovery, new member suggestions                  |
-| **Accomplishment** | Frustration      | Points earned, article published, event organized                      |
-| **Nostalgia**      | Homesickness     | Cultural media (videos, photos), articles about traditions             |
-| **Hope**           | Disappointment   | Job/mentorship connections (Phase 2), member discovery in sparse areas |
+**1. Trust vs. Skepticism** (Highest Priority)
 
-**The Nostalgia-Hope Balance:** Community media (wedding videos, festival photos) will trigger nostalgia — but igbo must channel that into _hope and action_, not passive homesickness. The design should always pair emotional content with connection opportunities: "Feeling moved? Share this with your group" or "12 members in your area celebrated this festival last year."
+The foundational emotional gate. If users don't trust the platform, nothing else matters.
+
+- **Seekers:** "Will employers actually see my application?" → Trust built through "Viewed by employer" signal, transparent match scoring, status change notifications
+- **Employers:** "Are these real candidates with real skills?" → Trust built through community verification badges, engagement history, skill overlap indicators
+- **Guests:** "Is this a real job board or a community vanity project?" → Trust built through full salary transparency, company profiles, Google for Jobs indexing
+- **Design implication:** Trust signals must be *visible by default*, not hidden behind clicks. Every page must answer the question "Can I trust this?" within 2 seconds.
+
+**2. Confidence vs. Confusion**
+
+The interaction gate. Users who feel confident take action; users who feel confused abandon.
+
+- **Seekers:** "Do I qualify for this job?" → Confidence built through explainability tags ("Matches 4 of your skills"), skill alignment feedback before submission
+- **Employers:** "Am I filling this form correctly? Will it get approved?" → Confidence built through inline guidance, field examples, progress indicators, clear approval criteria
+- **Job Admins:** "Am I making the right call on this posting?" → Confidence built through inline poster context, salary benchmarks, red flag signals
+- **Design implication:** Every input field must have context. Every action must have clear feedback. No user should wonder "what happens next?"
+
+**3. Belonging vs. Isolation**
+
+The emotional differentiator. This is what separates the portal from Indeed.
+
+- **Seekers:** "This platform knows I'm Igbo and that matters here" → Belonging built through community context on job listings, cultural skill tags, apprenticeship stories, bilingual content
+- **Employers:** "I'm hiring from my own people — this is community economics" → Belonging built through "Community Referral" badges, community verification context on candidates, apprenticeship program visibility
+- **Design implication:** Community identity must be woven into the visual language — not as decoration, but as functional signals that carry meaning in hiring decisions.
+
+**4. Accomplishment vs. Frustration**
+
+The completion gate. How users feel after taking action determines whether they return.
+
+- **Seekers:** "I applied and it felt meaningful" → Accomplishment built through confirmation with match quality feedback ("Strong match — you share 5 skills with this role"), profile completion progress
+- **Employers:** "I posted a job and it's already working" → Accomplishment built through first application notification within 24-48 hours, dashboard showing activity
+- **Design implication:** Every completed action must have positive feedback. Submission confirmations should reinforce value, not just confirm receipt.
+
+**5. Agency vs. Powerlessness**
+
+The control gate. Users must feel they can influence their outcomes — not that they're at the mercy of an opaque system. The system should never leave users in a passive state.
+
+- **Seekers:** "I can improve my chances" → Agency built through actionable profile nudges ("Add 2 more skills to improve your match score"), transparent matching criteria, ability to delete applications, control over profile visibility
+- **Employers:** "I control my hiring pipeline" → Agency built through ATS status management, ability to close/renew/mark as filled, fast-lane earned through good behavior, posting templates
+- **Rejected seekers:** "I know why and I know what to do next" → Agency built through related job suggestions after rejection, skill gap visibility, "Jobs you match" immediately following negative status
+- **Design implication:** Users must always have a visible next action. No dead ends. No "wait and hope." The system should make the path to a better outcome obvious.
 
 ### Design Implications
 
-**Emotion → UX Design Connections:**
-
-| Desired Emotion                   | UX Approach                                                                                                                                                                                              |
-| --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Discovery excitement**          | Animated geographic search expansion, "People you may know" suggestions, "New members near you" notifications, serendipitous content surfacing                                                           |
-| **Cultural pride**                | Visual identity rooted in Igbo art traditions, bilingual UI as a celebration (not just a toggle), cultural category badges on content, heritage-themed empty states and loading screens                  |
-| **Belonging warmth**              | Member avatars everywhere, online presence indicators, personalized greetings ("Welcome home, Chidi"), group member counts, "X members are here right now"                                               |
-| **Trust + patience**              | Transparent application status, human-written system messages, admin response commitments, feedback loops that acknowledge and follow up, invitation to connect with community leaders when issues arise |
-| **Legacy + purpose**              | Article reader counts, "Your story reached members in 8 countries," points milestone celebrations, contributor recognition on profiles                                                                   |
-| **Nostalgia channeled to action** | Cultural media paired with share/comment CTAs, "Members near you who also loved this," event suggestions tied to cultural content themes                                                                 |
-| **Inspiration + hope**            | Success stories in the feed, mentorship connection prompts, "Members from your city who..." achievements, Adaeze seeing career paths through the diaspora                                                |
+| Emotional Goal | UX Design Approach |
+|---------------|-------------------|
+| **Recognized and valued** | Personalized dashboard ("Jobs for you"), name-addressed communications, community context visible on all interactions |
+| **Surprised trust** | "Viewed by employer" as passive signal (no generic platforms do this), transparent match scoring, salary visibility by default |
+| **Ownership** | Community-exclusive Apply gate framed as value ("Join to apply" not "Login required"), cultural visual identity, apprenticeship as cultural program not job filter |
+| **Trust over skepticism** | Trust signals visible by default on every surface — badges, engagement level, referral context. Never hidden behind clicks. |
+| **Confidence over confusion** | Inline guidance on every form, field examples, progress indicators, clear "what happens next" at every stage |
+| **Belonging over isolation** | Community identity in visual language, cultural skill tags, bilingual content toggle, apprenticeship success stories with faces and quotes |
+| **Accomplishment over frustration** | Positive confirmation on every completed action, match quality feedback on apply, first-application notification for employers within 24-48 hours |
+| **Agency over powerlessness** | Actionable nudges (not just status badges), transparent matching criteria, visible next steps after every outcome (positive or negative), user-controlled profile visibility and application deletion |
 
 ### Emotional Design Principles
 
-**1. Home, Not Homepage**
-Every returning user should feel like they're walking through their own front door. Personalized greetings in their chosen language, familiar faces in the feed, their groups and conversations waiting. The dashboard isn't a landing page — it's the living room of their digital home.
+1. **Trust Is Earned in 2 Seconds and Reinforced Continuously** — Every page must answer "Can I trust this?" before the user consciously asks, and every subsequent interaction must reinforce that trust through consistent behavior. Verification badges, salary ranges, company profiles, and match transparency are not features — they are trust infrastructure. If trust requires investigation, it doesn't exist.
 
-**2. Pride as a Feature**
-Cultural identity isn't a tag or a category — it's the entire reason the platform exists. The visual design, the language, the content organization, the community stats should all make members feel proud to be part of this community. Every screen should whisper: "Your culture is alive, thriving, and global."
+2. **Recognition Before Transaction** — Users should feel recognized as community members before they feel processed as applicants or employers. "Welcome back, Adaeze — 3 new jobs match your skills" is recognition. "Enter your email to continue" is processing.
 
-**3. Human Friction, Not System Friction**
-When something doesn't work, the response is human, not mechanical. "No members in your city yet — but 12 in your country would love to meet you." "Your application is being reviewed by a real person who cares about this community." "Having trouble? Join our weekly community call and tell us." Replace error messages with invitations.
+3. **Negative Emotions Get Design, Not Neglect** — Rejection, empty results, and long waits are emotionally charged moments. Each must be designed with the same care as success moments — empathetic language, concrete next steps, and a reason to stay. A well-designed rejection is worth more than a poorly designed success.
 
-**4. Celebrate the Small Moments**
-Don't wait for big milestones. Celebrate the first message sent, the first group joined, the first article read, the first event RSVP'd. Micro-celebrations (subtle animations, warm confirmation messages, points earned) build the habit loop that turns a first visit into a daily ritual.
+4. **Agency Is the Antidote to Anxiety** — Job seeking is inherently anxious. The portal reduces anxiety by giving users visible levers: transparent matching, actionable profile improvements, application status tracking, and control over their own data. Anxiety comes from powerlessness; agency comes from visibility.
 
-**5. Nostalgia as a Bridge, Not a Wall**
-Cultural content — videos of festivals, photos of ceremonies, articles about traditions — will trigger deep emotional responses. The design must channel that emotion into _connection and action_: sharing, commenting, messaging someone, joining a group. Nostalgia should open doors to community, not leave users sitting alone with their memories.
+5. **Pride Powers Retention** — The feeling of "this is ours" is not a marketing message — it's a retention mechanism. When users feel ownership of the platform (hiring from community, mentoring the next generation, building economic identity), they return not because the UX is good, but because leaving would mean losing something meaningful.
 
 ## UX Pattern Analysis & Inspiration
 
 ### Inspiring Products Analysis
 
-igbo's target users currently live in four apps. Each has trained specific UX expectations that igbo must meet or exceed — while delivering something none of them can: a dedicated cultural community home with events, festivals, social gatherings, and diaspora-specific connection.
+**1. WhatsApp — The Incumbent Behavior**
 
-**1. WhatsApp — The Communication Baseline**
+| Dimension | What They Do Well | Why It Works |
+|-----------|------------------|-------------|
+| **Speed** | Message composed and sent in < 10 seconds. No forms, no fields, no validation. | Zero friction = default behavior. The portal must match this speed for job posting or lose to it. |
+| **Instant feedback** | Blue ticks (sent → delivered → read). Typing indicator. Last seen. | Users always know where they stand. No black holes. The "Viewed by employer" signal is our blue tick. |
+| **Group broadcasting** | Post once, reach everyone in the group instantly | The job posting replaces the WhatsApp group blast — but with structure, tracking, and persistence |
+| **Notification discipline** | Only notifies for messages from people you know. Contextual preview (first line visible). Silent when nothing's happening. | High-signal, low-noise. Users trust WhatsApp notifications because every notification is worth the interruption. |
 
-| Aspect                  | What They Do Well                                                                                                                                                            | Relevance to igbo                                                                                                                              |
-| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Messaging UX**        | Instant, reliable, zero-friction messaging. Tap a contact, type, send. Read receipts (blue ticks), typing indicators, voice messages. The gold standard for "it just works." | igbo's chat must match this baseline. Any added complexity (threads, channels) must layer on top of WhatsApp-level simplicity, not replace it. |
-| **Media sharing**       | Tap camera icon, select photo/video, send. Compression happens automatically. Videos play inline.                                                                            | Media sharing in igbo's feed and chat must be this frictionless. No upload forms, no file size warnings — just tap, select, share.             |
-| **Group communication** | Simple group creation, group info, participant list, shared media gallery.                                                                                                   | igbo's groups borrow this familiarity but add structure (channels, pinned posts, events) that WhatsApp can't offer.                            |
-| **Status/presence**     | Online/last seen indicators, profile photos visible in chat list.                                                                                                            | igbo must show member presence — online dots, "active now" — to make the platform feel alive.                                                  |
-| **What they DON'T do**  | No discoverability. No member directory. No events. No content publishing. No governance. You can only connect with people whose phone number you already have.              | This is igbo's core advantage — discovery of people you _don't_ already know.                                                                  |
+**Lesson for igbo:** WhatsApp wins on speed, feedback, and notification trust. We can't beat WhatsApp's posting speed (30 seconds vs. our 5 minutes), but we must *decisively* beat what happens after: structured applications vs. chaotic DMs, ATS tracking vs. lost threads, trust signals vs. anonymous messages. And we must adopt WhatsApp's notification discipline: only notify when the user would *want* to be interrupted.
 
-**2. Facebook — The Social Feed Baseline**
+**2. LinkedIn — Professional Identity Platform**
 
-| Aspect                 | What They Do Well                                                                                                                                                                                                                                      | Relevance to igbo                                                                                                                                                 |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **News feed**          | Infinite scroll, mixed content types (text, photos, videos, links, events), reactions (not just likes), comments, shares. Users understand this pattern instinctively.                                                                                 | igbo's dashboard feed should feel immediately familiar to Facebook users. Same patterns: post composer at top, feed below, reactions/comments/share on each post. |
-| **Groups**             | Group discovery, join/request flow, group feed, admin tools, member lists, announcements. Facebook Groups is the closest existing model to igbo's groups.                                                                                              | igbo's groups should feel like Facebook Groups but better — with integrated chat channels, events, and cultural context that Facebook Groups lack.                |
-| **Events**             | Event creation, RSVP, calendar, reminders, event discussions.                                                                                                                                                                                          | igbo's events follow this pattern but add video meeting integration — something Facebook Events doesn't natively do well.                                         |
-| **Notifications**      | Bell icon, categorized notifications, red badge counts, notification preferences.                                                                                                                                                                      | Standard pattern — igbo should follow this exactly. Users expect it.                                                                                              |
-| **What they DON'T do** | Generic platform — no cultural focus, no community-exclusive membership, no bilingual support, no governance, no member directory with geographic discovery. Fragmented across dozens of disconnected community groups with no cross-group connection. | igbo unifies what Facebook fragments. One platform, one community, one directory, one identity.                                                                   |
+| Dimension | What They Do Well | Why It Works |
+|-----------|------------------|-------------|
+| **Structured identity** | Profile = professional CV always available. Endorsements, recommendations, work history. | Employers can evaluate candidates without asking for a resume. The profile IS the application. |
+| **Network context** | "2nd connection," "3 mutual connections," "Your colleague works here" | Social proof at a glance. Our equivalent: community verification badge, engagement level, named referral badge. |
+| **Easy Apply** | One-click apply with stored profile data | Reduces apply friction to near-zero. Our auto-fill + one-click apply follows this pattern. |
 
-**3. LinkedIn — The Professional Identity Baseline**
+**Lesson for igbo:** LinkedIn proves that structured professional identity drives hiring efficiency. But LinkedIn fails on trust (anyone can claim anything), noise (hundreds of irrelevant notifications), and the black hole problem (apply and never hear back). We take the identity structure and add the community trust layer LinkedIn can't replicate.
 
-| Aspect                  | What They Do Well                                                                                                                                                               | Relevance to igbo                                                                                                                                                                     |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Profile as identity** | Rich profiles: photo, headline, bio, location, skills, experience, endorsements, connections count. Your profile IS your professional identity.                                 | igbo's profiles should carry this weight — not just a bio, but a full cultural + professional identity: location, languages, interests, cultural connections, badges, points, groups. |
-| **Connection model**    | Connect/Message distinction, mutual connections shown, "People you may know" suggestions based on shared connections and interests.                                             | igbo's member discovery should borrow "People you may know" but add geographic and cultural dimensions LinkedIn doesn't have.                                                         |
-| **Search & filtering**  | Search by name, location, company, skills with robust filters.                                                                                                                  | igbo's member directory needs this level of filtering — location, interests, skills, language, tier.                                                                                  |
-| **What they DON'T do**  | Cold, corporate tone. No cultural warmth. No community events. No real-time chat. No media sharing culture. Professional-only — no space for wedding videos or festival photos. | igbo takes LinkedIn's identity structure but wraps it in cultural warmth and community context.                                                                                       |
+**3. Airbnb — Trust-Harvested Marketplace**
 
-**4. Instagram — The Media & Emotion Baseline**
+| Dimension | What They Do Well | Why It Works |
+|-----------|------------------|-------------|
+| **Trust visibility** | Reviews, verified identity, Superhost badges visible at a glance on every listing | Trust precedes the transaction. Users make decisions based on trust signals before price. |
+| **Progressive disclosure** | Key info (price, rating, photos) on card → full details on tap → booking flow | Information hierarchy matches decision flow: browse → evaluate → commit |
+| **Host/guest mutual trust** | Both sides review each other. Both sides have profiles. Transparency is bidirectional. | Our equivalent: employer sees candidate trust signals, candidate sees "Viewed by employer" + company verification. Bidirectional transparency. |
+| **Smart defaults** | Location-based suggestions, saved searches, "Homes you might like" | Reduces cognitive load. Our "Jobs for you" section follows this pattern. |
+| **Card restraint** | Listing cards show exactly 4 things: photo, price, rating, location. Nothing more. | Sparse cards are scannable cards. Trust is built through *curated* signals, not exhaustive data. |
 
-| Aspect                        | What They Do Well                                                                                                                                                                           | Relevance to igbo                                                                                                                                                                                    |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Visual-first content**      | Photos and videos dominate. Content stops the scroll through visual impact, not text headlines.                                                                                             | igbo's feed should prioritize visual content — especially cultural media (wedding videos, festival photos, community gatherings). Text posts are fine, but media posts should be visually prominent. |
-| **Stories/ephemeral content** | Quick, casual, low-pressure sharing. Disappears in 24 hours. Encourages frequent posting.                                                                                                   | Not MVP, but the _spirit_ applies — igbo should make sharing feel casual and low-pressure, not like publishing a formal post.                                                                        |
-| **Engagement patterns**       | Double-tap to like, swipe through carousels, tap to expand, heart animations. Engagement is physical and satisfying.                                                                        | igbo's reaction patterns should feel similarly tactile and immediate — tap to react, smooth animations on engagement.                                                                                |
-| **Explore/discovery**         | Algorithm-driven discovery of new content and creators based on interests.                                                                                                                  | igbo's "recommended" content and member suggestions should create this serendipitous discovery feeling.                                                                                              |
-| **What they DON'T do**        | No community structure. No groups with governance. No events with RSVP. No chat channels. No member directory. No bilingual support. Public by default — no community-exclusive membership. | igbo adds structure, exclusivity, and community purpose to Instagram's emotional, visual-first engagement model.                                                                                     |
+**Lesson for igbo:** Airbnb is the closest structural analog — a two-sided trust marketplace. Their key insight: trust signals must be *on the card*, not behind it — but the card must remain sparse. We apply this directly: verification badge, skill overlap, referral badge on the candidate card, but curated to ~4-5 primary signals. If we show everything, we show nothing.
 
-**5. Slack — The Chat Architecture Reference (from PRD)**
+**4. Content Moderation & Fraud Detection Tools — Admin Triage Pattern**
 
-While igbo's users don't live in Slack personally, the PRD specifies "Slack-style" chat architecture. Key patterns to adopt:
+| Dimension | What They Do Well | Why It Works |
+|-----------|------------------|-------------|
+| **Inline risk signals** | Suspicious indicators (new account, unusual patterns, flagged keywords) surfaced directly in the review queue item — no separate investigation screen | Reviewers make faster, more confident decisions when risk context is embedded in the review surface |
+| **One-action decisions** | Approve / Reject / Escalate as single-click actions with optional notes | Throughput scales with action simplicity. Every additional click reduces review velocity. |
+| **Pattern detection** | System surfaces clusters ("3 similar postings from new accounts this week") automatically | Reviewers catch coordinated abuse that individual-item review would miss |
+| **Confidence indicators** | Risk score or trust level displayed per item — "Low risk" items can be batch-processed | Enables differentiated review depth: quick approve for clean items, deep investigation for flagged items |
 
-| Aspect                   | What Slack Does Well                                                                          | Relevance to igbo                                                                                   |
-| ------------------------ | --------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| **Channel organization** | Channels (public/private) + DMs in one sidebar. Clear separation.                             | igbo's chat should organize: DMs, group channels, and general channels in a clear sidebar hierarchy |
-| **Threaded replies**     | Reply to a specific message without cluttering the main conversation.                         | Essential for busy group channels — keeps discussions organized                                     |
-| **Rich messaging**       | Formatting, file attachments, emoji reactions on specific messages, message editing/deletion. | Match these capabilities for a modern chat experience                                               |
-| **Search**               | Full-text search across all messages and channels.                                            | Critical for finding past conversations and shared information                                      |
+**Lesson for igbo:** Kene's Job Admin queue is a *triage interface*, not a dashboard. The closest UX analog isn't a job board — it's content moderation and fraud detection tooling. Inline context, one-action decisions, and automatic pattern surfacing are the patterns that enable 6 reviews in 20 minutes with high confidence.
+
+**5. Jobberman — Regional Job Board (Anti-Inspiration)**
+
+| Dimension | What They Do Poorly | What We Learn |
+|-----------|-------------------|---------------|
+| **Generic platform** | No community context, no trust signals, no differentiation from Indeed | Community identity is our moat — every surface must communicate "this is different" |
+| **Application black hole** | Apply and never know if anyone looked | "Viewed by employer" is a direct antidote to this failure |
+| **Poor mobile experience** | Desktop-first design retrofitted for mobile | Mobile-first seeker experience is non-negotiable |
+
+**6. Google Pay — Instant Feedback UX**
+
+| Dimension | What They Do Well | Why It Works |
+|-----------|------------------|-------------|
+| **Immediate confirmation** | Payment completes with visual + haptic + audio feedback in < 1 second | Every action gets instant, multimodal feedback. User never wonders "did it work?" |
+| **Progressive status** | Processing → Sent → Received with visual progression | Our application pipeline mirrors this: Applied → Under Review → Shortlisted → each status change is a feedback moment |
+| **Trust through simplicity** | Clean, minimal UI inspires confidence for high-stakes actions (money) | Job applications are high-stakes for seekers. Clean, confident UI reduces anxiety. |
+
+**Lesson for igbo:** Apply flow confirmation should feel as decisive as a Google Pay transaction. Not a generic "Application submitted" toast — a rich confirmation with match quality feedback, next steps, and the feeling that something meaningful just happened.
+
+**7. Uber Eats — Fast Actions + Status Tracking**
+
+| Dimension | What They Do Well | Why It Works |
+|-----------|------------------|-------------|
+| **Real-time status tracking** | Order placed → Preparing → On the way → Delivered with live updates | Users feel in control because they can see the system working. Our application status tracking follows this emotional pattern. |
+| **Card-based browsing** | Restaurant cards with photo, rating, delivery time, price range — all info at a glance | Our job listing cards should achieve the same: title, company, salary, location, match tags — full decision context on one card |
+| **Fast reorder** | One-tap reorder from history | Our returning employer pattern: pre-filled company, posting templates, < 2 minute repost |
+
+**Lesson for igbo:** Uber Eats proves that status visibility drives trust and retention. However, Uber Eats uses *optimistic status display* — "Preparing your order" is shown based on time elapsed, not a real signal from the kitchen. **We explicitly reject this pattern.** On a trust-first platform, "Under Review" must mean the employer actually changed the status. Fake progress is worse than no progress. Honest status + contextual reassurance ("Employers typically review within a few days") is our approach.
+
+**8. Slack — Structured Communication**
+
+| Dimension | What They Do Well | Why It Works |
+|-----------|------------------|-------------|
+| **Channel-based context** | Conversations organized by topic/project, not by person | Our application-linked messaging follows this: conversation threads tied to specific job applications for context |
+| **Unread management** | Bold channels, badge counts, "All unreads" view | Employer dashboard needs the same: unread application indicators, new message badges, "what needs attention" summary |
+| **Quick actions** | Emoji reactions, thread replies, slash commands — fast micro-interactions | ATS status changes should be equally lightweight — single-action status advancement, not multi-step forms |
+
+**Lesson for igbo:** Slack's unread management pattern is directly applicable to the employer dashboard. "What needs my attention?" is the first question Chioma asks on Monday morning. Bold indicators, badge counts, and a summary view answer it in 2 seconds.
 
 ### Transferable UX Patterns
 
 **Navigation Patterns:**
 
-| Pattern                          | Source                        | Application in igbo                                                                                                                                                 |
-| -------------------------------- | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Bottom tab bar (mobile)**      | Instagram, Facebook           | 5 primary destinations on mobile: Home (feed), Chat, Discover (directory + groups), Events, Profile. Everything else accessible via hamburger or nested navigation. |
-| **Top nav bar (desktop)**        | Facebook, LinkedIn            | Full horizontal nav with all primary sections visible. Active state highlighting. Search bar center or right. Profile/notifications far right.                      |
-| **Notification bell with badge** | Facebook, LinkedIn, Instagram | Universal pattern — red badge count, dropdown on click, categorized notifications. Users expect this exact behavior.                                                |
-| **Sidebar chat panel (desktop)** | Facebook Messenger, Slack     | Persistent chat sidebar on desktop — visible alongside feed, collapsible when not needed. Full-screen on mobile.                                                    |
+| Pattern | Source | Application in igbo Job Portal | Emotional Function |
+|---------|--------|-------------------------------|-------------------|
+| **Card-based browsing** | Airbnb, Uber Eats | Job listing cards with full decision context (title, company, salary, location, match tags, badges) — one glance per card | Confidence — "I can evaluate without clicking through" |
+| **Progressive disclosure** | Airbnb | Card → full listing → apply flow. Information hierarchy matches the decision flow: browse → evaluate → commit | Control — "I go deeper only when I choose to" |
+| **Unread management** | Slack | Employer dashboard: bold indicators for unread applications, badge counts per job, "what needs attention" summary view | Agency — "I know exactly what needs my attention" |
+| **Tab-based role switching** | LinkedIn | Seeker dashboard vs. Employer dashboard — clear mode separation, not one cluttered view | Clarity — "I know which hat I'm wearing right now" |
+| **Triage queue** | Content moderation tools | Job Admin review queue with inline context, risk signals, one-action decisions | Confidence — "I can trust my judgment at this speed" |
 
 **Interaction Patterns:**
 
-| Pattern                       | Source                                                    | Application in igbo                                                                                                        |
-| ----------------------------- | --------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| **Post composer at feed top** | Facebook                                                  | "What's on your mind, Chidi?" with attachment options (photo, video, event). Familiar, inviting, always visible.           |
-| **Inline media playback**     | Instagram, Facebook                                       | Videos play inline in the feed without navigating away. Tap to expand to full-screen. Sound off by default, tap for sound. |
-| **Reaction system**           | Facebook (reactions), Instagram (hearts)                  | Multiple reaction types beyond just "like" — culturally relevant reactions could differentiate igbo.                       |
-| **Pull-to-refresh**           | Universal mobile                                          | Standard mobile pattern for refreshing feed content. Must be implemented.                                                  |
-| **Swipe actions**             | WhatsApp (swipe to reply), Instagram (swipe between tabs) | Swipe to reply in chat, swipe between feed sections on mobile.                                                             |
-| **Tap-to-connect/message**    | LinkedIn, WhatsApp                                        | One-tap action to connect with or message a discovered member. Zero friction on the critical action.                       |
+| Pattern | Source | Application in igbo Job Portal | Emotional Function |
+|---------|--------|-------------------------------|-------------------|
+| **One-click apply** | LinkedIn Easy Apply | Auto-filled profile + default resume → submit. Target: < 30 seconds | Relief — "That was easier than I expected" |
+| **Blue tick feedback** | WhatsApp | "Viewed by employer" passive signal. Status change notifications. Application pipeline visibility. | Trust — "They actually saw me" |
+| **Instant confirmation** | Google Pay | Apply confirmation with match quality feedback — rich, confident, not a dismissive toast | Accomplishment — "Something meaningful just happened" |
+| **Fast reorder** | Uber Eats | Returning employer: pre-filled company, posting template, < 2 minute repost | Efficiency — "The system remembers me and rewards my return" |
+| **Honest status tracking** | Uber Eats (adapted) | Application pipeline: Applied → Under Review → Shortlisted → visible progression. Status reflects *real* employer actions only — never assumed/optimistic states. | Trust — "This system tells me the truth, even when progress is slow" |
+| **Notification discipline** | WhatsApp | Only notify when the user would want to be interrupted. Real-time for high-signal events (new application, status change, message). Silent otherwise. | Trust — "When this app notifies me, it matters" |
 
-**Visual Patterns:**
+**Trust Patterns:**
 
-| Pattern                       | Source                                      | Application in igbo                                                                                            |
-| ----------------------------- | ------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| **Avatar-first layouts**      | All four apps                               | Every list, every card, every post leads with a face. Members are people, not usernames.                       |
-| **Card-based content**        | Facebook, LinkedIn, Instagram               | Content in cards with clear boundaries — post card, event card, group card, member card. Consistent structure. |
-| **Status indicators**         | WhatsApp (online dot), LinkedIn (green dot) | Green dot for online, grey for offline. Essential for making the platform feel alive.                          |
-| **Progressive image loading** | Instagram                                   | Blurred placeholder → full image. Critical for variable bandwidth users in Nigeria, Malaysia, Vietnam.         |
+| Pattern | Source | Application in igbo Job Portal | Emotional Function |
+|---------|--------|-------------------------------|-------------------|
+| **Trust signals on the card** | Airbnb (Superhost badge, ratings) | Verification badge, skill overlap, referral badge, engagement level — visible on the candidate card, not behind a click | Safety — "I can trust this person before I invest time" |
+| **Bidirectional transparency** | Airbnb (host reviews + guest reviews) | Employer sees candidate trust signals; candidate sees "Viewed by employer" + company verification. Both sides have visibility. | Fairness — "Both sides are accountable" |
+| **Network context** | LinkedIn ("2nd connection") | "Referred by Chief Okonkwo," "Member for 2 years," "Active in 3 groups" — community context as hiring signal | Belonging — "Our shared community is the foundation of this interaction" |
+| **Inline risk signals** | Fraud detection tools | Job Admin sees new-account flags, unusual salary indicators, pattern clusters directly in review queue | Confidence — "The system is helping me protect the community" |
 
 ### Anti-Patterns to Avoid
 
-| Anti-Pattern                          | Why It's Dangerous                                                                                            | How igbo Avoids It                                                                                                                                          |
-| ------------------------------------- | ------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Facebook's algorithmic opacity**    | Users don't understand why they see what they see. Creates distrust.                                          | igbo offers toggle between chronological and algorithmic feed. Default to chronological — let users _choose_ algorithmic.                                   |
-| **LinkedIn's cold formality**         | Professional but soulless. "Congratulate X on their work anniversary" feels robotic.                          | igbo uses warm, culturally resonant language. "Welcome home" not "Welcome to the platform." Celebrations feel genuine, not automated.                       |
-| **Instagram's engagement addiction**  | Infinite scroll, dopamine-driven, no natural stopping point. Optimizes for time-on-app, not user wellbeing.   | igbo optimizes for _meaningful_ engagement — messages sent, events attended, articles read — not mindless scrolling. Feed has natural sections and prompts. |
-| **WhatsApp's group spam**             | Unmoderated groups devolve into forwards, memes, and noise. No structure, no governance.                      | igbo's groups have moderation tools, posting permissions, pinned announcements, and structured channels. Quality over quantity.                             |
-| **Feature overload on first visit**   | Complex apps that show everything on day one overwhelm users (especially Chief Okonkwo).                      | Progressive disclosure — show 5 things on day one, reveal more as users engage. Onboarding wizard focuses on people, not features.                          |
-| **Generic empty states**              | "No results found" with no guidance. Kills momentum.                                                          | Every empty state in igbo has a warm message and a next action. "No members in your city yet — here are 12 in your country who'd love to meet you."         |
-| **Fragmented identity across groups** | On Facebook, you're in 15 different Igbo groups with 15 different contexts. No unified identity or directory. | igbo = one identity, one profile, one directory. Groups are _within_ the platform, not separate islands.                                                    |
-| **Complex event joining**             | Zoom/Teams requiring downloads, accounts, meeting codes.                                                      | igbo events use embedded video SDK — click "Join," you're in. No downloads, no codes, no separate accounts.                                                 |
+| Anti-Pattern | Source | Why It Fails | Our Alternative |
+|-------------|--------|-------------|-----------------|
+| **Application black hole** | Indeed, Jobberman | Apply and never hear back. No "viewed" signal, no status updates. Destroys seeker trust and retention. | "Viewed by employer" signal + status change notifications + contextual reassurance for long waits |
+| **Enterprise ATS complexity** | Workday, Taleo, Greenhouse | 15-field forms, multi-step workflows, dashboard overload. Designed for HR departments, not business owners. | Lightweight ATS: single-action status changes, inline candidate context, guided posting flow < 5 minutes |
+| **LinkedIn notification noise** | LinkedIn | Hundreds of irrelevant notifications: "Congratulate X," "You appeared in 5 searches," recruiter spam. Signal buried in noise. | WhatsApp notification discipline: real-time for high-signal only, daily digest for low-priority. No vanity notifications. |
+| **Login-wall content hiding** | Many job boards | "Sign in to see salary" or "Create account to view full listing." Punishes curiosity. | Full transparency for guests: salary, description, company profile all visible. Gate only at Apply — framed as unlocking, not blocking. |
+| **Generic empty states** | Most job boards | "No results found. Try different keywords." Zero help, zero warmth. | Warm fallbacks: related jobs, location-based suggestions, "Be the first to know" alerts, apprenticeship section as always-populated anchor |
+| **Form-first onboarding** | Workday application forms | 20 fields before you can do anything. "Upload resume, fill education, add 3 references" before you even know if you want the job. | Progressive profile: browse freely → Apply requires 3 fields (auto-filled) → deeper profile grows through nudges over time |
+| **Card information overload** | Indeed job cards | Sponsored tags, "easy apply" badges, "new" badges, "urgently hiring" badges, company ratings, salary estimates, review counts — everything shown, nothing communicated. | Curated card hierarchy: 4-5 primary signals always visible, secondary info on expanded state, full detail on listing page. More badges ≠ more trust. Restraint = scannability. |
+| **Fake progress / optimistic status** | Uber Eats (kitchen status) | Showing "Preparing" based on time elapsed, not actual kitchen activity. Creates false expectations. | Honest status only. "Under Review" means the employer *actually* changed the status. Trust-first means no manufactured reassurance. Contextual notes ("Employers typically review within a few days") fill the gap honestly. |
 
 ### Design Inspiration Strategy
 
-**What to Adopt (Use As-Is):**
+**What to Adopt (Directly):**
 
-- WhatsApp's messaging simplicity — tap, type, send, delivered, read
-- Facebook's feed + post composer pattern — universally understood
-- LinkedIn's rich profile structure — identity matters in community platforms
-- Instagram's visual-first content display — media stops the scroll
-- Slack's channel organization — DMs + channels in one clear sidebar
-- Universal notification bell + badge pattern
+| Pattern | Why |
+|---------|-----|
+| Airbnb trust-on-card | Trust signals visible on candidate/job cards without clicking — our structural advantage made visible |
+| WhatsApp blue-tick feedback | "Viewed by employer" + status notifications — solves the black hole problem |
+| WhatsApp notification discipline | Only notify when the user would want to be interrupted — builds trust in the notification system itself |
+| LinkedIn Easy Apply auto-fill | One-click apply with community profile data — minimal friction to action |
+| Google Pay instant confirmation | Apply confirmation as a rich, confident moment — not a dismissive toast |
+| Slack unread management | Employer dashboard answers "what needs attention?" in 2 seconds |
+| Content moderation triage queue | Job Admin review with inline context, risk signals, one-action decisions, pattern detection |
 
-**What to Adapt (Modify for igbo):**
+**What to Adapt (Modified for our context):**
 
-- Facebook Groups → igbo Groups with integrated chat channels, video events, and cultural context
-- LinkedIn's "People you may know" → igbo's geographic discovery with cultural affinity and fallback expansion
-- Instagram's Explore → igbo's member/content discovery with community relevance, not algorithmic virality
-- Facebook Reactions → Culturally meaningful reaction options that resonate with Igbo community
-- Slack's threading → Simplified threading that doesn't overwhelm less tech-savvy users like Chief Okonkwo
+| Pattern | Adaptation |
+|---------|-----------|
+| Uber Eats status tracking | Application pipeline as visual progression — but status reflects real employer actions only. Never optimistic/assumed states. Honest status + contextual reassurance instead. |
+| LinkedIn network context | Replace "2nd connection" with community-specific signals: verification badge, engagement level, named referral, membership duration. Richer and more meaningful than generic social graph. |
+| Airbnb progressive disclosure | Card → listing → apply. But our cards need more trust info upfront (badges, match tags) than Airbnb's minimal 4-element cards. Solve through curated hierarchy, not by showing everything. |
+| Airbnb card restraint | Apply the principle of card sparsity, but calibrate for hiring context where trust signals are decision-critical. Target: 4-5 primary signals always visible, not 10. |
 
-**What to Avoid (Explicitly Reject):**
+**What to Avoid (Explicitly):**
 
-- Algorithmic-first feeds that hide content from connections
-- Cold, corporate UI language and robotic system messages
-- Infinite scroll without natural breakpoints or meaningful prompts
-- Feature-dense first experiences that overwhelm new users
-- Empty states without guidance, warmth, or next steps
-- Complex event joining flows requiring external tools or downloads
-- Fragmented identity across disconnected groups or contexts
+| Anti-Pattern | Why |
+|-------------|-----|
+| Indeed/Jobberman black hole | Directly contradicts our "seen and valued" emotional goal |
+| Enterprise ATS complexity | Our employers are business owners, not HR departments. Complexity = WhatsApp wins. |
+| LinkedIn notification spam | Destroys trust in the notification system itself. Once users learn to ignore notifications, high-signal events get missed too. |
+| Login-wall content hiding | Contradicts "Discovery is open" thesis. Punishes the guest-to-member conversion funnel. |
+| Indeed card noise / badge overload | More signals ≠ more trust. Scanning fatigue leads to ignoring everything, including the signals that matter. |
+| Fake progress indicators | Trust-first means honest status. Manufactured reassurance undermines the platform's core emotional promise. |
+
+### Open Design Decisions
+
+**Card Information Hierarchy** (to resolve in Design System step):
+
+The candidate card and job listing card must balance trust signal density against scannability. Airbnb succeeds with 4 elements per card; Indeed fails with 10+. Our cards carry more decision-critical information than Airbnb (trust signals are functional, not decorative), but must remain scannable.
+
+**Decision to resolve:**
+
+| Tier | Visibility | Candidate Card (Proposed) | Job Listing Card (Proposed) |
+|------|-----------|--------------------------|----------------------------|
+| **Always visible** | On card surface | Name, headline, skill overlap count, verification badge | Title, company, salary range, location, top match tag |
+| **Secondary** | On hover / expanded | Referral badge, engagement level, membership duration, location | Job type, posted date, additional match tags, badges (Urgent, Apprenticeship) |
+| **Detail page only** | On click-through | Full profile, resume, experience, education, community context | Full description, company profile, all requirements, apply flow |
+
+This hierarchy must be validated against the "Trust at a Glance" principle (Principle 2) and the "10-second shortlist decision" critical success moment.
 
 ## Design System Foundation
 
 ### Design System Choice
 
-**shadcn/ui + Tailwind CSS + Radix UI Primitives**
+**Option 2: Design Token Extension** — Extend the existing `@igbo/ui` shared design system with portal-specific semantic tokens and domain-specific component patterns, maintaining visual continuity with a contextual shift for the employment marketplace.
 
-igbo's design system is built on shadcn/ui — a copy-paste component library that provides professionally engineered, accessible UI components built on Radix UI primitives and styled with Tailwind CSS. This choice gives igbo full ownership of every component (no runtime dependency), deep customizability for cultural visual identity, and WCAG 2.1 AA accessibility out of the box.
+The portal is not a separate product — it's an economic layer on the same community platform. Users cross between `[domain]` and `job.[domain]` via SSO. The visual language must feel like the same family, not a different product. But the portal's context is different: professional hiring, not social engagement. The design system must acknowledge this through semantic tokens and purpose-built components without breaking the visual thread.
 
 ### Rationale for Selection
 
-| Factor                     | How shadcn/ui Delivers                                                                                                                                                                          |
-| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Cultural customization** | Copy-paste ownership means every component can be themed with Igbo-inspired colors, typography, and patterns without fighting a library's design opinion                                        |
-| **Accessibility**          | Built on Radix UI primitives — keyboard navigation, screen reader support, focus management, and ARIA attributes are included by default. Critical for Chief Okonkwo and WCAG 2.1 AA compliance |
-| **Next.js alignment**      | shadcn/ui is purpose-built for Next.js + React + TypeScript — zero friction with igbo's tech stack                                                                                              |
-| **Tailwind CSS native**    | Components are styled with Tailwind utilities — no conflicting CSS-in-JS runtime, no style system clash, no bundle bloat                                                                        |
-| **Development speed**      | Pre-built components for buttons, cards, dialogs, dropdowns, tabs, forms, tables, navigation menus, sheets, toasts, and more — accelerates the 4-6 month timeline                               |
-| **Bundle performance**     | No library runtime — components are source code in your project. Tree-shaking is automatic. Critical for bandwidth-sensitive users in Nigeria, Malaysia, Vietnam                                |
-| **Team scalability**       | Components follow consistent patterns. New developers can read and modify any component without learning a proprietary API                                                                      |
-| **Long-term ownership**    | No vendor lock-in. If shadcn/ui stops being maintained tomorrow, your components still work — they're your code                                                                                 |
+| Factor | Decision Driver |
+|--------|----------------|
+| **Existing infrastructure** | shadcn/ui + Tailwind CSS v4 + Radix UI already established across 4795+ tests and 12 epics. No reason to introduce a new foundation. |
+| **Monorepo architecture** | PRD mandates `@igbo/ui` shared package. Portal inherits primitives, tokens, and layout components. Portal-specific components live in `apps/job-portal/`. |
+| **Visual continuity** | SSO means users move between platforms seamlessly. A jarring visual shift would break the "same community" feeling. |
+| **Contextual distinction** | Employment interactions (hiring, applying, reviewing) need semantic precision that social interactions don't. `--color-status-applied` communicates differently than generic `--color-primary`. |
+| **Scalability** | Semantic tokens scale better than hardcoded values. When a third subdomain launches (e.g., marketplace, learning), the token extension pattern repeats cleanly. |
+| **Team velocity** | Extending existing system = minimal learning curve. Developers already know shadcn/ui patterns. New tokens and components follow established conventions. |
 
 ### Implementation Approach
 
-**Component Architecture:**
+**Layer 1: Shared Foundation (from `@igbo/ui`)**
+
+Inherited directly — no portal modifications:
+- shadcn/ui primitives: Button, Input, Select, Dialog, Sheet, Tabs, Toast, Card, Badge, Avatar, Skeleton
+- Layout components: Shell, TopNav, Sidebar, PageContainer, responsive grid
+- Design tokens: base colors, typography scale, spacing scale, border radii, shadows
+- Form patterns: validation styling, error states, label conventions
+- Accessibility: focus rings, ARIA patterns, keyboard navigation, 44px tap targets
+
+**Layer 2: Portal Semantic Tokens (new, in `apps/job-portal/globals.css`)**
+
+Portal-specific semantic tokens extending the base system. Scoped to portal only — shared components in `@igbo/ui` never reference portal tokens.
 
 ```
-src/
-  components/
-    ui/                    # shadcn/ui base components (owned, customized)
-      button.tsx
-      card.tsx
-      dialog.tsx
-      input.tsx
-      tabs.tsx
-      ...
-    features/              # igbo-specific composite components
-      member-card.tsx
-      post-composer.tsx
-      event-card.tsx
-      chat-message.tsx
-      group-card.tsx
-      article-card.tsx
-      notification-item.tsx
-      admin-queue-item.tsx
-      ...
-    layout/                # Layout components
-      nav-bar.tsx
-      bottom-tab-bar.tsx
-      sidebar.tsx
-      page-shell.tsx
-      ...
+/* Application Status */
+--color-status-applied: /* neutral blue */
+--color-status-under-review: /* amber */
+--color-status-shortlisted: /* teal */
+--color-status-interview: /* purple */
+--color-status-offered: /* green */
+--color-status-hired: /* success green */
+--color-status-rejected: /* neutral gray — empathetic, not alarming */
+
+/* Trust Signals */
+--color-trust-verified: /* community brand accent */
+--color-trust-referral: /* warm accent */
+--color-trust-engagement: /* subtle indicator */
+
+/* Match Quality */
+--color-match-strong: /* confident green */
+--color-match-moderate: /* neutral */
+--color-match-weak: /* muted — visible but not discouraging */
+
+/* Admin Signals (red reserved for admin risk only) */
+--color-risk-high: /* alert red */
+--color-risk-medium: /* amber */
+--color-risk-low: /* green */
+--color-fast-lane: /* trusted accent */
+
+/* Portal Accent */
+--color-portal-accent: /* slight contextual shift from main platform — professional warmth */
 ```
 
-**Setup Steps:**
+**Color Philosophy:** Red is reserved exclusively for admin risk signals (`--color-risk-high`). User-facing negative states (rejection, expired, closed) use neutral gray + empathetic language. The emotional weight is carried by words, not color. This aligns with Emotional Design Principle 3: "Negative Emotions Get Design, Not Neglect."
 
-1. Initialize shadcn/ui in the Next.js project with Tailwind CSS
-2. Configure design tokens (colors, typography, spacing, radius) in `tailwind.config.ts` to reflect Igbo cultural identity
-3. Install base components needed for MVP (button, card, dialog, input, select, tabs, dropdown-menu, sheet, toast, avatar, badge, separator, skeleton, scroll-area, form)
-4. Customize base components with igbo's color palette, border radius, font sizes, and spacing
-5. Build feature-specific composite components on top of the base layer
-6. Establish responsive patterns using Tailwind breakpoints (mobile < 768px, tablet 768-1024px, desktop > 1024px)
+**Layer 3: Domain-Specific Components (new, in `apps/job-portal/src/components/`)**
 
-**Key shadcn/ui Components for igbo MVP:**
+Purpose-built components for marketplace UX. Each portal component *composes* shared primitives from `@igbo/ui` and applies portal semantic tokens at the composition layer. Portal components never extend or modify shared primitives — they wrap them.
 
-| Component        | igbo Usage                                                                                              |
-| ---------------- | ------------------------------------------------------------------------------------------------------- |
-| **Button**       | Primary actions (Post, Send, RSVP, Join, Apply), secondary actions, destructive actions (Remove, Ban)   |
-| **Card**         | Member cards, post cards, event cards, group cards, article cards, admin queue items                    |
-| **Dialog/Sheet** | Post composer modal, confirmation dialogs, mobile navigation sheet, profile quick-view                  |
-| **Input + Form** | Registration form, search bars, post composer, article editor, profile edit, admin forms                |
-| **Tabs**         | Profile tabs (Posts/Articles/About/Groups), feed filters, admin queue tabs, event views (Calendar/List) |
-| **Avatar**       | Member photos everywhere — feed, chat, directory, profiles, group lists                                 |
-| **Badge**        | Verification badges (Blue/Red/Purple), tier labels, event type tags, notification counts                |
-| **DropdownMenu** | Post actions (edit/delete/report), sort/filter options, user menu                                       |
-| **Toast**        | Success confirmations, points earned, error messages, notification toasts                               |
-| **Skeleton**     | Loading states for feed, member cards, chat messages — progressive loading for variable bandwidth       |
-| **ScrollArea**   | Chat message history, long member lists, notification panels                                            |
-| **Separator**    | Visual content separation in feeds, profiles, admin panels                                              |
-| **Sheet**        | Mobile slide-out panels for chat, filters, navigation                                                   |
+**Critical Boundary Rule:** Shared components in `@igbo/ui` never reference portal tokens. Portal components import shared primitives (Badge, Card, Combobox) and apply portal-scoped styling. This prevents dependency inversion and keeps the shared package independent of any consuming app.
+
+| Component | Composes (from `@igbo/ui`) | Purpose |
+|-----------|---------------------------|---------|
+| **JobCard** | Card + Badge | Job listing card with curated information hierarchy (title, company, salary, location, match tag) |
+| **CandidateCard** | Card + Avatar + Badge | Candidate display with trust signals (verification, skill overlap, referral, engagement) |
+| **StatusPill** | Badge (composed, not variant) | Application status with semantic colors — `applied`, `under-review`, `shortlisted`, `hired`, `rejected` (neutral gray) |
+| **MatchTag** | Badge (composed, not variant) | Explainability pills — "Matches 4 of your skills," "Same city," "Experience fits" |
+| **TrustBadge** | Badge (composed, not variant) | Verification badge, referral badge, engagement level indicator — glanceable trust signals |
+| **SkillTagInput** | Combobox + Badge (composed) | Autocomplete skill selection with predefined library + custom tag visual distinction |
+| **ATSPipeline** | Kanban board (desktop) / Tabs (mobile) | Pipeline visualization: Applied → Under Review → Shortlisted → Interview → Offered → Hired/Rejected. Kanban board with drag-and-drop on desktop for employer mental model and fast decisions. Tabs on mobile for accessibility (keyboard nav + ARIA free). Terminal states (Hired, Rejected, Withdrawn) in collapsible "Closed" section below the board. |
+| **ReviewQueueItem** | Card + inline context | Job Admin triage card with poster context, risk signals, one-action decisions |
+| **ApplyConfirmation** | Dialog/Sheet | Rich apply confirmation with match quality feedback — Google Pay-inspired confidence |
+| **EmptyState** | Custom | Warm empty states with contextual fallbacks, CTAs, and never-dead-end messaging |
+| **ProfileCompletionBar** | Progress | Progressive profile nudge with actionable next steps |
 
 ### Customization Strategy
 
-**Design Tokens — igbo Cultural Identity:**
+**Visual Continuity Rules:**
 
-The following design tokens transform generic shadcn/ui components into igbo's cultural visual identity. These are configured in `tailwind.config.ts` and referenced via CSS variables:
+1. **Same typography** — Portal uses the same font family, scale, and weight system as the main platform. No typographic drift.
+2. **Same spacing** — Grid, padding, margins follow the shared spacing scale. Consistent rhythm across subdomains.
+3. **Same primitives** — Buttons, inputs, dialogs look and behave identically. A user who knows how to use the main platform knows how to use the portal.
+4. **Contextual accent** — Portal surfaces use a subtle accent shift (e.g., slightly warmer or more professional tone) to signal "you're in the job portal" without breaking visual continuity. Applied to page headers, active nav states, and portal-specific badges — not to shared primitives.
+5. **Semantic over decorative** — All portal-specific colors carry meaning (status, trust, match quality, risk). No decorative color additions.
 
-**Color Palette:**
+**Component Ownership Rules:**
 
-| Token                  | Purpose                                             | Direction                                                                                            |
-| ---------------------- | --------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| `--primary`            | Primary brand color — buttons, links, active states | Warm terracotta or deep indigo inspired by Igbo traditional textiles (moving away from generic blue) |
-| `--primary-foreground` | Text on primary backgrounds                         | High contrast white or cream                                                                         |
-| `--secondary`          | Secondary actions, subtle backgrounds               | Earth tone — warm sand or clay                                                                       |
-| `--accent`             | Highlights, badges, celebration moments             | Rich gold or amber — warmth, pride, achievement                                                      |
-| `--destructive`        | Errors, warnings, remove actions                    | Muted red — firm but not alarming                                                                    |
-| `--muted`              | Subtle backgrounds, disabled states                 | Warm grey (not cold grey)                                                                            |
-| `--card`               | Card backgrounds                                    | Warm white with subtle warmth                                                                        |
-| `--background`         | Page backgrounds                                    | Off-white with cultural warmth, not sterile white                                                    |
-| `--foreground`         | Primary text                                        | Near-black with warmth                                                                               |
-| `--border`             | Borders, dividers                                   | Warm grey, subtle                                                                                    |
+- Portal-specific components start in `apps/job-portal/src/components/`
+- Portal components *compose* shared primitives — they do not extend, variant-ify, or modify them
+- No new Badge variants, Combobox variants, or Card variants added to `@igbo/ui` for portal needs — compose at the portal layer instead
+- If a portal component is needed by both apps (e.g., SkillTagInput for profile editing on main platform), promote to `@igbo/ui` only when: tests pass in both apps, documentation complete, no portal-specific token dependencies
+- Shared package changes trigger tests in ALL consuming apps (CI enforced per PRD)
 
-**Verification Badge Colors (fixed, per PRD):**
+**Token Governance:**
 
-- Blue Badge: `--badge-blue` — Community verified
-- Red Badge: `--badge-red` — Highly trusted
-- Purple Badge: `--badge-purple` — Top-tier, maximum multiplier
+- Base tokens owned by `@igbo/ui` — changes affect all apps
+- Portal semantic tokens owned by `apps/job-portal/` — scoped to portal only, defined in portal's `globals.css`
+- No portal token should override a base token — extend, don't replace
+- Token naming convention: `--color-{domain}-{concept}` (e.g., `--color-status-applied`, `--color-trust-verified`)
+- Shared components must never import or reference portal tokens — this is the hard boundary
 
-**Event Type Colors (from mocks):**
+**Responsive Card Behavior Rules:**
 
-- Virtual: Blue
-- In-Person: Green
-- Hybrid: Orange
+The card information hierarchy adapts to screen real estate, not hover state. Hover is unreliable (fleeting on desktop, nonexistent on mobile).
 
-**Typography:**
+| Tier | Desktop (> 1024px) | Mobile (< 768px) |
+|------|-------------------|-------------------|
+| **Tier 1 (Primary)** | Always visible on card surface | Always visible on card surface |
+| **Tier 2 (Secondary)** | Always visible — desktop has the space | Hidden behind tap-to-expand affordance (chevron or "Show more") |
+| **Tier 3 (Detail)** | Click-through to detail page | Click-through to detail page |
 
-| Token                       | Value                                                                   | Usage                                                 |
-| --------------------------- | ----------------------------------------------------------------------- | ----------------------------------------------------- |
-| `--font-sans`               | Inter or similar clean sans-serif with excellent Igbo diacritic support | Body text, UI labels, navigation                      |
-| `--font-heading`            | Slightly bolder weight of primary font, or a complementary display face | Page titles, section headers, hero text               |
-| `--text-base`               | 16px minimum                                                            | Body text (elder-friendly, WCAG compliant)            |
-| `--text-sm`                 | 14px                                                                    | Secondary text, metadata, timestamps                  |
-| `--text-lg`                 | 18px                                                                    | Subheadings, emphasized content                       |
-| `--text-xl` to `--text-3xl` | 20-30px                                                                 | Page titles, hero text                                |
-| `--leading-relaxed`         | 1.6-1.75 line height                                                    | Body text for readability, especially for elder users |
+No design decision depends on hover state. Touch devices get tap-to-expand for secondary information. Desktop shows more by default because it has more space — not because of hover interaction.
 
-**Spacing & Layout:**
+**Testing Strategy:**
 
-| Token              | Value                                  | Usage                                                              |
-| ------------------ | -------------------------------------- | ------------------------------------------------------------------ |
-| `--radius`         | 12px (rounded, warm, not sharp)        | Cards, buttons, inputs — rounded feels approachable, not corporate |
-| `--spacing-page`   | 16px mobile, 24px tablet, 32px desktop | Page padding                                                       |
-| `--tap-target-min` | 44px                                   | Minimum interactive element size (WCAG, elder-friendly)            |
+- **Visual snapshot tests** — All portal-specific components tested across all states via Storybook (or equivalent): every status variant (applied, under-review, shortlisted, hired, rejected), every trust level (verified, unverified, referred), every match quality (strong, moderate, weak), every risk level (high, medium, low)
+- **Responsive behavior tests** — Card tier visibility verified at mobile and desktop breakpoints. Tap-to-expand functionality tested on touch viewports.
+- **Token usage lint rule** — Portal components must use portal semantic tokens for domain-specific concepts (status, trust, match, risk), not base tokens. Enforced via code review convention (automated lint rule if feasible).
+- **Cross-app regression gate** — Any component promoted from portal to `@igbo/ui` must pass both portal and main platform test suites before merge (CI enforced).
 
-**Component Overrides:**
+## Defining Experience (Deep Dive)
 
-- **Buttons**: Rounded corners (radius-lg), generous padding, minimum height 44px for touch targets. Primary buttons use cultural accent color with subtle hover animation.
-- **Cards**: Warm background, subtle shadow, rounded corners. Member cards always lead with avatar. Content cards show media prominently.
-- **Inputs**: Large text (16px prevents iOS zoom), clear labels above (not placeholder-only), visible focus rings in primary color, generous padding.
-- **Toast notifications**: Warm language ("Points earned!" not "Transaction complete"), celebration micro-animations for positive moments, respectful error messages.
-- **Avatars**: Circular with subtle border. Online status dot positioned bottom-right. Fallback shows initials in primary color.
-- **Badges**: Pill-shaped, culturally colored. Verification badges are distinct and recognizable across all contexts.
+### The Defining Moment
 
-**Dark Mode:**
+**"I applied — and they actually saw me."**
 
-Deferred to post-MVP. The initial design focuses on a warm, light theme that reflects cultural warmth and optimism. Dark mode can be added later by swapping CSS variable values.
+The igbo Job Portal's defining experience is not the apply action (seeker-side) or the candidate evaluation (employer-side) — it is the *bridge* between them: the moment a seeker receives proof that their application was seen by a real person. This is the WhatsApp blue-tick moment transplanted into a hiring context where no competitor provides it.
 
-**Bilingual Considerations:**
+This single signal solves the application black hole problem that plagues every generic job board. It transforms the seeker's emotional state from anxious uncertainty ("Did anyone even look?") to validated trust ("They saw me — this platform works"). It is the moment that drives word-of-mouth: *"I applied on igbo — and they actually saw me."*
 
-- All component text passed via props/i18n — no hardcoded strings in components
-- Layout tested with both English and Igbo text lengths (Igbo text with diacritics may be slightly longer)
-- Font stack validated for Igbo diacritic and tone mark rendering
-- RTL support not needed (both English and Igbo are LTR)
-
-## Defining Experience
-
-### The One-Sentence Product
-
-**"Find your people — anywhere in the world."**
-
-igbo's defining experience is geographic community discovery with instant connection. A member searches their city and watches their community appear — expanding outward from neighborhood to city to country to continent until they find their people. Then, with one tap, they connect. This is the interaction that makes someone tell a friend. This is the moment that justifies the platform's existence.
-
-No WhatsApp group can do this. No Facebook page. No LinkedIn search. igbo is the only place where a scattered diaspora becomes visible, searchable, and connectable — for the first time.
+**Competitive validation:** No major African job platform (Jobberman, MyJobMag, BrighterMonday, Careers24, Fuzu) nor global platforms (Indeed, Glassdoor) provide this signal. LinkedIn offers a limited version for Premium users only. The igbo Job Portal offers it for free to all community members — and the signal carries more weight because it comes from a verified community employer, not an anonymous company on a generic board. The feature itself is copyable; the community trust context around it is not.
 
 ### User Mental Model
 
-**How users currently solve this problem:**
+Seekers arrive with two competing mental models:
 
-| Current Approach    | Mental Model                                 | What's Broken                                                                                                                                                            |
-| ------------------- | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **WhatsApp groups** | "I'm in a group, so I'm connected"           | You only know people _already_ in the group. No discovery of new members. No directory. No way to find community members in your city who aren't in your specific group. |
-| **Facebook groups** | "I search for Igbo groups and join"          | Dozens of fragmented, overlapping groups. No unified directory. No way to search "Igbo members in Houston." You find groups, not people.                                 |
-| **Word of mouth**   | "I meet people at events or through friends" | Limited to physical proximity and existing networks. If you move to a new city, you start from zero.                                                                     |
-| **LinkedIn**        | "I search for Igbo professionals"            | Cold, professional-only context. No cultural connection. No events. No community media. Finding someone's LinkedIn doesn't mean finding your _community_.                |
+- **WhatsApp model (blue ticks):** Send → delivered → read. Instant, honest feedback. Users *expect* to know when their message was seen. This is the aspirational model.
+- **Job board model (black hole):** Apply → silence → maybe an email weeks later → probably nothing. Users *expect* to be ignored. This is the incumbent experience to defeat.
 
-**The mental model shift igbo creates:**
+The portal leverages the WhatsApp mental model — users already understand "seen" signals — and delivers it in a context where it has never existed. No new pattern to teach; just a familiar trust signal in an unexpected place.
 
-- **From:** "I have to find and join groups to connect" → **To:** "I search my location and my community appears"
-- **From:** "Connection requires someone's phone number" → **To:** "Connection requires only being a member"
-- **From:** "My cultural identity is scattered across platforms" → **To:** "My cultural identity lives in one home"
-- **From:** "I don't know if there are community members near me" → **To:** "I can see exactly who's near me, in my country, and around the world"
-
-**Where users might get confused:**
-
-- **Chat vs. Feed:** "Where do I post this — in chat or on the feed?" Solution: Clear distinction — chat is for conversations, feed is for broadcasting. Group activity surfaces in both contexts.
-- **Groups vs. Directory:** "How do I find people — in groups or in the directory?" Solution: Both, and they're connected. Directory finds individuals. Groups find communities of interest. Both lead to the same profiles and messaging.
-- **Tiers and permissions:** "Why can't I create a group?" Solution: Clear, non-punitive tier explanations. "Group creation is available to Top-tier members. Here's how to reach Top-tier status."
+Employers arrive with the WhatsApp hiring model: post in a group → receive chaotic DMs → lose track. The structured dashboard with trust-signal-enriched candidate cards is the upgrade — and their *viewing* of applications quietly completes the feedback loop for seekers without requiring any additional action.
 
 ### Success Criteria
 
-**The defining experience succeeds when:**
+The defining experience succeeds when:
 
-| Criterion                            | Measurable Signal                                                               | Target                                                     |
-| ------------------------------------ | ------------------------------------------------------------------------------- | ---------------------------------------------------------- |
-| **Discovery feels magical**          | Time from search to first result displayed                                      | < 2 seconds, with animated expansion                       |
-| **No dead ends**                     | Percentage of member searches that return zero results at all geographic levels | < 5% (geographic fallback ensures someone is always found) |
-| **First message is instant**         | Time from discovering a member to sending first message                         | < 10 seconds (two taps: view profile → send message)       |
-| **Connection leads to conversation** | Percentage of first messages that receive a reply                               | > 60% within 48 hours                                      |
-| **Discovery drives retention**       | Members who use directory search in first week return in week 2                 | > 70% retention                                            |
-| **Users describe it to friends**     | Organic referral rate driven by discovery stories                               | > 60% of new members join via word of mouth                |
-| **Emotional response achieved**      | User reports feeling "not alone" or "found my people"                           | Qualitative feedback in first 90 days                      |
+1. **Seekers never feel forgotten** — Every application has a visible, honest status. "Applied — March 31" with contextual reassurance fills the gap before "Viewed" appears. No silence, no black hole.
+2. **"Viewed" feels like a moment** — The notification leads with warmth: *"Good news — [Company Name] has seen your application for [Job Title]."* Company name humanizes the signal; "Good news" frames it as progress. Simple, singular, emotionally significant.
+3. **Employers trigger it naturally** — The "Viewed" signal fires after intentional engagement (configurable dwell threshold, starting at 2 seconds, measured and adjusted based on real usage data). Accidental scrolling does not trigger it — the client-side timer resets if the application card leaves the viewport (Intersection Observer / Visibility API). Employers are not explicitly told they trigger signals — the feature is implicit, avoiding view-avoidance behavior.
+4. **Status is always honest** — Every status transition (Applied → Viewed → Under Review → Shortlisted → Interview → Offered → Hired/Rejected) reflects a real employer action. No optimistic states, no time-based assumptions. Trust-first means truth-first.
+5. **Negative outcomes are designed moments** — Rejection shows as neutral gray with empathetic language and immediate "Jobs you match" suggestions. The system never leaves seekers at a dead end.
+6. **The signal fires within a meaningful timeframe** — Time-to-viewed is a key platform health metric. If employers don't view applications, the defining experience never happens. Employer-side nudges ("You have 4 unreviewed applications — candidates are waiting") ensure the loop closes.
 
-**The experience fails when:**
+### Novel vs. Established Patterns
 
-- A member searches and sees "No results" with no fallback or guidance
-- Finding a member requires more than 3 taps from the dashboard
-- The first message takes more than 10 seconds to compose and send
-- Discovery feels like a database query instead of a human moment
-- Members discover people but have no easy path to connect
+**Pattern Classification: Established pattern, novel context.**
 
-### Novel UX Patterns
+The "seen" signal is deeply established — WhatsApp blue ticks, iMessage read receipts, email read receipts. Users immediately understand what "Viewed by [Company Name] — April 2" means without any education.
 
-**igbo combines familiar patterns in one novel way:**
+The novelty is the *context*: no major job platform provides this signal. Indeed, LinkedIn, Jobberman, and Glassdoor all leave applicants in the dark. The igbo Job Portal takes a pattern users trust from messaging and applies it to hiring — where the emotional stakes are higher and the signal is more valuable.
 
-| Pattern Type                      | Pattern                           | Novel or Established                                                                                                                                                                                                                              | igbo's Approach |
-| --------------------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------- |
-| **Geographic fallback discovery** | Novel                             | No existing platform gracefully expands search from city → state → country → region when results are sparse. igbo pioneered this for diaspora density challenges. The UI must animate this expansion to feel like _discovery_, not _degradation_. |
-| **Member directory search**       | Established (LinkedIn)            | Adopt LinkedIn's filter-based search but add geographic fallback, cultural affinity signals, and warm member cards with avatars and bios.                                                                                                         |
-| **One-tap messaging**             | Established (WhatsApp, LinkedIn)  | Adopt — member card shows "Message" button. Tap to open conversation. Pre-populated context: "You and Chidi are both in Texas."                                                                                                                   |
-| **Social feed**                   | Established (Facebook)            | Adopt — post composer, mixed content types, reactions, comments, shares. Familiar to every user.                                                                                                                                                  |
-| **Real-time chat**                | Established (WhatsApp, Slack)     | Combine WhatsApp's simplicity with Slack's channel organization. DMs feel like WhatsApp. Group channels feel like Slack.                                                                                                                          |
-| **Event RSVP + embedded video**   | Adapted (Facebook Events + Zoom)  | Facebook's RSVP flow but with one-click video join embedded in the platform. No external tools.                                                                                                                                                   |
-| **Gamification with meaning**     | Adapted (Duolingo + Reddit karma) | Points aren't just vanity — they unlock capabilities (tier upgrades) and will feed governance (voting power). Every point means something.                                                                                                        |
-| **Bilingual toggle**              | Adapted                           | Not just a settings toggle — a persistent, always-visible language switch that feels as natural as switching between English and Igbo mid-conversation.                                                                                           |
+**Unique twist on established pattern:**
 
-**Teaching the Novel Pattern (Geographic Fallback):**
-
-Users won't instinctively expect search results to _expand_. The UX must teach this behavior:
-
-1. **Onboarding moment:** During the feature tour, show an animated demo: "Search your city. If we don't find members there yet, we'll show you who's nearby — and growing."
-2. **In-context education:** First time a search expands, show a brief tooltip: "We're showing members in your state since your city is still growing. As more members join, your local community will appear."
-3. **Visual design:** The expansion should feel like zooming out on a map — widening circles of community. Not like "Error: no results, showing fallback."
+- **Honest waiting replaces silence** — Unlike messaging apps where "delivered but not read" creates anxiety, the portal fills the pre-Viewed gap with active context: "Employers typically review within a few days," profile improvement nudges, and alternative job suggestions. The wait is *populated*, not empty.
+- **Post-Viewed anxiety gap addressed** — "Viewed" without follow-up can erode the trust it built. If an application remains "Viewed" with no status change for 7+ days, the system responds on both sides: seeker sees contextual reassurance ("Hiring decisions take time — here are similar roles"), employer sees the application surfaced in their "Needs Attention" dashboard section. The system nudges the loop forward, not just the seeker's emotions.
+- **Implicit employer awareness** — Unlike email read receipts (where senders know the feature exists and recipients know they're being tracked), the portal's "Viewed" signal is implicit on the employer side. Employers are not told "candidates see when you view." Disclosure is handled through platform Terms of Service ("your viewing activity contributes to application status updates"), not UI messaging. Legal review required pre-launch for jurisdiction-specific GDPR/privacy compliance.
+- **Community context as moat** — "Viewed by [Company Name]" where the company carries community verification context hits differently than a generic "Viewed by employer" on Indeed. The emotional power of the signal comes from the community wrapper — this person is *one of us*, reviewing *one of us*.
 
 ### Experience Mechanics
 
-**The Defining Interaction: "Find Your People" — Step by Step**
+**Phase 1 — Initiation (The Apply):**
 
-**1. Initiation — How Discovery Starts:**
+- Seeker taps Apply → community profile auto-fills (name, location, skills) → default resume attached → submit
+- Target: < 30 seconds from tap to submitted
+- Rich confirmation moment: match quality feedback ("Strong match — you share 4 of 6 required skills") + **"What happens next" journey timeline** showing Applied → Viewed → Under Review → Shortlisted as stages the seeker can expect. Pre-teaches the status journey to reduce anxiety during the wait.
+- Status immediately visible: **Applied — [date]**
 
-| Trigger              | Context                            | Entry Point                                                                                  |
-| -------------------- | ---------------------------------- | -------------------------------------------------------------------------------------------- |
-| **First login**      | New member just completed profile  | Onboarding wizard: "Let's find community members near you" → auto-searches member's location |
-| **Dashboard prompt** | Returning member, dashboard widget | "People near you" widget showing nearby member count + "See all" link                        |
-| **Navigation**       | Member actively exploring          | "Members" / "Directory" in main navigation → search page                                     |
-| **Search bar**       | Global search                      | Type a city, name, or interest → results include member matches                              |
-| **Group context**    | Inside a group                     | "Members in this group near you" sidebar suggestion                                          |
+**Phase 2 — Honest Active Waiting (Pre-Viewed):**
 
-**2. Interaction — What the User Does:**
+- Application status page shows: **Applied — March 31**
+- Contextual reassurance: *"Employers typically review applications within a few days"*
+- The "My Applications" page is *alive during the wait*: alternative job suggestions, profile completion nudges ("Add 2 more skills to improve match scores"), match score updates if profile changes
+- No fake progress. No "Under Review" until the employer explicitly changes status. Silence is replaced with honest context, not manufactured progress.
 
-```
-Step 1: Member opens Directory (or is guided there during onboarding)
-Step 2: Location is pre-filled from profile (e.g., "Houston, TX")
-        → Optional: type a different city, or filter by interests/skills/language
-Step 3: Results appear:
-        IF members found in city:
-           → Show member cards with avatar, name, bio snippet, badge, "Message" button
-           → "12 community members in Houston"
-        IF no members in city (the fallback moment):
-           → Warm message: "Your city is still growing! Here's your community nearby..."
-           → Animated expansion: "23 members in Texas" → cards appear
-           → Subtle prompt: "47 members across the United States"
-           → Expanding circles visual — the community gets bigger as you zoom out
-Step 4: Member taps a profile card → sees full profile
-Step 5: Member taps "Message" → chat opens with context:
-        → "You and [Name] are both in Texas. You share interests in [X]."
-Step 6: Member types and sends first message
-```
+**Phase 3 — The Defining Moment (Viewed):**
 
-**3. Feedback — What Tells Users It's Working:**
+- Employer opens a candidate's application and dwells for the configured threshold (starting at 2 seconds, server-configurable, measured against real usage data in first sprint)
+- Client-side timer uses Intersection Observer — resets if application card scrolls out of viewport. Only fires on sustained, intentional engagement.
+- **Viewed event is idempotent**: system records all views for analytics, but the seeker-facing signal is first-view-only. Chioma opening the same application three times = one "Viewed — April 2" for Adaeze, not three notifications.
+- Seeker sees: **Viewed by [Company Name] — April 2**
+- Notification delivered based on seeker's preferences: *"Good news — [Company Name] has seen your application for [Job Title]."*
+- Simple, singular signal. One view date. No view counts. Company name included for community trust context.
 
-| Moment                     | Feedback                                                               | Type                   |
-| -------------------------- | ---------------------------------------------------------------------- | ---------------------- |
-| Search initiated           | Skeleton loading cards appear instantly (no blank wait)                | Visual                 |
-| Results found              | Member count appears with subtle count-up animation                    | Visual + informational |
-| Fallback expansion         | Smooth zoom-out animation, warm explanatory text, expanding result set | Visual + educational   |
-| Profile viewed             | "X mutual groups" and "Y shared interests" shown on profile            | Social proof           |
-| Message sent               | Delivery confirmation (single tick), then read receipt (blue tick)     | Confirmation           |
-| Reply received             | Push notification + chat badge + toast: "Chinedu replied!"             | Celebration            |
-| First connection milestone | Toast: "You've connected with your first community member! +50 points" | Gamification           |
+**Phase 4 — Post-Viewed Response (Anxiety Gap Management):**
 
-**4. Completion — What Happens After:**
+- If application status remains "Viewed" with no employer action for 7+ days:
+  - **Seeker side:** Contextual reassurance on status page: *"Hiring decisions take time — here are similar roles you match."* Not a notification — a passive, in-context note. Prevents anxiety spiral without creating notification noise.
+  - **Employer side:** Application surfaces in "Needs Attention" dashboard section: *"4 applications viewed but not actioned — candidates are waiting."* System nudges the loop forward.
+- **Key metric:** Time-to-viewed measured as platform health indicator. Target: >70% of applications viewed within 5 days. If below target, employer onboarding and nudge strategies are adjusted.
 
-| Outcome                  | Next Step                      | UX Prompt                                                                               |
-| ------------------------ | ------------------------------ | --------------------------------------------------------------------------------------- |
-| **Message sent**         | Conversation continues in chat | Chat thread stays open; member card bookmarked in recent contacts                       |
-| **No reply yet**         | Encourage more discovery       | Dashboard: "While you wait, here are 3 more members who share your interests"           |
-| **Connection made**      | Deepen engagement              | Suggest mutual groups: "You and Chinedu might enjoy the Texas Chapter group"            |
-| **Multiple connections** | Build community habit          | Weekly digest: "You connected with 4 new members this week. Your community is growing!" |
-| **Milestone reached**    | Celebrate and motivate         | "You've connected with members in 3 countries! You're a true global community member."  |
+**Phase 5 — Status Progression (What Follows):**
+
+- Each subsequent status change is triggered by explicit employer action:
+  - **Under Review** — employer moves application to review pipeline
+  - **Shortlisted** — employer advances to shortlist
+  - **Interview** — interview scheduled through platform
+  - **Offered** — offer extended
+  - **Hired** — offer accepted, position filled
+  - **Rejected** — employer declines (neutral gray, empathetic language, immediate "Jobs you match" suggestions)
+- Every transition is a real event, never an inferred or time-based assumption
+- Each transition is a notification-worthy moment for the seeker
+
+**Phase 6 — Employer Side (Implicit Loop Closure):**
+
+- Employers are never explicitly told in the UI that "Candidates see when you view their application"
+- Disclosure is handled through platform Terms of Service, not UI messaging — legal review required pre-launch
+- Employers who are also seekers discover it organically through their own application experiences
+- This design avoids: employers skipping applications to avoid triggering "Viewed," employers feeling surveilled, employer complaints about transparency obligations
+- The quiet integrity of the signal is what makes it trustworthy
+
+**Pre-Launch Legal Review Item:** GDPR and jurisdiction-specific privacy regulations may require explicit disclosure of employer viewing activity being surfaced to candidates. The design decision (implicit awareness) is sound from a UX perspective; the disclosure mechanism (Terms of Service vs. in-UI notice) requires legal sign-off.
 
 ## Visual Design Foundation
 
-### Brand Identity
-
-**Brand Name:** OBIGBO
-**Logo:** Traditional Igbo obi (reception house) enclosed in a sweeping green circle, symbolizing home, welcome, and cultural embrace. The obi is the heart of an Igbo compound — where guests are received, stories are shared, and community gathers. This is the visual metaphor for the entire platform.
-
-**Brand Voice Keywords:** Home, warmth, pride, discovery, belonging, cultural heritage, global community
-
 ### Color System
 
-**Primary Palette — Derived from the OBIGBO Logo:**
+**Base Palette:** Inherited from the igbo community platform (`@igbo/ui`). The portal shares the same visual DNA — no new brand colors introduced.
 
-| Token                    | Color               | Hex (Approximate) | Usage                                                                                                                     |
-| ------------------------ | ------------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `--primary`              | Deep Forest Green   | `#2D5A27`         | Primary brand color — main buttons, active nav states, links, primary CTAs. Drawn from the logo's sweeping circle.        |
-| `--primary-hover`        | Darker Forest Green | `#234A1F`         | Hover state for primary actions                                                                                           |
-| `--primary-foreground`   | White               | `#FFFFFF`         | Text on primary color backgrounds                                                                                         |
-| `--secondary`            | Warm Sandy Tan      | `#D4A574`         | Secondary buttons, subtle backgrounds, warm accents. Drawn from the hut walls.                                            |
-| `--secondary-hover`      | Deeper Tan          | `#C4956A`         | Hover state for secondary actions                                                                                         |
-| `--secondary-foreground` | Dark Brown          | `#3D2415`         | Text on secondary backgrounds                                                                                             |
-| `--accent`               | Golden Amber        | `#C4922A`         | Highlights, celebration moments, points displays, badge accents, achievement notifications. Drawn from the thatched roof. |
-| `--accent-foreground`    | White               | `#FFFFFF`         | Text on accent backgrounds                                                                                                |
+**Three-Channel Color Language:**
 
-**Semantic Colors:**
+Every color in the portal carries semantic meaning. No decorative color usage.
 
-| Token                      | Color                | Hex       | Usage                                                                                                   |
-| -------------------------- | -------------------- | --------- | ------------------------------------------------------------------------------------------------------- |
-| `--success`                | Leaf Green           | `#38A169` | Success messages, online indicators, completed states                                                   |
-| `--warning`                | Warm Amber           | `#D69E2E` | Warning messages, low-stock alerts, pending states                                                      |
-| `--destructive`            | Muted Terracotta Red | `#C53030` | Errors, delete actions, ban/remove. Firm but not alarming — culturally, red is not inherently negative. |
-| `--destructive-foreground` | White                | `#FFFFFF` | Text on destructive backgrounds                                                                         |
-| `--info`                   | Calm Blue            | `#3182CE` | Informational messages, help tooltips, links in text context                                            |
+| Channel | Color | Role | Usage |
+|---------|-------|------|-------|
+| **Identity/Trust** | Forest Green (`oklch(0.422 0.093 141)`) | Community, verification, brand | Verification badges, community signals, logos, global nav, primary brand presence |
+| **Action/Energy** | Golden Amber (`oklch(0.646 0.118 75)`) | CTAs, primary actions | Apply, Post Job, Shortlist, all primary buttons |
+| **Context/State** | Teal-shift Green (`oklch(0.45 0.09 160)`) | Active states, system indicators | Active tabs, selected states, pipeline indicators, match quality indicators |
+| **Warmth/Community** | Warm Sandy Tan (`oklch(0.726 0.08 65)`) | Referral, secondary surfaces | Referral badges, secondary backgrounds, community warmth accents |
 
-**Neutral Palette:**
+**Teal-Shift Rules:**
 
-| Token                | Color                       | Hex         | Usage                                               |
-| -------------------- | --------------------------- | ----------- | --------------------------------------------------- |
-| `--background`       | Warm Off-White              | `#FAF8F5`   | Page backgrounds — warm, not sterile clinical white |
-| `--foreground`       | Warm Near-Black             | `#1A1612`   | Primary body text — deep brown-black, not pure #000 |
-| `--card`             | Warm White                  | `#FFFFFF`   | Card backgrounds, elevated surfaces                 |
-| `--card-foreground`  | Warm Near-Black             | `#1A1612`   | Text on card backgrounds                            |
-| `--muted`            | Warm Light Grey             | `#F0EDE8`   | Disabled states, subtle backgrounds, divider areas  |
-| `--muted-foreground` | Warm Mid Grey               | `#78716C`   | Secondary text, timestamps, metadata, placeholders  |
-| `--border`           | Warm Border Grey            | `#E7E2DB`   | Card borders, input borders, dividers               |
-| `--ring`             | Primary Green (40% opacity) | `#2D5A2766` | Focus rings on interactive elements                 |
+The teal-shift is a *shade* of the forest green, not a new color. It must feel like the same green family in a different light.
 
-**Verification Badge Colors (per PRD):**
+- USE for: active tab states, selected pipeline stages, match quality indicators, progress indicators
+- NEVER for: primary buttons, logos, global navigation, trust badges, brand identity surfaces
+- Test: if you removed the teal-shift and replaced it with forest green, the layout should still make sense — teal is emphasis, not identity
 
-| Badge        | Color             | Hex       | Multiplier |
-| ------------ | ----------------- | --------- | ---------- |
-| Blue Badge   | Community Blue    | `#3B82F6` | 3x points  |
-| Red Badge    | Distinguished Red | `#DC2626` | 6x points  |
-| Purple Badge | Elite Purple      | `#8B5CF6` | 10x points |
+**Application Status Semantic Colors:**
 
-**Event Type Colors:**
+| Status | Color | Token | Rationale |
+|--------|-------|-------|-----------|
+| Applied | Info Blue (`oklch(0.54 0.148 254)`) | `--color-status-applied` | Neutral, informational — "received, nothing happening yet" |
+| Under Review | Warm Amber (`oklch(0.676 0.125 76)`) | `--color-status-under-review` | In-progress, attention — "active consideration" |
+| Shortlisted | Teal-shift (`oklch(0.45 0.09 160)`) | `--color-status-shortlisted` | Positive + active — "advancing through the pipeline" |
+| Interview | Purple (`oklch(0.55 0.12 300)`) | `--color-status-interview` | Distinct milestone — "personal engagement stage" |
+| Offered | Success Green (`oklch(0.619 0.13 152)`) | `--color-status-offered` | Positive outcome approaching |
+| Hired | Success Green (`oklch(0.619 0.13 152)`) | `--color-status-hired` | Definitive positive outcome |
+| Rejected | Neutral Gray (`oklch(0.521 0.012 55)`) | `--color-status-rejected` | Non-punishing, empathetic — emotional weight carried by words, not color |
 
-| Type      | Color  | Hex       |
-| --------- | ------ | --------- |
-| Virtual   | Blue   | `#3B82F6` |
-| In-Person | Green  | `#38A169` |
-| Hybrid    | Orange | `#DD6B20` |
+**Trust Signal Colors (Warm Only):**
 
-**Post Type Colors (from dashboard mock):**
+Trust is community (warm), not system (cool). Trust badges never use teal or blue.
 
-| Type         | Color        | Usage                                             |
-| ------------ | ------------ | ------------------------------------------------- |
-| Discussion   | Grey         | `#6B7280` — Standard community posts              |
-| Announcement | Green        | `#2D5A27` — Official announcements (uses primary) |
-| Event        | Golden Amber | `#C4922A` — Event-related posts (uses accent)     |
+| Signal | Color | Token |
+|--------|-------|-------|
+| Verified Member | Golden Amber | `--color-trust-verified` |
+| Community Referral | Warm Sandy Tan | `--color-trust-referral` |
+| Engagement Level | Muted warm scale (tan → amber) | `--color-trust-engagement` |
 
-**Section Header Colors (adapted from mocks, aligned to green brand):**
+**Match Quality Colors (Teal → Green Spectrum):**
 
-The mocks used different colored headers per section (blue, orange, green, purple). With the green-primary brand, we unify this:
+"Closer to green = closer to trusted fit."
 
-| Section            | Header Treatment                                                            |
-| ------------------ | --------------------------------------------------------------------------- |
-| **Dashboard/Home** | Primary green gradient header                                               |
-| **Groups**         | Primary green, consistent with brand                                        |
-| **Articles**       | Primary green with warm tan accent                                          |
-| **Events**         | Primary green with golden amber accent                                      |
-| **Meetings**       | Golden amber/warm header (distinct, as in current mock — this warmth works) |
-| **Chat**           | Clean, minimal — no colored header, focus on conversation                   |
-| **Admin**          | Neutral dark header — professional, distinct admin context                  |
+| Quality | Color | Token |
+|---------|-------|-------|
+| Strong Match | Success Green (`oklch(0.619 0.13 152)`) | `--color-match-strong` |
+| Moderate Match | Teal-shift (`oklch(0.45 0.09 160)`) | `--color-match-moderate` |
+| Weak Match | Muted Neutral (`oklch(0.7 0.01 75)`) | `--color-match-weak` |
 
-**Color Accessibility:**
+**Admin Risk Signal Colors:**
 
-All color combinations validated against WCAG 2.1 AA requirements:
+Red is reserved exclusively for admin-facing risk signals. No user-facing surface uses red.
 
-| Combination                            | Contrast Ratio | Requirement            | Status |
-| -------------------------------------- | -------------- | ---------------------- | ------ |
-| `--foreground` on `--background`       | > 12:1         | 4.5:1 (AA normal text) | Pass   |
-| `--primary-foreground` on `--primary`  | > 7:1          | 4.5:1 (AA normal text) | Pass   |
-| `--muted-foreground` on `--background` | > 4.5:1        | 4.5:1 (AA normal text) | Pass   |
-| `--accent-foreground` on `--accent`    | > 4.5:1        | 3:1 (AA large text)    | Pass   |
-
-_Note: Exact hex values should be finalized through contrast-ratio testing during implementation. Values above are directional — adjust if any combination falls below 4.5:1 for normal text or 3:1 for large text._
+| Risk Level | Color | Token |
+|------------|-------|-------|
+| High Risk | Destructive Red (`oklch(0.472 0.178 28)`) | `--color-risk-high` |
+| Medium Risk | Warning Amber (`oklch(0.676 0.125 76)`) | `--color-risk-medium` |
+| Low Risk | Success Green (`oklch(0.619 0.13 152)`) | `--color-risk-low` |
+| Fast Lane (Trusted Employer) | Golden Amber (`oklch(0.646 0.118 75)`) | `--color-fast-lane` |
 
 ### Typography System
 
-**Font Stack (aligned with mocks):**
+**Typefaces:** Inter (body + headings) and JetBrains Mono (code/data) — inherited from the community platform. No new fonts introduced.
 
-| Token            | Font                   | Fallback                             | Usage                                                                                                                                             |
-| ---------------- | ---------------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--font-sans`    | Inter                  | system-ui, -apple-system, sans-serif | Body text, UI labels, navigation, form inputs. Inter has excellent multi-script support including Igbo diacritics (ụ, ọ, ṅ, etc.) and tone marks. |
-| `--font-heading` | Inter (600-700 weight) | system-ui, -apple-system, sans-serif | Page titles, section headers, hero text. Same family, bolder weight for hierarchy.                                                                |
-| `--font-mono`    | JetBrains Mono         | ui-monospace, monospace              | Code snippets (if needed), admin IDs, data displays                                                                                               |
+**Rationale:** Inter is clean, professional, highly legible at all sizes — works equally well for seeker job cards (mobile, variable bandwidth) and employer ATS dashboards (desktop, information-dense). Introducing a second display font would break visual continuity across subdomains and add bundle weight for no functional gain.
 
-**Type Scale:**
+**Type Scale:** Inherited from the community platform:
 
-| Level       | Size | Weight         | Line Height | Usage                                                                                                          |
-| ----------- | ---- | -------------- | ----------- | -------------------------------------------------------------------------------------------------------------- |
-| `text-3xl`  | 30px | 700 (Bold)     | 1.2         | Hero headings, splash page title                                                                               |
-| `text-2xl`  | 24px | 700 (Bold)     | 1.3         | Page titles ("Articles & Insights", "Community Meetings")                                                      |
-| `text-xl`   | 20px | 600 (Semibold) | 1.4         | Section headings, card titles, group names                                                                     |
-| `text-lg`   | 18px | 600 (Semibold) | 1.5         | Subheadings, emphasized content, member names in cards                                                         |
-| `text-base` | 16px | 400 (Regular)  | 1.6         | Body text, post content, article text, form labels. **Minimum body size — elder-friendly, prevents iOS zoom.** |
-| `text-sm`   | 14px | 400 (Regular)  | 1.5         | Secondary text, timestamps, metadata ("5 min read", "2 hours ago"), helper text                                |
-| `text-xs`   | 12px | 500 (Medium)   | 1.4         | Badges, tags, notification counts, fine print. **Use sparingly — accessibility limit.**                        |
+| Token | Size | Usage |
+|-------|------|-------|
+| `--text-xs` | 12px | Metadata, timestamps, tertiary labels |
+| `--text-sm` | 14px | Secondary text, table content, compact labels |
+| `--text-base` | 16px | Body text, form inputs, card descriptions (minimum body size) |
+| `--text-lg` | 18px | Card titles, section labels |
+| `--text-xl` | 20px | Page subtitles, dashboard headers |
+| `--text-2xl` | 24px | Page titles |
+| `--text-3xl` | 30px | Hero headings, landing page |
 
-**Typography Rules:**
+**Density-Aware Line Heights:**
 
-- **Never** use text smaller than 12px anywhere in the UI
-- **Body text** is always 16px minimum — non-negotiable for elder accessibility and iOS zoom prevention
-- **Headings** use semibold (600) or bold (700) — never light weights for headings
-- **Line height** for body text is 1.6 minimum — generous for readability, especially for Igbo text with diacritics
-- **Letter spacing** is default (0) — Inter is optimized for screen readability at default spacing
-- **Igbo diacritics** — font must render ụ, ọ, ṅ, á, à, é, è, í, ì, ó, ò, ú, ù correctly at all sizes. Test during implementation.
-- **Truncation** — use ellipsis (…) for long text in cards. Never truncate member names or article titles in their primary display context.
+Three density modes to serve the three primary user contexts. Density affects line-height and vertical spacing — not font size or font weight.
+
+| Mode | Line Height | Vertical Rhythm | Primary Context |
+|------|------------|----------------|-----------------|
+| **Comfortable** | 1.6 | Generous (16px gaps) | Seeker-facing: job listings, apply flow, "My Applications," profile pages. Mobile-first, reading-friendly, thumb-friendly. |
+| **Compact** | 1.45 | Moderate (12px gaps) | Employer-facing: candidate cards, ATS pipeline, application review, job management dashboard. Desktop-optimized, scannable. |
+| **Dense** | 1.3 | Tight (8px gaps) | Admin-facing: review queue, moderation queue, analytics tables, audit logs. Maximum information density for triage workflows. |
+
+**Density Application Rules:**
+
+- Density is determined by *surface context*, not user preference toggle (not user-configurable in MVP)
+- Seeker pages always render in Comfortable mode
+- Employer dashboard surfaces render in Compact mode
+- Admin queue and table surfaces render in Dense mode
+- A single page may contain multiple density zones (e.g., employer dashboard sidebar in Compact, candidate detail panel in Comfortable when expanded)
+- Density never reduces font size below `--text-sm` (14px) — legibility floor is absolute
 
 ### Spacing & Layout Foundation
 
-**Spacing Scale (8px base unit):**
+**Base Grid:** 8px — inherited from Tailwind's spacing scale. All spacing values are multiples of 8px (with 4px half-step for fine-tuning).
 
-| Token       | Value | Usage                                                                                   |
-| ----------- | ----- | --------------------------------------------------------------------------------------- |
-| `space-0.5` | 4px   | Tight spacing — badge padding, icon gaps                                                |
-| `space-1`   | 8px   | Compact spacing — between related elements (icon + label), inner card padding on mobile |
-| `space-2`   | 16px  | Standard spacing — between form fields, card internal padding, mobile page padding      |
-| `space-3`   | 24px  | Comfortable spacing — between card sections, tablet page padding, section gaps          |
-| `space-4`   | 32px  | Generous spacing — between major sections, desktop page padding                         |
-| `space-6`   | 48px  | Section separation — between page sections on desktop                                   |
-| `space-8`   | 64px  | Major breaks — hero section padding, footer separation                                  |
+**Spacing Scale:**
 
-**Layout Grid:**
+| Token | Value | Usage |
+|-------|-------|-------|
+| `space-1` | 4px | Inline icon gaps, tight label spacing |
+| `space-2` | 8px | Intra-component spacing (badge padding, tag gaps) |
+| `space-3` | 12px | Card internal padding (compact/dense modes) |
+| `space-4` | 16px | Card internal padding (comfortable mode), section gaps |
+| `space-6` | 24px | Section separation, card-to-card gaps |
+| `space-8` | 32px | Major section breaks, page section separation |
+| `space-12` | 48px | Page-level vertical rhythm, hero spacing |
 
-| Breakpoint          | Columns               | Gutter | Margin | Max Width |
-| ------------------- | --------------------- | ------ | ------ | --------- |
-| Mobile (< 768px)    | 1 column (full width) | 16px   | 16px   | 100%      |
-| Tablet (768-1024px) | 2 columns             | 24px   | 24px   | 100%      |
-| Desktop (> 1024px)  | 12-column grid        | 24px   | 32px   | 1280px    |
+**Page Layout:**
 
-**Desktop Layout Zones (authenticated):**
+| Dimension | Mobile (< 768px) | Tablet (768-1024px) | Desktop (> 1024px) |
+|-----------|-------------------|---------------------|---------------------|
+| Page padding | 16px (`--page-padding-mobile`) | 24px | 24px (`--page-padding-desktop`) |
+| Content max-width | 100% | 100% | 1280px (centered) |
+| Grid columns | 1 | 2 | 3 (listings) / 2+detail (dashboard) |
+| Card gap | 12px | 16px | 16px |
 
-```
-┌─────────────────────────────────────────────────────┐
-│  Top Nav Bar (logo, nav items, search, notifications, profile)  │
-├──────────┬──────────────────────────┬───────────────┤
-│          │                          │               │
-│  Left    │    Main Content          │   Right       │
-│  Sidebar │    (feed, articles,      │   Sidebar     │
-│  (profile│     directory, etc.)     │   (events,    │
-│   summary│                          │    members,   │
-│   groups)│                          │    widgets)   │
-│          │                          │               │
-├──────────┴──────────────────────────┴───────────────┤
-│  Chat Sidebar (collapsible, right edge)             │
-└─────────────────────────────────────────────────────┘
-```
+**Progressive Density by Role:**
 
-- Left sidebar: ~260px fixed (collapsible on tablet)
-- Main content: fluid (fills remaining space)
-- Right sidebar: ~300px fixed (hidden on tablet, shown as scrollable widgets below main on mobile)
-- Chat sidebar: ~360px (overlay/collapsible, slides in from right)
+Spacing systematically tightens as the user role shifts from seeker → employer → admin, reflecting the shift from *browsing* to *decision-making* to *triage*.
 
-**Mobile Layout Zones:**
+| Surface | Card Padding | Card Gap | Line Height | Info Density |
+|---------|-------------|----------|-------------|-------------|
+| **Seeker job listings** | 16px | 16px | 1.6 | 4-5 signals per card, generous white space, thumb-friendly tap targets |
+| **Employer candidate cards** | 12px | 12px | 1.45 | 5-6 signals per card, trust badges visible, compact but scannable |
+| **Employer ATS pipeline** | 12px | 8px | 1.45 | Status columns, candidate counts, action buttons accessible |
+| **Admin review queue** | 12px | 8px | 1.3 | Inline poster context, risk signals, one-action decisions, maximum throughput |
+| **Admin tables/analytics** | 8px | 4px | 1.3 | Data tables, audit logs, dense rows with sort/filter |
 
-```
-┌────────────────────────┐
-│  Status Bar             │
-├────────────────────────┤
-│  Top Bar (logo, icons)  │
-├────────────────────────┤
-│                         │
-│  Main Content           │
-│  (full width,           │
-│   scrollable)           │
-│                         │
-│                         │
-├────────────────────────┤
-│  Bottom Tab Bar         │
-│  (Home/Chat/Discover/  │
-│   Events/Profile)       │
-└────────────────────────┘
-```
+**Scannability Floor:**
 
-**Card System:**
+Even at maximum density (admin surfaces), these minimums are absolute:
 
-| Card Type        | Border Radius     | Shadow                        | Padding                    | Usage                                         |
-| ---------------- | ----------------- | ----------------------------- | -------------------------- | --------------------------------------------- |
-| Standard Card    | 12px (`--radius`) | `0 1px 3px rgba(0,0,0,0.08)`  | 16px mobile / 24px desktop | Posts, articles, groups, events               |
-| Elevated Card    | 12px              | `0 4px 12px rgba(0,0,0,0.12)` | 16px mobile / 24px desktop | Featured content, modals, dropdown panels     |
-| Flat Card        | 12px              | None (border only)            | 16px                       | List items, chat messages, notification items |
-| Interactive Card | 12px              | Standard + hover elevation    | 16px mobile / 24px desktop | Member cards, group cards (clickable)         |
-
-**Interactive Element Sizes:**
-
-| Element                 | Min Height | Min Width          | Padding   |
-| ----------------------- | ---------- | ------------------ | --------- |
-| Button (primary)        | 44px       | 120px              | 12px 24px |
-| Button (small)          | 36px       | 80px               | 8px 16px  |
-| Input field             | 44px       | 100%               | 12px 16px |
-| Tab item                | 44px       | —                  | 12px 16px |
-| List item (tappable)    | 56px       | 100%               | 12px 16px |
-| Bottom tab bar item     | 56px       | equal distribution | 8px       |
-| Avatar (feed/list)      | 40px       | 40px               | —         |
-| Avatar (profile header) | 96px       | 96px               | —         |
-| Avatar (small/inline)   | 32px       | 32px               | —         |
+- Tap target minimum: 44px (all interactive elements on all surfaces)
+- Font size floor: 14px (`--text-sm`) — no text smaller than this in any density mode
+- Card minimum height: sufficient to contain primary signals without truncation
+- Row minimum height: 40px for table rows (44px on mobile)
+- Badge minimum padding: 4px vertical, 8px horizontal — badges must be readable at a glance
 
 ### Accessibility Considerations
 
-**Color Blindness:**
+**Color Contrast:**
 
-- Never rely on color alone to convey information. Always pair with icons, text labels, or patterns.
-- Verification badges use color + distinct icon shapes (not just colored circles)
-- Event type indicators use color + text label ("Virtual", "In-Person", "Hybrid")
-- Success/error states use color + icon (checkmark/X) + text message
+- All text on background must meet WCAG 2.1 AA (4.5:1 for body text, 3:1 for large text)
+- Status colors against card backgrounds must meet 3:1 minimum for non-text indicators
+- The existing high-contrast mode (`[data-contrast="high"]`) carries over to the portal unchanged
+- Teal-shift must maintain sufficient contrast against both white cards and warm off-white backgrounds — validate during implementation
+
+**Color Independence:**
+
+- No information conveyed by color alone. Every status includes a text label alongside the color indicator.
+- Match quality uses both color AND text ("Strong match — 4 of 6 skills" not just a green dot)
+- Trust badges use both color AND icon/text (golden badge + "Verified" label, not just a gold circle)
+- Admin risk signals use color + icon + label ("High Risk" with warning icon, not just red)
+
+**Density Mode Accessibility:**
+
+- Comfortable mode meets all accessibility standards by default (generous spacing, 44px tap targets, 1.6 line height)
+- Compact and Dense modes maintain the accessibility floor (14px font minimum, 44px tap targets, sufficient contrast) — density reduces white space, not legibility
+- Screen reader experience is identical across density modes — density is a visual optimization, not a content change
+
+**Focus Management:**
+
+- Focus ring: Forest Green at 40% opacity (`oklch(0.422 0.093 141 / 0.4)`) — inherited from community platform
+- High-contrast mode: solid 3px Forest Green outline with 2px offset
+- Tab order follows visual reading order in all density modes
+- Pipeline/status components support keyboard navigation (arrow keys for status advancement)
 
 **Reduced Motion:**
 
-- Respect `prefers-reduced-motion` media query
-- Geographic fallback animation degrades to instant expansion (no animation)
-- Toast notifications appear without slide animation
-- Feed content loads without fade-in transitions
-- All micro-celebrations (points earned, etc.) are static in reduced-motion mode
-
-**High Contrast Mode:**
-
-- Optional toggle in settings (not MVP-critical but designed for)
-- All borders become solid 2px
-- Background contrast increased
-- Focus indicators become 3px solid outlines
-
-**Elder-Friendly Defaults:**
-
-- 16px minimum body text (already in type scale)
-- 44px minimum tap targets (already in element sizes)
-- Clear, simple labels — no icon-only buttons for primary actions
-- Generous line height (1.6) for readability, especially for Igbo text with diacritics
-- High contrast text on backgrounds (12:1+ for body text)
-- Focus indicators visible without relying on color alone
+- All portal animations respect `prefers-reduced-motion: reduce`
+- Status transitions use CSS transitions (not JavaScript animations) — collapsible to instant state changes
+- The "Viewed" signal appearance uses a subtle fade-in (300ms) that collapses to instant display under reduced motion
 
 ## Design Direction Decision
 
 ### Design Directions Explored
 
-Eight design directions were generated and evaluated, each exploring a different visual approach while grounded in the OBIGBO brand identity (Deep Forest Green primary, Warm Sandy Tan secondary, Golden Amber accent, Inter typography, shadcn/ui components):
+Six design directions were generated as interactive HTML mockups (`ux-design-directions.html`), each addressing a distinct surface and density mode:
 
-1. **Community Warmth** — Three-column dashboard with hero banner, personal greeting, profile sidebar, community feed, and contextual widgets
-2. **Discovery-First** — Geographic member search with expanding fallback rings, member cards with instant messaging
-3. **Chat-Dominant** — WhatsApp-meets-Slack layout with conversation sidebar, threaded DMs and channels, typing indicators and read receipts
-4. **Cultural Immersive** — Full-width brand header with embedded nav, Igbo greeting, quick-action pills, content grid mixing featured articles and posts
-5. **Admin Dashboard** — Dark sidebar navigation, queue summary cards, membership application table, analytics overview
-6. **Events & Gatherings** — Warm amber header, featured events with large date displays, RSVP with attendee counts, event type tags
-7. **Articles & Knowledge** — Cultural preservation hub with featured hero articles, bilingual toggle, category filters, author-forward cards
-8. **Mobile Feed** — Instagram-inspired visual feed with community stories row, inline media, tap-to-react, 5-tab bottom navigation
-
-All directions were generated as interactive HTML mockups at `planning-artifacts/ux-design-directions.html` for visual evaluation.
+1. **Seeker Job Listings (Mobile)** — Comfortable density, thumb-friendly cards, tab-based navigation (Jobs for You / Browse All / Apprenticeships), bottom nav bar
+2. **Employer Dashboard (Desktop)** — Compact density, sidebar with unread badges (Slack pattern), summary cards, candidate cards with trust signals
+3. **Admin Review Queue (Dense)** — Maximum triage density, inline poster context (membership duration, posting history), risk flag pills, one-click Approve/Reject/Escalate
+4. **"Viewed" Defining Moment** — Application status with honest progression timeline, the WhatsApp blue-tick signal adapted for hiring, notification mockups, post-viewed anxiety gap management
+5. **Apply Confirmation** — Google Pay-inspired rich confirmation with match quality bar and "What happens next" journey timeline
+6. **Empty States & Graceful Negatives** — Four scenarios: no search results (fallback suggestions), rejection (empathetic tone + alternative jobs), cold start (apprenticeship anchor), expired listing (warm redirect)
 
 ### Chosen Direction
 
-**"Cultural Home" — A hybrid combining the strongest elements from Directions 1, 2, 3, 4, 5, 6, 7, and 8.**
+All six directions were approved as a unified visual system with three targeted refinements:
 
-**Dashboard (Authenticated Home):** Direction 4's cultural immersive layout — full-width green brand header with personalized Igbo greeting ("Nno, Chidi"), community stats, quick-action pills, and a content grid that leads with a featured article hero card followed by a visual-first feed. The dashboard feels like walking into the obi — warm, alive, and full of people.
+**Refinement 1 — "Viewed" as Visual Centerpiece:**
+- The "Viewed by employer" signal is elevated from an inline status row to the dominant visual element on the My Applications page
+- Green border + gradient background on the viewed application card — eye lands there first
+- Emotional microcopy: *"Good news — [Company Name] has seen your application"* replaces the terse *"Viewed by [Company]"*
+- Pulsing dot enlarged (14px) with glowing box-shadow halo for living presence
+- Timeline compressed to secondary context (reduced opacity, shortened labels) — supports but doesn't compete
+- Notification toast elevated with stronger border, larger text, and green shadow
 
-**Desktop Navigation:** Standard white top navigation bar — OBIGBO logo left, navigation items center (Home, Chat, Discover, Events, Articles, Groups), search bar + notification bell (with badge) + chat icon (with unread count badge) + profile avatar right. Clean, familiar, and non-intrusive.
+**Refinement 2 — Match Signal as Inline Pill:**
+- Match quality indicator displayed as a compact bold pill (`4/6 skills`) positioned inline next to the salary on job cards
+- Title and salary remain on separate lines (original hierarchy preserved)
+- The pill provides at-a-glance match strength without expanding card height
+- Color-coded: green (strong), teal (moderate), gray (weak) — consistent with the three-channel color language
+- Secondary match context (Same city, Experience fits) remains as small tags below
 
-**Mobile Navigation:** 5-tab bottom bar — Home, Chat (with unread count badge), Discover, Events, Profile. All other destinations accessible via the top bar or nested navigation. Follows the universal mobile pattern users already know.
-
-**Feed & Content:** Instagram visual-first pattern. Media-dominant posts with inline photo/video playback, tap-to-react interactions, and prominent share/comment actions. Text-only posts receive card elevation and optional accent border to maintain visual weight. Community stories row at the top of the mobile feed for casual, low-pressure content sharing.
-
-**Featured Articles:** Prominently displayed on the dashboard as a hero card — article image, bilingual tag (EN/IG), author avatar with verification badge, read time, and read count. Cultural content is elevated, not buried.
-
-**Member Discovery:** Direction 2's geographic search with expanding fallback rings (City → State → Country → Region → All). Member cards show avatar, name, location, verification badge, bio snippet, shared interests/groups, and a prominent "Message" button. The magic moment — watching your people appear.
-
-**Chat:** Direction 3's WhatsApp-meets-Slack hybrid. Conversation sidebar with DM/Channel tabs, search within conversations. Chat pane with typing indicators, read receipts (blue ticks), contextual connection info ("You and Ike are both in Texas"), emoji reactions on messages, and threaded replies.
-
-**Events:** Direction 6's warm amber header with event type filters (All/Virtual/In-Person/My RSVPs/Past). Featured event with large date display, description, speaker info, attendee count, and one-click "RSVP + Join Event" button. Event grid for upcoming events with type tags (Virtual blue, In-Person green, Hybrid orange).
-
-**Articles:** Direction 7's cultural preservation layout. Green header with "Write Article" CTA, bilingual language toggle in navigation, featured hero article with full metadata, category filters, and two-column article card grid with author avatars and read statistics.
-
-**Admin Dashboard:** Direction 5's operations center. Dark sidebar navigation with badge counts on queue items, four summary cards (Applications, Moderation Queue, DAU, Total Members), membership application table with approve/request info/reject actions, and status pills (Pending/Approved/Flagged).
-
-**Mobile Experience:** Direction 8's touch-optimized layout. Green OBIGBO header, community stories row, visual-first feed with inline media, bottom tab bar with badge counts on Chat. All interactive elements meet 44px minimum tap targets. Pull-to-refresh on all scrollable content.
+**Refinement 3 — Candidate Card Scan-First Layout:**
+- Lead signal promoted to a bold standalone pill below the headline: "Strong match — 4/6 skills" in green, "3/6 skills" in teal, "2/6 skills" in gray
+- Creates a traffic light triage pattern — employers can shortlist greens, review teals, pass grays in 5-10 seconds
+- Name row consolidates identity: Name + Verified badge + Referred badge on one line
+- Headlines shortened for scan speed ("5 yrs kitchen mgmt" not "5 years kitchen management")
+- Secondary signals (referrer name, membership duration) as compact pills below lead signal
 
 ### Design Rationale
 
-**Why this combination works for igbo:**
+The refinements address three validated concerns from stakeholder review and multi-agent evaluation:
 
-1. **Cultural identity leads** — The Direction 4 dashboard header with Igbo greeting and cultural warmth immediately communicates "this is built for us," not another generic platform. It aligns with Experience Principle 3 (Cultural Warmth Over Corporate Polish).
+1. **Strategic prominence alignment** — The "Viewed" signal is the portal's primary differentiator (no African competitor provides it). Visual prominence must match strategic importance. The previous design treated it as one of many equal status items; the refinement makes it the emotional centerpiece of the seeker experience.
 
-2. **Familiar navigation reduces cognitive load** — The standard white top nav bar (desktop) and 5-tab bottom bar (mobile) are patterns every user already knows from Facebook, Instagram, and LinkedIn. Chief Okonkwo doesn't need to learn a new navigation paradigm. This aligns with Experience Principle 2 (Progressive Complexity).
+2. **Scan speed over read depth** — Both job cards and candidate cards were slightly "read-heavy." The inline match pill and lead signal pill create instant visual triage — color-coded signals that enable decisions in 5-10 seconds without reading full text. This directly serves: Adaeze scanning jobs on a bus, Chioma triaging 7 applications before her kitchen opens.
 
-3. **Visual-first feed drives emotional engagement** — Community media (wedding videos, festival photos, cultural gatherings) is igbo's deepest engagement driver. The Instagram pattern makes media stop the scroll, triggering the Nostalgia + Pride emotional response that keeps members coming back. This aligns with Experience Principle 5 (Effortless Media, Emotional Impact).
+3. **Card height discipline** — The match signal as a compact inline pill (rather than a hero block) preserves the original card height, ensuring 3 job cards remain visible above the fold on mobile. Card restraint (Airbnb principle) maintained.
 
-4. **Geographic discovery as the magic moment** — Direction 2's expanding fallback search is igbo's signature interaction. No other platform does this. The visual design of rings expanding outward transforms "no results in your city" into "your people are everywhere." This aligns with Experience Principle 4 (No Dead Ends).
+**Party Mode feedback incorporated:**
+- Viewed card as visual centerpiece (unanimous approval from UX, PM, Analyst, Design Thinking perspectives)
+- Traffic light triage for candidate cards (PM + Analyst recommendation)
+- Referral badge on name row for visibility (PM recommendation — to be A/B tested for promotion to co-equal lead signal in first 6 weeks)
 
-5. **Chat as the heartbeat** — Direction 3's chat interface matches WhatsApp's simplicity for DMs and Slack's organization for channels. Unread count badges on both desktop nav and mobile tab bar ensure chat is never more than one tap away — critical for the leading success metric (20+ messages/user/month).
-
-6. **Each screen owns its identity** — Events get warm amber. Articles get cultural green. Admin gets professional dark. Chat gets minimal and focused. The design system's color palette supports distinct-but-cohesive screen identities without fragmenting the brand.
+**Party Mode feedback noted for future testing:**
+- Non-viewed card anxiety gap — warm up reassurance notes to reduce contrast with glowing viewed cards (PM + Design Thinking concern)
+- Weak-match job card variant — test whether suppressing match pill for weak matches reduces discouragement (Design Thinking recommendation)
+- Timeline collapse to breadcrumb on mobile — test vertical timeline vs. single-line breadcrumb for space efficiency (UX recommendation)
 
 ### Implementation Approach
 
-**Phase 1 — Build the Foundation:**
-
-- Implement shadcn/ui base components with igbo design tokens (colors, typography, spacing, radius)
-- Build the responsive layout shell: top nav (desktop), bottom tab bar (mobile), page container with breakpoints
-- Establish the card system: Standard, Elevated, Flat, Interactive variants
-
-**Phase 2 — Core Screens (Launch-Critical):**
-
-- Dashboard with cultural header, featured article card, visual feed
-- Chat interface with conversation sidebar, message pane, input bar
-- Member directory with geographic search and fallback expansion
-- Mobile feed with stories row and bottom tab navigation
-- Admin dashboard with queue cards and application table
-
-**Phase 3 — Feature Screens (Week-1 Essential):**
-
-- Events page with featured event, RSVP flow, event grid
-- Articles section with hero article, category filters, article cards
-- Group pages and group directory
-- Profile pages with tabs (Posts/Articles/About/Groups)
-
-**Phase 4 — Polish (Month-1):**
-
-- Micro-animations (geographic expansion, points earned, reaction feedback)
-- Progressive image loading (blur placeholder → full image)
-- Skeleton loading states for all content areas
-- Notification system UI (bell dropdown, toast notifications)
-- Bilingual toggle behavior across all screens
+- Portal-specific components (`JobCard`, `CandidateCard`, `StatusPill`, `MatchPill`) compose shared `@igbo/ui` primitives (Card, Badge, Avatar) and apply portal semantic tokens
+- `job-card-match-pill` is a composed Badge variant scoped to portal — not added to shared `@igbo/ui`
+- `viewed-hero-signal` uses CSS-only animation (pulse keyframe on box-shadow) — collapses to static under `prefers-reduced-motion`
+- Candidate `lead-signal` pill uses the same color tokens as match tags but at bold weight for scan dominance
+- All card layouts tested at mobile (375px) and desktop (1280px) breakpoints
+- Visual snapshot tests for every status variant, match quality level, and viewed/non-viewed state
+- HTML design direction showcase at `ux-design-directions.html` serves as the interactive reference for implementation
 
 ## User Journey Flows
 
-### Journey 1: Guest-to-Member Onboarding
+---
 
-**Persona:** Emeka (34, Kuala Lumpur) — discovers igbo through a Twitter link
-**Goal:** Browse as guest → apply → get approved → complete profile → find first connection
-**Success metric:** Time from landing to first message sent < 48 hours (excluding approval wait)
+### Journey 1: Adaeze — Seeker Discovery & Apply Loop
+
+**Persona:** Adaeze, 22, recent graduate in Lagos. Active community member with verified profile. Checks the platform on her commute and after work. Has never applied to a job on the portal before.
+
+**Entry Point:** Community feed — "Jobs for you" widget surfaces a relevant listing via smart matching.
+
+#### Narrative
+
+Adaeze's journey begins not with a job search but with a discovery. The platform already knows her skills, location, and experience level — it surfaces something relevant before she even looks. The entry point is ambient: a card in her community feed, not a dedicated jobs page. Jobs are woven into community life.
+
+She lands on a full listing page. Unlike most job boards, she can see everything: salary, company, culture tags, match breakdown explaining why this was surfaced. She is not hunting; she is being found.
+
+When she taps Apply, the form is entirely pre-filled. Name, location, skills, default resume — pulled from her profile. No cover note field in the default flow (employer opt-in only — Party Mode finding: optional text fields create 15-20% completion drop). She submits in under 60 seconds.
+
+Then comes the wait — treated as a first-class experience. Her application card shows the status pipeline: Applied → Viewed → Under Review → Shortlisted. It is quiet for a day. Then — the visual centerpiece — the card gets a green border, gradient background, and the microcopy: *"Good news — Zenith Fintech has seen your application."* This is the WhatsApp blue-tick moment. She feels seen.
+
+#### Step-by-Step Flow
+
+**Phase 1: Discovery**
+
+| Step | Screen / Component | Action | Emotional Beat |
+|------|-------------------|--------|----------------|
+| 1 | Community Feed | "Jobs for you" widget at top of feed | Pleasant surprise — relevant without searching |
+| 2 | Feed Card | Title, company, salary, match pill (green "4/6 skills"), employer verification badge | Credibility at a glance |
+| 3 | Feed Card | Adaeze taps the card | Curiosity, low friction |
+| 4 | Job Listing Page | Full listing: salary, company, skills, location, culture tags | Full transparency — no click-through gatekeeping |
+| 5 | Match Breakdown | Explainability tags: "Matches 4 of your skills," "Same city," "Experience fits" | Confidence — she knows why this was surfaced |
+| 6 | Trust Signals | Employer verification badge, company founding year, team size | Trust built through community signals |
+
+**Phase 2: Application**
+
+| Step | Screen / Component | Action | Emotional Beat |
+|------|-------------------|--------|----------------|
+| 7 | Job Listing | Taps "Apply Now" (Golden Amber CTA, full-width on mobile) | Commitment moment |
+| 8 | Apply Drawer | Slides up — pre-filled: name, email, location, current role, years of experience | Relief — no re-entering her life story |
+| 9 | Resume | "Resume on file" auto-selected. Option to swap or upload new. | Ease |
+| 10 | Review Summary | "Applying as Adaeze Obi · CS Graduate · Lagos · Verified Member" | Identity affirmation |
+| 11 | Submit | Taps "Submit Application" | Anticipation |
+| 12 | Confirmation | Animated green checkmark, match quality feedback, "What happens next" timeline | Satisfaction + informed expectation-setting |
+| 13 | My Applications | Application appears with "Applied" (blue pill), timestamp, company name | Control restored — she can track it |
+
+**Phase 3: The Wait & Status Progression**
+
+| Step | Screen / Component | Action | Emotional Beat |
+|------|-------------------|--------|----------------|
+| 14 | My Applications | Status: Applied (blue). Card is calm. | Patience — she knows it could take days |
+| 15 | Push Notification | "Good news — Zenith Fintech has seen your application" | **The defining emotional peak.** She feels seen. |
+| 16 | My Applications | Card transforms: green border, gradient bg, "Viewed" badge with date | She opens the app just to look at this |
+| 17 | Status Change | "Under Review" (amber pill) | Progress. Hope. |
+| 18 | Push Notification | "You've been shortlisted by Zenith Fintech" | Peak excitement |
+| 19 | In-App Message | Employer: "Hi Adaeze, we'd like to schedule a call..." | Human contact. Real. |
+| 20 | Interview | Status: "Interview" (purple pill) | Focused preparation |
+| 21 | Hired | Status: "Hired" (Forest Green badge). Micro-animation. | Pride. Community celebration. |
+
+#### Mermaid Flowchart
 
 ```mermaid
-flowchart TD
-    A[Land on Splash Page] --> B{Three-Column Choice}
-    B -->|Explore as Guest| C[Guest Browsing]
-    B -->|Contact Us to Join| D[Application Form]
-    B -->|Members Login| E[Login Page]
-
-    C --> C1[Browse Public Articles]
-    C --> C2[View Events Calendar]
-    C --> C3[Read About Us]
-    C1 --> C4{Engaged enough?}
-    C2 --> C4
-    C3 --> C4
-    C4 -->|Yes| D
-    C4 -->|No| C5[Exit - Soft CTA remains]
-
-    D --> D1[Fill Form: Name, Email, Phone]
-    D1 --> D2[Location Auto-Detected from IP]
-    D2 --> D3[Cultural Connection Details]
-    D3 --> D4[Reason for Joining]
-    D4 --> D5[Optional: Member Referral]
-    D5 --> D6[Submit Application]
-
-    D6 --> F{Admin Review}
-    F -->|Approved| G[Welcome Email + Credentials]
-    F -->|Request More Info| H[Clarification Email]
-    F -->|Rejected| I[Rejection with Reason]
-    H --> H1[Applicant Responds]
-    H1 --> F
-
-    G --> J[First Login]
-    J --> K[Profile Setup Wizard]
-    K --> K1[Upload Photo / Set Avatar]
-    K1 --> K2[Bio, Location, Interests, Languages]
-    K2 --> K3[Acknowledge Community Guidelines]
-    K3 --> K4[Feature Tour - 5 Steps]
-
-    K4 --> L{Tour Step: Find Your People}
-    L --> L1[Auto-Search Member's Location]
-    L1 --> M[Show Nearby Members]
-    M --> N{Members Found?}
-    N -->|Yes| O[Show Member Cards with Message CTA]
-    N -->|No in city| P[Geographic Fallback Expansion]
-    P --> O
-
-    O --> Q[First Message Sent!]
-    Q --> R[🎉 +50 Points Toast: Welcome to the community!]
+graph TD
+    A([Adaeze opens community app]) --> B[Feed loads — Jobs for you widget visible]
+    B --> C{Taps card?}
+    C -- No --> D[Widget persists 3 days then cycles]
+    C -- Yes --> E[Job Listing Page loads]
+    E --> F[Reviews salary, role, company, match breakdown]
+    F --> G{Logged-in member?}
+    G -- Yes --> H[Taps Apply Now]
+    G -- No / Guest --> I[Redirect to Sign Up with return URL]
+    I --> I2[Completes registration] --> E
+    H --> J[Apply Drawer — pre-filled from profile]
+    J --> K{Resume on file?}
+    K -- Yes --> L[Auto-selected]
+    K -- No --> M[Upload prompt] --> L
+    L --> N[Reviews summary — taps Submit]
+    N --> O{Submits?}
+    O -- Abandons --> P[Draft saved — nudge email 24h]
+    O -- Yes --> Q[Confirmation screen — match feedback]
+    Q --> R[My Applications: Applied blue pill]
+    R --> S{Employer views?}
+    S -- Not yet --> T[Reassurance note — daily digest at 3d]
+    S -- Yes --> U[Push: Good news — Company has seen your application]
+    U --> V[Card transforms: green border, gradient, Viewed badge]
+    V --> W{Employer advances?}
+    W -- No action 7d --> X[Contextual note + similar roles suggestion]
+    W -- Under Review --> Y[Amber pill + notification]
+    Y --> Z{Next action?}
+    Z -- Shortlisted --> AA[Teal pill + notification]
+    Z -- Rejected --> AB[Gray pill + empathetic copy + Jobs you match]
+    AA --> AC[Employer sends message]
+    AC --> AD[Interview — purple pill]
+    AD --> AE{Outcome}
+    AE -- Hired --> AF[Forest Green badge + celebration]
+    AE -- Rejected --> AB
 ```
 
-**Key Decisions:**
+#### Decision Branches
 
-- Splash page three-column layout gives clear paths — no ambiguity
-- Guest browsing shows enough to create desire, gates enough to create urgency
-- Application form uses IP-based location pre-fill to reduce friction
-- Feature tour ends with the discovery moment — the emotional hook
+**Branch A — Cold Start (incomplete profile):** Apply gate shows lightweight checklist: Add resume, Confirm location, Add 1 skill. Three single-tap actions. Progress-oriented, not a blocker.
 
-**Error Recovery:**
+**Branch B — Guest Discovery:** Full listing visible. Apply button reads "Join to Apply." Return URL preserved in query param AND localStorage (Party Mode finding: belt-and-suspenders for tab switching). After registration, returned to exact listing.
 
-- Application rejected: warm message with specific reason and invitation to reapply
-- Location auto-detect fails: manual location picker with city autocomplete
-- Profile photo upload fails: skip option with "complete later" prompt, fallback to initials avatar
+**Branch C — Application Abandoned:** Draft auto-saved after any field interaction. 24h email nudge. 72h: draft cleared.
 
-**Optimization:** The feature tour's final step auto-searches the member's location — the discovery moment happens during onboarding, not after. This ensures every new member experiences the magic moment on day one.
+**Branch D — Employer Takes No Action:** 7 days: soft message "This role is still active." 21 days: "Explore similar roles" prompt. Application never auto-withdrawn.
+
+**Branch E — Job Closed Between Discovery and Apply:** Real-time status check on Apply tap. Toast: "This role was recently closed. See similar open roles." Carousel of 3 matched alternatives.
+
+#### Error Recovery
+
+| Failure | Recovery |
+|---------|---------|
+| Resume upload fails (size/format) | Inline error + format guide. Fallback to profile-linked resume. |
+| Network failure on submit | Retry button with draft preserved. Toast: "Saved — tap retry." |
+| Duplicate application | Redirect to existing application card. No duplicate created. |
+| Job closed mid-apply | Toast + 3 similar roles carousel. Never a dead end. |
+
+#### Success Criteria
+
+- Feed discovery to submitted application: **under 90 seconds** for complete-profile member
+- Apply drawer completion rate: **>85%** (no cover note friction)
+- "Viewed" notification delivered within 24h of employer opening application
+- Status changes reflected in app within 60 seconds of employer action
 
 ---
 
-### Journey 2: Geographic Member Discovery
+### Journey 2: Chioma — Employer Post & Hire Loop
 
-**Persona:** Chidi (28, Houston) / Emeka (34, Kuala Lumpur)
-**Goal:** Search location → see community appear → find someone to connect with
-**Success metric:** Search to first result < 2 seconds; search to message sent < 10 seconds
+**Persona:** Chioma, 38, restaurant chain owner in Lagos. 4 locations, 60+ employees. Constantly hiring. Currently uses WhatsApp. First time on the job portal.
+
+**Entry Point:** "Hire from the community" CTA on Jobs homepage, or link shared from another founder.
+
+#### Narrative
+
+Chioma wants a job posting live as fast as possible. The platform needs to establish company identity first — positioned as a one-time setup that saves time on every future hire. Inline company creation: company name, size, industry, website, logo. Done in 3 minutes.
+
+The job posting form is a single scrollable form with collapsible sections (Party Mode finding: wizards create "what's next" anxiety). Live preview panel updates in real-time as she types. She submits. Listing enters admin review with clear status and estimated approval time.
+
+Applications arrive. Each candidate card is a triage instrument: bold lead signal pill ("Strong Match" green / "3/6 skills" teal / "2/6 skills" gray), verification badge, referral badge, one-tap Shortlist/Pass/Message. She processes 12 applications in 15 minutes.
+
+#### Step-by-Step Flow
+
+**Phase 1: Company Setup (one-time)**
+
+| Step | Screen / Component | Action | Emotional Beat |
+|------|-------------------|--------|----------------|
+| 1 | Jobs Homepage | Taps "Hire from the community" (Golden Amber CTA) | Purpose-driven |
+| 2 | Company Creation | Fields: name, industry, size, website, location, optional logo | Lightweight — not bureaucratic |
+| 3 | Company Preview | Live card preview: logo, name, size tag, industry, location | She sees the output immediately |
+| 4 | Company Submitted | Pending verification — but she can proceed to posting immediately | No friction imposed |
+
+**Phase 2: Job Posting (single scrollable form)**
+
+| Step | Screen / Component | Action | Emotional Beat |
+|------|-------------------|--------|----------------|
+| 5 | Section 1: Basics | Title (autocomplete), type (Full-time/Part-time/Contract/Apprenticeship), salary range (min/max + currency), location | Clarity |
+| 6 | Section 2: Role Details | Description (rich text + template suggestions), required skills (tag input), nice-to-have skills, deadline | Templates reduce blank-page anxiety |
+| 7 | Section 3: Preferences | Min experience, education (optional), community member priority toggle | Control over who she targets |
+| 8 | Live Preview | Right panel (desktop) / collapsible bottom sheet (mobile): real-time rendering as candidates see it | Confidence before submitting |
+| 9 | Submit | Summary checklist: Salary ✓, Skills ✓, Description length ✓. Taps Submit. | Ready. |
+| 10 | Confirmation | "Under Review — typically approved within 4 business hours." What happens next accordion. | Managed expectation — not a black box |
+
+**Phase 3: Admin Review Wait**
+
+| Step | Screen / Component | Action | Emotional Beat |
+|------|-------------------|--------|----------------|
+| 11 | Dashboard | Posting shows "Under Review" badge. Edits locked. | Slight impatience — addressed proactively |
+| 12 | Notification | "Your job posting is live — 3 people have already viewed it." | Relief + excitement |
+
+**Phase 4: Receiving & Triaging Applications**
+
+| Step | Screen / Component | Action | Emotional Beat |
+|------|-------------------|--------|----------------|
+| 13 | Dashboard | Application count increments. "First application received." | Validation |
+| 14 | Applications Tab | Cards sorted by match score. Default: descending. | Efficiency mindset |
+| 15 | Candidate Card | Bold lead signal: "Strong Match — 4/6 skills" (green). Name + Verified + Referred badges. Shortened headline. | **5-second triage decision** |
+| 16 | Actions | Shortlist (teal) / Pass (gray) / Message — single tap each | Decision rhythm |
+| 17 | Candidate Detail | Full profile, resume, experience, engagement score, referral chain | Depth when needed — not forced |
+| 18 | Message | Platform chat opens. Pre-filled template: "Hi [Name], thank you for applying..." — editable | Professionalism without effort |
+| 19 | Interview | Moves candidate to "Interview." Optional scheduling link. | Progress |
+| 20 | Hired | "Mark as Hired" → confirmation dialog → listing closes | Satisfaction. Loop closes. |
+| 21 | Relist Prompt | "Post another role?" + company pre-filled + previous listing as template | Return cycle begins |
+
+#### Mermaid Flowchart
 
 ```mermaid
-flowchart TD
-    A{Entry Point} -->|Dashboard Widget| B[People Near You Card]
-    A -->|Nav: Discover| C[Member Directory Page]
-    A -->|Global Search| D[Search Results - Members Tab]
-    A -->|Onboarding Tour| E[Auto-Search My Location]
-
-    B --> C
-    D --> C
-    E --> C
-
-    C --> F[Search Bar Pre-filled with Profile Location]
-    F --> G[Optional: Add Filters - Interests, Skills, Language, Tier]
-    G --> H[Execute Search]
-
-    H --> I{Results at City Level?}
-    I -->|Yes| J[Show: X members in City]
-    I -->|No| K[Warm Message: Your city is still growing!]
-
-    K --> L[Animated Expansion to State/Region]
-    L --> M[Show: Y members in State]
-    M --> N[Subtle Prompt: Z members in Country]
-
-    J --> O[Member Cards Grid]
+graph TD
+    A([Chioma taps Hire from the community]) --> B{Existing company?}
+    B -- No --> C[Inline Company Creation]
+    C --> D[Company Preview] --> E[Proceed to Post]
+    B -- Yes --> E
+    E --> F[Single scrollable form: Basics + Details + Preferences]
+    F --> G[Live Preview updates in real-time]
+    G --> H{Completeness check?}
+    H -- Missing fields --> I[Inline validation highlights] --> F
+    H -- Pass --> J[Submit]
+    J --> K{First-time employer?}
+    K -- Yes --> L[Standard admin review queue]
+    K -- No, trusted --> M[Fast-lane auto-approve]
+    L --> N{Admin decision}
+    N -- Approved --> O[Listing Live — notification sent]
+    N -- Changes requested --> P[Feedback to Chioma — edits form] --> J
+    N -- Rejected --> Q[Notified with reason — appeal option]
     M --> O
-    N --> O
-
-    O --> P[Each Card: Avatar, Name, Location, Badge, Bio, Shared Interests]
-    P --> Q{User Action}
-    Q -->|Tap Card| R[Full Profile View]
-    Q -->|Tap Message| S[Open Chat with Context]
-
-    R --> R1[Profile: Bio, Location, Groups, Articles, Badges, Points]
-    R1 --> R2{Action}
-    R2 -->|Message| S
-    R2 -->|Back to Results| O
-
-    S --> S1[Chat Opens with Contextual Intro]
-    S1 --> S2[Pre-populated: You and Name share Location / Interests]
-    S2 --> T[Type and Send First Message]
-    T --> U[Delivery Confirmation ✓]
-    U --> V[🎉 First Connection Toast + Points]
+    O --> R[Applications arrive — notification per application]
+    R --> S[Candidate cards with lead signal pills]
+    S --> T{Action per candidate}
+    T -- Pass --> U[Passed column — candidate not notified yet]
+    T -- Shortlist --> V[Shortlisted — candidate notified]
+    T -- Message --> W[Chat opens] --> V
+    V --> X[Move to Interview]
+    X --> Y{Hire?}
+    Y -- Yes --> Z[Mark Hired — listing closes — relist prompt]
+    Y -- No --> AA[Reject — optional feedback to candidate]
+    AA --> S
 ```
 
-**Key Decisions:**
+#### Decision Branches
 
-- Search pre-fills from profile location — zero typing required for the primary use case
-- Geographic fallback uses animated expansion (city → state → country) — feels like discovery, not degradation
-- Member cards show "Message" button directly — no need to open full profile first
-- Contextual intro in chat ("You and Ike are both in Texas") lowers the barrier to first message
+**Branch A — No Applications After 5 Days:** Automated insight: "47 views, 0 applications. Tips: add salary range / reduce experience / add remote option." Edits don't re-trigger full review.
 
-**Error Recovery:**
+**Branch B — Apprenticeship Type:** Selecting "Apprenticeship" triggers additional fields: duration, mentorship format, conversion intent, stipend range. Auto-tagged for featured section.
 
-- Zero results at all geographic levels (extremely rare with 500+ members): "Be the first! Invite community members you know in [location]. Here are members in nearby countries."
-- Search timeout: skeleton cards with retry, cached results from last search shown
-- Profile not yet complete: gentle prompt on member card "Complete your profile to appear in search"
+**Branch C — Salary Disclosure Toggle:** If hidden: listing shows "Salary: Competitive" with note to candidates. Reduces drop-off for salary-flexible employers.
 
-**Optimization:** The two-tap path — see card → tap Message — must work. Any added friction (confirmation dialog, profile requirement, loading screen) kills the moment. The "Message" button on the member card is the most important button in the entire platform.
+**Branch D — MVP vs. Phase 1.5 (Party Mode finding):** Live preview renders the listing template (MVP). Match rate estimate ("38 community members match") deferred to Phase 1.5 — heavyweight query, don't block posting flow.
+
+#### Error Recovery
+
+| Failure | Recovery |
+|---------|---------|
+| Logo upload fails | Auto-fallback to company initial lettermark. No blocking. |
+| Description too short (<100 words) | Inline counter "87/100 words" + highlight before submit |
+| Duplicate listing (same title + company in 30 days) | Warning: "Post new or reactivate previous?" |
+| Session expires mid-form | Draft auto-saved every 60s. On return: "Your draft is waiting." |
+
+#### Success Criteria
+
+- First-time employer: CTA to submitted listing in **under 10 minutes**
+- Admin review to live: **under 4 business hours** (standard), **under 30 minutes** (fast-lane)
+- Application triage: **10+ applications in under 20 minutes** using signal cards
+- Employer return rate: **60%+** post a second listing within 90 days
 
 ---
 
-### Journey 3: First Message & Chat
+### Journey 3: Kene — Admin Review & Triage Loop
 
-**Persona:** Chidi messaging Ike (both in Texas)
-**Goal:** Open conversation → send message → receive reply → build connection
-**Success metric:** Message composed and sent in < 5 seconds from chat open
+**Persona:** Kene, 35, dedicated Job Admin. Economic gatekeeper with business judgment. Works from the admin dashboard on desktop.
+
+**Entry Point:** Admin panel — notification badge: "6 job postings pending review."
+
+#### Narrative
+
+Kene's work is pattern recognition, not form-filling. The review interface gives him every relevant signal in a single glance — employer community history, risk flag score, automated content flags — before he reads a word of the description.
+
+Two modes: fast-approve for clean postings from known employers, deep-review for anything flagged. The interface weights the queue by risk score. Four clean postings: approved in under 2 minutes each. Fifth posting: red flags — new account, unusual salary, vague description. He requests changes with structured feedback. Sixth posting: borderline — approved with an internal admin note.
+
+The suspicious employer resubmits. The diff view shows the original vs. resubmission side-by-side. Salary changed significantly — a red flag. Kene rejects. Two consecutive rejections trigger an escalation flag. The platform learns.
+
+#### Step-by-Step Flow
+
+**Phase 1: Queue Entry & Triage**
+
+| Step | Screen / Component | Action | Emotional Beat |
+|------|-------------------|--------|----------------|
+| 1 | Admin Dashboard | Badge: "6 pending reviews." Opens Queue. | Purposeful |
+| 2 | Queue Overview | Rows: company, title, trust score, submission time, risk flag count. Traffic light: green/amber/red per row. | Instant prioritization |
+| 3 | Sort Toggle | Default: cleanest-first (volume-clearing) or riskiest-first (safety focus) | Kene's choice |
+
+**Phase 2: Clean Postings (4 of 6)**
+
+| Step | Screen / Component | Action | Emotional Beat |
+|------|-------------------|--------|----------------|
+| 4 | Review Panel | Split view: posting content (left) + employer signal panel (right) | Efficient workspace |
+| 5 | Employer Signals | Member since, engagement score, previous postings + approval history, company verification, trust score | He reads the employer, not just the posting |
+| 6 | Automated Checks | Checklist: Description length ✓, Salary plausible ✓, No prohibited keywords ✓, Contact present ✓ | Automaton did the first pass |
+| 7 | Content Scan | 60-90 second description review | Practiced rhythm |
+| 8 | Approve | Forest Green button. "Posting goes live. Employer notified." | Satisfying output |
+| 9 | Queue Decrements | "5 remaining." Repeat 3 more. | Flow state |
+
+**Phase 3: Suspicious Posting (5th)**
+
+| Step | Screen / Component | Action | Emotional Beat |
+|------|-------------------|--------|----------------|
+| 10 | Red Flag Row | Red traffic light, 3 flags badge. Visually distinct. | Attention shifts |
+| 11 | Employer Signals | "Account 3 days old. No prior postings. No engagement. No website." | Suspicion confirmed by data |
+| 12 | Automated Flags | (1) New account <30d (moderate), (2) Salary >95th percentile (high), (3) Description <150 words (moderate) | Structured brief — he didn't have to find these |
+| 13 | Content Review | "Senior Investment Manager — Excellent compensation. Apply now." 80 words. No specifics. | Gut confirms data |
+| 14 | Request Changes | Structured feedback: "Expand description (min 150 words)," "Provide company website," "Clarify salary basis." 48h window. | Procedural fairness — one chance |
+
+**Phase 4: Borderline Posting (6th)**
+
+| Step | Screen / Component | Action | Emotional Beat |
+|------|-------------------|--------|----------------|
+| 15 | Amber Flag | 1 flag: description thin. But employer has 2 prior approvals, trust 4/5. | Judgment call |
+| 16 | Approve with Note | Approves + internal admin note: "Thin description. Monitor for candidate complaints." | Institutional memory |
+
+**Phase 5: Resubmission & Escalation**
+
+| Step | Screen / Component | Action | Emotional Beat |
+|------|-------------------|--------|----------------|
+| 17 | Next Day | "1 resubmitted posting." Opens it. | Will they have addressed feedback? |
+| 18 | Diff View | Side-by-side: original vs. resubmission. Salary changed from ₦15M–₦20M to ₦8M–₦12M. New flag: "Salary changed significantly." | Pattern is clear |
+| 19 | Reject | **Confirmation dialog** (Party Mode finding: reject is high-damage, needs asymmetric friction). Reason: "Inconsistent information across submissions." | Firm, documented |
+| 20 | Escalation | 2 consecutive rejections → "Flag for pattern review" → senior admin alert. Account enters elevated monitoring. | Systemic response. Platform learns. |
+
+#### Mermaid Flowchart
 
 ```mermaid
-flowchart TD
-    A{Entry Point} -->|From Member Card| B[Chat Opens with Context]
-    A -->|From Nav: Chat| C[Conversation List]
-    A -->|From Notification| D[Jump to Message]
-
-    C --> C1{Existing Conversation?}
-    C1 -->|Yes| E[Open Existing Thread]
-    C1 -->|No| C2[New Message: Search Members]
-    C2 --> C3[Select Recipient]
-    C3 --> B
-
-    B --> F[Chat Pane: Contextual Header]
-    F --> F1[Shows: Avatar, Name, Badge, Online Status, Location]
-    F1 --> F2[Context Bar: You both share Texas, Interests in Tech]
-
-    E --> G[Message History Loaded]
-    D --> G
-
-    G --> H[Message Input Bar]
-    H --> I{Compose Message}
-    I -->|Text| J[Type Message]
-    I -->|Attachment| K[Tap Paperclip → Photo/File Picker]
-    I -->|Emoji| L[Tap Emoji → Emoji Panel]
-    I -->|Voice| M[Hold Mic → Record Voice Message]
-
-    J --> N[Tap Send]
-    K --> N
-    L --> J
-    M --> N
-
-    N --> O[Message Appears in Thread]
-    O --> P[Single Tick ✓ = Sent]
-    P --> Q[Double Tick ✓✓ = Delivered]
-    Q --> R{Recipient Online?}
-    R -->|Yes| S[Blue Ticks ✓✓ = Read]
-    R -->|No| T[Stays at Delivered]
-
-    S --> U[Typing Indicator Appears...]
-    U --> V[Reply Received!]
-    V --> W[Push Notification if App Backgrounded]
-
-    T --> X[Reply Comes Later]
-    X --> W
+graph TD
+    A([Kene opens Review Queue]) --> B[Queue: 6 pending — sorted by risk]
+    B --> C{Select posting}
+    C --> D[Split view: content + employer signals]
+    D --> E[Review automated checks]
+    E --> F{Risk level?}
+    F -- Green --> G[60s content scan]
+    G --> H{Policy pass?}
+    H -- Yes --> I[Approve — live immediately]
+    H -- No --> L
+    F -- Amber --> J[Careful review + employer history]
+    J --> K{Judgment call}
+    K -- Approve with note --> I2[Approve + internal admin note]
+    K -- Request changes --> L[Structured feedback form]
+    F -- Red --> M[Deep review — all details]
+    M --> N[Review flag cards]
+    N --> O{Potentially legitimate?}
+    O -- Benefit of doubt --> L
+    O -- Clear violation --> P[Reject with confirmation dialog]
+    L --> Q[48h window — employer notified]
+    Q --> R{Resubmits?}
+    R -- No, expires --> S[Auto-archived — employer notified]
+    R -- Yes --> T[Diff view: original vs resubmission]
+    T --> U{Addresses feedback?}
+    U -- Yes --> I
+    U -- No or new concerns --> P
+    P --> V[Rejection reason form]
+    V --> W{2nd consecutive rejection?}
+    W -- No --> X[Standard monitoring]
+    W -- Yes --> Y[Escalation — senior admin alert]
+    Y --> Z[Account: elevated monitoring — next post auto-routes to escalation queue]
+    I --> AA{More in queue?}
+    I2 --> AA
+    AA -- Yes --> C
+    AA -- No --> AB[Queue cleared]
 ```
 
-**Key Decisions:**
+#### Decision Branches
 
-- Chat opens with contextual header showing shared attributes — conversation starter built in
-- WhatsApp-style read receipts (single tick → double tick → blue ticks) for familiar feedback
-- Message input bar has four modes: text, attachment, emoji, voice — all accessible from one bar
-- Typing indicator creates anticipation and liveness
+**Branch A — Fast-Lane Employer:** Trust score 5/5, 3+ approved listings, 0 flags → auto-approved. Kene sees "Fast-lane approved" in activity log. If any automated check fails, routes to standard queue.
 
-**Error Recovery:**
+**Branch B — Override Flag:** Kene can "Approve — override flag" with mandatory note. Creates audit trail, feeds back into automated model.
 
-- Message fails to send: red indicator with "Tap to retry" — message stays in compose area
-- Network interruption: messages queued locally, sent on reconnect with timestamp correction
-- Blocked by recipient: "This member is not accepting messages" — no further detail (privacy)
-- Attachment too large: "File is too large. Maximum size: 25MB" with compress option for images
+**Branch C — Employer Appeal:** Post-rejection, employer can submit appeal with documentation. Routes to senior admin team (not Kene). Separation prevents bias.
 
-**Optimization:** The chat input bar stays fixed at the bottom. On mobile, the keyboard pushes the input bar up (not obscures it). Auto-focus on the input field when chat opens from a "Message" button — the cursor is ready, the user just types.
+**Branch D — Post-Approval Report:** Candidate reports a live listing. Listing suspended pending re-review. If substantiated: removed, trust score decreased. If frivolous: reinstated, reporter flagged.
+
+**Automated Checks Checklist (Party Mode finding — must be concrete):**
+1. Content policy keyword scan (prohibited terms, discriminatory language)
+2. Salary percentile check (flagged if >95th or <5th for role category + location)
+3. Description length threshold (minimum 150 words)
+4. Duplicate detection (same title + company in 30 days)
+5. Contact method present
+6. Company profile completeness (name + industry minimum)
+
+#### Error Recovery
+
+| Failure | Recovery |
+|---------|---------|
+| Accidental Approve | 10-second undo window. After that: manually set to "Under Review." |
+| Accidental Reject | **Confirmation dialog prevents this** (asymmetric friction — Party Mode finding). |
+| 48h expires without resubmission | Auto-archived. Employer can start fresh. |
+| Queue backlog >20 | Senior admin alert. Option to surface fast-lane criteria to additional reviewers. |
+
+#### Success Criteria
+
+- Clean posting review: **under 2 minutes**
+- Flagged posting review: **under 10 minutes**
+- False negative rate (scams that pass): **<0.5%**
+- 90% of standard queue reviewed within **4 business hours**
 
 ---
 
-### Journey 4: Feed Browsing & Posting
+### Journey 4: Guest-to-Member Conversion
 
-**Persona:** Chidi checking his feed during morning coffee / Adaeze posting a mentorship request
-**Goal:** Consume content → react/comment → create post → see engagement
-**Success metric:** Feed loads in < 1 second; post created in < 30 seconds
+**Persona:** Obiora, 26, developer in Abuja. Finds a listing via Google search. Not a community member.
+
+**Entry Point:** Organic search — listing appears with salary and title in Google snippet (structured data markup).
+
+#### Step-by-Step
+
+| Step | Action |
+|------|--------|
+| 1 | Google result with salary, title, company in snippet. Clicks through. |
+| 2 | Full listing loads — no gate. Salary, company, description, skills all visible. |
+| 3 | Match indicator grayed: "Sign in to see your match" (curiosity hook). |
+| 4 | Taps "Apply Now" — reads "Join to Apply" for guests. |
+| 5 | Sign-up modal. Return URL preserved in **query param AND localStorage** (Party Mode finding: survives tab switching). |
+| 6 | Minimal registration: name, email, password, location. |
+| 7 | **Email verification deferred** — application submits immediately. Soft banner: "Verify your email to ensure you receive employer messages." (Party Mode finding: real app, verification for communication not gatekeeping.) |
+| 8 | Returned to exact listing (return URL), not homepage. |
+| 9 | Lightweight profile gate: current role, resume, confirm location. Three taps. |
+| 10 | Standard apply flow. Pre-fill limited to registration data. |
+| 11 | Submission + onboarding nudge: "Complete your profile to stand out." Progress bar at 35%. |
+
+#### Mermaid Flowchart
 
 ```mermaid
-flowchart TD
-    A[Open Dashboard / Home] --> B[Feed Loads Below Cultural Header]
-
-    B --> B1[Mobile: Stories Row at Top]
-    B1 --> B2[Feed: Visual-First Posts]
-
-    B2 --> C{Post Type}
-    C -->|Media Post| D[Inline Photo/Video with Author, Caption, Reactions]
-    C -->|Text Post| E[Card with Author, Text, Optional Accent Border]
-    C -->|Announcement| F[Pinned Card with Green Badge, Author, Text]
-    C -->|Event Post| G[Event Card with Date, RSVP Button, Amber Badge]
-
-    D --> H{User Action on Post}
-    E --> H
-    F --> H
-    G --> H
-
-    H -->|React| I[Tap Heart → Animated Reaction + Count Updates]
-    H -->|Comment| J[Tap Comment → Comment Sheet Opens]
-    H -->|Share| K[Tap Share → Share Options: Groups, Chat, Copy Link]
-    H -->|Save| L[Tap Bookmark → Saved to Collection]
-    H -->|RSVP| M[Tap RSVP on Event Post → Confirm Attendance]
-
-    J --> J1[Type Comment → Send]
-    J1 --> J2[Comment Appears + Author Notified]
-
-    subgraph Create Post
-        N[Tap Post Composer at Feed Top] --> O[Composer Opens]
-        O --> P[What's on your mind, Chidi?]
-        P --> Q{Add Content}
-        Q -->|Text| R[Type Post Text]
-        Q -->|Photo| S[Camera/Gallery Picker → Preview]
-        Q -->|Video| T[Video Picker → Upload with Progress]
-        Q -->|Event Link| U[Select Event → Auto-Card]
-        R --> V[Optional: Select Post Type Tag]
-        S --> V
-        T --> V
-        U --> V
-        V --> W[Tap Post Button]
-        W --> X{Tier Check}
-        X -->|Allowed| Y[Post Published → Appears in Feed]
-        X -->|Limit Reached| Z[Friendly Message: You've reached your weekly limit. Upgrade tier for more posts.]
-        Y --> AA[🎉 Points Earned Toast]
-    end
-
-    B2 --> N
+graph TD
+    A([Google search result]) --> B[Full listing — no gate]
+    B --> C[Grayed match: Sign in to see your match]
+    C --> D[Taps Join to Apply]
+    D --> E[Sign-up modal — return URL in query param + localStorage]
+    E --> F[Minimal registration: name, email, password, location]
+    F --> G[Returned to exact listing]
+    G --> H[Profile gate: role, resume, location — 3 taps]
+    H --> I[Submits application — email verification deferred]
+    I --> J[Soft banner: Verify email for employer messages]
+    J --> K{Completes profile?}
+    K -- Yes --> L[Full access: Jobs for you, match scores]
+    K -- Not now --> M[Email nudge 24h later]
 ```
 
-**Key Decisions:**
+#### Key Decision Points
 
-- Feed defaults to chronological (user can toggle to algorithmic via settings)
-- Post composer is always visible at top — familiar Facebook pattern
-- Media posts display larger than text posts — visual hierarchy rewards photo/video sharing
-- Post type tags (Discussion grey, Announcement green, Event amber) provide scan-ability
-
-**Error Recovery:**
-
-- Image upload fails: retry with progress bar; falls back to text-only post option
-- Video processing slow: "Your video is processing — post will update when ready" placeholder
-- Post rejected by content filter: "Your post is under review" — routed to moderation queue, not deleted
-- Feed fails to load: cached previous feed shown with "Pull to refresh" prompt
-
-**Optimization:** On mobile, the post composer starts collapsed (just the avatar + "What's on your mind?" prompt). Tapping expands it to full-screen composer with attachment options. This keeps the feed visible and the composer inviting without competing for space.
+- **Return URL preservation is critical.** Query param AND localStorage — both required. If user opens sign-up in new tab, localStorage catches it.
+- **Email verification deferred.** Application is real and delivered to employer. Verification ensures communication, not gatekeeping.
+- **Match score as carrot.** Grayed "Sign in to see your match" drives sign-up via curiosity.
+- **Profile gate: 3 fields maximum.** More = abandonment.
 
 ---
 
-### Journey 5: Article Publishing
+### Journey 5: Repeat Employer Fast Lane
 
-**Persona:** Chief Okonkwo (with granddaughter Amara's help) writing cultural history
-**Goal:** Write article → choose language → submit → admin approval → published → engagement
-**Success metric:** Article submitted in < 15 minutes; published within 24 hours
+**Persona:** Chioma, 3 months later. 4 jobs posted, all approved, 2 hires. Trust score 5/5.
+
+**Entry Point:** Employer dashboard — "Post a New Role."
+
+#### Step-by-Step
+
+| Step | Action |
+|------|--------|
+| 1 | Company profile pre-filled — no setup. |
+| 2 | Template selection: previous listings shown. Selects one, adjusts title/salary/skills. |
+| 3 | 70% of form pre-filled. Edits role-specific fields only. |
+| 4 | Live preview. Submits. |
+| 5 | Automated checks pass. Trust score 5/5, history clean. |
+| 6 | **Fast-lane: listing goes live immediately.** No manual review. |
+| 7 | Push notification: "Your listing is live." |
+| 8 | Dashboard: "Live" badge + "Fast-lane approved" indicator. |
+
+#### Mermaid Flowchart
 
 ```mermaid
-flowchart TD
-    A{Entry Point} -->|Nav: Articles → Write| B[Article Editor]
-    A -->|Dashboard Quick Action| B
-    A -->|Articles Page → Write Article CTA| B
-
-    B --> C{Tier Check}
-    C -->|Professional: 1/week limit| D[Check Weekly Count]
-    C -->|Top-tier: 2/week limit| D
-    C -->|Basic: Not Authorized| E[Upgrade Prompt with Tier Benefits]
-
-    D --> D1{Under Limit?}
-    D1 -->|Yes| F[Editor Opens]
-    D1 -->|No| G[Friendly Limit Message + Next Available Date]
-
-    F --> H[Article Title Input]
-    H --> I[Rich Text Editor: Formatting, Headers, Lists, Links]
-    I --> J[Media Upload: Images, Videos Inline]
-    J --> K[Language Selection]
-
-    K --> K1{Language Choice}
-    K1 -->|English Only| L[Single Editor Pane]
-    K1 -->|Igbo Only| L
-    K1 -->|Bilingual EN + IG| M[Side-by-Side or Toggle Editor Panes]
-
-    L --> N[Category Selection: Cultural Heritage, Diaspora Life, Language, Community News, Youth Perspectives]
-    M --> N
-
-    N --> O[Preview Article]
-    O --> P{Satisfied?}
-    P -->|Edit More| I
-    P -->|Ready| Q[Submit for Review]
-
-    Q --> R[Confirmation: Article submitted! Our team will review within 24 hours.]
-    R --> S[Article Status: Pending Review]
-
-    S --> T{Admin Action}
-    T -->|Approved| U[Published! Notification to Author]
-    T -->|Featured| V[Published as Featured! Notification + Bonus Points]
-    T -->|Revisions Requested| W[Notification with Feedback → Edit and Resubmit]
-    T -->|Rejected| X[Notification with Reason]
-
-    U --> Y[Article Live in Articles Section]
-    V --> Y
-    Y --> Z[Readers Comment, React, Share]
-    Z --> AA[Author Notified of Engagement]
-    AA --> AB[Points Earned from Reader Likes]
-    AB --> AC[Milestone: Your story reached 100 readers! 🎉]
+graph TD
+    A([Chioma opens dashboard]) --> B[Post New Role — company pre-filled]
+    B --> C[Template selection — previous listings]
+    C --> D[Pre-fills 70 percent — edits role fields]
+    D --> E[Submits]
+    E --> F[Automated checks run]
+    F --> G{All pass + trust 5/5?}
+    G -- Yes --> H[Fast-lane: live immediately]
+    G -- No --> I[Standard review queue]
+    H --> J[Notification: listing is live]
 ```
 
-**Key Decisions:**
+#### Key Decision Points
 
-- Bilingual editor offers side-by-side or toggle view — author chooses workflow
-- Rich text editor is simple (formatting, headers, images) — not overwhelming for Chief Okonkwo with Amara's help
-- Category selection helps readers discover content and enables filtering
-- Preview before submit — no surprises after publication
-
-**Error Recovery:**
-
-- Auto-save every 30 seconds — browser crash doesn't lose work
-- Image upload fails in editor: placeholder with retry, continue writing without blocking
-- Submission fails: draft saved locally with "Try again" option
-- Admin revisions: specific inline feedback so author knows exactly what to fix
-
-**Optimization:** The article editor defaults to a clean, focused full-width view — no sidebars, no distractions. This is where Chief Okonkwo's granddaughter types his words. It should feel like a blank page waiting for a story, not a form with fields.
+- **Fast-lane criteria:** Trust 5/5, minimum 2 prior approved listings, 0 unresolved flags, no active warnings.
+- **Guardrail:** 2 consecutive post-approval flags/reports → fast-lane revoked. Standard review until 2 clean postings restore trust.
+- **Template as habit-former:** Each use makes the next posting faster, deepening platform lock-in.
+- **Audit trail:** Fast-lane approvals logged. Kene can review any time without queue burden.
 
 ---
 
-### Journey 6: Event RSVP & Video Join
+### Journey 6: Referred Candidate Entry
 
-**Persona:** Chidi RSVPing / Ngozi hosting a town hall with 120 attendees
-**Goal:** Find event → RSVP → get reminders → join video meeting seamlessly
-**Success metric:** RSVP in < 3 taps; video join in < 5 seconds from click
+**Persona:** Nkem, 27, developer in Abuja. Not actively looking. Chief Okonkwo shares a job link with named referral via WhatsApp.
 
-```mermaid
-flowchart TD
-    A{Entry Point} -->|Nav: Events| B[Events Page]
-    A -->|Dashboard Event Widget| C[Event Card → Tap]
-    A -->|Feed Event Post| D[Event Post → RSVP Button]
-    A -->|Notification Reminder| E[Jump to Event]
+**Entry Point:** Shared referral link: `job.[domain]/listings/abc123?ref=chief-okonkwo-id`
 
-    B --> F[Events List: Featured + Grid]
-    F --> G[Tap Event Card]
-    C --> G
-    D --> H[RSVP Inline from Feed]
+#### Step-by-Step
 
-    G --> I[Event Detail Page]
-    I --> I1[Title, Description, Date/Time, Duration]
-    I1 --> I2[Event Type Tag: Virtual / In-Person / Hybrid]
-    I2 --> I3[Speakers/Hosts with Avatars]
-    I3 --> I4[Attendee Count + Avatar Stack]
-    I4 --> I5[RSVP Button]
+| Step | Action |
+|------|--------|
+| 1 | Nkem taps shared link in WhatsApp. |
+| 2 | Listing loads with Sandy Tan referral banner: "Chief Okonkwo has referred you for this role" — name, photo, community role visible. |
+| 3 | Full listing visible. Reads salary, description, company. |
+| 4 | Taps Apply. Referral token captured from URL param AND persisted in localStorage. |
+| 5 | If logged in: apply drawer with referral auto-attached. If not: sign-up with token preserved. |
+| 6 | Application submitted with metadata: "Referred by Chief Okonkwo." |
+| 7 | Employer sees: Sandy Tan "Referred by Chief Okonkwo" badge on candidate card — alongside lead signal pill. |
+| 8 | Chief Okonkwo notified: "Nkem applied using your referral." Can see status (not private content). |
+| 9 | If hired: Chief Okonkwo receives "Successful referral" badge on profile. |
 
-    I5 --> J{Registration Status}
-    J -->|Open| K[Tap RSVP → Confirmed!]
-    J -->|Full| L[Join Waitlist → Notified if Spot Opens]
-
-    K --> M[Add to Calendar Option]
-    M --> N[Reminder Notifications Set]
-    N --> N1[24 hours before: Reminder Push]
-    N1 --> N2[1 hour before: Reminder Push]
-    N2 --> N3[Event starting: Join Now Push]
-
-    H --> K
-
-    N3 --> O{Event Type}
-    O -->|Virtual| P[Join Video Meeting Button Appears]
-    O -->|In-Person| Q[Show Location + Map Link]
-    O -->|Hybrid| R[Choose: Join Virtual or Attending In-Person]
-
-    P --> S[Tap Join → Video SDK Loads]
-    R -->|Virtual| S
-    S --> T[Waiting Room: Event starts in X minutes]
-    T --> U{Host Admits}
-    U -->|Admitted| V[In Meeting: Video, Audio, Screen Share, Chat Sidebar]
-    V --> W{During Meeting}
-    W -->|Chat| X[In-Meeting Chat Panel]
-    W -->|React| Y[Raise Hand / Emoji Reactions]
-    W -->|Leave| Z[Leave Meeting → Post-Event Summary]
-
-    Z --> AA[Event Summary Card in Feed]
-    AA --> AB[Share Highlights, Comment on Event]
-```
-
-**Key Decisions:**
-
-- RSVP is a single tap — no confirmation dialog for the primary action (de-RSVP is available on the event detail)
-- Video join is embedded in the platform — no external links, no download prompts, no meeting codes
-- Waiting room provides context ("Event starts in 5 minutes, 47 attendees waiting") — builds anticipation
-- Post-event summary card auto-generated in feed — extends the event's reach to those who missed it
-
-**Error Recovery:**
-
-- Video SDK fails to load: audio-only fallback option + "Try refreshing" prompt
-- Network drops during meeting: auto-reconnect within 5 seconds, show "Reconnecting..." overlay
-- Event cancelled: notification to all RSVP'd members with reason and "See other events" link
-- Waitlist never opens: notification 1 hour after event with "Watch the recording" (if Top-tier hosted)
-
-**Optimization:** The "Join" button appears 15 minutes before the event starts — replacing the RSVP button. One tap to join. No meeting codes, no passwords, no external app. This is the difference between igbo and Zoom links in WhatsApp groups.
-
----
-
-### Journey 7: Group Creation & Management
-
-**Persona:** Ngozi (45, London) creating the London Chapter
-**Goal:** Create group → configure → invite members → manage activity → grow
-**Success metric:** Group created and first member joined in < 10 minutes
+#### Mermaid Flowchart
 
 ```mermaid
-flowchart TD
-    A{Entry Point} -->|Nav: Groups → Create| B{Tier Check}
-    B -->|Top-tier| C[Group Creation Form]
-    B -->|Not Top-tier| D[Upgrade Prompt: Group creation is available to Top-tier members]
-
-    C --> E[Group Name: London Chapter]
-    E --> F[Description + Banner Image Upload]
-    F --> G{Visibility}
-    G -->|Public| H[Anyone can find and join]
-    G -->|Private| I[Visible in directory, join requires approval]
-    G -->|Hidden| J[Invite-only, not in directory]
-
-    H --> K[Configure Settings]
-    I --> K
-    J --> K
-
-    K --> K1[Posting Permissions: All Members / Leaders Only / Moderated]
-    K1 --> K2[Commenting: Open / Members Only / Disabled]
-    K2 --> K3[Member Limit: Optional Cap]
-    K3 --> K4[Enable Group Chat Channels: Yes/No]
-
-    K4 --> L[Create Group → Published!]
-    L --> M[Group Page Live]
-
-    M --> N{Group Management}
-    N -->|Invite Members| O[Share Link / Search & Invite Members]
-    N -->|Assign Leaders| P[Select Professional/Top-tier Members → Assign Leader Role]
-    N -->|Pin Announcement| Q[Write Announcement → Pin to Top of Group Feed]
-    N -->|Create Event| R[Group Event → Auto-posted to Group Feed]
-    N -->|Moderate| S[Review Flagged Posts / Remove Members]
-
-    O --> T[Invited Members Receive Notification]
-    T --> U{Join Action}
-    U -->|Public Group| V[Instant Join]
-    U -->|Private Group| W[Request Sent → Leader Approves/Rejects]
-
-    V --> X[Member Joins → Welcome Message]
-    W --> W1{Leader Decision}
-    W1 -->|Approve| X
-    W1 -->|Reject| Y[Rejection Notification]
-
-    X --> Z[Group Feed Active: Posts, Events, Chat Channels]
+graph TD
+    A([Chief Okonkwo shares referral link]) --> B[Nkem taps link]
+    B --> C[Listing with Sandy Tan referral banner]
+    C --> D{Logged in?}
+    D -- Yes --> E[Apply drawer — referral auto-attached]
+    D -- No --> F[Sign-up — token in URL param + localStorage]
+    F --> G[Registration] --> E
+    E --> H[Application with referral metadata]
+    H --> I[Employer sees Referred badge on card]
+    H --> J[Chief Okonkwo notified: Nkem applied]
+    I --> K{Hired?}
+    K -- Yes --> L[Chief Okonkwo: Successful referral badge]
+    K -- No --> M[No negative signal to referrer]
 ```
 
-**Key Decisions:**
+#### Key Decision Points
 
-- Three visibility levels (Public/Private/Hidden) cover all use cases — from open regional chapters to invite-only leadership groups
-- Group leaders are Professional or Top-tier members — ensures responsible moderation
-- Group chat channels are optional — some groups want feed-only, others want real-time chat
-- Pinned announcements stay at top of group feed — Ngozi's most important tool
-
-**Error Recovery:**
-
-- Banner image upload fails: group creates without banner, "Add banner" prompt remains
-- Invited member doesn't have an account: "Invite to join igbo" option that sends platform invitation
-- Group leader becomes inactive: admin can reassign leader role
-- Group approaches member limit: notification to leader at 80% and 95% capacity
-
-**Optimization:** After group creation, immediately prompt "Invite your first members" with a share link and member search. An empty group is a dead group — the UX pushes toward the first join.
-
----
-
-### Journey 8: Admin Queue Processing
-
-**Persona:** Amaka (38, admin volunteer) processing morning queues
-**Goal:** Review applications → moderate content → process articles → check analytics in < 45 minutes
-**Success metric:** 4 applications processed in 10 minutes; full queue cleared in 45 minutes
-
-```mermaid
-flowchart TD
-    A[Open Admin Dashboard] --> B[Queue Summary Cards]
-    B --> B1[Applications: 4]
-    B --> B2[Moderation: 2]
-    B --> B3[Articles: 1]
-    B --> B4[Reports: 1]
-
-    B1 --> C[Applications Queue]
-    C --> C1[Application Card: Name, Email, Location, Cultural Connection, Reason, IP Assessment]
-
-    C1 --> C2{Decision}
-    C2 -->|Strong Connection| D[Approve → Account Created → Welcome Email Sent]
-    C2 -->|Unclear| E[Request More Info → Email Sent to Applicant]
-    C2 -->|Suspicious| F[Reject → Reason Logged → Rejection Email]
-
-    D --> C3[Next Application]
-    E --> C3
-    F --> C3
-    C3 --> C1
-
-    B2 --> G[Moderation Queue]
-    G --> G1[Flagged Item: Content, Author, Flag Reason, Flag Source]
-
-    G1 --> G2{Review}
-    G2 -->|False Positive| H[Approve Content → Remove Flag]
-    G2 -->|Violation| I{Severity}
-    I -->|Minor| J[Remove Content + Warning Notification to Author]
-    I -->|Moderate| K[Remove Content + Temporary Suspension]
-    I -->|Severe| L[Remove Content + Ban → Escalation Log]
-
-    H --> G3[Next Flagged Item]
-    J --> G3
-    K --> G3
-    L --> G3
-
-    B3 --> M[Article Review Queue]
-    M --> M1[Article: Title, Author, Language, Content Preview]
-    M1 --> M2{Decision}
-    M2 -->|Approve| N[Publish Article]
-    M2 -->|Feature| O[Publish as Featured → Prominent Feed Placement]
-    M2 -->|Request Revisions| P[Send Feedback to Author]
-    M2 -->|Reject| Q[Reject with Reason]
-
-    B4 --> R[Reports Queue]
-    R --> R1[Report: Reporter, Reported Content/Member, Category, Details]
-    R1 --> R2{Action}
-    R2 -->|Investigate| S[View Flagged Content/Conversation]
-    R2 -->|Dismiss| T[No Action → Log Reason]
-    R2 -->|Act| U[Apply Moderation Action from G2]
-
-    B --> V[Analytics Overview]
-    V --> V1[DAU/MAU Trend Chart]
-    V1 --> V2[Geographic Distribution Map]
-    V2 --> V3[Tier Breakdown]
-    V3 --> V4[Engagement Metrics: Messages, Posts, Events]
-```
-
-**Key Decisions:**
-
-- Dashboard opens with queue summary cards — Amaka sees the full picture at a glance
-- Application review shows all relevant info in one view — no clicking through pages
-- Progressive discipline is built into the workflow — warning → suspension → ban with logged escalation
-- Article review has four outcomes (approve/feature/revisions/reject) — "Feature" is a distinct positive action
-
-**Error Recovery:**
-
-- Accidental approval: undo option available for 30 seconds after action
-- Bulk action fails mid-way: progress indicator shows completed vs. remaining, retry for failed items
-- Analytics data delayed: "Data last updated: X minutes ago" timestamp with manual refresh
-- Admin session expires: auto-save of current queue position, resume on re-login
-
-**Optimization:** Keyboard shortcuts for power admins — A to approve, R to reject, M for more info, N for next item. Amaka should be able to process 4 applications without touching the mouse. Queue items auto-advance after action — no manual "next" clicking.
+- **Referral token durability:** URL param AND localStorage — survives sign-up, tab switching, session resets.
+- **Referrer visibility limited:** Sees status (Applied, Viewed, Shortlisted) but not application content or private messages.
+- **Graceful referral cap (Party Mode finding):** First 10 referrals/month: full Sandy Tan badge. After 10: lighter "frequent referrer" treatment. Signal degrades rather than disappearing. Prevents inflation without punishing engagement.
+- **Token expiry:** 30 days. After expiry, link loads listing without referral banner.
 
 ---
 
 ### Journey Patterns
 
-**Cross-Journey Patterns — Standardized Across All Flows:**
+Seven cross-cutting patterns extracted from all six flows. These are design constraints, not preferences — they should become acceptance criteria on relevant implementation stories.
 
-| Pattern                       | Description                                                                                  | Used In                                                                                      |
-| ----------------------------- | -------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| **Single-Tap Primary Action** | The most important action on any screen requires exactly one tap with no confirmation dialog | Discovery → Message, Feed → React, Event → RSVP, Group → Join                                |
-| **Contextual Connection**     | System automatically surfaces shared attributes between users                                | Chat context bar, Member cards (shared interests), Group suggestions                         |
-| **Progressive Feedback**      | Multi-stage confirmation that shows action progressing                                       | Chat: sent ✓ → delivered ✓✓ → read (blue); Post: publishing → published → points earned      |
-| **Warm Empty States**         | Every "no results" has a warm message and a next action                                      | Discovery fallback, empty group, empty chat, no events                                       |
-| **Celebratory Moments**       | Micro-celebrations for first-time achievements and milestones                                | First message (+50 pts), first article (toast), 100 readers (milestone), RSVP (confirmation) |
-| **Graceful Degradation**      | Features degrade smoothly when conditions aren't ideal                                       | Video → audio-only fallback, images → progressive loading, offline → cached content          |
-| **Keyboard Shortcut Power**   | Repetitive workflows support keyboard navigation                                             | Admin queues (A/R/M/N), chat (Enter to send), feed (J/K to scroll posts)                     |
-| **Auto-Advance Queues**       | After acting on a queue item, the next item loads automatically                              | Admin applications, moderation, article review                                               |
+**Pattern 1 — Discovery Is Open, Participation Is Selective**
+Full listings (salary, company, description) visible to guests in every journey. The gate appears only at the participation action (Apply, Post, Refer). Removing salary from guest view would kill SEO and word-of-mouth growth vectors.
 
-**Navigation Patterns:**
+**Pattern 2 — Trust Is Layered, Not Binary**
+No journey presents a single trust signal. Employers see: verification + engagement + referral + match. Admins see: trust score + history + automated flags + diff view. The compound signal creates genuine confidence; any single signal can be misleading in isolation.
 
-| Pattern                   | Desktop                                        | Mobile                                     |
-| ------------------------- | ---------------------------------------------- | ------------------------------------------ |
-| **Primary Navigation**    | White top nav bar with centered items          | 5-tab bottom bar                           |
-| **Secondary Navigation**  | Left sidebar (groups, profile)                 | Sheet slide-up or nested page              |
-| **Contextual Navigation** | Right sidebar (widgets, suggestions)           | Inline below main content                  |
-| **Chat Access**           | Chat icon in top nav + collapsible right panel | Chat tab in bottom bar                     |
-| **Admin Context**         | Separate admin nav (dark sidebar)              | Not optimized for mobile (desktop-primary) |
+**Pattern 3 — Status Changes Are Emotional Events**
+Every status transition is designed as a moment — notification, visual transformation, microcopy acknowledging the human on the other side. The "Viewed" moment is the clearest example, but the same principle applies to Chioma's first application and Kene clearing the queue.
 
-**Feedback Patterns:**
+**Pattern 4 — Pre-Fill Is the Primary Retention Mechanism**
+Every form-entry flow (Apply, Post, Repeat Post) aggressively pre-fills from existing data. First-time users get guided minimum viable data. Return users experience near-zero friction. Pre-fill is not convenience — it is the core retention mechanic.
 
-| Moment            | Feedback Type      | Implementation                                                                                         |
-| ----------------- | ------------------ | ------------------------------------------------------------------------------------------------------ |
-| Action success    | Toast notification | Bottom-right on desktop, top on mobile. Auto-dismiss 4 seconds.                                        |
-| Points earned     | Celebratory toast  | Accent color with star icon. Shows points amount.                                                      |
-| Error occurred    | Inline error       | Red text below the field/action. Never a modal for recoverable errors.                                 |
-| Loading content   | Skeleton screens   | Card-shaped skeletons matching content layout. Never a spinner for content areas.                      |
-| Real-time update  | Live indicator     | Green dot for online, typing indicator for chat, count-up for new content.                             |
-| Milestone reached | Full-screen moment | Brief overlay: "Your story reached 100 readers!" with dismiss. Rare — only for significant milestones. |
+**Pattern 5 — Error States Are Recovery Paths**
+In every journey, failure states redirect. Abandoned draft → 24h nudge. Rejected posting → structured feedback. Failed upload → fallback to existing file. Closed listing → similar roles carousel. The platform never strands the user.
+
+**Pattern 6 — Community Context Is the Differentiation**
+Referral badges, "community members who work here," engagement scores, trust scores — none exist on LinkedIn. Every surface that removes community context degrades the core proposition. This pattern must be enforced as acceptance criteria on every card, listing, and profile component.
+
+**Pattern 7 — Admin Actions Are Documented**
+Every approval, rejection, escalation, and fast-lane bypass creates an audit entry. This is institutional memory — when patterns emerge (recurring scam type), the audit log enables recognition across time and reviewers.
+
+---
 
 ### Flow Optimization Principles
 
-**1. Two-Tap-to-Value Rule**
-Every critical action should be reachable in two taps from the dashboard. Find members: Discover → Search. Send message: Chat → Type. RSVP: Events → RSVP. Create post: Composer → Post. If a critical path requires more than two taps, simplify the navigation.
+**Principle 1 — Time-to-First-Value Under 3 Minutes**
+Seekers: submitted application. Employers: live listing. Admins: cleared queue item. Every design decision tested against: does this reduce or increase time to that moment?
 
-**2. Zero-Wait Perception**
-Use skeleton screens, optimistic UI updates, and progressive loading to eliminate perceived wait times. When Chidi taps "Send" on a message, it appears in the thread immediately (optimistic) before server confirmation arrives. The single tick confirms delivery afterward.
+**Principle 2 — Emotional Peaks Must Be Designed**
+The "Viewed" card transformation, hiring confirmation, successful referral badge — these are the moments users remember and return for. Each flow must have at least one designed emotional peak. No peak = no memory = no retention.
 
-**3. Context-as-Conversation-Starter**
-Every connection point surfaces shared context. Chat shows shared location and interests. Member cards show mutual groups. Event attendee lists show "3 members you know are attending." The platform does the social work of finding common ground.
+**Principle 3 — Match Explainability Builds Trust**
+"Matches 4 of your skills" is actionable and credible. "92% match" is abstract. Every place a match score appears should link to its human-readable explanation.
 
-**4. Friction-Only-Where-Intentional**
-Friction is a tool, not a bug. Admin-approved membership creates intentional friction that builds exclusivity. Content moderation creates friction that protects community quality. Tier-based posting limits create friction that incentivizes engagement. But the core loop (discover → connect → engage) must be frictionless.
+**Principle 4 — Guardrails Are Progressive**
+No single suspicious action causes immediate suspension. Pattern: flag → feedback request → re-review → escalation → action. This prevents false positives from causing irreversible harm.
 
-**5. Elder-to-Power-User Spectrum**
-Every flow works at two levels. Surface level: Chief Okonkwo taps the big green button and it works. Power level: Ngozi uses keyboard shortcuts, filters, and bulk actions to manage 150 members efficiently. The same interface serves both — progressive complexity reveals itself as users grow.
+**Principle 5 — Referral Tokens Must Survive Friction**
+URL param AND localStorage. A referral lost because the user had to create an account is a failed referral — and damages trust in the platform's most engaged connectors.
+
+**Principle 6 — The Pipeline View Is the Product**
+For seekers, the application pipeline IS the product during the wait. For employers, the triage view IS the product after posting. Both must perform at native-app speed — no skeleton loaders longer than 200ms.
+
+**Principle 7 — Apprenticeship Is First-Class**
+Own featured section, own posting fields (duration, mentorship format, conversion intent), own success metrics (conversion rate, not just hire rate). Not a filtered subset of jobs.
+
+**Principle 8 — Review Speed Is a Health Metric**
+Admin turnaround affects employer confidence and candidate interest. Target: 90% of standard queue reviewed within 4 business hours. Requires tooling that enables 2-minute clean reviews.
+
+**Party Mode Findings Incorporated:**
+- No cover note in default apply flow — employer opt-in only (15-20% completion drop avoided)
+- Single scrollable posting form with sections — no wizard anxiety
+- Reject confirmation dialog (asymmetric friction — reject is high-damage, approve is low-risk)
+- Guest email verification deferred — app submits immediately, verification for communication
+- Referral cap: graceful degradation (full badge → lighter "frequent referrer" treatment after 10/month)
+- Return URL + referral token: query param AND localStorage (belt-and-suspenders)
+- Automated checks defined as concrete checklist (keyword scan, salary percentile, length, duplicate, contact, company completeness)
+- Live match rate estimate deferred to Phase 1.5 — MVP shows static listing preview
+- Posting diff view requires schema versioning — architecture decision to confirm pre-implementation
 
 ## Component Strategy
 
-### Design System Components
+This section defines the component architecture for the igbo Job Portal, organized by layer, phase, and dependency. All components are portal-scoped and consume tokens from the shared `@igbo/ui` design system while remaining outside that library's public API.
 
-**shadcn/ui Base Layer — 15 components installed and customized with igbo design tokens:**
+---
 
-| Component        | igbo Customization                                                                         | Primary Usage                                                        |
-| ---------------- | ------------------------------------------------------------------------------------------ | -------------------------------------------------------------------- |
-| **Button**       | Rounded (radius-lg), min-height 44px, primary green, accent amber, destructive muted red   | Every CTA across all journeys                                        |
-| **Card**         | Warm white background, 12px radius, subtle warm shadow, border `--border`                  | Post cards, event cards, member cards, widget cards, admin cards     |
-| **Dialog**       | 12px radius, warm overlay, centered with max-width 480px                                   | Confirmation dialogs, profile quick-view, report modal               |
-| **Sheet**        | Slide from right (desktop chat), slide from bottom (mobile composer, filters)              | Mobile navigation, chat panel, filter panels                         |
-| **Input**        | 16px text (prevents iOS zoom), 44px height, label above, green focus ring                  | Search bars, forms, chat input, article editor                       |
-| **Form**         | Inline validation, error text below field, success green checkmark                         | Registration, profile edit, group creation, event creation           |
-| **Tabs**         | Underline style with primary green active indicator, 44px height                           | Profile tabs, feed filters, chat DM/Channel toggle, admin queue tabs |
-| **Avatar**       | Circular, 4 sizes (sm 32px, md 40px, lg 56px, xl 80px), initials fallback in primary color | Every screen — feed, chat, directory, profiles, admin                |
-| **Badge**        | Pill-shaped, small (12px text), distinct colors per type                                   | Notification counts, post type tags, event type tags                 |
-| **DropdownMenu** | 12px radius, warm shadow, 44px min-height items                                            | Post actions (edit/delete/report), sort options, user menu           |
-| **Toast**        | Bottom-right desktop, top mobile, 4s auto-dismiss, warm language                           | Success confirmations, points earned, errors                         |
-| **Skeleton**     | Warm grey (`--muted`), card-shaped, pulse animation                                        | Feed loading, member cards loading, chat loading                     |
-| **ScrollArea**   | Custom scrollbar (thin, warm grey), smooth scrolling                                       | Chat messages, notification panel, long member lists                 |
-| **Separator**    | Warm border grey (`--border`), 1px                                                         | Section dividers in feeds, profiles, sidebars                        |
-| **Select**       | 44px height, 16px text, dropdown with search for long lists                                | Language picker, category selection, location picker                 |
+### Component Architecture
 
-### Custom Components
+The portal uses a three-layer model that enforces a strict composition hierarchy. Each layer depends only on layers below it, preventing circular dependencies and making each component testable in isolation.
 
-#### People & Identity Components
+#### Layer 1 — Semantic (Tokens Made Interactive)
 
-**1. MemberCard**
+Semantic components convert raw design tokens into interactive, stateful UI primitives. They carry no domain knowledge — they do not know what "Applied" means in a business sense, only that a given status maps to a specific color token and label. These components are the atoms of the system.
 
-**Purpose:** Display a community member in search results, suggestions, and group member lists — the primary unit of human connection on the platform.
+- Compose directly from design tokens (color, typography, spacing)
+- Accept enum values or string literals as props; derive visual treatment internally
+- Accept a `context` prop (`"inline" | "lead" | "standalone"`) for contextual sizing when embedded in domain components (Party Mode finding F-3)
+- Have no opinions about layout or composition
+- Are fully accessible in isolation (role, aria-label, keyboard behavior)
 
-**Anatomy:**
+Components in this layer: `StatusPill`, `MatchPill`, `TrustBadge`
 
+#### Layer 2 — Domain (Semantics Composed into Cards and Blocks)
+
+Domain components assemble semantic primitives into meaningful units that represent real portal concepts — a job listing, a candidate record, an application state block. They encode the portal's information architecture and visual hierarchy.
+
+- Import only from the Semantic layer and from `@igbo/ui` primitives
+- Consume density from `DensityContext` via `useDensity()` hook (Party Mode finding F-11)
+- Own their density variants (Comfortable / Compact / Dense)
+- Contain the portal's primary business logic for display (what to show, in what order)
+- Each component defines an inline empty/loading state contract — not deferred to `EmptyStateCard` (Party Mode finding F-14)
+- Are the primary unit of visual regression testing
+
+Components in this layer: `JobCard`, `CandidateCard`, `ApplicationStatusBlock`, `StatusTimeline`, `ReviewQueueRow`, `NotificationItem`, `ReferralBanner`, `EmptyStateCard`, `MatchBreakdown`, `RiskFlagCard`, `AdminSignalPanel`
+
+#### Layer 3 — Flow (Domains Composed into Complete Interactions)
+
+Flow components orchestrate multiple domain components into complete user interactions across a task — applying to a job, posting a listing, confirming an action. They manage multi-step state, form orchestration, and transition animations. They are the primary unit of end-to-end interaction testing.
+
+- Import from both Domain and Semantic layers
+- Own local UI state for their interaction (step index, loading, error)
+- Do not own server state; receive handlers and async state as props
+- Coordinate focus management and transition choreography
+
+Components in this layer: `ApplyDrawer`, `PostingForm`, `ConfirmationPanel`, `DiffView`, `ProfileGate`, `TemplateSelector`, `PostingPreview`
+
+#### Density Propagation (Party Mode Finding F-11)
+
+Density is propagated via React context, not per-component props:
+
+```tsx
+// src/components/portal/DensityContext.tsx
+const DensityContext = createContext<"comfortable" | "compact" | "dense">("comfortable");
+export const useDensity = () => useContext(DensityContext);
 ```
-┌─────────────────────────────────┐
-│  ┌──────┐                       │
-│  │Avatar│  Name  [Badge]        │
-│  │  lg  │  Location             │
-│  └──────┘                       │
-│  Bio snippet (2 lines max)      │
-│  ─────────────────────────────  │
-│  🔗 2 shared interests          │
-│  [  Message  ]                  │
-└─────────────────────────────────┘
-```
 
-**Content:** Avatar (lg 56px), full name, verification badge (if any), location, bio snippet (truncated at 2 lines), shared interests/groups count, online indicator.
+- Provider location: portal layout wrapper (e.g., `PortalLayout`)
+- Seeker pages: `comfortable`
+- Employer dashboard: `compact`
+- Admin surfaces: `dense`
+- Individual components never accept a `density` prop — they read from context
+- Components rendered outside a provider default to `comfortable`
 
-**Actions:** Tap card → full profile view. Tap "Message" → open chat. Tap badge → badge explanation tooltip.
+---
+
+### Design System Coverage
+
+#### What shadcn/ui Provides
+
+The following primitives are imported directly from `@igbo/ui` (which re-exports shadcn/ui with portal theme tokens applied) and are used as building blocks without modification:
+
+| Primitive | Usage in Portal |
+|---|---|
+| `Button` | Primary CTA, secondary actions, icon-only variants |
+| `Card` | Base surface for JobCard, CandidateCard, ReviewQueueRow |
+| `Badge` | Base for TrustBadge before semantic extension |
+| `Avatar` | Candidate photos, employer logos |
+| `Dialog` | Modal confirmations, match breakdown overlays |
+| `Sheet` | ApplyDrawer slide-up panel (bottom sheet on mobile) |
+| `Tabs` | Seeker dashboard tabs, employer queue tabs |
+| `Table` | Admin review queue, bulk action surfaces |
+| `Input` | PostingForm fields, search/filter inputs |
+| `Select` | Role type, location, experience level filters |
+| `Separator` | Card section dividers |
+| `Skeleton` | Loading states for all card types |
+| `ScrollArea` | StatusTimeline overflow, notification list |
+| `Tooltip` | TrustBadge hover context, match score explanation |
+| `Progress` | ProfileGate completion meter |
+| `Checkbox` | Bulk select in ReviewQueue |
+| `Textarea` | Cover letter in ApplyDrawer, posting description |
+| `Label` | Form field labeling in PostingForm |
+| `Switch` | Notification preference toggles |
+| `DropdownMenu` | Card action menus (save, share, report) |
+| `Popover` | Inline MatchBreakdown tooltip trigger, TrustBadge extended variant |
+| `HoverCard` | Employer trust context on CandidateCard hover |
+
+#### What Is Missing / Portal-Specific
+
+| Gap | Why Needed |
+|---|---|
+| `StatusPill` | Status-to-color mapping with semantic intent; Badge does not encode status semantics |
+| `StatusDot` | Lightweight dot primitive for StatusTimeline nodes — StatusPill dot-only carries unnecessary DOM weight (Party Mode finding F-6) |
+| `MatchPill` | Compact inline score pill with directional icon; no shadcn equivalent |
+| `TrustBadge` | Multi-type badge with icon + level encoding; Badge is too generic |
+| `StatusTimeline` | Vertical pipeline visualization with connector lines and active-state animation |
+| `ApplicationStatusBlock` | Viewed-moment hero treatment with gradient, pulse, and emotional microcopy |
+| `ReferralBanner` | Sandy Tan referral attribution strip with origin chain |
+| `RiskFlagCard` | Admin-only risk signal display with severity encoding |
+| `AdminSignalPanel` | Employer trust signal panel for admin review context |
+| `DiffView` | Side-by-side or inline diff of posting versions |
+| `TemplateSelector` | Returning employer template grid with preview |
+| `MatchBreakdown` | Skill-by-skill match explanation with gap indicators |
+| `PostingPreview` | Live right-panel preview of in-progress job posting |
+| `EmptyStateCard` | Guided recovery card with context-aware CTAs |
+| `ProfileGate` | Inline profile completion checklist before apply |
+| `NotificationItem` | Status-aware notification row with unread indicator |
+
+---
+
+### Core Components (Phase 1)
+
+These eight components must be built first. The Semantic layer components (1–3) are prerequisites for all Domain and Flow components. Within the Domain layer, `JobCard` and `CandidateCard` are the primary visual surfaces and unblock usability testing earliest.
+
+---
+
+#### 1. StatusPill
+
+**Layer:** Semantic
+
+**Purpose:** Encodes application status as a color-coded, labeled pill. This is the single source of truth for status-to-color mapping across all portal surfaces.
+
+**Content:**
+- Status label (string, from status enum)
+- Optional leading dot indicator (10px circle, matching status color)
+- Icon discriminator per status to ensure deuteranopia accessibility (Party Mode finding F-8): Applied (circle), Under Review (clock), Shortlisted (star), Interview (calendar), Offered (gift), Hired (checkmark), Rejected (minus), Withdrawn (arrow-left)
+
+**Actions:**
+- None by default
+- Accepts optional `onClick` for filter-trigger use cases
 
 **States:**
 
-- Default: white background, subtle border
-- Hover: border-primary, slight elevation increase, subtle translateY(-2px)
-- "That's you" variant: primary-light background, "Edit Profile" button instead of "Message"
-- Loading: skeleton with avatar circle + text lines
+| State | Visual Treatment | Icon |
+|---|---|---|
+| Applied | Blue (`--portal-status-applied-bg/text`) | `Circle` |
+| Under Review | Amber (`--portal-status-review-bg/text`) | `Clock` |
+| Shortlisted | Teal (`--portal-status-shortlisted-bg/text`) | `Star` |
+| Interview | Purple (`--portal-status-interview-bg/text`) | `Calendar` |
+| Offered | Green (`--portal-status-offered-bg/text`) | `Gift` |
+| Hired | Deep green | `CheckCircle` |
+| Rejected | Neutral gray (`--portal-status-rejected-bg/text`) | `Minus` |
+| Withdrawn | Muted gray, italic label | `ArrowLeft` |
 
 **Variants:**
 
-- Full (directory grid): avatar-lg, bio, shared interests, Message button
-- Compact (sidebar/widget): avatar-md, name + location only, no bio
-- Inline (chat context): avatar-sm, name + badge inline
+| Variant | Description |
+|---|---|
+| `default` | Filled background, colored text, icon + label — primary use |
+| `outline` | Border only, no fill — use in dense tables |
+| `dot-only` | 10px dot, no label — for inline text contexts (NOT for timeline — use `StatusDot`) |
+| `compact` | Reduced padding (`px-1.5 py-0.5`), 11px font — Dense density mode |
 
-**Accessibility:** Card is a focusable region with `role="article"`. Name is heading level. "Message" button has `aria-label="Send message to [Name]"`. Badge has tooltip on focus.
+**Context prop:** Accepts `context="inline" | "lead" | "standalone"` for sizing when embedded in domain components (F-3).
+
+**Accessibility:**
+- Root: `<span>` with `role="status"` (live indicator) or `role="img"` with `aria-label="Status: [label]"` (static)
+- Icon + label ensure color-independence (WCAG 1.4.1) — no information conveyed by color alone (F-8)
+- `dot-only` variant requires `aria-label` at call site
 
 ---
 
-**2. VerificationBadge**
+#### 2. MatchPill
 
-**Purpose:** Display a member's trust level — Blue (community verified, 3x), Red (highly trusted, 6x), Purple (top-tier, 10x).
+**Layer:** Semantic
 
-**Anatomy:** `[✓ Verified]` or `[★ Elder]` — icon + label in colored pill.
+**Purpose:** Communicates skill match quality between a candidate's profile and a job's requirements. Positioned inline with salary on job cards (not as a hero element). On CandidateCards, appears as the lead signal pill.
 
-**Content:** Badge icon (checkmark or star), label text, background color.
+**Content:**
+- Match quality label: "Strong Match", "Moderate Match", "Weak Match"
+- Optional score detail (e.g., "4/6 skills") — shown only when `showDetail` prop is true
+- Directional icon: `TrendingUp` (Strong), `Minus` (Moderate), `TrendingDown` (Weak)
+
+**Actions:**
+- Optional `onClick` or `onMouseEnter` to trigger `MatchBreakdown` popover
 
 **States:**
 
-- Blue: `bg-blue-50 text-blue-600` — "✓ Verified"
-- Red: `bg-red-50 text-red-600` — "✓ Distinguished"
-- Purple: `bg-purple-50 text-purple-600` — "★ Elder"
-- None: component not rendered
+| Quality | Color | Icon |
+|---|---|---|
+| Strong | Forest green (`--portal-match-strong`) | `TrendingUp` |
+| Moderate | Teal-shift (`--portal-match-moderate`) | `Minus` |
+| Weak | Muted gray (`--portal-match-weak`) | `TrendingDown` |
 
 **Variants:**
 
-- Full: icon + text label (profiles, member cards, post headers)
-- Icon-only: colored dot only (compact lists, chat sidebar)
-- With multiplier: shows "3x" / "6x" / "10x" (points display context)
+| Variant | Description |
+|---|---|
+| `inline` | Compact pill next to salary on JobCard — `text-xs px-2 py-0.5` |
+| `lead` | Larger pill for CandidateCard header — `text-sm px-3 py-1` |
+| `with-detail` | Shows skill count after label — "Strong Match · 4/6 skills" |
 
-**Accessibility:** `aria-label="[Badge level] verified member"`. Tooltip on hover/focus explains badge meaning and multiplier.
+**Context prop:** Accepts `context="inline" | "lead" | "standalone"` (F-3).
 
----
-
-**3. OnlineIndicator**
-
-**Purpose:** Show real-time presence — makes the platform feel alive.
-
-**Anatomy:** 10px green circle with 2px white border, positioned bottom-right of avatar.
-
-**States:**
-
-- Online: solid green (`--success`)
-- Offline: not rendered (no grey dot — absence communicates)
-- Away (future): amber dot
-
-**Accessibility:** `aria-label="Online"` on the indicator. Screen readers announce "[Name] is online" when indicator is present.
+**Accessibility:**
+- `role="img"` with `aria-label="[quality] skill match[, detail]"`
+- When used as popover trigger: `aria-expanded`, `aria-haspopup="dialog"`, `tabindex="0"`, keyboard Enter/Space
 
 ---
 
-**4. PointsDisplay**
+#### 3. TrustBadge
 
-**Purpose:** Show a member's points balance — the gamification heartbeat.
+**Layer:** Semantic
 
-**Anatomy:** `★ 1,240 pts` — star icon + formatted number + "pts" label.
+**Purpose:** Signals trust context through three badge types: Verified identity (golden amber), Referral origin (sandy tan), and Engagement quality (warm scale).
 
-**Content:** Star icon in accent color, points value with thousand separator, "pts" suffix.
+**Badge Types:**
 
-**States:**
-
-- Default: accent color (`--accent`)
-- Earning animation: brief count-up + glow when points just earned
-- Zero: "★ 0 pts — Start earning!" with link to how points work
+| Type | Color | Icon | Meaning |
+|---|---|---|---|
+| `verified` | Golden amber (`--portal-trust-verified`) | `BadgeCheck` | Identity verified |
+| `referral` | Sandy tan (`--portal-trust-referral`) | `Users` | Community referral |
+| `engagement` | Warm amber scale by tier | `Flame` / `Star` | Active participation |
 
 **Variants:**
 
-- Inline: small, single-line (nav bar, profile header)
-- Dashboard: large, with "View history" link
-- Earning toast: animated, shows "+50 pts" floating up
+| Variant | Description |
+|---|---|
+| `compact` | Icon only with tooltip — tight card layouts |
+| `labeled` | Icon + short label — default |
+| `extended` | Icon + full attribution label, rendered as Radix Popover on click/focus (Party Mode finding F-5 — explicit contract: extended uses Popover, not inline expand) |
+| `stacked` | Vertical stack — profile sidebars |
 
-**Accessibility:** `aria-label="[Number] community points"`. Earning animation respects `prefers-reduced-motion`.
+**States:** Default, hover (subtle shadow lift), focused (forest green focus ring). No "unverified" state — component simply not rendered.
+
+**Accessibility:**
+- `role="img"` with `aria-label="[type]: [label]"`
+- `compact` variant: tooltip on focus + hover with full label
+- `extended` variant: Popover with `role="dialog"`, focus trap, Escape to close
+- Badge rows: `<ul aria-label="Trust signals">`, each badge as `<li>`
 
 ---
 
-**5. StoryCircle**
+#### 4. JobCard
 
-**Purpose:** Mobile stories row — casual, low-pressure content from community members (Instagram pattern).
+**Layer:** Domain
 
-**Anatomy:**
+**Purpose:** The primary browsing unit for job seekers. Scannable summary for quick triage — seeker decides "apply / save / skip" within 3 seconds.
 
-```
-  ┌─────┐
-  │Ring  │
-  │Avatar│
-  └─────┘
-   Name
-```
+**Content (in visual order):**
+1. Employer logo (Avatar, 40px) + Employer name + TrustBadge row (verified/referral)
+2. Job title (`text-lg font-semibold`, forest green on hover)
+3. Location chip + Job type chip + Posted date (muted)
+4. Salary range — and inline MatchPill (`context="inline"`) immediately to the right of salary
+5. Skill tags (up to 4, overflow "+N more" chip)
+6. Action row: "Apply" Button (golden amber), "Save" icon button, "Share" icon button
 
-**Content:** 56px avatar inside a 2px ring (primary green if unviewed, grey if viewed), member first name below (10px, truncated).
+**Actions:**
+- Card click → job detail page (entire card is link except action buttons)
+- "Apply" → triggers ApplyDrawer
+- "Save" → toggle saved state, optimistic UI
+- "Share" → native share sheet (mobile), copy-link dropdown (desktop)
+
+**States:** Default, Hover (lifted shadow), Saved (golden amber left border), Applied (teal left border, "Applied" chip), New (<24h, green label), Featured (golden amber top border), Expired (desaturated, overlay chip), Loading (Skeleton)
+
+**Empty state (F-14):** When match data unavailable (engine not yet run), MatchPill not rendered — salary row shows salary only. No broken/placeholder state.
+
+**Variants:** `comfortable` (full padding — seeker feed default), `compact` (reduced padding — mobile list), `saved` (adds saved date footer), `recommended` (adds "Recommended for you" header strip)
+
+**Accessibility:**
+- Root: `<article aria-label="[Job title] at [Employer]">`
+- Apply: `aria-label="Apply to [Job title] at [Employer]"`
+- Save: `aria-label="Save [Job title]"`, `aria-pressed={saved}`
+- Card link: `<a>` wrapping title only — action buttons are separate focusable elements
+
+---
+
+#### 5. CandidateCard
+
+**Layer:** Domain
+
+**Purpose:** The primary browsing unit for employers reviewing applicants. Optimized for rapid candidate triage.
+
+**Content (in visual order):**
+1. Lead signal pill row: MatchPill (`context="lead"`) at far left, StatusPill at far right
+2. Name row: Avatar (32px) + Candidate name (font-semibold) + TrustBadge row inline
+3. Current role / location (muted, single line)
+4. Top 3 matching skills (green chip matched, gray chip unmatched)
+5. Application date + cover letter indicator (paperclip icon if present)
+6. Action row: "View Application" Button, "Shortlist" icon button, "Pass" icon button
+
+**Actions:**
+- Card click → candidate application detail
+- "Shortlist" → moves to Shortlisted, optimistic StatusPill update
+- "Pass" → lightweight confirmation (reason optional), moves to Rejected
+
+**States:** Default, Shortlisted (teal left border), Interview (purple left border), New/Unread (8px golden amber dot on Avatar), Selected/Bulk (checkbox visible, golden amber border), Loading (Skeleton)
+
+**Empty state (F-14):** When no applicants, parent surface renders EmptyStateCard — CandidateCard itself is never rendered empty.
+
+**Variants:** `comfortable` (full content, 2-column skill grid — added per F-2), `compact` (single-line name row, skills collapsed), `table-row` (minimal — name, match, status, date only, for admin bulk view)
+
+**Accessibility:**
+- Root: `<article aria-label="Application from [Candidate name]">`
+- Shortlist: `aria-label="Shortlist [name]"`, `aria-pressed`
+- Pass: `aria-label="Pass on [name]"`
+- Unread dot: `aria-label="New application"`
+
+---
+
+#### 6. ApplicationStatusBlock
+
+**Layer:** Domain
+
+**Purpose:** The seeker's primary status communication surface. Encodes the complete status story — current status, employer engagement signal (the "Viewed" moment), and the most recent timeline event. The `ViewedHeroSignal` concept is fully merged into this component.
+
+**Content — Two display modes:**
+
+**Standard mode** (status has not reached "Viewed by Employer"):
+- StatusPill (large variant, current status)
+- Last updated timestamp
+- Brief status description copy (i18n key: `Jobs.applicationStatus.[status].description`)
+- Link to full StatusTimeline
+
+**Viewed Hero mode** (employer has opened the application — the defining emotional moment):
+- Green gradient background (`from-green-50 to-emerald-50`) with green border (`border-green-200`)
+- Pulsing dot: 14px circle, forest green fill, glowing halo (CSS `@keyframes pulse` + box-shadow)
+- Hero headline: i18n key `Jobs.applicationStatus.viewed.headline` — "Good news — {employerName} has seen your application" (F-9: all microcopy through i18n pipeline, both EN and IG)
+- Supporting copy: i18n key `Jobs.applicationStatus.viewed.subtext`
+- StatusPill below (outline variant)
+- Viewed timestamp
+- Dismiss control (ghost `X`)
+
+**Viewed Hero Persistence (Party Mode Finding F-1):**
+- `firstView` state: pulse animation plays, gradient at full intensity — triggered ONCE per status change, tracked via `localStorage` key `viewed-ack-{applicationId}`
+- `persistent` state: static green indicator (no pulse, gradient at 50% intensity) — renders on all subsequent visits after acknowledgment
+- Dismiss collapses to standard mode with "Viewed" StatusPill, persists in localStorage
 
 **States:**
 
-- Unviewed: primary green ring border
-- Viewed: grey ring border
-- "Your story" variant: "+" overlay on avatar, accent ring
-- Loading: pulsing circle skeleton
+| State | Trigger | Visual |
+|---|---|---|
+| Applied | Initial | Standard, blue StatusPill |
+| Under Review | Employer opens queue | Standard, amber StatusPill |
+| Viewed (hero, first) | Employer opens application, first render | Hero mode — full gradient, pulse |
+| Viewed (hero, persistent) | Subsequent renders | Hero mode — muted gradient, no pulse |
+| Viewed (dismissed) | User taps dismiss | Standard, teal StatusPill with "Viewed" label |
+| Shortlisted | Employer acts | Standard, teal StatusPill, encouraging copy |
+| Interview | Scheduled | Standard, purple StatusPill |
+| Hired | Accepted | Standard, deep green StatusPill, celebratory copy |
+| Rejected | Decided | Standard, gray StatusPill, constructive copy |
 
-**Actions:** Tap → view story (full-screen overlay). Tap "Your story" → story composer.
+**Variants:** `card` (self-contained surface — dashboard list), `inline` (no border — inside detail page), `compact` (status + timestamp only)
 
-**Accessibility:** `role="button"` with `aria-label="View [Name]'s story"`. Stories auto-advance with pause on tap-and-hold.
-
----
-
-#### Feed & Content Components
-
-**6. PostCard**
-
-**Purpose:** The primary content unit in the feed — displays posts with media, reactions, and social interactions.
-
-**Anatomy:**
-
-```
-┌─────────────────────────────────┐
-│ [Avatar] Author [Badge] [Type]  │
-│          Location · Time        │
-├─────────────────────────────────┤
-│ Post body text...               │
-│                                 │
-│ ┌─────────────────────────────┐ │
-│ │    Media (photo/video)      │ │
-│ └─────────────────────────────┘ │
-├─────────────────────────────────┤
-│ ❤️ 24   💬 8   ↗ Share   🔖    │
-└─────────────────────────────────┘
-```
-
-**Content:** Author avatar (md 40px), author name, verification badge, post type tag, location, relative timestamp, post body text, optional media (photo/video), reaction count, comment count, share action, save action.
-
-**Actions:** Tap react → animated heart + count increment. Tap comment → comment sheet. Tap share → share options (groups, chat, copy link). Tap save → bookmark toggle. Tap media → full-screen viewer. Tap author → profile. Tap "..." → dropdown (edit/delete own, report others).
-
-**States:**
-
-- Default: white card, subtle border
-- With media: media fills card width, 16:9 aspect ratio for photos, auto-play muted for videos
-- Text-only: optional subtle left accent border (2px primary-light) to maintain visual weight
-- Announcement: green post-type badge, slightly elevated shadow
-- Event post: amber post-type badge, inline RSVP button
-- Pinned: pin label above post header
-- Loading: skeleton with avatar circle, text lines, media rectangle
-
-**Variants:**
-
-- Feed post (standard): full width with all elements
-- Compact (notification context): avatar-sm, single-line preview, no media
-- Group feed post: adds group name/icon above author
-
-**Accessibility:** `role="article"` with `aria-label="Post by [Author]"`. Media has alt text. React/comment/share buttons have clear labels. Video has controls visible on focus.
+**Accessibility:**
+- Hero mode: `role="alert"` with `aria-live="polite"` — triggers announcement on first appearance
+- Pulsing dot: `aria-hidden="true"` (decorative, content is in headline)
+- Dismiss: `aria-label="Dismiss employer viewed notification"`
+- Animation test strategy (R-2): test presence of `data-testid="status-block-pulse"` class, not the animation itself; `prefers-reduced-motion: reduce` disables pulse in CI
 
 ---
 
-**7. PostComposer**
+#### 7. StatusTimeline
 
-**Purpose:** Create new posts — the gateway to sharing content with the community.
+**Layer:** Domain
 
-**Anatomy (collapsed):**
+**Purpose:** Visualizes sequential progression of an application through the hiring pipeline.
 
-```
-┌─────────────────────────────────┐
-│ [Avatar] What's on your mind?   │
-└─────────────────────────────────┘
-```
+**Content — Vertical timeline structure:**
+- Each node: `StatusDot` (NOT StatusPill dot-only — F-6) + event label + timestamp + optional detail
+- Connector line between nodes (2px, dashed for future, solid for completed)
+- Active/current node: larger dot (16px), label font-semibold, connector below is dashed
+- Future/pending nodes: gray dot, muted label, no timestamp
 
-**Anatomy (expanded — mobile full-screen, desktop modal):**
+**StatusDot primitive (Party Mode finding F-6):**
+- Lightweight `<span>` element, not a pill container
+- Props: `size` (10 | 12 | 16), `status` (enum), `active` (boolean — triggers glow ring)
+- No label, no container padding — pure positioned dot
+- Used exclusively by StatusTimeline
 
-```
-┌─────────────────────────────────┐
-│ ✕ Create Post          [Post]   │
-├─────────────────────────────────┤
-│ [Avatar] Chidi Okafor           │
-│          [Post Type ▾]          │
-├─────────────────────────────────┤
-│ What's on your mind?            │
-│                                 │
-├─────────────────────────────────┤
-│ 📷 Photo  🎥 Video  📅 Event   │
-└─────────────────────────────────┘
-```
+**Event types:** Application submitted, Application viewed, Status change, Interview scheduled, Message received, Offer extended, Application withdrawn
 
-**Content:** Author avatar, author name, post type selector (Discussion/Announcement/Event), text area with placeholder, attachment options (photo, video, event link).
+**States:** Completed step (solid dot, solid connector), Active step (larger dot, glow, bold label), Pending step (gray dot, dashed connector, muted label), Loading (skeleton 4 nodes), Empty (single "Application submitted" node — F-14)
 
-**Actions:** Tap collapsed → expand. Type text. Add media → picker opens. Select post type. Tap "Post" → publish. Tap close → confirm discard if content exists.
+**Variants:** `vertical` (full height, default), `horizontal` (compact chips row, truncates to 4), `condensed` (last 2 events + "View all" link)
 
-**States:**
-
-- Collapsed: single-row, avatar + placeholder text + "Post" button
-- Expanded: full composer with text area, attachment bar, post type
-- Uploading media: progress bar below media preview
-- Posting: "Post" button shows spinner, inputs disabled
-- Error: inline error below the problematic element
-- Tier limit reached: friendly message replaces "Post" button
-
-**Accessibility:** Text area has `aria-label="Write your post"`. Attachment buttons have clear labels. Post type selector is keyboard-navigable. Focus trapped in expanded modal.
+**Accessibility:**
+- Root: `<ol aria-label="Application status timeline">`
+- Each step: `<li>`, active node gets `aria-current="step"`
+- Connector lines: `aria-hidden="true"` (decorative)
+- Timestamps: `<time datetime="ISO8601">`
+- Connector line visual testing: explicitly out of scope for unit tests — validated via Playwright screenshot assertion (R-6)
 
 ---
 
-**8. ArticleCard**
+#### 8. ApplyDrawer
 
-**Purpose:** Display an article in the articles grid — the cultural preservation showcase.
+**Layer:** Flow
 
-**Anatomy:**
+**Purpose:** The complete apply interaction contained in a bottom sheet (mobile) or right-panel sheet (desktop). The most critical flow component for seeker conversion.
 
-```
-┌─────────────────────────────────┐
-│ CULTURAL HERITAGE               │
-│ Article Title Here              │
-│ Preview text two lines max...   │
-├─────────────────────────────────┤
-│ [Avatar] Author   5 min · 215  │
-│                   [EN/IG]       │
-└─────────────────────────────────┘
-```
+**Layout Mode (Party Mode finding R-1):**
+Two conditionally rendered components (mobile Sheet, desktop side panel) sharing a single state machine and focus trap controller. NOT a single DOM tree with CSS layout switching — avoids conflicting ARIA patterns.
 
-**Content:** Category label (uppercase, primary color), title (bold), body preview (2 lines, truncated), author avatar (24px) + name, read time, read count, bilingual tag if applicable.
+**Steps:**
 
-**Actions:** Tap card → full article view. Tap author → profile.
+**Step 0 — Profile Gate (Phase 1 MVP — Party Mode finding R-5):**
+- Phase 1: inline banner inside Step 1 if profile incomplete (`!bio || !location`). Link to profile page. "Continue anyway" allowed with warning.
+- Phase 3: full `ProfileGate` component replaces inline banner (no throwaway stub)
 
-**States:**
+**Step 1 — Apply:**
+- Job summary header (title, employer, salary — read-only)
+- Resume selector: pre-filled with default, dropdown for alternate
+- Cover letter textarea (optional, 500 char, live count)
+- ReferralBanner (sandy tan) if referral detected
+- Availability date selector
+- "Submit Application" Button (golden amber, full width)
+- "Save as Draft" ghost button
 
-- Default: white card, border
-- Hover: border-primary, subtle elevation
-- Featured: accent "★ Featured" badge above category
-- Loading: skeleton
+**Step 2 — Confirmation (ConfirmationPanel):**
+- Success animation (CSS checkmark, forest green)
+- "Application submitted to {employer}" headline
+- Next-step guidance
+- StatusTimeline pre-populated with "Applied" step
+- "View My Applications" Button + "Find Similar Jobs" ghost button
 
-**Variants:**
+**Error Recovery (Party Mode finding R-3):**
+- On API failure: drawer stays open on Step 1, form data preserved, error banner below submit button with `role="alert"`
+- Retry button in error banner
+- No automatic retry — user-initiated only
 
-- Grid card: standard two-column layout
-- Hero card: full-width with side image (featured article)
-- Compact: single-line title + meta (sidebar/widget)
+**States:** Idle (closed), Opening (slide animation + focus trap), Step 1 active, Submitting (loading spinner, inputs disabled, no dismiss), Success (Step 2), Error (inline banner, form active), Saving draft (ghost loading, toast on success)
 
----
+**Variants:** `full` (all steps — default), `quick` (skips profile gate), `reapply` (prefills from previous application)
 
-**9. ArticleHeroCard**
-
-**Purpose:** Showcase the featured article prominently on dashboard and articles page.
-
-**Anatomy:**
-
-```
-┌──────────────┬──────────────────────────┐
-│              │ ★ Featured               │
-│  Article     │ Title of the Article     │
-│  Cover       │ Preview text paragraph   │
-│  Image       │                          │
-│              │ [Avatar] Author [Badge]  │
-│              │ 8 min · 340 reads [EN/IG]│
-└──────────────┴──────────────────────────┘
-```
-
-**Content:** Cover image (left, 240-340px width), featured badge, title (22px bold), body preview (3-4 lines), author avatar + name + badge, read time, read count, bilingual tag.
-
-**Actions:** Tap card → full article. Tap author → profile.
-
-**States:** Default, hover (elevation), loading (skeleton with image rectangle + text lines).
-
-**Variants:**
-
-- Dashboard hero: smaller, 240px image
-- Articles page hero: larger, 340px image
-- Mobile: stacked (image on top, content below)
+**Accessibility:**
+- `role="dialog"`, `aria-modal="true"`, `aria-labelledby` → drawer title
+- Focus: on open → first interactive element; on close → return to trigger
+- Escape: closes unless `submitting` state
+- Step transitions: `aria-live="polite"` announces step change
+- Submit: `aria-busy="true"` during submission
+- No nested Dialog inside Sheet — avoids vaul + Radix focus trap conflict (F-12)
 
 ---
 
-**10. EmptyState**
+### Supporting Components (Phase 2)
 
-**Purpose:** Warm, human response when content doesn't exist — igbo never shows a blank page.
-
-**Anatomy:**
-
-```
-┌─────────────────────────────────┐
-│           [Illustration]        │
-│                                 │
-│   Warm, human message           │
-│   Supportive sub-message        │
-│                                 │
-│        [ Primary CTA ]          │
-│        Secondary link           │
-└─────────────────────────────────┘
-```
-
-**Content:** Contextual illustration or icon, warm primary message, supportive secondary message, primary CTA button, optional secondary link.
-
-**Variants by Context:**
-
-| Context                     | Primary Message                                  | CTA                               |
-| --------------------------- | ------------------------------------------------ | --------------------------------- |
-| Directory: no local members | "Your city is still growing!"                    | "See members in [State/Country]"  |
-| Empty feed                  | "Your feed is waiting for you!"                  | "Join a group" / "Follow members" |
-| Empty chat                  | "Start a conversation"                           | "Find members"                    |
-| No events                   | "No upcoming events yet"                         | "Suggest an event"                |
-| No articles                 | "Be the first to share your story"               | "Write an article"                |
-| Search: no results          | "We couldn't find that — try different keywords" | "Browse all [type]"               |
-| Empty group                 | "This group is just getting started"             | "Invite members"                  |
-
-**Accessibility:** Message is a heading. CTA button is clearly labeled. Illustration has `aria-hidden="true"` (decorative).
+These six components depend on Phase 1 and expand coverage to notification, recovery, and detail surfaces.
 
 ---
 
-#### Chat Components
+#### NotificationItem
 
-**11. ConversationItem**
+**Layer:** Domain
 
-**Purpose:** A single conversation in the chat sidebar — the entry point to every conversation.
+**Purpose:** Single item in notification list, carrying status encoding via StatusPill and visual unread state.
 
-**Anatomy:**
+**Content:** Unread dot (8px, golden amber) | Avatar or icon | Headline | Supporting copy (1 line, truncated) | Relative timestamp | StatusPill (compact, when status-related)
 
-```
-┌─────────────────────────────────┐
-│ [Avatar] Name           2:14 PM │
-│  [●]     Last message pre...  3 │
-└─────────────────────────────────┘
-```
+**Actions:** Click → navigate to context. Mark read on click (optimistic).
 
-**Content:** Avatar (md 40px) with online indicator, name (bold if unread), timestamp (right-aligned), message preview (1 line, truncated), unread count badge (if any).
+**States:** Unread (golden amber left border, elevated bg), Read (default), Loading (skeleton), Hover (bg lift)
 
-**Actions:** Tap → open conversation. Long-press → context menu (mute, pin, archive).
-
-**States:**
-
-- Default: white background
-- Unread: name bold, unread count badge (primary green circle)
-- Active/selected: primary-light background
-- Hover: subtle primary-light background
-- Muted: muted-fg text, muted icon
-- Typing: preview replaced with "typing..." in italics
-
-**Variants:**
-
-- DM: single avatar
-- Group DM: stacked avatars (2-3 overlapping)
-- Channel: group icon instead of avatar, channel name prefixed with #
+**Variants:** `default` (full), `compact` (headline + timestamp only), `grouped` (count badge for collapsed same-type notifications)
 
 ---
 
-**12. ChatMessage**
+#### ReviewQueueRow
 
-**Purpose:** An individual message in a conversation thread.
+**Layer:** Domain
 
-**Anatomy (sent):**
+**Purpose:** Admin moderation queue row with entity, risk signal, and review controls inline.
 
-```
-                    ┌──────────────────┐
-                    │ Message text here │
-                    │ 2:20 PM  ✓✓      │
-                    └──────────────────┘
-```
+**Content:** Entity icon | Title | Submitter + TrustBadge | StatusPill | Risk dot (red/amber/green) | "Review" Button | Checkbox | Timestamp
 
-**Anatomy (received):**
+**Actions:** "Review" → detail panel. Checkbox → bulk select. Row click → same as Review.
 
-```
-┌──────────────────┐
-│ Message text here │
-│ 2:14 PM          │
-└──────────────────┘
-```
+**States:** Unreviewed, In Review (amber border), Approved (green, faded), Rejected (gray, faded), Flagged (red border)
 
-**Content:** Message text, timestamp, delivery status (sent only), optional: attachment preview, reply-to reference, emoji reactions.
-
-**Actions:** Long-press → context menu (reply, react, copy, delete). Swipe right → reply (mobile). Tap reaction → add/remove reaction. Tap attachment → full viewer.
-
-**States:**
-
-- Sent: primary green background, white text, right-aligned, rounded with flat bottom-right corner
-- Received: white background, border, left-aligned, rounded with flat bottom-left corner
-- Sending: slight opacity (0.7), single tick appears on send
-- Failed: red indicator with "Tap to retry"
-- With attachment: image/file preview above text
-- With reactions: emoji row below message
-- Reply: quoted message above (grey bar left border)
-- System message: centered, grey text, no bubble ("You and Ike are both in Texas")
-
-**Variants:**
-
-- Text message (standard)
-- Image message: image preview (max 300px wide), tappable to full-screen
-- Voice message: waveform visualization with play button, duration
-- File message: file icon + name + size, tappable to download
-
-**Accessibility:** Messages are `role="listitem"` in a `role="list"`. Sent/received distinguished by `aria-label`. Delivery status announced. Reactions are buttons with `aria-label="React with [emoji]"`.
+**Variants:** `posting-review`, `report-review`, `bulk-selected`
 
 ---
 
-**13. ChatInputBar**
+#### ReferralBanner
 
-**Purpose:** Message composition bar — fixed at bottom of chat pane.
+**Layer:** Domain
 
-**Anatomy:**
+**Purpose:** Sandy Tan attribution strip surfacing referral context.
 
-```
-┌──────────────────────────────────────┐
-│ [📎] [  Type a message...  ] [😊] [→]│
-└──────────────────────────────────────┘
-```
+**Content:** Users icon | "Referred by {name}" | Optional chain depth | Dismiss control
 
-**Content:** Attachment button (paperclip), text input (expanding, max 4 lines), emoji button, send button.
+**States:** Default (sandy tan bg), Dismissed (not rendered), Loading (skeleton)
 
-**Actions:** Tap paperclip → file/photo picker. Type → text appears, send button activates. Tap emoji → emoji panel overlay. Tap send → message sent, input clears. Hold mic icon (replaces send when input empty) → voice recording.
-
-**States:**
-
-- Empty: send button hidden or inactive, mic icon shown
-- Typing: send button appears (primary green arrow), mic hidden
-- Attachment selected: preview above input bar with remove option
-- Recording voice: red recording indicator with timer, cancel/send
-- Disabled (blocked user): "You cannot message this member" text
-
-**Accessibility:** Input has `aria-label="Type a message"`. Send button has `aria-label="Send message"`. Enter key sends (Shift+Enter for newline). Emoji panel is keyboard-navigable.
+**Variants:** `seeker-apply` (in ApplyDrawer, compact), `seeker-card` (JobCard footer), `employer-review` (CandidateCard when referred)
 
 ---
 
-#### Events & Groups Components
+#### EmptyStateCard
 
-**14. EventCard**
+**Layer:** Domain
 
-**Purpose:** Display an event in the events grid and dashboard widgets.
+**Purpose:** Context-aware recovery surface for zero-result states. Guided next action, never a dead end.
 
-**Anatomy:**
+**Content:** Icon/illustration | Headline (empathetic, specific) | Supporting copy (actionable) | Primary CTA | Optional secondary link
 
-```
-┌─────────────────────────────────┐
-│ [Feb] [Virtual]                 │
-│ [22 ]                           │
-│ Event Title Here                │
-│ Description preview text...     │
-│ 👥 45 RSVP'd                    │
-└─────────────────────────────────┘
-```
-
-**Content:** Date box (EventDateBox), event type tag, title, description (2 lines), attendee count.
-
-**Actions:** Tap card → event detail page. Tap RSVP (if inline) → confirm attendance.
-
-**States:**
-
-- Upcoming: default styling
-- Happening now: pulsing green border, "Live Now" badge
-- Past: muted styling, "View Recap" instead of RSVP
-- Full: "Waitlist" button instead of RSVP
-- Loading: skeleton
-
-**Variants:**
-
-- Grid card (events page): compact with date box, title, meta
-- Featured card (events page): large with full description, speakers, RSVP button
-- Widget card (dashboard): minimal — date, title, type tag, attendee count
-- Feed card (news feed): embedded in post with RSVP button
+**Variants by context:** `no-jobs`, `no-applications`, `no-candidates`, `no-notifications`, `no-search-results`, `queue-empty`
 
 ---
 
-**15. EventDateBox**
+#### ConfirmationPanel
 
-**Purpose:** Visually prominent date display — calendar-style box.
+**Layer:** Flow
 
-**Anatomy:**
+**Purpose:** Rich confirmation after apply submission or job posting. Emotional closure + next-step orientation.
 
-```
-┌─────┐
-│ FEB │  (10px uppercase)
-│ 22  │  (18px bold or 48px bold for featured)
-└─────┘
-```
+**Content:** Animated checkmark (CSS) | Headline | Body copy (what happens next) | StatusTimeline (first step) | Primary CTA | Secondary ghost CTA
 
-**Content:** Month abbreviation (3 letters, uppercase), day number.
-
-**States:** Color varies by event type — primary-light for virtual, success-light for in-person, accent-light for hybrid.
-
-**Variants:**
-
-- Small (36x36px): grid cards, widgets
-- Medium (44x44px): standard event cards
-- Large (featured): 120px+ width with weekday added
+**Variants:** `application-submitted`, `posting-published`, `posting-saved-draft` (lighter, no animation)
 
 ---
 
-**16. EventFeaturedCard**
+#### MatchBreakdown
 
-**Purpose:** Hero display for the next/most important event on the events page.
+**Layer:** Domain
 
-**Anatomy:**
+**Purpose:** Skill-by-skill explanation of match score. Triggered from MatchPill via popover or inline on detail pages.
 
-```
-┌──────────────┬──────────────────────────┐
-│              │ [Virtual] · 3 PM GMT     │
-│   FEBRUARY   │ Event Title              │
-│     22       │ Description paragraph    │
-│   Saturday   │ 👥 120 RSVP'd / 200 limit│
-│              │ 🎤 3 speakers             │
-│              │ [RSVP · Join Event]      │
-└──────────────┴──────────────────────────┘
-```
+**Content:** Overall MatchPill (large) | Score + explanation | Skill table (name, match icon, level comparison) | Gap skills section
 
-**Content:** Large date display (left, branded background), event type tag, time, title (20px bold), full description, meta row (attendees, speakers, duration), RSVP/Join button, "Add to Calendar" secondary action.
-
-**Actions:** RSVP button → single tap confirm. "Join" appears 15 minutes before event start. "Add to Calendar" → .ics download or Google Calendar link.
-
-**States:** Pre-event (RSVP available), near-event (Join button replaces RSVP), live (pulsing "Join Now"), past (recap view).
+**Variants:** `popover` (from MatchPill, max-width 320px), `section` (inline on detail page)
 
 ---
 
-**17. GroupCard**
+### Enhancement Components (Phase 3)
 
-**Purpose:** Display a group in the group directory and sidebar.
-
-**Anatomy:**
-
-```
-┌─────────────────────────────────┐
-│ [Icon] Group Name               │
-│        156 members · Public     │
-│ Description preview text...     │
-│        [ Join ]                 │
-└─────────────────────────────────┘
-```
-
-**Content:** Group icon/banner, group name, member count, visibility type, description (2 lines), join/request button.
-
-**Actions:** Tap card → group page. Tap join → instant join (public) or request sent (private).
-
-**States:**
-
-- Default: white card with border
-- Joined: "Joined ✓" badge, no join button, "Open" action
-- Private: "Request to Join" button
-- Hidden: not rendered in directory (invite-only)
-- Full: "Group is full" message
-- Loading: skeleton
-
-**Variants:**
-
-- Directory card: full with description and join button
-- Sidebar item: compact — icon + name + member count
-- Search result: name + member count + snippet
+Seven components addressing employer posting, admin, and advanced interactions. Depend on Phase 1 and Phase 2.
 
 ---
 
-#### Admin Components
+#### PostingForm
 
-**18. QueueSummaryCard**
+**Layer:** Flow — Multi-section job posting form with live preview panel. Auto-save every 30s, publish triggers confirmation dialog.
 
-**Purpose:** At-a-glance queue count on the admin dashboard — the first thing Amaka sees.
+**Variants:** `new`, `edit`, `from-template`
 
-**Anatomy:**
+#### DiffView
 
-```
-┌─────────────────┐
-│ Applications     │
-│ 4               │  (28px bold, colored)
-│ ↑ 2 since yesterday │
-└─────────────────┘
-```
+**Layer:** Flow — Side-by-side posting version comparison for admin review. Change summary + field-by-field diff with red/green highlighting.
 
-**Content:** Queue label, count (large, bold), trend indicator (up/down arrow + context).
+**Variants:** `side-by-side` (desktop), `inline` (mobile)
 
-**States:**
+#### ProfileGate
 
-- Normal: count in foreground color
-- Urgent: count in accent or destructive color (moderation queue has items > 24h old)
-- Empty: "0" in success color with "All clear!" message
-- Loading: skeleton with number placeholder
+**Layer:** Flow — Full profile completion checklist (replaces Phase 1 inline banner in ApplyDrawer). Progress bar + incomplete items + "Complete Profile" link + "Continue Anyway" option.
 
-**Variants:** Four instances — Applications (accent), Moderation (destructive), DAU (foreground), Total Members (foreground).
+**States:** `blocking` (<50% — Continue disabled), `advisory` (50–79% — Continue enabled), `clear` (≥80% — not rendered)
 
----
+#### TemplateSelector
 
-**19. ApplicationRow**
+**Layer:** Flow — Returning employer template picker. Grid of previous postings as selectable templates.
 
-**Purpose:** A membership application in the admin review table.
+**Variants:** `grid` (desktop), `list` (mobile), `empty` (no history)
 
-**Anatomy:**
+#### RiskFlagCard
 
-```
-│ [Avatar] Name    │ Location │ Connection │ Status  │ Actions    │
-│          Email   │          │ Strong     │ Pending │ [Approve]  │
-```
+**Layer:** Domain — Admin risk signal display with severity encoding.
 
-**Content:** Avatar + name + email, location, cultural connection strength (Strong/Unclear/Weak), status pill, action buttons.
+**States:** `high-risk` (red), `medium-risk` (amber), `low-risk` (green), `scanning` (skeleton), `clear`
 
-**Actions:** Approve → account created + welcome email. Request Info → clarification email. Reject → rejection with reason. View Details → expanded application view.
+#### AdminSignalPanel
 
-**States:**
+**Layer:** Domain — Employer trust context for admin review. Account age, post/reject ratio, moderation history, verification status.
 
-- Pending: amber status pill, all actions available
-- Awaiting Info: blue status pill, "Awaiting response" shown
-- Approved: green status pill, no actions (completed)
-- Rejected: red status pill, no actions (completed)
+**Variants:** `sidebar` (280px fixed), `inline` (collapsible)
 
-**Accessibility:** Table row is keyboard-navigable. Action buttons have clear labels. Keyboard shortcuts: A (approve), M (more info), R (reject), N (next).
+#### PostingPreview
 
----
+**Layer:** Flow — Live preview of in-progress posting rendered as read-only JobCard. Placeholder text for empty fields.
 
-**20. ModerationItem**
-
-**Purpose:** A flagged content item in the moderation queue.
-
-**Anatomy:**
-
-```
-┌─────────────────────────────────┐
-│ ⚠ Flagged Post by [Author]      │
-│ Flag reason: [Category]         │
-│ Flagged by: [Reporter/Auto]     │
-├─────────────────────────────────┤
-│ Content preview...              │
-├─────────────────────────────────┤
-│ [Approve] [Warn] [Suspend] [Ban]│
-└─────────────────────────────────┘
-```
-
-**Content:** Flag icon, content author, flag reason category, flag source (member report or auto-filter), content preview, action buttons.
-
-**Actions:** Approve (false positive) → remove flag. Warn → send warning notification. Suspend → temporary suspension dialog (duration selection). Ban → permanent ban confirmation dialog.
-
-**States:** Pending review, in-progress (admin viewing), resolved.
-
----
-
-#### Layout & Navigation Components
-
-**21. CulturalHeader**
-
-**Purpose:** The branded dashboard header — the first thing members see. "Welcome home."
-
-**Anatomy:**
-
-```
-┌─────────────────────────────────────────────┐
-│  Nno, Chidi                                 │
-│  Your community is active across 14 countries│
-│                                             │
-│  [💬 Chat] [📅 Events] [🔍 Find] [✏ Write]  │
-│                                             │
-│  487 Members · 14 Countries · 23 Online     │
-└─────────────────────────────────────────────┘
-```
-
-**Content:** Personalized greeting (Igbo "Nno" = Welcome) with member's first name, community status message, quick-action pills, community stats row.
-
-**States:**
-
-- Default: primary green gradient background, white text
-- First visit: enhanced greeting with "Welcome to the community!" and feature hints
-- Event day: "Town hall today at 3 PM!" banner addition
-
-**Variants:**
-
-- Desktop: full-width with stats row and quick actions
-- Mobile: compact — greeting + one-line stat, quick actions hidden (accessible via bottom tab)
-
-**Accessibility:** Greeting is heading level 1. Quick action pills are buttons with clear labels. Stats are `aria-live="polite"` for screen readers.
-
----
-
-**22. BottomTabBar**
-
-**Purpose:** Mobile primary navigation — 5 tabs, always visible, always reachable.
-
-**Anatomy:**
-
-```
-┌─────┬─────┬─────┬─────┬─────┐
-│ 🏠  │ 💬  │ 🔍  │ 📅  │ 👤  │
-│Home │Chat │Disc.│Event│Prof.│
-└─────┴─────┴─────┴─────┴─────┘
-```
-
-**Content:** 5 tabs — Home, Chat, Discover, Events, Profile. Each has icon (20px) + label (10px).
-
-**Actions:** Tap → navigate to section. Active tab highlighted in primary green.
-
-**States:**
-
-- Active: primary green icon + label, subtle indicator dot or bar
-- Inactive: muted-fg icon + label
-- Badge: red circle with count (Chat unread count, notification count)
-- Hidden: during full-screen experiences (video meetings, article editor)
-
-**Accessibility:** `role="navigation"` with `aria-label="Main navigation"`. Each tab is `role="tab"`. Active tab has `aria-selected="true"`. Badge count announced by screen reader.
-
----
-
-**23. LanguageToggle**
-
-**Purpose:** Switch between English and Igbo — as natural as code-switching mid-sentence.
-
-**Anatomy:**
-
-```
-┌──────────┬──────────┐
-│ English  │  Igbo    │
-└──────────┴──────────┘
-```
-
-**Content:** Two segments — "English" and "Igbo". Active segment highlighted.
-
-**Actions:** Tap inactive segment → UI language switches. On articles page, toggles article content language.
-
-**States:**
-
-- English active: "English" segment highlighted
-- Igbo active: "Igbo" segment highlighted
-- Loading: brief shimmer while translations load
-
-**Variants:**
-
-- Nav bar toggle: compact, in-line with navigation
-- Article toggle: prominent, above article content
-- Settings: radio group with description
-
-**Accessibility:** `role="radiogroup"` with `aria-label="Language selection"`. Each option is `role="radio"`. Change announces new language to screen reader.
-
----
-
-**24. GeographicFallbackRings**
-
-**Purpose:** The signature igbo interaction — expanding search rings that transform "no results" into discovery.
-
-**Anatomy:**
-
-```
-  Kuala Lumpur (3)  ←  active, filled
-    Malaysia (5)    ←  expandable
-  Southeast Asia (12) ← expandable
-   All Members (487)  ← expandable
-```
-
-**Content:** Horizontal row of pills showing geographic levels with member counts. Active level filled, expanded levels outlined.
-
-**Actions:** Tap a ring → filter results to that geographic level. Animation expands outward when fallback triggers.
-
-**States:**
-
-- Single level (results found locally): only one ring shown, no expansion needed
-- Fallback active: active ring filled, outer rings outlined with counts, animated expansion
-- All levels: all rings shown when user manually explores
-
-**Animation:** When search returns no city results, rings appear sequentially from center outward (300ms stagger) — feels like sonar discovering community members at wider ranges. Respects `prefers-reduced-motion` (instant display, no animation).
-
-**Accessibility:** `role="toolbar"` with `aria-label="Geographic scope"`. Each ring is a button with `aria-label="Show [count] members in [location]"`. Active ring has `aria-pressed="true"`.
+**States:** `empty`, `partial`, `complete`
 
 ---
 
 ### Component Implementation Strategy
 
-**Composition Pattern:**
-All 24 custom components are built by composing shadcn/ui base components + igbo design tokens. No custom CSS-in-JS runtime. Everything is Tailwind utility classes + CSS variables.
+#### Ownership and Boundaries
+
+All components are **portal-scoped** at `src/components/portal/`. They are NOT contributed to `@igbo/ui`. The boundary:
+
+- `@igbo/ui` owns: generic primitives with no domain knowledge
+- Portal owns: any component encoding job portal concepts, status semantics, or portal workflows
+
+#### Import Strategy (Party Mode Finding F-4)
+
+Direct imports matching the shadcn/ui pattern — no barrel files (`index.ts`). Every consumer imports the specific component file:
+
+```tsx
+import { StatusPill } from "@/components/portal/semantic/StatusPill/StatusPill";
+import { JobCard } from "@/components/portal/domain/JobCard/JobCard";
+```
+
+This ensures tree-shaking works without `sideEffects: false` configuration.
+
+#### Code Splitting (Party Mode Finding F-7)
+
+All portal page entry points use `next/dynamic` for portal components. Portal components are NOT included in the community platform's initial JS bundle.
+
+```tsx
+// In portal page files only:
+const JobCard = dynamic(() => import("@/components/portal/domain/JobCard/JobCard"));
+```
+
+Bundle-size audit required before Phase 1 ships.
+
+#### Directory Structure
 
 ```
-shadcn/ui Base (Button, Card, Avatar, Badge, Input, etc.)
-        ↓ composed into
-igbo Custom Components (MemberCard, PostCard, ChatMessage, etc.)
-        ↓ assembled into
-Page Layouts (Dashboard, Chat, Directory, Events, Articles, Admin)
+src/components/portal/
+  DensityContext.tsx
+  semantic/
+    StatusPill/StatusPill.tsx
+    StatusPill/StatusPill.test.tsx
+    StatusDot/StatusDot.tsx
+    MatchPill/MatchPill.tsx
+    TrustBadge/TrustBadge.tsx
+  domain/
+    JobCard/JobCard.tsx
+    CandidateCard/CandidateCard.tsx
+    ApplicationStatusBlock/ApplicationStatusBlock.tsx
+    StatusTimeline/StatusTimeline.tsx
+    NotificationItem/NotificationItem.tsx
+    ReviewQueueRow/ReviewQueueRow.tsx
+    ReferralBanner/ReferralBanner.tsx
+    EmptyStateCard/EmptyStateCard.tsx
+    MatchBreakdown/MatchBreakdown.tsx
+    RiskFlagCard/RiskFlagCard.tsx
+    AdminSignalPanel/AdminSignalPanel.tsx
+  flow/
+    ApplyDrawer/ApplyDrawer.tsx
+    ConfirmationPanel/ConfirmationPanel.tsx
+    PostingForm/PostingForm.tsx
+    PostingPreview/PostingPreview.tsx
+    DiffView/DiffView.tsx
+    ProfileGate/ProfileGate.tsx
+    TemplateSelector/TemplateSelector.tsx
 ```
 
-**Component Ownership:**
+#### Testing Strategy
 
-- `src/components/ui/` — shadcn/ui base components (installed, customized with igbo tokens)
-- `src/components/features/` — igbo custom composite components (24 components above)
-- `src/components/layout/` — page-level layout components (CulturalHeader, BottomTabBar, NavBar, PageShell)
+**Three test categories per component:**
 
-**Naming Convention:**
+1. **Structural snapshot (Vitest):** One snapshot per component at default props — validates DOM structure, not visual appearance. Limit to 1 snapshot per component to prevent churn (Party Mode finding F-13).
 
-- PascalCase for all component files and exports
-- Feature components prefixed by domain: `MemberCard`, `PostCard`, `ChatMessage`, `EventCard`, `AdminQueueCard`
-- Variant props use string unions: `size="sm" | "md" | "lg"`, `variant="default" | "featured" | "compact"`
+2. **Accessibility (axe-core):** Every component runs `axe()` assertions. Mandatory checks: color contrast (WCAG AA), role presence, label completeness, keyboard reachability. Flow components additionally require focus management assertions.
 
-**State Management in Components:**
+3. **Interaction tests:** Flow components require complete happy-path + primary error-path tests. Domain components require tests for stateful actions (save, apply, shortlist, dismiss). Semantic components require only render + accessibility — no interaction tests.
 
-- Local state for UI interactions (hover, expanded, focused)
-- Server state via TanStack Query for data (member info, post data, event details)
-- Real-time state via WebSocket for live updates (online indicators, typing indicators, unread counts)
-- Optimistic updates for user actions (send message, react, RSVP)
+**Animation testing (Party Mode finding R-2):** Test presence of animation class via `data-testid`, not the animation itself. `prefers-reduced-motion: reduce` disables animations in CI.
+
+**Connector line testing (Party Mode finding R-6):** StatusTimeline connector lines explicitly out of scope for Vitest. Validated via Playwright visual screenshot assertion in portal E2E suite.
+
+**Visual regression:** Delegated to Playwright screenshot tests or Storybook Chromatic — NOT Vitest snapshots. This prevents the 100+ snapshot explosion from variant × density × state combinations (F-13).
+
+#### Token Governance
+
+Portal tokens extend shared tokens via namespace prefix. No hardcoded color values anywhere.
+
+| Token Tier | Location | Example |
+|---|---|---|
+| Shared (`--color-*`) | `@igbo/ui` | `--color-primary`, `--color-border` |
+| Portal semantic (`--portal-*`) | `src/styles/portal-tokens.css` | `--portal-status-applied-bg`, `--portal-match-strong` |
+| Component-scoped (`--component-*`) | Component CSS module | `--job-card-hover-shadow` |
+
+Portal token files:
+```
+src/styles/
+  portal-tokens.css        # Status, match, trust semantic colors
+  portal-density.css       # Comfortable / Compact / Dense spacing scales
+  portal-animations.css    # Pulse halo, checkmark draw, transition timings
+```
+
+#### i18n Strategy (Party Mode Finding F-9)
+
+All user-facing component text — including "emotional microcopy" — goes through `messages/en.json` + `messages/ig.json` from day 1. Key structure:
+
+```json
+{
+  "Jobs": {
+    "applicationStatus": {
+      "viewed": {
+        "headline": "Good news — {employerName} has seen your application",
+        "subtext": "This is a positive signal. Employers typically review shortlisted candidates next."
+      },
+      "applied": { "description": "Your application is in the employer's review queue" },
+      "shortlisted": { "description": "You've been shortlisted — the employer is moving forward with you" }
+    }
+  }
+}
+```
+
+No hardcoded English strings in any component.
+
+---
 
 ### Implementation Roadmap
 
-**Phase 1 — Launch-Critical Components (Sprint 1-4):**
+#### Phase 1 — Core 8 Components
 
-| Component                   | Needed For               | Priority |
-| --------------------------- | ------------------------ | -------- |
-| CulturalHeader              | Dashboard                | P0       |
-| BottomTabBar                | Mobile navigation        | P0       |
-| PostCard                    | News feed                | P0       |
-| PostComposer                | Content creation         | P0       |
-| MemberCard (full + compact) | Directory, sidebar       | P0       |
-| ConversationItem            | Chat sidebar             | P0       |
-| ChatMessage                 | Chat pane                | P0       |
-| ChatInputBar                | Message sending          | P0       |
-| VerificationBadge           | Everywhere               | P0       |
-| OnlineIndicator             | Chat, member cards       | P0       |
-| EmptyState                  | All screens              | P0       |
-| QueueSummaryCard            | Admin dashboard          | P0       |
-| ApplicationRow              | Admin approval           | P0       |
-| EventCard                   | Events page              | P0       |
-| EventDateBox                | Events                   | P0       |
-| EventFeaturedCard           | Events page hero         | P0       |
-| ArticleCard                 | Articles section         | P0       |
-| ArticleHeroCard             | Dashboard, articles page | P0       |
-| GroupCard                   | Groups directory         | P0       |
-| GeographicFallbackRings     | Member discovery         | P0       |
-| LanguageToggle              | Bilingual UI             | P0       |
-| ModerationItem              | Admin moderation         | P0       |
+**Story breakdown (Party Mode finding F-10):**
+- **Story A — Semantic Layer:** StatusPill, StatusDot, MatchPill, TrustBadge + DensityContext + portal token files
+- **Story B — Domain + Flow Layer (blocked by Story A):** JobCard, CandidateCard, ApplicationStatusBlock, StatusTimeline, ApplyDrawer
 
-**Phase 2 — Polish Components (Sprint 5-6):**
+| Order | Component | Layer | Depends On |
+|---|---|---|---|
+| 1 | `DensityContext` | Infrastructure | Portal tokens |
+| 2 | `StatusPill` | Semantic | Portal tokens |
+| 3 | `StatusDot` | Semantic | Portal tokens |
+| 4 | `MatchPill` | Semantic | Portal tokens |
+| 5 | `TrustBadge` | Semantic | Portal tokens |
+| 6 | `StatusTimeline` | Domain | StatusDot |
+| 7 | `ApplicationStatusBlock` | Domain | StatusPill, StatusTimeline |
+| 8 | `JobCard` | Domain | StatusPill, MatchPill, TrustBadge |
+| 9 | `CandidateCard` | Domain | StatusPill, MatchPill, TrustBadge |
+| 10 | `ApplyDrawer` | Flow | JobCard, ApplicationStatusBlock, StatusTimeline |
 
-| Component            | Needed For         | Priority |
-| -------------------- | ------------------ | -------- |
-| StoryCircle          | Mobile stories row | P1       |
-| PointsDisplay        | Gamification       | P1       |
-| Component animations | Micro-interactions | P1       |
-| Skeleton variants    | All loading states | P1       |
+**Milestone:** Seeker apply flow and employer review surfaces functional end-to-end.
+
+#### Phase 2 — Supporting 6 Components
+
+| Order | Component | Layer | Depends On |
+|---|---|---|---|
+| 11 | `NotificationItem` | Domain | StatusPill |
+| 12 | `ReferralBanner` | Domain | Portal tokens only |
+| 13 | `EmptyStateCard` | Domain | None |
+| 14 | `MatchBreakdown` | Domain | MatchPill |
+| 15 | `ConfirmationPanel` | Flow | StatusTimeline, MatchBreakdown |
+| 16 | `ReviewQueueRow` | Domain | StatusPill, TrustBadge |
+
+**Milestone:** Notification list, recovery surfaces, admin queue row functional.
+
+#### Phase 3 — Enhancement 7 Components
+
+| Order | Component | Layer | Depends On |
+|---|---|---|---|
+| 17 | `ProfileGate` | Flow | Progress (shadcn) |
+| 18 | `PostingPreview` | Flow | JobCard |
+| 19 | `TemplateSelector` | Flow | JobCard (read-only) |
+| 20 | `PostingForm` | Flow | PostingPreview, TemplateSelector |
+| 21 | `AdminSignalPanel` | Domain | TrustBadge |
+| 22 | `RiskFlagCard` | Domain | None |
+| 23 | `DiffView` | Flow | ReviewQueueRow, AdminSignalPanel, RiskFlagCard |
+
+**Milestone:** Employer posting flow and full admin review tooling functional end-to-end.
+
+---
+
+### Party Mode Findings Incorporated
+
+The following findings from the multi-agent review (Sally/UX, Winston/Architect, Amelia/Dev, Quinn/QA, Bob/Scrum Master) were incorporated into this section:
+
+**Critical findings addressed:**
+- **F-1**: "Viewed" hero persistence — `firstView` vs `persistent` states with localStorage tracking (ApplicationStatusBlock)
+- **F-3**: Contextual token override — `context` prop on semantic components for sizing when embedded in domain cards
+- **F-7**: Code splitting — `next/dynamic` lazy loading for portal page entries
+- **F-8**: Deuteranopia accessibility — icon discriminators added to every StatusPill state (checkmark, star, clock, etc.)
+- **F-10**: Story breakdown — Phase 1 split into Story A (Semantic) → Story B (Domain + Flow) with explicit dependency
+- **F-11**: Density propagation — `DensityContext` with `useDensity()` hook, provider in portal layout
+- **F-14**: Empty states — inline empty state contracts on all Phase 1 components
+- **R-1**: ApplyDrawer layout — two conditionally rendered components sharing one state machine
+- **R-5**: Phase 1 ProfileGate — inline banner in Step 1, not a throwaway stub
+
+**Important findings addressed:**
+- **F-2**: CandidateCard `comfortable` variant added
+- **F-4**: Direct imports, no barrel files
+- **F-5**: TrustBadge `extended` uses Radix Popover (explicit contract)
+- **F-6**: `StatusDot` extracted as lightweight primitive for StatusTimeline
+- **F-9**: All microcopy through i18n pipeline (EN + IG) from day 1
+- **F-12**: No nested Dialog inside Sheet — avoids vaul + Radix focus trap conflict
+- **F-13**: One Vitest structural snapshot per component; visual regression via Playwright/Chromatic
+- **R-2**: Animation tested via class presence, not animation state
+- **R-3**: ApplyDrawer error recovery defined (drawer stays open, data preserved, inline error)
+- **R-6**: Connector line testing delegated to Playwright, not Vitest
 
 ## UX Consistency Patterns
 
+This section defines behavioral rules for how the igbo Job Portal responds to common interaction situations. These patterns ensure every surface — seeker, employer, admin, guest — behaves predictably and reinforces the established emotional design principles.
+
+---
+
 ### Button Hierarchy
 
-**Button Types & When to Use:**
+**Three-Tier Action System:**
 
-| Type            | Visual                                                                          | Usage                                                                                      | Example                                                         |
-| --------------- | ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ | --------------------------------------------------------------- |
-| **Primary**     | `bg-primary text-primary-foreground` (Deep Forest Green, white text)            | The single most important action on a screen. Only one primary button per visible context. | "Post", "Send Message", "RSVP", "Approve", "Submit Application" |
-| **Secondary**   | `bg-secondary text-secondary-foreground` (Warm Sandy Tan, dark brown text)      | Supporting actions that complement the primary.                                            | "Save Draft", "Cancel", "View All", "Add to Calendar"           |
-| **Accent**      | `bg-accent text-accent-foreground` (Golden Amber, white text)                   | Celebratory or attention-drawing actions. Use sparingly.                                   | "Join Event", "Write Article", "Upgrade Tier"                   |
-| **Destructive** | `bg-destructive text-destructive-foreground` (Muted Terracotta Red, white text) | Actions that delete, remove, or ban. Always require confirmation.                          | "Delete Post", "Ban Member", "Remove from Group"                |
-| **Ghost**       | `transparent text-foreground hover:bg-muted`                                    | Tertiary actions, icon-only buttons, or actions within dense UI.                           | "...", share icon, bookmark icon, close (X)                     |
-| **Outline**     | `border-border text-foreground hover:bg-muted`                                  | Alternative to secondary where less visual weight is needed.                               | "Request to Join", "View Profile", "More Info"                  |
+Every screen has at most one primary action. All other actions are secondary or tertiary. No exceptions.
 
-**Button Rules:**
+| Tier | Visual Treatment | Usage | Example |
+|------|-----------------|-------|---------|
+| **Primary** | Golden Amber fill (`--portal-action-primary`), white text, `font-semibold`, 44px min height, full-width on mobile | The one action the page exists to drive | "Apply Now", "Post Job", "Submit", "Approve" |
+| **Secondary** | Forest Green outline, transparent fill, Forest Green text, 44px min height | Important but not the primary conversion | "Save", "Shortlist", "Message", "Edit" |
+| **Tertiary / Ghost** | No border, no fill, muted text (`--color-muted-foreground`), underline on hover | Escape hatches, dismissals, navigation | "Cancel", "Skip", "Save as Draft", "View all" |
 
-1. **One primary per context.** A card, a modal, a page section — each gets one green primary button. If there are two important actions, one is primary and one is secondary or accent.
-2. **Destructive actions always confirm.** Every destructive button triggers a Dialog with clear description of what will happen. "Delete this post? This action cannot be undone." The confirmation dialog's destructive button is the only exception to rule 1 — both "Cancel" (secondary) and "Delete" (destructive) can coexist.
-3. **Minimum tap target: 44px height.** No button smaller than 44px tall on any platform. Small buttons (36px) only in dense admin contexts on desktop.
-4. **Loading state on submit.** Every button that triggers a server action shows a spinner inside the button and disables the button during processing. Text changes: "Post" → "Posting..." / "Approve" → "Approving..."
-5. **Icon + text for primary actions.** Primary and accent buttons should pair an icon with text. Ghost buttons may be icon-only if the context is clear (toolbar, action row), but must have `aria-label`.
-6. **Rounded corners.** All buttons use `radius-lg` (16px) — warmer and more approachable than sharp corners.
+**Destructive Actions:**
 
-**Button States:**
+Destructive buttons use neutral gray fill + destructive red text — never a red-filled button. Destructive red is reserved for admin risk signals, not user-facing actions. Destructive actions map to a **confirmation severity** based on emotional stakes and reversibility (Party Mode finding F-1):
 
-| State          | Visual Change                                                                  |
-| -------------- | ------------------------------------------------------------------------------ |
-| Default        | Base color as defined above                                                    |
-| Hover          | 10% darker background (`--primary-hover`, `--secondary-hover`) + subtle shadow |
-| Focus          | 2px focus ring in `--ring` color (primary green at 40% opacity), offset 2px    |
-| Active/Pressed | 15% darker background, slight scale-down (0.98)                                |
-| Disabled       | 50% opacity, `cursor-not-allowed`, no hover effect                             |
-| Loading        | Spinner replaces icon, text updates to progressive form, button disabled       |
+| Action | Visual | Confirmation Severity | Pattern | Rationale |
+|--------|--------|----------------------|---------|-----------|
+| Withdraw Application | Gray outline + "Withdraw" label | **High** — Dialog | Dialog with empathetic copy: "You won't be able to reapply to this role. Are you sure?" | Irreversible, emotionally high-stakes for seeker |
+| Close Listing | Gray outline + "Close" label | **High** — Dialog | Confirmation dialog with "Mark as Filled" vs "Close without hiring" options | Affects all applicants, irreversible |
+| Admin Reject Posting | Red outline (admin-only surface) | **High** — Dialog | Mandatory reason field in dialog | Affects employer, requires explanation |
+| Reject Candidate | Gray ghost + "Pass" label | **Medium** — Inline confirm | Inline expandable: optional reason textarea, confirm/cancel buttons | Reversible (can re-shortlist), but meaningful |
+| Delete Draft | Gray ghost + "Delete" label | **Low** — Undo toast | Immediate action + undo toast: "Draft deleted · Undo" (5s window) | Low-stakes, easily recreated |
+| Remove Saved Job | Ghost icon button | **Low** — Undo toast | Immediate toggle + undo toast: "Removed from saved · Undo" | Trivially reversible |
+
+**Icon-Only Buttons:**
+
+Used only when the action is universally recognizable (Save/bookmark, Share, Close/X, More/ellipsis). Every icon-only button requires `aria-label`. On mobile, icon-only buttons maintain 44px tap target with padding — never smaller.
+
+**Button Loading State:**
+
+- Primary: spinner replaces label text, button remains full-width, disabled, `aria-busy="true"`
+- Secondary: spinner appears inline left of label, button disabled
+- All buttons: no layout shift during loading — dimensions remain constant
+
+**Button Placement Rules:**
+
+| Context | Primary Position | Secondary Position |
+|---------|-----------------|-------------------|
+| Mobile full-screen flow | Sticky bottom bar, full-width | Above primary, full-width |
+| Desktop side panel / drawer | Bottom-right of panel | Bottom-left of panel |
+| Card inline actions | Right side of action row | Left of primary |
+| Dialog / confirmation | Right side of button row | Left of primary |
+
+**Multi-Action Card Pattern:**
+
+Cards (JobCard, CandidateCard, ReviewQueueRow) have an action row at the bottom. The primary action is the rightmost button (Golden Amber). Secondary actions are icon buttons to the left. The entire card surface (except action buttons) is a click/tap target to the detail page.
+
+---
 
 ### Feedback Patterns
 
-**Toast Notifications:**
+**Four Feedback Channels:**
 
-| Type              | Visual                                               | Duration                   | Usage                                                                         |
-| ----------------- | ---------------------------------------------------- | -------------------------- | ----------------------------------------------------------------------------- |
-| **Success**       | Green left border, checkmark icon, warm language     | 4 seconds auto-dismiss     | "Post published!", "Message sent", "RSVP confirmed"                           |
-| **Points Earned** | Accent (amber) background, star icon, animated count | 5 seconds auto-dismiss     | "+50 pts — Welcome to the community!", "+10 pts — Post shared"                |
-| **Error**         | Red left border, X icon, specific guidance           | Persistent until dismissed | "Upload failed — try a smaller image", "Message couldn't send — tap to retry" |
-| **Warning**       | Amber left border, warning icon, actionable message  | 6 seconds or dismiss       | "You've used 4 of 5 weekly posts", "Slow connection detected"                 |
-| **Info**          | Blue left border, info icon, neutral message         | 4 seconds auto-dismiss     | "New version available", "3 new members joined today"                         |
+The portal uses four distinct feedback mechanisms, each for a specific purpose. No overlap — every feedback moment maps to exactly one channel.
 
-**Toast Behavior:**
+| Channel | Mechanism | Duration | Purpose | Example |
+|---------|-----------|----------|---------|---------|
+| **Toast** | Floating notification (shadcn Toast) | 5 seconds, auto-dismiss | Confirmation of completed action | "Application submitted", "Job saved", "Draft saved" |
+| **Inline Banner** | Full-width banner inside the current container, `role="alert"` | Persistent until resolved or dismissed | Error requiring user action, or contextual warning | Form validation summary, API failure with retry, profile completion nudge |
+| **Status Change** | Component state update (StatusPill, card border, badge) | Persistent (reflects data state) | Data-driven state communication | "Viewed by employer", "Under Review", "Approved" |
+| **Push Notification** | System push + in-app NotificationItem | Until read | Async events the user needs to know about | "New application received", "You've been shortlisted" |
 
-- **Desktop:** Bottom-right corner, max 3 stacked. Newest on top. Each has close (X) button.
-- **Mobile:** Top of screen (below status bar), max 1 visible. Swipe up to dismiss.
-- **Queue:** If multiple toasts trigger simultaneously, they queue with 300ms delay between appearances.
-- **Undo:** For reversible actions (approve, archive, mute), toasts include an "Undo" action button. Undo window: 5 seconds.
-- **Animation:** Slide in from right (desktop) or down from top (mobile). Respects `prefers-reduced-motion` with instant appear/disappear.
+**Toast Rules:**
 
-**Inline Feedback:**
+- Maximum 1 toast visible at a time — new toast replaces previous
+- Always include an icon: checkmark (success), info circle (info), warning triangle (warning)
+- Never use toast for errors that require action — those are inline banners
+- Toast text is a single sentence, no links, no actions beyond "Dismiss" (exception: undo toasts include an "Undo" action button)
+- Success toasts use Forest Green icon. Info toasts use teal icon. Warning toasts use amber icon
+- Toast position: **top-center on mobile** when bottom sheet or bottom nav is active (prevents vertical collision with ApplyDrawer and bottom nav — Party Mode finding F-2); bottom-right on desktop
+- **Testability (Party Mode finding F-10):** All toasts render with `data-testid="toast-{type}"` (e.g., `toast-success`, `toast-error`). Toast component accepts a `duration` prop (default 5000ms). Unit tests pass `duration={0}` to test presence without timer manipulation. E2E tests (Playwright) use real timers.
 
-| Context                     | Feedback Type                                 | Placement                                            |
-| --------------------------- | --------------------------------------------- | ---------------------------------------------------- |
-| **Form validation error**   | Red text below the field, red border on input | Immediately below the erroring field                 |
-| **Form validation success** | Green checkmark inside input (right edge)     | Inside the validated field                           |
-| **Character count**         | Muted text below input, turns red at limit    | Below text area (right-aligned)                      |
-| **Tier limitation**         | Warm message replacing the action             | In-place where the action button was                 |
-| **Network status**          | Subtle banner below nav bar                   | Below top nav (desktop) or below status bar (mobile) |
+**Inline Banner Rules:**
 
-**Progressive Confirmation (Multi-Stage Feedback):**
+- Appears immediately below the triggering form or section header
+- Error banners: red-tinted background (`bg-destructive/10`) with destructive red left border — admin surfaces only. On user-facing surfaces, error banners use amber background with amber left border (empathetic, not alarming)
+- Warning banners: amber background (`bg-warning/10`) with amber left border
+- Info banners: blue background (`bg-info/10`) with blue left border
+- All banners include: icon (left), message text, optional action button (right), dismiss X (if not blocking)
+- `role="alert"` on error banners, `role="status"` on info/warning banners
+- Error banners are never auto-dismissible — user must resolve or dismiss
 
-| Action                 | Stage 1                                   | Stage 2                             | Stage 3                                        |
-| ---------------------- | ----------------------------------------- | ----------------------------------- | ---------------------------------------------- |
-| **Send message**       | Message appears in thread (optimistic)    | Single tick ✓ (sent to server)      | Double tick ✓✓ (delivered) → Blue ticks (read) |
-| **Publish post**       | "Posting..." spinner                      | Post appears in feed                | "+10 pts" toast                                |
-| **RSVP**               | Button changes to "RSVP'd ✓" (optimistic) | Toast: "You're going!"              | Calendar prompt: "Add to calendar?"            |
-| **Submit application** | "Submitting..." spinner                   | Confirmation page with warm message | Email confirmation within 1 hour               |
-| **Upload media**       | Progress bar (0-100%)                     | "Processing..."                     | Media appears in composer/post                 |
+**Optimistic UI Pattern:**
 
-**Milestone Celebrations:**
+Actions that modify state (Save job, Shortlist candidate, Mark as read) update the UI immediately without waiting for server confirmation.
 
-| Milestone                              | Feedback                                                                  | Frequency         |
-| -------------------------------------- | ------------------------------------------------------------------------- | ----------------- |
-| **First message sent**                 | Full toast: "You've connected with your first community member! +50 pts"  | Once per user     |
-| **First article published**            | Full toast: "Your story is live! The community can now read it."          | Once per user     |
-| **100 readers on article**             | Brief modal: "Your story reached 100 readers across 5 countries!"         | Per article       |
-| **New tier reached**                   | Full modal: "You've reached Professional tier! Here's what's new..."      | Per tier upgrade  |
-| **Points milestone (500, 1000, 5000)** | Toast: "★ 1,000 points! You're in the top 20% of community contributors." | At each threshold |
+**Implementation contract (Party Mode finding F-5):** All optimistic mutations use React Query's `useMutation` with a consistent three-callback pattern:
+
+```tsx
+useMutation({
+  mutationFn: updateFn,
+  onMutate: async (newValue) => {
+    await queryClient.cancelQueries({ queryKey });
+    const snapshot = queryClient.getQueryData(queryKey);
+    queryClient.setQueryData(queryKey, optimisticUpdate);
+    return { snapshot };
+  },
+  onError: (_err, _newValue, context) => {
+    queryClient.setQueryData(queryKey, context?.snapshot); // rollback
+    toast.error("Couldn't save — please try again");       // user feedback
+  },
+  onSettled: () => {
+    queryClient.invalidateQueries({ queryKey });            // re-sync
+  },
+});
+```
+
+This pattern is mandatory for every optimistic action — Save, Shortlist, Mark Read, Toggle Bookmark. No ad-hoc state management for optimistic updates.
+
+**Optimistic rollback test helper (Party Mode finding F-12):** A shared test utility `testOptimisticRollback({ renderHook, triggerAction, assertOptimisticState, simulateServerError, assertRolledBackState, assertErrorToast })` encapsulates the 5-step sequence: (1) trigger mutation, (2) assert optimistic UI appears immediately, (3) simulate server failure, (4) assert rollback to previous state, (5) assert error toast. Prevents duplicated test setup across every optimistic action test.
+
+Actions that create records (Submit application, Post job, Send message) are NOT optimistic — they show a loading state and wait for server confirmation before updating UI.
+
+**Error Severity Hierarchy:**
+
+| Severity | Visual | Channel | User Action Required |
+|----------|--------|---------|---------------------|
+| **Blocking** | Inline banner, form disabled until resolved | Inline Banner | Fix the issue (validation error, auth expired) |
+| **Recoverable** | Inline banner with retry button, form data preserved | Inline Banner | Retry or modify input |
+| **Degraded** | Toast + fallback content | Toast | None — system handles gracefully |
+| **Silent** | No user-facing feedback | Logging only | None — monitoring catches it |
+
+**Form Submission Feedback Sequence:**
+
+1. Button enters loading state (spinner, disabled, `aria-busy`)
+2. On success: toast confirmation + navigation or state update
+3. On failure: button re-enables, inline error banner appears below submit button with `role="alert"`, form data fully preserved
+4. On network timeout (10s): "This is taking longer than expected — please wait" inline message, with cancel option after 20s
+
+---
 
 ### Form Patterns
 
-**Input Field Styling:**
+**Form Architecture:**
 
-| Property    | Value                                                                   | Reason                                        |
-| ----------- | ----------------------------------------------------------------------- | --------------------------------------------- |
-| Height      | 44px minimum                                                            | Tap target, elder-friendly                    |
-| Font size   | 16px                                                                    | Prevents iOS zoom, readable                   |
-| Label       | Above input, `text-sm` (14px), `font-medium`                            | Always visible (never placeholder-only)       |
-| Placeholder | `text-muted-foreground`, contextual hint                                | "e.g., Houston, TX" not "Enter your location" |
-| Border      | `border-border` default, `border-primary` on focus                      | Clear focus indication                        |
-| Focus ring  | 2px `--ring` (primary green at 40%)                                     | Visible without overwhelming                  |
-| Error       | `border-destructive`, error text below in `text-destructive`, `text-sm` | Clear, specific, actionable                   |
-| Success     | Green checkmark inside field (right edge)                               | Positive reinforcement                        |
-| Disabled    | `bg-muted` background, 50% opacity                                      | Clearly non-interactive                       |
+The portal uses two form patterns based on complexity:
 
-**Validation Rules:**
+| Pattern | Structure | Use Case |
+|---------|-----------|----------|
+| **Single-Section** | All fields visible, vertical stack, submit at bottom | ApplyDrawer, filters, quick actions, report dialog |
+| **Collapsible-Section** | Multiple sections, all expanded by default, collapsible headers, sticky submit | PostingForm, company profile, admin settings |
 
-1. **Validate on blur, not on keystroke.** Users shouldn't see errors while still typing. Exception: character count updates in real-time.
-2. **Validate on submit for the full form.** Scroll to and focus the first erroring field. Show all errors at once (not one at a time).
-3. **Error messages are specific and actionable.** "Email is required" not "Invalid input." "Password must be at least 8 characters" not "Password too short."
-4. **Success confirmation is immediate.** Green checkmark appears the moment the field passes validation on blur.
-5. **Required fields marked with asterisk** (\*) — but most fields should be required. Mark optional fields with "(optional)" instead if fewer.
+No wizard/stepper pattern. Party Mode finding: wizards create "what's next" anxiety. All form content is visible and scrollable. Users can complete sections in any order.
 
-**Form Layout Patterns:**
+**Anti-Wizard Contract (Party Mode finding F-9):** Collapsible-section forms (PostingForm, company profile) enforce these rules explicitly: (1) all sections are expanded by default on first load, (2) sections can be collapsed/expanded by the user in any order, (3) completing sections in any order is valid — no sequential dependency, (4) the submit button is always visible (sticky bottom bar on mobile, sticky bottom-right on desktop) regardless of which sections are collapsed, (5) section headers show a completion indicator (checkmark when all required fields in that section are valid). This is the explicit anti-wizard contract — collapsible sections must never feel like sequential steps.
 
-| Pattern                       | When to Use                                                   | Implementation                                                          |
-| ----------------------------- | ------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| **Single column**             | All mobile forms, most desktop forms                          | Full-width fields stacked vertically                                    |
-| **Two column (desktop only)** | Related short fields (first name / last name, city / country) | Side-by-side on desktop, stacked on mobile                              |
-| **Stepped/wizard**            | Long forms (application, profile setup, event creation)       | Progress indicator at top, one section per step, back/next buttons      |
-| **Inline edit**               | Profile fields, settings                                      | Click text to transform into editable field, save/cancel buttons appear |
+**Field Anatomy:**
 
-**Multi-Step Form Pattern:**
+Every form field follows this structure (top to bottom):
 
-```
-┌─────────────────────────────────────────┐
-│  ● ─── ○ ─── ○ ─── ○                   │ (progress dots, filled = complete)
-│  Step 1 of 4: Basic Info                │
-├─────────────────────────────────────────┤
-│  [Form fields for this step]            │
-├─────────────────────────────────────────┤
-│  [← Back]              [Next Step →]    │
-└─────────────────────────────────────────┘
-```
+1. **Label** — `font-medium`, `text-sm`, above field. Required fields: no asterisk — instead, optional fields are labeled "(optional)". This inverts the pattern: most fields are required, so marking the exceptions is less noisy.
+2. **Helper text** — `text-xs`, `text-muted-foreground`, below label, above field. Provides context or examples. Always present for non-obvious fields (e.g., salary range: "Enter monthly range in NGN or annual in USD").
+3. **Input** — 44px min height, `text-base` (16px — prevents iOS zoom on focus), full-width on mobile
+4. **Validation message** — `text-xs`, appears below field on blur or submit. Error: amber text + warning icon. Success: green text + check icon (only for async validation like "Username available")
+5. **Character count** — `text-xs`, right-aligned below field, for textareas with limits. Shows `{current}/{max}`. Turns amber at 90%, red at 100%.
 
-- Progress indicator shows total steps and current position
-- "Back" button always available (never loses data)
-- Each step validates before allowing "Next"
-- Final step has primary action: "Submit" / "Create" / "Publish"
-- Data persists across steps (no loss on back navigation)
+**Validation Strategy:**
+
+| Timing | Type | Example |
+|--------|------|---------|
+| **On blur** | Field-level format validation | Email format, salary range (min < max), URL format |
+| **On change** (debounced 300ms) | Character count, real-time feedback | Description length, skill tag count |
+| **On submit** | Complete form validation, server-side checks | Required field completeness, duplicate detection, content policy |
+| **Async (on blur, debounced 500ms)** | Server-side uniqueness checks | Company name uniqueness, slug availability |
+
+**Validation Message Rules:**
+
+- Show one error per field — the most specific applicable error
+- Error messages are actionable sentences, not codes: "Salary minimum must be less than maximum" not "Invalid range"
+- On submit with errors: scroll to first error field, set focus, show inline banner summary at top of form ("3 fields need attention")
+- Successful fields show no indicator (clean state = valid) — green checks only for async validation results
+
+**Auto-Save Pattern (PostingForm only):**
+
+- Auto-save triggers 30 seconds after last keystroke (debounced)
+- Visual indicator: subtle "Saved" timestamp in form header, fades in/out
+- Manual save via "Save as Draft" ghost button
+- **`beforeunload` flush (Party Mode finding F-7):** On page leave with unsaved changes, the `beforeunload` handler first flushes any pending auto-save synchronously via `navigator.sendBeacon(saveEndpoint, formDataJSON)` before the browser shows the confirmation dialog. This prevents the race condition where a user navigates away at second 28 of the 30-second debounce — the save fires immediately via beacon, the user sees "unsaved changes?" only if the beacon cannot be sent (offline). Without this, users see false "unsaved changes" warnings for data that was about to be saved.
+- Draft recovery: on return, form populates from draft with "You have an unsaved draft from {date}" banner + "Resume" / "Start fresh" options
+
+**Skill Tag Input Pattern:**
+
+- Combobox with autocomplete from predefined skill library
+- Type-ahead filtering with keyboard navigation (arrow keys + Enter to select)
+- Selected skills render as removable Badge chips below input
+- Custom skills allowed (not in library) — visually distinguished with dashed border
+- Maximum tag limit per context (e.g., 10 required skills, 5 nice-to-have) — counter shows remaining
+- On mobile: full-screen overlay for skill selection (prevents keyboard-obscured dropdown issues)
+
+**Filter Form Pattern (Job Search, Candidate Filters):**
+
+- Horizontal bar on desktop (inline with results), collapsible bottom sheet on mobile ("Filter" button with active filter count badge)
+- Applied filters show as removable chips above results
+- "Clear all" ghost button when any filter is active
+- Filter changes trigger immediate re-fetch (no "Apply filters" button) — debounced 300ms for text inputs
+- **Stale overlay during re-fetch (Party Mode finding F-8):** During filter re-fetch, current results dim to 50% opacity with a small spinner in the results header ("Updating..."). This is faster-feeling than skeleton replacement for filter refinements where the user expects structurally similar results. Skeleton loading is reserved for initial page load only.
+- Results show count update: "Showing 23 of 147 jobs" — updates live
+- When results reach zero: show empty state immediately with "Clear filters" CTA — don't wait for user to notice
+- Filter persistence: active filters persist across page navigation within the same session (URL params). Cleared on new search.
+
+---
 
 ### Navigation Patterns
 
-**Desktop Navigation:**
+**Global Navigation:**
+
+The portal uses a shared navigation shell inherited from `@igbo/ui`, with portal-specific context:
+
+| Element | Mobile | Desktop |
+|---------|--------|---------|
+| **Top Nav** | Logo (link to portal home) + hamburger menu + notification bell + avatar | Logo + horizontal nav links + notification bell + avatar + "Post a Job" CTA (Golden Amber, if employer) |
+| **Bottom Nav** | 4-5 tabs: Home / Jobs / My Applications / Messages / Profile (seekers) OR Home / Dashboard / Messages / Profile (employers) | Not present — desktop uses top nav + sidebar |
+| **Sidebar** | Not present | Employer dashboard: collapsible left sidebar with job list, application counts, unread badges (Slack pattern) |
+
+**Navigation State Indicators:**
+
+- Active tab/link: Forest Green text + teal-shift underline (top nav) or filled icon (bottom nav)
+- Unread badge: Golden Amber dot (8px) on notification bell, numeric badge on bottom nav items
+- Current page: `aria-current="page"` on active nav link
+
+**Breadcrumb Pattern:**
+
+Used on detail pages (job detail, candidate detail, admin review detail) — not on dashboard or feed pages.
 
 ```
-┌──────────────────────────────────────────────────────────────┐
-│ [OBIGBO Logo]  Home  Chat  Discover  Events  Articles  Groups │ 🔍  🔔(3)  💬(5)  [Avatar ▾] │
-└──────────────────────────────────────────────────────────────┘
+Jobs > Frontend Developer at Zenith Fintech
+Dashboard > Applications > Adaeze Obi
+Admin > Review Queue > Posting #4823
 ```
 
-- **Position:** Fixed top, white background, subtle bottom border
-- **Active state:** Primary green text + underline indicator on active item
-- **Hover:** Primary green text (no underline until clicked)
-- **Badge counts:** Red circle with white number on notification bell and chat icon
-- **Search:** Click search icon → expands to search input (300px), click outside → collapses
-- **Profile dropdown:** Avatar click → dropdown with Profile, Settings, Points, Language Toggle, Logout
+- Mobile: shows only immediate parent as back link ("← Applications")
+- Desktop: full breadcrumb trail
+- Each segment is a link except the current page (plain text)
 
-**Mobile Navigation:**
+**Role-Based Navigation:**
 
-```
-┌─────┬─────┬─────┬─────┬─────┐
-│ 🏠  │ 💬  │ 🔍  │ 📅  │ 👤  │
-│Home │Chat │Disc.│Event│Prof.│
-│     │ (5) │     │     │     │
-└─────┴─────┴─────┴─────┴─────┘
-```
+The portal renders different navigation based on the user's active role context:
 
-- **Position:** Fixed bottom, white background, subtle top border, safe-area padding for iOS
-- **Active state:** Primary green icon + label, dot indicator above icon
-- **Inactive:** `muted-foreground` color
-- **Badge:** Red circle with count (max "99+") on Chat tab
-- **Hidden during:** Full-screen video meetings, article editor, photo viewer, story viewer
+| Role | Primary Nav Items | Dashboard Landing |
+|------|------------------|-------------------|
+| **Seeker** | Jobs for You, Browse All, Apprenticeships, My Applications, Saved Jobs | "Jobs for You" feed with match-sorted listings |
+| **Employer** | Dashboard, My Jobs, Applications, Messages, Company Profile | Summary cards: active jobs, new applications, messages |
+| **Admin** | Review Queue, Reports, Analytics, Settings | Queue count + flagged items + approval rate |
+| **Guest** | Browse Jobs, Apprenticeships, About | Job listings feed (identical to seeker, minus personalization) |
 
-**Navigation Transitions:**
+Users who are both seekers and employers see a role switcher in the top nav (icon toggle or dropdown). Role switch is persistent per session.
 
-| Transition                   | Animation                   | Duration |
-| ---------------------------- | --------------------------- | -------- |
-| Tab switch (bottom bar)      | Crossfade content           | 200ms    |
-| Push to detail (card → page) | Slide from right            | 250ms    |
-| Back from detail             | Slide from left             | 250ms    |
-| Modal open                   | Fade in + scale up from 95% | 200ms    |
-| Sheet open (mobile)          | Slide from bottom           | 250ms    |
-| Sheet open (desktop chat)    | Slide from right            | 250ms    |
+**Page Transition Pattern:**
 
-All animations respect `prefers-reduced-motion` → instant transitions, no animation.
+- All navigations use Next.js App Router `Link` with prefetching
+- Page transitions: instant swap with skeleton loading for data-dependent content
+- No full-page loading spinners — layout shell (nav, sidebar) remains stable during transitions
+- Back navigation preserves scroll position and filter state (via URL search params)
+- Deep links (shared job URLs, notification links) work for both authenticated and guest users — guests see full content, gated at action point (Apply)
 
-**Back Button Behavior:**
+**Guest Navigation & Conversion Gate:**
 
-| Context                                      | Back Action                            | Implementation                                                  |
-| -------------------------------------------- | -------------------------------------- | --------------------------------------------------------------- |
-| Detail page (profile, article, event)        | Return to previous list/feed position  | Browser back or top-left back arrow. Scroll position preserved. |
-| Modal/dialog                                 | Close modal, return to underlying page | Close (X) button or tap outside. Escape key on desktop.         |
-| Multi-step wizard                            | Return to previous step                | "Back" button within wizard. Browser back also works.           |
-| Nested navigation (group → member → profile) | Breadcrumb trail                       | Breadcrumbs on desktop. Back arrow on mobile.                   |
-| Chat → Profile (from chat context bar)       | Return to chat                         | Back arrow. Chat scroll position preserved.                     |
+Guests navigate freely — no login wall on any browse page. The gate appears only at action points:
 
-**Deep Linking:**
+| Action | Gate Behavior |
+|--------|--------------|
+| Apply to job | "Join to Apply" button (replaces "Apply Now"). Redirects to signup with return URL preserved in query param + localStorage |
+| Save job | "Join to Save" tooltip on hover/tap. Same redirect pattern. |
+| Message employer | "Join to Message" — same pattern |
+| Browse / Search / Filter / View detail | No gate. Full access. |
 
-Every significant view must have a unique URL that can be shared and bookmarked:
+After signup/login, the user is returned to the exact page and scroll position. If the triggering action was "Apply", the ApplyDrawer opens automatically on return.
 
-- `/dashboard` — Home/dashboard
-- `/chat` — Chat list, `/chat/:conversationId` — specific conversation
-- `/discover` — Member directory, `/discover?location=Houston` — pre-filtered
-- `/events` — Events list, `/events/:eventId` — specific event
-- `/articles` — Articles, `/articles/:articleId` — specific article
-- `/groups` — Groups, `/groups/:groupId` — specific group
-- `/profile/:memberId` — Member profile
-- `/admin` — Admin dashboard (authorized users only)
+---
 
-### Modal & Overlay Patterns
+### Modal and Overlay Patterns
 
-**When to Use Each:**
+**Three Overlay Types:**
 
-| Pattern                  | When                                                             | Visual                                                | Dismiss                                          |
-| ------------------------ | ---------------------------------------------------------------- | ----------------------------------------------------- | ------------------------------------------------ |
-| **Dialog (small modal)** | Confirmations, warnings, simple choices                          | Centered, max 480px width, backdrop overlay           | Close (X), click outside, Escape key             |
-| **Sheet (bottom/side)**  | Mobile filters, mobile composer, desktop chat panel              | Slides from bottom (mobile) or right (desktop)        | Swipe down (mobile), close button, click outside |
-| **Full-screen**          | Photo viewer, video player, mobile post composer, article editor | Covers entire viewport                                | Close (X) button in top corner                   |
-| **Dropdown**             | Menus, selects, action menus                                     | Below trigger element, 12px radius, warm shadow       | Click outside, select option, Escape key         |
-| **Tooltip**              | Badge explanations, icon clarifications                          | Small popover near trigger, arrow pointing to trigger | Mouse out, tap elsewhere (mobile), Escape        |
+| Type | Component | Trigger | Purpose | Mobile | Desktop |
+|------|-----------|---------|---------|--------|---------|
+| **Drawer** | Sheet (shadcn) | Primary flow action | Multi-step task flow | Bottom sheet (slides up, 90vh max) | Right-side panel (slides in, 480px width) |
+| **Dialog** | Dialog (shadcn) | Confirmation or focused input | Single-decision moment | Centered modal (full-width, 90% max-width) | Centered modal (480px max-width) |
+| **Popover** | Popover (shadcn) | Hover/focus on trigger element | Contextual detail expansion | Full-width bottom popover or inline expand | Anchored to trigger, 320px max-width |
 
-**Confirmation Dialog Pattern:**
+**Drawer Rules (ApplyDrawer, PostingForm mobile):**
 
-```
-┌─────────────────────────────────────┐
-│ Delete this post?                    │
-│                                     │
-│ This will permanently remove the     │
-│ post and all its comments. This     │
-│ action cannot be undone.            │
-│                                     │
-│      [Cancel]    [Delete Post]      │
-└─────────────────────────────────────┘
-```
+- Opens with slide animation (300ms ease-out)
+- Focus trap: first interactive element receives focus on open
+- Dismiss: swipe down (mobile), Escape key, click outside (unless submitting)
+- During submission: dismiss disabled, Escape disabled, backdrop click disabled
+- On close: focus returns to trigger element
+- Scroll: internal scroll, not page scroll — drawer content scrolls independently
+- `role="dialog"`, `aria-modal="true"`, `aria-labelledby` pointing to drawer title
+- Never nest a Dialog inside a Drawer — avoids focus trap conflicts (vaul + Radix)
 
-**Confirmation rules:**
+**Dialog Rules (Confirmations, Destructive actions):**
 
-1. Title clearly states the action as a question
-2. Body explains the consequence in plain language
-3. Cancel is always the secondary/left button
-4. Destructive action is right-aligned, uses destructive color
-5. Focus starts on the Cancel button (safe default)
-6. Escape key and click-outside trigger Cancel (not the destructive action)
+- Centered overlay with backdrop blur (`backdrop-blur-sm`)
+- Max 3 actions: Primary (right), Secondary (left), Cancel (ghost, far left or X button)
+- Content: headline + supporting copy + optional input (e.g., rejection reason) + action buttons
+- Focus trap: primary action button receives focus on open (for confirmations) or first input (for input dialogs)
+- Escape always closes (no blocking dialogs — even destructive confirmations can be escaped)
+- `role="alertdialog"` for destructive confirmations, `role="dialog"` for standard
 
-**Sheet Behavior:**
+**Popover Rules (MatchBreakdown, TrustBadge extended):**
 
-| Platform          | Direction    | Width/Height                            | Snap Points                                 |
-| ----------------- | ------------ | --------------------------------------- | ------------------------------------------- |
-| Mobile            | Bottom → Up  | Full width, 50% / 75% / 95% height snap | Drag handle at top; swipe down to dismiss   |
-| Desktop (chat)    | Right → Left | 360px fixed width                       | Toggle via nav icon; resize handle optional |
-| Desktop (filters) | Right → Left | 320px                                   | Close button; click outside dismisses       |
+- Triggered by click/focus (not hover-only — hover supplements but click is primary)
+- On mobile: renders as bottom sheet if content exceeds 200px height, otherwise inline expand
+- On desktop: anchored popover with arrow, max 320px width
+- Dismiss: click outside, Escape, or click trigger again (toggle)
+- No focus trap — focus stays in natural DOM order, popover is supplementary
+- `aria-expanded` on trigger, `aria-haspopup="dialog"` if interactive content inside
 
-### Empty States & Loading Patterns
+**Overlay Stacking Rule:**
 
-**Loading Patterns:**
+Maximum one overlay at a time. Opening a new overlay closes the previous one. Exception: toast notifications can appear over any overlay. Keyboard shortcuts are automatically deactivated while any overlay is open.
 
-| Content Type                              | Loading Treatment                                                                              | Never Use                          |
-| ----------------------------------------- | ---------------------------------------------------------------------------------------------- | ---------------------------------- |
-| **Feed posts**                            | Card-shaped skeletons matching PostCard anatomy (avatar circle + text lines + media rectangle) | Full-page spinner                  |
-| **Member cards**                          | Card-shaped skeletons matching MemberCard anatomy                                              | "Loading..." text                  |
-| **Chat messages**                         | Message-shaped skeletons (alternating left/right)                                              | Spinner in chat area               |
-| **Single item (profile, article, event)** | Content skeleton matching the target layout                                                    | Blank page with spinner            |
-| **Action in progress**                    | Spinner inside the triggering button                                                           | Disabled page with overlay spinner |
-| **Image loading**                         | Blurred placeholder (LQIP) → full image transition                                             | Broken image icon, empty rectangle |
+**Backdrop Behavior:**
+
+- Drawer: semi-transparent backdrop (`bg-black/50`), click to close
+- Dialog: semi-transparent backdrop with blur (`bg-black/50 backdrop-blur-sm`), click to close (except during submission)
+- Popover: no backdrop — lives alongside page content
+
+---
+
+### Empty States and Loading States
+
+**Loading State Hierarchy:**
+
+| State | Visual | Duration Threshold | Usage |
+|-------|--------|-------------------|-------|
+| **Skeleton** | Shimmer placeholder matching component layout | 0-3 seconds | Initial page load, data fetch, component hydration |
+| **Spinner** | Inline circular spinner (16px) with label | 0-10 seconds | Button submission, action in progress |
+| **Progress** | Determinate progress bar | >3 seconds for known-length operations | File upload, bulk operations |
+| **Stale overlay** | Content visible, dimmed (50% opacity), spinner in header | >0 seconds for refresh of existing content | Filter change on existing results, pull-to-refresh |
 
 **Skeleton Rules:**
 
-1. Skeletons match the exact layout of the content they're replacing — same widths, heights, and positions
-2. Pulse animation: gentle opacity oscillation (0.4 → 0.7 → 0.4) at 1.5s cycle
-3. Color: `--muted` background
-4. Skeletons appear immediately on navigation (no 100ms delay for fast loads — skeletons are better than a flash of content)
-5. Content replaces skeletons with a subtle fade-in (150ms). Respects `prefers-reduced-motion`.
+- Every data-driven component has a matching skeleton variant (defined in component spec)
+- Skeletons match the component's layout geometry exactly — same heights, widths, spacing
+- Skeleton shimmer: left-to-right sweep, 1.5s duration, ease-in-out, `prefers-reduced-motion: reduce` disables shimmer (static gray blocks instead)
+- Skeleton count: render 3 skeleton cards for list views (not 1, not 10 — 3 communicates "list loading" without over-promising)
+- Page-level skeleton: nav shell renders immediately (stable), content area shows skeletons for each section
 
-**Empty State Rules:**
+**Empty State Pattern:**
 
-Every empty state follows the EmptyState component pattern (defined in Component Strategy) and must include:
+Every empty state follows this structure (implemented via `EmptyStateCard` component):
 
-1. **Contextual illustration or icon** — culturally warm, not generic
-2. **Warm primary message** — human, encouraging, never "No results found"
-3. **Supportive secondary message** — explains why or what to expect
-4. **Primary CTA** — the most helpful next action
-5. **Optional secondary link** — an alternative path
+1. **Illustration or icon** — contextual, not generic. Each empty state variant has a specific icon.
+2. **Headline** — empathetic, specific to context. Never "No results" or "Nothing here."
+3. **Supporting copy** — actionable. Tells the user what to do next.
+4. **Primary CTA** — the most logical next action
+5. **Secondary link** — alternative path (optional)
 
-**Empty State Consistency Table:**
+**Emotional Tone Spectrum (Party Mode finding F-3):**
 
-| Screen                       | Illustration             | Primary Message                      | Secondary Message                                          | CTA                             |
-| ---------------------------- | ------------------------ | ------------------------------------ | ---------------------------------------------------------- | ------------------------------- |
-| Feed (new member)            | Community gathering icon | "Your feed is waiting for you!"      | "Join groups and follow members to see their posts here"   | "Explore Groups"                |
-| Chat (no conversations)      | Speech bubbles icon      | "Start a conversation"               | "Find community members and say hello"                     | "Find Members"                  |
-| Directory (no local results) | Map pin icon             | "Your city is still growing!"        | "Here are members nearby who'd love to connect"            | "See [State] Members"           |
-| Events (none upcoming)       | Calendar icon            | "No upcoming events yet"             | "Check back soon or suggest one to the community"          | "Browse Past Events"            |
-| Articles (empty)             | Pen/scroll icon          | "Be the first to share your story"   | "Write about your culture, experiences, or community life" | "Write Article"                 |
-| Notifications (empty)        | Bell icon                | "All caught up!"                     | "We'll let you know when something happens"                | (no CTA — this is a good state) |
-| Search (no results)          | Magnifying glass icon    | "We couldn't find that"              | "Try different keywords or browse categories"              | "Clear Search"                  |
-| Group (no posts yet)         | Group icon               | "This group is just getting started" | "Be the first to share something"                          | "Create Post"                   |
+Empty states are not emotionally uniform. Each variant maps to a specific tone on the spectrum, ensuring implementation never mismatches tone to context:
 
-**Offline/Error States:**
+| Tone | When | Headline Style | Icon Style | Examples |
+|------|------|---------------|-----------|---------|
+| **Celebratory** | User has completed everything | Light, rewarding, accomplished | Checkmark, sparkle, thumbs-up | "Queue clear — all caught up", "You're all caught up" (notifications) |
+| **Instructional** | User hasn't taken an action yet | Explanatory, guiding | Arrow, bookmark, lightbulb | "Save jobs to review them later", "Set up your company profile to start posting" |
+| **Reassuring** | User is waiting for something external | Patience-building, expectation-setting | Clock, hourglass, paper plane | "Applications typically arrive within 48 hours", "Your next opportunity is waiting" |
+| **Optimistic** | Platform is new or content is sparse | Forward-looking, community-building | Seedling, sunrise, megaphone | "New opportunities are being added daily", "Be the first to know" |
+| **Practical** | User's filters/search are too narrow | Direct, solution-oriented | Filter, magnifying glass | "No exact matches — try broadening your search", "No results for '{query}'" |
 
-| Condition                | User Sees                                                                             | Behavior                                                                            |
-| ------------------------ | ------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| **No internet**          | Subtle banner: "You're offline. Some features may be limited." + cached content below | Feed shows last cached posts. Chat shows cached messages. New messages queued.      |
-| **Slow connection**      | Banner: "Slow connection detected"                                                    | Images load as LQIP. Video shows thumbnail + "Tap to load." Aggressive compression. |
-| **Server error (500)**   | "Something went wrong on our end. We're looking into it." + retry button              | Auto-retry after 5 seconds (max 3 retries). Show cached content if available.       |
-| **Page not found (404)** | Warm 404: "This page has moved or doesn't exist yet."                                 | Suggest home, popular content, and search.                                          |
-| **Session expired**      | Gentle redirect to login: "Your session expired. Please log in again."                | Preserve the URL — redirect back after login.                                       |
+Implementation rule: every `EmptyStateCard` variant must declare its `tone` as a prop. This prevents a developer from accidentally using celebratory copy ("All caught up!") for an anxious context (no jobs found).
 
-### Search & Filtering Patterns
+**Empty State Variants:**
 
-**Global Search:**
+| Context | Headline | CTA | Tone |
+|---------|----------|-----|------|
+| **No jobs match filters** | "No exact matches — try broadening your search" | "Clear filters" + "Browse all jobs" | Practical |
+| **No jobs at all (cold start)** | "New opportunities are being added daily" | "Set up job alerts" + "Explore apprenticeships" | Optimistic |
+| **No applications yet (seeker)** | "Your next opportunity is waiting" | "Browse jobs" | Reassuring |
+| **No applications received (employer)** | "Applications typically arrive within 48 hours" | "Share your listing" + "Edit posting" | Reassuring |
+| **No candidates match (employer filter)** | "No candidates match these filters" | "Clear filters" + "View all applications" | Practical |
+| **Empty review queue (admin)** | "Queue clear — all caught up" | "View approved postings" + "Check reports" | Celebratory |
+| **No notifications** | "You're all caught up" | "Browse jobs" (seeker) / "Check dashboard" (employer) | Celebratory |
+| **No saved jobs** | "Save jobs to review them later" | "Browse jobs" | Instructional |
+| **Search no results** | "No results for '{query}'" | "Try different keywords" + "Browse all" | Practical |
 
-| Component           | Behavior                                                                                                       |
-| ------------------- | -------------------------------------------------------------------------------------------------------------- |
-| **Trigger**         | Click search icon (desktop nav) or search bar (mobile Discover tab)                                            |
-| **Input**           | Full-width on mobile, 300px expanding on desktop. Auto-focus on open.                                          |
-| **Results**         | Categorized: Members, Groups, Events, Articles. Show top 3 per category with "See all" link.                   |
-| **No results**      | "No results for '[query]'" with suggestions: "Try different keywords" + "Browse all members / groups / events" |
-| **Recent searches** | Show 5 most recent searches below input when empty. Clear all option.                                          |
-| **Keyboard**        | Enter submits, arrow keys navigate results, Escape closes.                                                     |
+**Cold Start Strategy:**
 
-**Filter Patterns:**
+During platform launch when listings are sparse:
 
-| Context              | Filter UI                                                                                   | Persistence                            |
-| -------------------- | ------------------------------------------------------------------------------------------- | -------------------------------------- |
-| **Member directory** | Horizontal filter chips below search: Location, Interests, Skills, Language, Tier           | Preserved in URL params during session |
-| **Events**           | Tab-style filters: All / Virtual / In-Person / My RSVPs / Past                              | Active tab in URL                      |
-| **Articles**         | Category pills: All / Cultural Heritage / Diaspora Life / Language / Community News / Youth | Active category in URL                 |
-| **Admin queues**     | Tab-style: Applications / Moderation / Articles / Reports + status filters within           | Preserved during admin session         |
+- "Jobs for you" section: if < 3 matches, backfill with trending/recent jobs in same location, labeled "Recently posted near you"
+- Apprenticeships section: always visible, even with 3-5 listings — styled as featured community program, not a sparse list
+- "Be the first to know" email alert CTA prominent on empty/sparse states
+- Guest landing page: total job count badge ("42 open positions") — updates dynamically, creates social proof even at modest numbers
 
-**Filter Behavior Rules:**
+---
 
-1. Filters are always visible (not hidden behind a "Filter" button) when space permits
-2. On mobile, if more than 5 filters, show in horizontally scrollable row
-3. Active filters show count of results: "23 members" / "8 events"
-4. "Clear all" button appears when any filter is active
-5. Filters update results immediately (no "Apply" button) — exception: complex multi-field filters on mobile use a sheet with "Apply"
-6. URL reflects active filters — shareable, bookmarkable, back-button friendly
+### Search and Filtering Patterns
 
-**Geographic Search (Unique to igbo):**
+**Search Architecture:**
 
-| Step | UI Element                             | Behavior                                                                |
-| ---- | -------------------------------------- | ----------------------------------------------------------------------- |
-| 1    | Location input pre-filled from profile | Editable with city autocomplete                                         |
-| 2    | Search executes                        | Skeleton loading cards appear immediately                               |
-| 3a   | Results found at city level            | Show "[X] members in [City]" + GeographicFallbackRings with city active |
-| 3b   | No results at city level               | Warm message + animated ring expansion to state → country → region      |
-| 4    | Geographic rings displayed             | Tappable pills to switch scope. Active scope filled, others outlined.   |
-| 5    | Results grid                           | MemberCard components with "Message" as primary action                  |
+| Surface | Search Type | Behavior |
+|---------|-------------|----------|
+| **Job Search (Seeker)** | Full-text + structured | Search bar (top of listings page) searches title, company, description. Filters refine by location, type, salary, skills, posted date. |
+| **Candidate Search (Employer)** | Structured only | No free-text search on candidates. Filter by match score, status, skills, date applied. Sorted by match score (default) or date. |
+| **Admin Queue Search** | Structured + keyword | Keyword search on posting title/company. Filter by status (pending/approved/rejected/flagged), risk level, employer trust tier, date. |
 
-### Real-Time Communication Patterns
+**Search Bar Behavior:**
 
-**Presence (Online/Offline):**
+- Single input field, full-width, with search icon (left) and clear button (right, appears when non-empty)
+- Placeholder text: "Search jobs by title, company, or skill..." (seeker), "Search postings..." (admin)
+- Triggers search on Enter (mobile) or debounced 300ms after typing stops (desktop)
+- Recent searches: dropdown showing last 5 searches (localStorage, per-device)
+- No auto-complete suggestions in MVP — deferred to post-launch iteration
 
-| Indicator                     | Where Shown                                                       | Update Frequency        |
-| ----------------------------- | ----------------------------------------------------------------- | ----------------------- |
-| Green dot (10px, `--success`) | Avatar bottom-right on member cards, chat sidebar, profile header | Real-time via WebSocket |
-| "Active now" text             | Profile page, chat header                                         | Real-time               |
-| "Last seen [time]"            | Chat header only (not public in directory)                        | On profile view         |
-| Member count "23 Online"      | CulturalHeader, group page                                        | Every 30 seconds        |
+**FilterParams URL Contract (Party Mode finding F-4):**
 
-**Typing Indicators:**
+All filter surfaces serialize state to URL search params using a shared schema. This ensures filters are shareable, bookmarkable, back-button friendly, and deep-linkable from notifications.
 
-| Context         | Visual                                                                               | Duration                                                      |
-| --------------- | ------------------------------------------------------------------------------------ | ------------------------------------------------------------- |
-| DM              | Three animated dots in chat pane: "..."                                              | Shows while typing, disappears 3 seconds after last keystroke |
-| Group chat      | "[Name] is typing..." text below messages                                            | Shows while typing, disappears 3 seconds after last keystroke |
-| Multiple typers | "[Name] and [Name] are typing..." (max 2 names, then "Several people are typing...") | Same timing                                                   |
-
-**Read Receipts:**
-
-| Stage     | Visual                               | Meaning                           |
-| --------- | ------------------------------------ | --------------------------------- |
-| Sending   | Grey single tick ✓ (0.5 opacity)     | Message sent to server            |
-| Sent      | Grey single tick ✓                   | Server received and stored        |
-| Delivered | Grey double tick ✓✓                  | Recipient's device received       |
-| Read      | Blue double tick ✓✓ (`--info` color) | Recipient opened the conversation |
-
-**Live Updates:**
-
-| Update Type                    | Visual Treatment                                              | Sound                                           |
-| ------------------------------ | ------------------------------------------------------------- | ----------------------------------------------- |
-| New feed post                  | "X new posts" pill at top of feed. Tap to scroll up and show. | None                                            |
-| New message (app open)         | Message appears in real-time. Badge count updates.            | Optional notification sound (user-configurable) |
-| New message (app backgrounded) | Push notification with sender name + preview                  | System notification sound                       |
-| New notification               | Bell badge increments. Toast if app is open.                  | None (toast is visual-only)                     |
-| Member came online             | Green dot appears on their avatar (no announcement)           | None                                            |
-| Event starting                 | "Join Now" button replaces RSVP + push notification           | System notification sound                       |
-
-### Tier & Permission Patterns
-
-**How to Communicate Access Levels:**
-
-igbo uses a tier system (Basic → Professional → Top-tier) that gates certain actions. The UX must communicate limitations warmly — never punitively.
-
-**Pattern: Warm Limitation Message**
-
-When a user attempts an action they can't perform at their tier:
+**Serialization format:**
 
 ```
-┌─────────────────────────────────────┐
-│ ✨ Article Writing                   │
-│                                     │
-│ Writing articles is available to     │
-│ Professional and Top-tier members.  │
-│                                     │
-│ You're 120 points from Professional │
-│ tier! Here's how to get there:      │
-│                                     │
-│ • Post in the community (+10 pts)   │
-│ • Attend an event (+25 pts)         │
-│ • Invite a member (+50 pts)         │
-│                                     │
-│       [See My Progress]             │
-└─────────────────────────────────────┘
+?context={scope}&q={search}&type={csv}&salary={min}-{max}&currency={code}&skills={csv}&exp={level}&posted={range}&remote={mode}&status={csv}&sort={field}&order={asc|desc}
 ```
 
 **Rules:**
 
-1. **Never say "you can't."** Say "this is available to [tier] members."
-2. **Always show proximity.** "You're 120 points away" — not just "upgrade required."
-3. **Always provide a path.** List specific actions that earn points toward the next tier.
-4. **Never block browsing.** Users can always see that features exist — they just can't use them yet.
-5. **Celebrate upgrades.** When a user reaches a new tier: full modal celebration with new capabilities listed.
+- Arrays use comma-delimited values: `?type=full-time,contract&skills=react,node`
+- Ranges use hyphen delimiter: `?salary=50000-100000`
+- Context dimension scopes filters: `?context=job-abc123` (employer viewing applications for a specific job), `?context=browse` (seeker browsing all jobs), `?context=review` (admin queue)
+- Notification deep links use context + filters: `?context=job-abc123&status=new` (employer tapped "3 new applications for Frontend Developer")
+- Empty/default values are omitted — clean URLs when no filters active
+- All three filter surfaces (job search, candidate filter, admin queue) use this shared schema via a `useFilterParams()` hook that reads/writes URL params
 
-**Tier Visibility in UI:**
+**Filter Architecture:**
 
-| Element      | How Tier Appears                                            |
-| ------------ | ----------------------------------------------------------- |
-| Profile page | VerificationBadge component (Blue/Red/Purple) + tier name   |
-| Member card  | Badge icon next to name                                     |
-| Post/article | Badge next to author name                                   |
-| Settings     | Current tier + progress bar to next tier + points breakdown |
-| Admin view   | Tier column in member tables                                |
+| Platform | Layout | Interaction |
+|----------|--------|-------------|
+| **Desktop** | Horizontal filter bar below search, inline with results | Click filter chip → dropdown with options. Applied filters shown as removable chips. |
+| **Mobile** | "Filter" button (top-right of results) with active count badge | Opens full-screen bottom sheet with all filter groups. "Show {n} results" primary button at bottom. "Clear all" ghost button. |
 
-### Media Patterns
+**Filter Groups (Job Search):**
 
-**Image Display:**
+| Filter | Type | Options |
+|--------|------|---------|
+| Location | Combobox (city/state autocomplete) | Top cities pre-populated + type-ahead |
+| Job Type | Multi-select chips | Full-time, Part-time, Contract, Apprenticeship |
+| Salary Range | Dual slider + manual input | Min/max with currency toggle (NGN/USD/GBP/EUR) |
+| Experience Level | Single-select chips | Entry, Mid, Senior, Lead |
+| Skills | Tag input (same as PostingForm) | Autocomplete from skill library |
+| Posted Date | Single-select chips | Last 24h, Last 7 days, Last 30 days, Any time |
+| Remote | Toggle | On-site / Remote / Hybrid |
 
-| Context                      | Aspect Ratio                                | Max Width                            | Loading                            |
-| ---------------------------- | ------------------------------------------- | ------------------------------------ | ---------------------------------- |
-| Feed post (single image)     | Original (max 4:5 portrait, 16:9 landscape) | 100% of card width                   | LQIP blur placeholder → full image |
-| Feed post (multi-image grid) | Square crops in 2x2 or 3-grid               | 100% of card width                   | LQIP per image                     |
-| Profile avatar               | 1:1 circle                                  | 32/40/56/80px per variant            | Initials fallback → image          |
-| Article hero                 | 16:9 landscape                              | 340px (desktop), full-width (mobile) | LQIP → full                        |
-| Article inline               | Original                                    | Max 100% of article width            | LQIP → full                        |
-| Chat attachment              | Original (max 300px wide)                   | 300px                                | Thumbnail → tap for full           |
+**Filter Interaction Rules:**
 
-**Video Display:**
+- Filter changes trigger immediate results update (no "Apply filters" button) — debounced 300ms
+- During re-fetch: stale overlay pattern (current results dim to 50% opacity, small spinner in results header) — not skeleton replacement
+- URL search params encode all active filters via the `FilterParams` contract — shareable, bookmarkable, back-button friendly
+- Results show count update: "Showing 23 jobs" → "Showing 8 jobs" as filters narrow — updates live
+- When results reach zero: show empty state immediately with "Clear filters" CTA — don't wait for user to notice
+- Filter persistence: active filters persist across page navigation within the same session (URL params). Cleared on new search.
 
-| Context            | Behavior                                                   | Controls                                                   |
-| ------------------ | ---------------------------------------------------------- | ---------------------------------------------------------- |
-| Feed inline        | Auto-play muted when 50% visible, pause when scrolled away | Tap for sound toggle, tap for full-screen                  |
-| Full-screen viewer | Playing with controls visible                              | Play/pause, progress bar, volume, full-screen exit         |
-| Chat attachment    | Thumbnail with play button overlay                         | Tap to play inline                                         |
-| Video event        | Embedded SDK player in meeting view                        | Camera toggle, mic toggle, screen share, chat panel, leave |
+**Sort Pattern:**
 
-**Upload Patterns:**
+| Surface | Default Sort | Options | UI |
+|---------|-------------|---------|-----|
+| Job listings (seeker) | Relevance (match score) | Relevance, Newest, Salary (high-low), Salary (low-high) | Dropdown, top-right of results |
+| Applications (employer) | Match score (descending) | Match score, Date applied, Status | Dropdown, top-right of list |
+| Review queue (admin) | Date submitted (oldest first — FIFO) | Date, Risk level, Employer trust tier | Column header sort (table pattern) |
 
-| Step        | UI                                                                 | Feedback                                                            |
-| ----------- | ------------------------------------------------------------------ | ------------------------------------------------------------------- |
-| Select file | Native picker (camera + gallery on mobile, file picker on desktop) | File type validation before upload begins                           |
-| Uploading   | Progress bar (0-100%) below preview thumbnail                      | Percentage text, estimated time for large files                     |
-| Processing  | "Processing..." with spinner                                       | Server-side compression/optimization                                |
-| Complete    | Preview replaces progress bar, remove (X) button                   | Ready to include in post/message                                    |
-| Error       | Red border on preview, "Upload failed" with retry option           | Specific error: "File too large (max 25MB)" or "Unsupported format" |
+**Sort + Filter Interaction:**
 
-**Bandwidth-Adaptive Behavior:**
+- Sort selection reorders current filtered results — does not reset filters
+- Active sort shown in dropdown label: "Sort: Relevance ▾"
+- Sort preference persists per session (not per page load)
 
-| Connection Speed    | Image Behavior                                 | Video Behavior                                |
-| ------------------- | ---------------------------------------------- | --------------------------------------------- |
-| Fast (>5 Mbps)      | Full resolution, instant loading               | Auto-play muted in feed, HD in full-screen    |
-| Moderate (1-5 Mbps) | Compressed images, progressive loading visible | Thumbnail only, tap to play (no auto-play)    |
-| Slow (<1 Mbps)      | Low-quality images, text-first loading         | Poster image only, "Tap to load video" prompt |
-| Offline             | Cached images from previous sessions           | "Video unavailable offline" placeholder       |
+**Admin Queue Filter Pattern (Dense Mode):**
 
-### Design System Integration
+Admin queue uses a table-header filter pattern instead of the chip bar:
 
-**Integration with shadcn/ui:**
+- Each column header is sortable (click to toggle asc/desc, indicator arrow)
+- Status column: dropdown filter inline with header
+- Risk column: dropdown filter inline with header
+- Bulk select: checkbox column (leftmost), "Select all on page" header checkbox
+- Bulk actions bar: appears fixed at bottom when ≥1 item selected — "Approve ({n})", "Reject ({n})", "Escalate ({n})"
 
-All UX patterns are implemented through the combination of:
+---
 
-1. **shadcn/ui base components** — Button, Dialog, Sheet, Input, Toast, Skeleton, Tabs provide the structural foundation
-2. **igbo design tokens** — Colors, typography, spacing, radius applied via Tailwind CSS / CSS variables
-3. **igbo custom components** — 24 composite components (MemberCard, PostCard, etc.) that assemble base components with business logic
+### Additional Patterns
 
-**Custom Pattern Rules:**
+#### Notification Dot & Badge Pattern
 
-1. **Warm over clinical.** Every system message, every empty state, every error message uses warm, human language. "Your city is still growing!" not "0 results found."
-2. **Cultural context first.** The platform's visual identity (OBIGBO green, obi metaphor, Igbo greetings) appears in every significant interaction — not just the dashboard.
-3. **Elder-proof by default.** 44px tap targets, 16px minimum text, clear labels, generous spacing. Accessible design isn't an accommodation — it's the baseline.
-4. **Progressive, not punitive.** Tier limitations are presented as growth opportunities. Empty states are presented as beginnings. Errors are presented as recoverable moments.
-5. **Mobile parity.** Every pattern must work on mobile. Desktop may have richer interactions (keyboard shortcuts, hover states, sidebars), but the core experience is identical.
-6. **Animation as communication.** Animations serve a purpose — geographic rings expanding (discovery), toast sliding in (confirmation), skeleton pulsing (loading). Decorative animation is avoided. All animation respects `prefers-reduced-motion`.
-7. **Consistency across contexts.** A MemberCard in the directory looks the same as a MemberCard in search results looks the same as a MemberCard in a group's member list. Same component, same behavior, same expectations.
+Unread indicators follow a consistent visual language across all surfaces:
+
+| Indicator | Visual | Where Used |
+|-----------|--------|-----------|
+| **Dot** (8px, Golden Amber) | Small circle, no number | Notification bell, bottom nav icon, avatar (new application) |
+| **Count badge** (min 20px, Golden Amber fill, white text) | Numeric count (max "99+") | Sidebar nav items, bottom nav items, dashboard summary cards |
+| **Left border accent** (3px, Golden Amber) | Vertical left border on card/row | NotificationItem (unread), CandidateCard (new application) |
+
+All indicators clear on view/interaction — "read" state is tracked server-side.
+
+#### Responsive Image Pattern
+
+- Employer logos: `Avatar` component with fallback to company initial letter (Forest Green bg, white text)
+- Candidate photos: `Avatar` component with fallback to name initials
+- All images: `loading="lazy"`, `next/image` with appropriate `sizes` attribute for responsive srcset
+- Broken image: graceful fallback to initial-letter Avatar — never a broken image icon
+
+#### Date & Time Display Pattern
+
+| Context | Format | Example |
+|---------|--------|---------|
+| Relative (< 7 days) | "Xh ago", "Xd ago" | "2h ago", "3d ago" |
+| Absolute (≥ 7 days) | "MMM DD, YYYY" | "Mar 30, 2026" |
+| Timestamp (detail views) | "MMM DD, YYYY at HH:MM" | "Mar 30, 2026 at 14:23" |
+| Salary period | Context-dependent | "/month" (NGN), "/year" (USD/GBP/EUR) |
+
+All dates rendered via `<time datetime="ISO8601">` for accessibility. Relative dates update on page focus (not live ticker — avoids layout shift).
+
+#### Bilingual Content Pattern
+
+- Language toggle: visible on all content pages (job listings, articles, company profiles)
+- Toggle position: top-right of content area, below page header
+- Toggle component: segmented control ("EN" | "IG"), persistent per session via `languagePreference`
+- Missing translation: fall back to English with subtle indicator "(Igbo translation unavailable)"
+- Form inputs: single-language per field. Bilingual content (job descriptions) uses paired fields: "Description (English)" + "Description (Igbo) — optional"
+
+#### Keyboard Shortcut Pattern (Desktop)
+
+**Registration hook (Party Mode findings F-6, F-11):** All keyboard shortcuts are registered through a centralized `useKeyboardShortcuts(scope, bindings, options)` hook:
+
+```tsx
+useKeyboardShortcuts("admin-queue", {
+  "j": { action: navigateDown, description: "Next item" },
+  "k": { action: navigateUp, description: "Previous item" },
+  "a": { action: approveSelected, description: "Approve" },
+  "r": { action: rejectSelected, description: "Open reject dialog" },
+}, { enabled: isQueueActive });
+```
+
+**Auto-deactivation rules:**
+
+- Shortcuts are disabled when any `<input>`, `<textarea>`, or `[contenteditable]` element is focused
+- Shortcuts are disabled when any overlay is open (drawer, dialog, popover) — respects the overlay stacking rule
+- Shortcuts are disabled when the scope's `enabled` option is `false` (enables test isolation — tests can mount the hook with `enabled: true` without rendering the full page layout)
+- Scope changes (page navigation) automatically deregister previous scope's shortcuts
+
+**Power-user shortcuts:**
+
+| Surface | Shortcut | Action |
+|---------|----------|--------|
+| Admin queue | `j` / `k` | Navigate up/down in queue |
+| Admin queue | `a` | Approve selected |
+| Admin queue | `r` | Reject selected (opens reason field) |
+| Employer applications | `j` / `k` | Navigate candidates |
+| Employer applications | `s` | Shortlist selected |
+| Global | `?` | Show keyboard shortcut overlay |
+
+Shortcuts are announced via `?` overlay (modal listing all active shortcuts for current scope), not discoverable through UI chrome.
+
+---
+
+### Cross-Cutting Behavioral Rules
+
+These five rules are **invariants** — they override any pattern in this section if a conflict arises. They encode the portal's core promises to users.
+
+#### Rule 1: Viewed Integrity
+
+The "Viewed by Employer" signal is the portal's defining emotional moment and its primary trust differentiator. It must never lie.
+
+- **"Viewed" fires only when an employer opens the specific application detail** — not when they scroll past the candidate card in a list, not when they load the applications tab, not when an automated system processes the application
+- The trigger is an explicit `application.viewed` event emitted by the candidate detail page load, gated by `session.role === 'employer'` and `session.userId === job.employerId`
+- Admin views do not trigger "Viewed" — only the hiring employer's view counts
+- The signal is **irreversible** — once fired, it cannot be un-fired. There is no "Employer un-viewed your application"
+- If the employer views the same application multiple times, only the first view generates the notification and hero treatment. Subsequent views update the `lastViewedAt` timestamp silently
+- **Degradation rule:** If the viewed event fails to persist (DB error, network), the system must retry (queue-based) rather than silently drop. A missed "Viewed" signal is worse than a delayed one — the user is waiting for proof they were seen
+- **Anti-gaming:** Bot/automated access to application detail pages must be detectable (rate limiting, session validation) — a fake "Viewed" signal would permanently damage platform trust
+
+#### Rule 2: Notification Throttling
+
+Notifications are a trust budget. Over-notification trains users to ignore; under-notification kills engagement. The system spends this budget deliberately.
+
+- **Per-user rate ceiling:** Maximum 5 push notifications per day per user. Beyond this, remaining notifications batch into a single daily digest (delivered at user's preferred time or 18:00 local default)
+- **Cooldown per source:** Same job/application can trigger at most 1 push notification per 4-hour window. Status changes within the window batch into the next notification: "Your application to Zenith Fintech has been shortlisted" (not three separate notifications for viewed → under review → shortlisted in rapid succession)
+- **Priority override:** Three notification types bypass throttling: (1) "You've been hired" — always immediate, (2) Direct message from employer/candidate — always immediate, (3) Account security (password reset, suspicious login) — always immediate
+- **Employer application batching:** New applications batch into a single notification per job per window: "3 new applications for Frontend Developer" — not 3 separate pushes
+- **Quiet hours:** User-configured quiet hours (default: 22:00–07:00 local) suppress all non-security push notifications. Suppressed notifications appear in-app on next visit
+- **In-app notifications are never throttled** — only push delivery is rate-limited. The notification list in-app always shows the complete, unthrottled feed
+
+#### Rule 3: Decision Speed
+
+Every surface has a target decision time. If a user cannot complete the surface's primary decision within the target, the information architecture is wrong.
+
+| Surface | Primary Decision | Target Time | What This Demands |
+|---------|-----------------|-------------|-------------------|
+| **JobCard (seeker)** | Apply / Save / Skip | **3 seconds** | Title, salary, location, match pill, employer trust — all visible without scrolling or tapping |
+| **CandidateCard (employer)** | Shortlist / Pass / Investigate | **5 seconds** | Match score, verification badge, top skills, referral signal — all in the lead row, no card expansion needed |
+| **ReviewQueueRow (admin)** | Approve / Reject / Escalate | **10 seconds** | Poster context (membership duration, posting history, risk flag) inline — no drill-through for clean postings |
+| **ApplyDrawer (seeker)** | Submit application | **60 seconds** | Profile auto-fill, default resume, no mandatory cover letter, one-tap submit |
+| **PostingForm (employer)** | Publish job listing | **5 minutes** | Inline company creation, template suggestions, live preview, collapsible sections |
+| **Notification item** | Navigate or dismiss | **2 seconds** | Headline + context must communicate full intent — no "You have a new update" vagueness |
+
+**Enforcement:** Decision speed targets are validated during usability testing (pre-launch) and through analytics (post-launch: time-on-surface metrics). If a surface consistently exceeds its target by >50%, it triggers a UX review.
+
+#### Rule 4: Trust Visibility
+
+Trust signals are the portal's structural advantage over generic job boards. They must be visible by default on every relevant surface — never hidden behind clicks, hovers, or expansions.
+
+- **Tier 1 trust signals (always visible on card surface):** Verification badge, match quality pill, referral badge. These appear on JobCard, CandidateCard, and ReviewQueueRow without any user interaction required
+- **Tier 2 trust signals (visible on detail page without scrolling):** Engagement level, membership duration, community endorsements, company verification status. These appear in the top section of detail pages, above the fold
+- **Tier 3 trust signals (available on demand):** Full referral chain, endorsement details, engagement history, posting approval rate. These appear in expandable sections or popovers (TrustBadge `extended` variant, AdminSignalPanel)
+- **No trust signal may be gated behind authentication.** Guests see verification badges and company trust indicators on job listings — this is part of the conversion strategy (trust builds before signup)
+- **Trust signal absence is not displayed.** If a user is not verified, no "Unverified" badge appears. If no referral exists, no "No referral" indicator. Absence is silence, not a negative signal — this prevents stigmatizing newer members
+- **Trust signals render independently of match data.** If the matching engine is down or hasn't run, trust badges still render. If trust data is unavailable, match pills still render. These are orthogonal systems with independent degradation
+
+#### Rule 5: Loading Honesty
+
+Loading states must never deceive. The user's mental model of what's happening must match reality.
+
+- **No fake progress bars.** Indeterminate operations (API calls, search queries) use spinners or shimmer skeletons — never a progress bar that fills at an arbitrary rate. Progress bars are reserved exclusively for operations with measurable completion (file upload percentage, bulk action N-of-M)
+- **No artificial delays.** If data loads in 50ms, render it in 50ms. Never add synthetic delay to "feel more substantial." Fast is good. The user knows fast is good
+- **Skeleton geometry must match real content.** A skeleton JobCard must have the same height, spacing, and section layout as a loaded JobCard. If skeletons are visually different from loaded content, the transition feels like a bait-and-switch. Skeleton width may vary (randomized between 60-90% to avoid uncanny uniformity)
+- **Stale data is labeled.** If a cached result is displayed while fresh data loads (stale-while-revalidate), no explicit label is needed for sub-1-second refreshes. For stale data older than 30 seconds (e.g., dashboard stats, match scores), show a subtle "Updated Xm ago" timestamp. Never present stale data as if it were live
+- **Error states are immediate.** If an operation fails, show the error immediately — never show a loading state that silently stops. The transition from "loading" to "error" must be instantaneous (no fade-out of spinner, fade-in of error — instant swap)
+- **Offline is stated, not hidden.** If the user loses connectivity, a persistent top banner appears: "You're offline — some features may be unavailable." Actions that require network show disabled state with tooltip "Requires internet connection." Never silently queue actions that may fail
+
+---
+
+### Party Mode Findings Incorporated
+
+| ID | Severity | Finding | Section Modified |
+|----|----------|---------|-----------------|
+| F-1 | Critical | Destructive action confirmation severity: Dialog (high-stakes) vs undo toast (low-stakes) | Button Hierarchy |
+| F-2 | Important | Toast position top-center on mobile when bottom sheet/nav present | Feedback Patterns |
+| F-3 | Important | Emotional tone spectrum for empty state variants | Empty States |
+| F-4 | Critical | `FilterParams` URL serialization contract with context dimension for deep links | Search/Filter |
+| F-5 | Important | Optimistic UI via `useMutation` with onMutate/onError/onSettled contract | Feedback Patterns |
+| F-6 | Important | `useKeyboardShortcuts(scope, bindings, options)` hook with auto-deactivation | Additional Patterns |
+| F-7 | Critical | Auto-save flush via `navigator.sendBeacon` on `beforeunload` | Form Patterns |
+| F-8 | Important | Stale overlay (dim + spinner) during filter re-fetch, not skeletons | Form Patterns, Search/Filter |
+| F-9 | Important | Explicit anti-wizard contract for collapsible-section forms | Form Patterns |
+| F-10 | Critical | Toasts expose `duration` prop + `data-testid` for testability | Feedback Patterns |
+| F-11 | Important | `useKeyboardShortcuts` accepts `enabled` boolean for test isolation | Additional Patterns |
+| F-12 | Important | Shared `testOptimisticRollback` test helper for 5-step mutation sequence | Feedback Patterns |
 
 ## Responsive Design & Accessibility
 
+This section consolidates the responsive and accessibility foundations established across earlier sections (Visual Design Foundation, Component Strategy, UX Consistency Patterns) and fills the remaining gaps: tablet strategy, component adaptation rules, screen reader flow contracts, network resilience, and the testing pipeline.
+
+---
+
 ### Responsive Strategy
 
-**Design Philosophy: Mobile-First, Desktop-Excellent**
+**Device Priority Model:**
 
-igbo is designed mobile-first because community members will check it on their phones the way they check WhatsApp — during commutes, during morning coffee, at gatherings. Desktop isn't secondary, it's _different_ — it's where Ngozi manages 150-member groups, where Amaka processes admin queues, where Chief Okonkwo's granddaughter helps him write articles.
+The portal serves three device contexts with distinct optimization priorities. Each context has a primary device and a secondary device that must remain fully functional.
 
-**Mobile Strategy (< 768px):**
+| Context | Primary Device | Secondary Device | Optimization Priority |
+|---------|---------------|-----------------|----------------------|
+| **Seeker** | Mobile (Lagos commute, evening browsing) | Desktop (home research sessions) | Speed, thumb reachability, data efficiency |
+| **Employer** | Desktop (office, candidate review) | Mobile (notification triage, quick actions) | Information density, multi-panel workflows |
+| **Admin** | Desktop (morning queue processing) | Tablet (notification follow-up) | Throughput, batch operations, inline context |
+| **Guest** | Mobile (Google result click, WhatsApp link) | Desktop (research-mode browsing) | First paint speed, SEO content visibility, conversion path clarity |
 
-| Aspect              | Approach                                                                                                                           |
-| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| **Navigation**      | 5-tab bottom bar (Home, Chat, Discover, Events, Profile). Top bar simplified: logo left, search + notifications right.             |
-| **Layout**          | Single column, full-width. No sidebars. Widgets stack below main content.                                                          |
-| **Content density** | One primary content stream. Cards use full width. Generous touch spacing (16px page padding).                                      |
-| **Interactions**    | Swipe gestures (swipe to reply in chat, pull-to-refresh on feed). Sheet slide-ups for filters, composers, menus.                   |
-| **Media**           | Images fill card width. Videos play inline (muted auto-play or tap-to-play depending on bandwidth). Stories row horizontal scroll. |
-| **Typography**      | 16px body minimum. Headings scaled down proportionally (24px page titles, 18px section headings).                                  |
-| **Chat**            | Full-screen experience. Conversation list → tap → full-screen conversation. No split view.                                         |
-| **Admin**           | Limited to critical actions (approve/reject applications). Full admin experience redirects to desktop.                             |
+**Design approach:** Mobile-first CSS with progressive enhancement. Base styles target mobile (< 768px). Media queries add complexity for larger viewports — never the reverse. This ensures the lowest-bandwidth, most constrained device gets the lightest payload.
 
-**Tablet Strategy (768px - 1024px):**
-
-| Aspect              | Approach                                                                                                   |
-| ------------------- | ---------------------------------------------------------------------------------------------------------- |
-| **Navigation**      | Top nav bar (desktop-style) with all items. No bottom tab bar.                                             |
-| **Layout**          | Two-column where beneficial. Feed + sidebar widgets. Directory uses 2-column card grid.                    |
-| **Content density** | Medium — more visible content than mobile, less dense than desktop. 24px page padding.                     |
-| **Interactions**    | Both touch and pointer supported. Hover states active (for keyboards/trackpads). Swipe gestures preserved. |
-| **Chat**            | Split view possible — conversation list (left, 300px) + conversation pane (right, remaining).              |
-| **Left sidebar**    | Collapsible. Hidden by default, toggle via hamburger or swipe from left edge.                              |
-| **Right sidebar**   | Widgets flow below main content (not a fixed sidebar).                                                     |
-
-**Desktop Strategy (> 1024px):**
-
-| Aspect              | Approach                                                                                                                                  |
-| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| **Navigation**      | Full top nav bar — all primary destinations visible. Profile dropdown with secondary items.                                               |
-| **Layout**          | Three-column: left sidebar (260px, collapsible) + main content (fluid) + right sidebar (300px). Max content width: 1280px, centered.      |
-| **Content density** | High — multiple content streams visible simultaneously. Feed, widgets, suggested members, upcoming events all visible. 32px page padding. |
-| **Interactions**    | Full keyboard support. Hover states on all interactive elements. Keyboard shortcuts for power users (admin queues, feed navigation).      |
-| **Chat**            | Collapsible right panel (360px), slides over right sidebar. Persistent — visible alongside any page content.                              |
-| **Admin**           | Full experience — dark sidebar navigation, data tables, analytics charts, bulk actions. Optimized for Amaka's 45-minute morning workflow. |
-| **Multi-panel**     | Chat + feed visible simultaneously. Admin queue + detail view side by side. Article editor + preview split view.                          |
-
-**Screen-Specific Layout Adaptation:**
-
-| Screen             | Mobile                                                    | Tablet                                          | Desktop                                                              |
-| ------------------ | --------------------------------------------------------- | ----------------------------------------------- | -------------------------------------------------------------------- |
-| **Dashboard**      | CulturalHeader (compact) → Stories → Feed (single column) | CulturalHeader → Feed + Sidebar widgets (2-col) | CulturalHeader → Left sidebar + Feed + Right sidebar (3-col)         |
-| **Chat**           | Full-screen conversation list OR conversation pane        | Split: list (300px) + pane                      | Split: list (320px) + pane + collapsible thread sidebar              |
-| **Directory**      | Full-width search → single-column MemberCards             | Search → 2-column MemberCard grid               | Search + filters (left) → 3-column MemberCard grid                   |
-| **Events**         | Featured event → single-column event list                 | Featured event → 2-column event grid            | Featured event (hero width) → 3-column event grid + calendar sidebar |
-| **Articles**       | ArticleHeroCard (stacked) → single-column ArticleCards    | ArticleHeroCard (side-by-side) → 2-column grid  | ArticleHeroCard (side-by-side, large) → 2-column grid + sidebar      |
-| **Profile**        | Full-width header → tabs → content (single column)        | Header → tabs → 2-column content                | Header → tabs → main content + sidebar (groups, activity)            |
-| **Admin**          | Simplified queue cards, one-at-a-time review              | Queue table + action panel                      | Full sidebar nav + queue table + detail panel + analytics            |
-| **Article Editor** | Full-screen editor, toolbar fixed top                     | Editor with floating toolbar                    | Split: editor (60%) + live preview (40%)                             |
+---
 
 ### Breakpoint Strategy
 
-**Breakpoint Definitions (Tailwind CSS):**
+**Three breakpoints inherited from the community platform:**
 
-| Breakpoint    | Width     | Tailwind Prefix | Target                                                      |
-| ------------- | --------- | --------------- | ----------------------------------------------------------- |
-| **xs** (base) | 0 - 374px | (default)       | Small phones (iPhone SE, older Android)                     |
-| **sm**        | 375px+    | `sm:`           | Standard phones (iPhone 14, Galaxy S series)                |
-| **md**        | 768px+    | `md:`           | Tablets (iPad, Android tablets), landscape phones           |
-| **lg**        | 1024px+   | `lg:`           | Small laptops, iPad Pro landscape                           |
-| **xl**        | 1280px+   | `xl:`           | Desktop monitors, full-width experience                     |
-| **2xl**       | 1536px+   | `2xl:`          | Large monitors (max content width already capped at 1280px) |
+| Breakpoint | Range | Tailwind | Layout Model |
+|------------|-------|----------|-------------|
+| **Mobile** | < 768px | Default (no prefix) | Single column, bottom nav, full-width cards, sticky bottom CTAs |
+| **Tablet** | 768px – 1023px | `md:` | Two-column where beneficial, top nav, side-by-side panels on detail pages |
+| **Desktop** | ≥ 1024px | `lg:` | Multi-column grids, sidebar navigation (employer/admin), detail panels, max-width 1280px centered |
 
-**Breakpoint-Driven Component Changes:**
+**No additional breakpoints.** The portal does not define breakpoints beyond these three. Component-level adaptation uses container queries for card-level responsiveness within grid cells — not viewport breakpoints. This prevents the "breakpoint explosion" problem where 5 breakpoints × 3 density modes = 15 layout variants.
 
-| Component                   | < 768px (Mobile)                      | 768-1024px (Tablet)                      | > 1024px (Desktop)                                   |
-| --------------------------- | ------------------------------------- | ---------------------------------------- | ---------------------------------------------------- |
-| **TopNavBar**               | Hidden (replaced by BottomTabBar)     | Visible, full                            | Visible, full + search expanded                      |
-| **BottomTabBar**            | Visible, 5 tabs                       | Hidden                                   | Hidden                                               |
-| **LeftSidebar**             | Hidden                                | Collapsible (toggle)                     | Visible, fixed 260px                                 |
-| **RightSidebar**            | Content flows below main              | Content flows below main                 | Visible, fixed 300px                                 |
-| **ChatPanel**               | Full-screen page                      | Split view (300px + rest)                | Collapsible overlay 360px                            |
-| **MemberCard**              | Full-width, stacked                   | 2-column grid                            | 3-column grid                                        |
-| **PostCard**                | Full-width                            | Full-width (max 680px centered)          | Full-width within main column                        |
-| **ArticleHeroCard**         | Stacked (image top, text below)       | Side-by-side (240px image)               | Side-by-side (340px image)                           |
-| **EventCard**               | Full-width, compact                   | 2-column grid                            | 3-column grid                                        |
-| **CulturalHeader**          | Compact: greeting + one stat line     | Medium: greeting + stats + quick actions | Full: greeting + stats + quick actions + description |
-| **PostComposer**            | Tap to expand → full-screen sheet     | Tap to expand → modal (max 600px)        | Tap to expand → modal (max 600px)                    |
-| **Dialog**                  | Full-screen sheet (slide from bottom) | Centered modal (max 480px)               | Centered modal (max 480px)                           |
-| **GeographicFallbackRings** | Vertical stack of pills               | Horizontal row                           | Horizontal row                                       |
-| **Admin tables**            | Card-based list (one card per row)    | Compact table                            | Full table with all columns                          |
+**Container Query Strategy:**
 
-**Mobile-First CSS Approach:**
+Cards (JobCard, CandidateCard, ReviewQueueRow) adapt to their container width, not the viewport. This means a CandidateCard renders in `compact` layout when placed in a narrow sidebar panel on desktop, even though the viewport is wide.
 
-```css
-/* Base styles = mobile */
-.member-card-grid {
-  @apply grid grid-cols-1 gap-4;
-}
+Use Tailwind CSS v4's native `@container` variant syntax (e.g., `@container-sm:flex-col`) rather than raw CSS `@container` queries, maintaining consistency with the existing Tailwind-first approach and ensuring JIT compilation handles variants correctly (Party Mode finding F-11).
 
-/* Tablet */
-@screen md {
-  .member-card-grid {
-    @apply grid-cols-2 gap-6;
-  }
-}
+**Orthogonal Axes Resolution (Party Mode finding F-2):**
 
-/* Desktop */
-@screen lg {
-  .member-card-grid {
-    @apply grid-cols-3 gap-6;
-  }
-}
+Density context and container queries are orthogonal adaptation mechanisms that control different aspects:
+
+- **Density context** (from `DensityContext`) controls **visual weight**: spacing, padding, line-height, typography scale. A Dense CandidateCard has tight padding and 1.3 line-height regardless of container width.
+- **Container queries** control **spatial arrangement**: column count, stack vs horizontal layout, content visibility tiers. A card in a 300px container stacks vertically regardless of density mode.
+
+These never conflict because they control different axes. A CandidateCard can be Dense (tight spacing) AND horizontal (wide container) or Dense AND stacked (narrow container). Density is never overridden by container width, and layout geometry is never overridden by density.
+
+---
+
+### Tablet Strategy
+
+Tablets occupy the space between mobile's single-column simplicity and desktop's information density. The portal treats tablet as **"mobile with room to breathe"** — not as a shrunken desktop.
+
+**Tablet Layout Rules:**
+
+| Surface | Mobile (< 768px) | Tablet (768–1023px) | Desktop (≥ 1024px) |
+|---------|-------------------|---------------------|---------------------|
+| **Job listings** | Single column, full-width cards | Two-column card grid (2 cards per row) | Three-column card grid |
+| **Job detail** | Full-width stacked sections | Side-by-side: content (60%) + apply panel (40%) | Same as tablet but with more padding |
+| **Employer dashboard** | Single column, tab-based sections | Two-column: summary cards left, candidate list right | Sidebar + main + optional detail panel |
+| **Candidate review** | Full-screen card stack, swipe navigation | Split view: candidate list (40%) + detail (60%) | Same as tablet with wider detail panel |
+| **Admin queue** | Card list (not table) | Table with horizontal scroll for overflow columns | Full table, all columns visible |
+| **ApplyDrawer** | Bottom sheet (90vh) | Bottom sheet (70vh, max 600px width, centered) | Right-side panel (480px) |
+| **PostingForm** | Full-width, collapsible sections | Two-column field layout within sections + right preview panel | Same as tablet |
+
+**Tablet-Specific Decisions:**
+
+- **No sidebar on tablet.** Employer/admin sidebar appears only at ≥ 1024px. On tablet, sidebar content moves to a top tab bar or hamburger menu. Sidebars on 768px screens consume too much horizontal space for the portal's information-dense cards.
+- **Tables convert to cards below 768px.** Admin queue renders as a table on tablet and desktop, card list on mobile. The table → card transformation preserves all data fields but stacks them vertically with label:value pairs.
+- **Split views start at 768px.** Job detail and candidate review use side-by-side panels on tablet. The split is 40/60 (list/detail) — not 50/50, because the detail panel needs more room for trust signals and content.
+- **Touch targets remain 44px on tablet.** Tablet users alternate between touch and keyboard (particularly iPad with Magic Keyboard). All interactive elements maintain the 44px minimum regardless of viewport.
+
+**Tablet Split View Accessibility (Party Mode finding F-5):** When a user selects a candidate from the left list panel, the right detail panel updates. For screen reader users, the detail panel content change must be announced. The detail panel includes a summary region with `aria-live="polite"` containing the candidate name and match score. This region announces on content change: "Adaeze Obi — Strong Match, 4 of 6 skills." The full detail content below is not inside the live region — only the summary line announces, preventing verbose re-reading of the entire panel.
+
+---
+
+### Component Adaptation Rules
+
+Each component tier (from the Component Strategy) follows specific adaptation rules when the viewport or container changes.
+
+#### Semantic Layer (StatusPill, MatchPill, TrustBadge)
+
+No responsive adaptation. These components render identically at all viewport sizes. Their size is controlled by the `context` prop (`inline` / `lead` / `standalone`) set by the parent domain component — not by the viewport.
+
+#### Domain Layer (JobCard, CandidateCard, ReviewQueueRow, etc.)
+
+Domain components are the primary responsive adaptation surface. They adapt via density context (from `DensityContext`) and container queries.
+
+**JobCard Adaptation:**
+
+| Viewport | Layout | What Changes |
+|----------|--------|-------------|
+| Mobile | Single column, full-width | Logo + employer name on one line. Title below. Salary + MatchPill on one line. Skills truncated to 3 + "+N". Action row: Apply full-width, Save and Share as icon buttons. |
+| Tablet (in 2-col grid) | Container ≤ 400px triggers compact | Same as mobile but without full-width Apply — Apply becomes standard-width button in action row. |
+| Desktop (in 3-col grid) | Container ~380px, compact | Same as tablet compact. |
+| Desktop (single-column list view) | Container > 500px, comfortable | Horizontal layout: logo left, content center, actions right. Skills show up to 5. Salary and match on separate lines. |
+
+**CandidateCard Adaptation:**
+
+| Viewport | Layout | What Changes |
+|----------|--------|-------------|
+| Mobile | Full-width stacked | Lead signal row (MatchPill + StatusPill) on top. Avatar + name + badges below. Skills as horizontal scroll chips. Actions as bottom row. |
+| Tablet (in split view, 40% panel) | Compact | Name + match score on one line. Skills collapsed to count ("4 skills match"). Actions as icon-only buttons. |
+| Desktop (in split view or list) | Comfortable | Full two-column skill grid. Cover letter indicator. All actions labeled. |
+| Desktop (table-row variant) | Dense | Single row: checkbox, name, match score, status pill, date, action icons. Used in admin bulk view. |
+
+**ReviewQueueRow Adaptation:**
+
+| Viewport | Render As | Content |
+|----------|-----------|---------|
+| Mobile | Card | Vertical stack: title, submitter + badges, status pill, risk dot, timestamp. Actions as bottom row. |
+| Tablet | Table row | All columns visible, but poster context collapsed to badge-only (hover/tap for detail popover). |
+| Desktop | Table row | Full inline: entity, submitter + trust badge + posting history count, status, risk, timestamp, actions. |
+
+**EmptyStateCard Adaptation:**
+
+| Viewport | Layout |
+|----------|--------|
+| Mobile | Centered, illustration above text, full-width CTA below |
+| Tablet/Desktop | Horizontal: illustration left (120px), text + CTAs right |
+
+#### Flow Layer (ApplyDrawer, PostingForm, ConfirmationPanel)
+
+Flow components render as entirely different DOM structures per viewport (Party Mode finding R-1 from Component Strategy). They share a state machine but render conditionally.
+
+**ApplyDrawer:**
+
+| Viewport | Component | Behavior |
+|----------|-----------|----------|
+| Mobile | `<Sheet>` (bottom sheet via vaul) | Slides up, 90vh, swipe-down to dismiss, internal scroll |
+| Tablet | `<Sheet>` (bottom sheet, centered) | 70vh max, 600px max-width, centered horizontally |
+| Desktop | Side panel (custom, not Sheet) | Fixed right panel, 480px, slide-in from right, page content shifts left |
+
+**PostingForm:**
+
+| Viewport | Layout |
+|----------|--------|
+| Mobile | Single column, collapsible sections, sticky submit at bottom |
+| Tablet | Two-column field layout within each section (e.g., title + type side-by-side, salary min + max side-by-side). Preview panel as collapsible bottom sheet. |
+| Desktop | Same two-column fields. Preview panel as persistent right panel (PostingPreview, 360px). |
+
+#### Content Visibility Tiers
+
+Every piece of information on a card is classified into a visibility tier. These tiers determine what's shown at each viewport:
+
+| Tier | Rule | Examples |
+|------|------|---------|
+| **T1 — Always visible** | Shown on all viewports, all density modes | Job title, salary, employer name, candidate name, match pill, status pill, primary CTA |
+| **T2 — Collapse on narrow** | Hidden on mobile, shown on tablet+. On mobile: accessible via "Show more" tap or on detail page | Skills list (beyond 3), cover letter indicator, posting history count, engagement level, employer team size |
+| **T3 — Detail page only** | Never on cards. Only on detail/expanded views | Full job description, complete skill breakdown, referral chain, endorsement details, match explanation |
+
+**Implementation rule:** T2 content on mobile collapses behind a `<details>` / chevron affordance or is omitted entirely from the card. It must never cause the card to exceed one screen-height on a 375px viewport (iPhone SE baseline). If T1 content alone exceeds one screen-height, the card layout must be revisited.
+
+---
+
+### Screen Reader Flow Contracts
+
+#### Page Landmark Structure
+
+Every portal page follows this landmark hierarchy. Screen reader users navigate by landmarks (`rotor` on VoiceOver, `D` key on NVDA).
+
+```
+<header>          → Top navigation (role="banner")
+  <nav>           → Primary navigation (aria-label="Main navigation")
+<main>            → Page content (role="main")
+  <nav>           → Breadcrumb (aria-label="Breadcrumb", only on detail pages)
+  <section>       → Primary content area (aria-label="{Page title}")
+  <aside>         → Sidebar or secondary panel (aria-label="Dashboard sidebar" / "Job details")
+<footer>          → Portal footer (role="contentinfo")
+<nav>             → Bottom navigation on mobile (aria-label="Quick navigation", only mobile)
 ```
 
-All styles are written mobile-first — base styles serve the smallest screens, and `md:` / `lg:` / `xl:` prefixes progressively enhance for larger screens. This ensures the mobile experience is never an afterthought.
+**Rules:**
+- Every page has exactly one `<main>` element
+- Every `<nav>` has a unique `aria-label` — no two navs with the same label on a page
+- `<section>` elements inside `<main>` use `aria-label` or `aria-labelledby` pointing to a visible heading
+- Sidebar/aside panels use `aria-label` that describes their content, not their position
 
-**Container Strategy:**
+#### Heading Hierarchy
+
+Every page follows a strict heading hierarchy. No skipped levels.
 
 ```
-Mobile:    [16px padding] [content: 100%] [16px padding]
-Tablet:    [24px padding] [content: 100%] [24px padding]
-Desktop:   [auto margin] [content: max 1280px] [auto margin]
-           [32px inner padding on content]
+<h1> → Page title (one per page, e.g., "Frontend Developer at Zenith Fintech")
+  <h2> → Section headings (e.g., "Job Details", "Required Skills", "About the Company")
+    <h3> → Subsection headings (e.g., "Responsibilities", "Benefits")
 ```
 
-**Touch vs. Pointer Adaptation:**
+**Card headings in lists:** JobCards, CandidateCards in a list use `<h2>` for the card title (job title, candidate name). The list page `<h1>` is the page title ("Jobs for You", "Applications"). This creates a navigable heading structure: `h1: Jobs for You → h2: Frontend Developer → h2: Backend Engineer → h2: UX Designer`.
 
-| Feature        | Touch (Mobile/Tablet)                                      | Pointer (Desktop)                                |
-| -------------- | ---------------------------------------------------------- | ------------------------------------------------ |
-| Hover states   | No hover (tap-only)                                        | Hover previews, hover elevation on cards         |
-| Context menu   | Long-press (500ms)                                         | Right-click                                      |
-| Swipe gestures | Active (swipe to reply, pull-to-refresh, swipe to dismiss) | Not available (use buttons instead)              |
-| Tap targets    | 44px minimum (all platforms)                               | 44px minimum preserved (not reduced for desktop) |
-| Tooltips       | Tap-and-hold or info icon                                  | Hover with 300ms delay                           |
-| Drag-and-drop  | Supported for reordering (long-press to initiate)          | Supported with visual drag handles               |
+#### Skip Links (Party Mode finding F-6)
+
+Two skip links, both visible only on focus:
+
+1. **"Skip to main content"** — first focusable element on every page. Targets `<main>`.
+2. **"Skip to job results"** — present on filter-heavy listing pages (job search, candidate list, admin queue). Targets the first `<article>` in the results area. This allows keyboard users to bypass search bar, filter bar, sort dropdown, and result count to reach the actual content after filter changes.
+
+Both skip links use `sr-only` + `focus:not-sr-only` pattern (visible only when focused via Tab).
+
+#### Live Region Strategy
+
+Live regions announce dynamic content changes to screen readers. The portal uses three live region patterns:
+
+| Pattern | `aria-live` | `aria-atomic` | Usage |
+|---------|-------------|---------------|-------|
+| **Status update** | `polite` | `true` | Filter result count changes ("Showing 8 jobs"), form validation summary, toast announcements |
+| **Alert** | `assertive` | `true` | Error banners, "Viewed by employer" hero moment (first appearance only), submission failures |
+| **Feed update** | `polite` | `false` | New items added to notification list, new applications badge count |
+
+**Rules:**
+- `assertive` is used sparingly — only for errors and the "Viewed" defining moment. Overuse of `assertive` creates a jarring experience where every update interrupts the user
+- Toast notifications announce via a persistent `aria-live="polite"` container in the DOM (not via the toast element itself, which mounts/unmounts)
+- Status pill changes (Applied → Under Review → Shortlisted) announce via `role="status"` on the pill — polite, non-interrupting
+- Filter result count: the "Showing N jobs" text is inside an `aria-live="polite"` region. Only the count announces — not the full sentence on every keystroke. Debounced 500ms to prevent rapid-fire announcements during filter typing
+
+#### Focus Management Contracts
+
+| Interaction | Focus Destination | Return Focus |
+|-------------|------------------|-------------|
+| Drawer opens | First interactive element inside drawer | Trigger element that opened the drawer |
+| Dialog opens | Primary action button (confirmation) or first input (input dialog) | Trigger element |
+| Popover opens | First interactive element inside popover (if any), else popover content | Trigger element |
+| Toast appears | No focus change (announced via live region) | N/A |
+| Page navigation | `<h1>` of new page (via `tabindex="-1"` + programmatic focus) | N/A |
+| Filter applied | Result count live region announces; focus stays on filter control | N/A |
+| Form submission error | First errored field | N/A |
+| Card action (Shortlist/Pass) | Next card in list (maintains flow during triage) | N/A |
+| **Last card action in list** | Results summary region: "{N} shortlisted, {M} passed, {K} remaining" + "Review Shortlist" CTA | N/A |
+| Bulk action completed | Inline banner confirmation; focus returns to table | N/A |
+| Tablet split view selection | Detail panel summary announces via `aria-live="polite"`; focus stays in list panel | N/A |
+
+**End-of-list triage focus (Party Mode finding F-4):** When the employer acts on the last candidate card in a list (Shortlist or Pass), focus moves to a persistent results summary region below the list: "{N} shortlisted, {M} passed, {K} remaining" with a "Review Shortlist" primary CTA. Focus does not loop back to the first card (disorienting) and does not drop to the page footer (breaks triage flow). The summary region has `tabindex="-1"` for programmatic focus.
+
+**Page navigation focus (Party Mode finding F-12):** In the Next.js App Router, client-side route changes do not reset focus like full page loads. The portal's `PortalLayout` component includes a `usePathname()` effect that focuses the new page's `<h1>` on route change:
+
+```tsx
+const pathname = usePathname();
+useEffect(() => {
+  const h1 = document.querySelector("h1");
+  if (h1) { h1.setAttribute("tabindex", "-1"); h1.focus(); }
+}, [pathname]);
+```
+
+This effect is portal-scoped (in `PortalLayout`), not global — the community platform has its own focus management in the shared shell.
+
+#### Screen Reader Announcement for Key Moments
+
+| Moment | Announcement | Method |
+|--------|-------------|--------|
+| "Viewed by employer" (first) | "Good news — {employer} has seen your application" | `aria-live="assertive"` on ApplicationStatusBlock hero mode |
+| Application submitted | "Application submitted to {employer}" | Toast live region (`polite`) |
+| Status change | "Application status changed to {status}" | `role="status"` on StatusPill |
+| New application received (employer) | "New application from {candidate}" | NotificationItem live region (`polite`) |
+| Bulk approve completed | "{N} postings approved" | Inline banner (`polite`) |
+| Filter results update | "Showing {N} jobs" | Live region (`polite`, debounced) |
+| Tablet split view selection | "{candidate name} — {match quality}, {skill count} skills" | `aria-live="polite"` on detail panel summary |
+
+---
+
+### Network Resilience
+
+**Context:** Primary seeker persona (Adaeze, Lagos) operates on variable-bandwidth mobile connections (3G–4G, intermittent). The portal must feel responsive on a 1.5 Mbps connection and remain functional on 500 Kbps.
+
+#### Performance Budgets
+
+Per-route budgets reflect different performance contexts (Party Mode finding F-3):
+
+| Route | JS Budget (gzipped) | Context |
+|-------|---------------------|---------|
+| `/jobs` (guest, unauthenticated) | **< 150KB** | Guest landing, Google entry point. Lightest possible — no auth provider, no React Query, no sidebar. |
+| `/jobs/[id]` (guest, unauthenticated) | **< 150KB** | SEO-critical detail page. ISR-rendered HTML is the primary payload. |
+| `/dashboard` (authenticated employer) | **< 200KB** | Includes React Query provider, auth session, sidebar, candidate cards. |
+| `/admin/queue` (authenticated admin) | **< 200KB** | Table components, bulk action bar, review tools. |
+| `/apply` flow (authenticated seeker) | **< 180KB** | Includes ApplyDrawer, form validation, resume selector. |
+
+| Metric | Target | Measured On |
+|--------|--------|------------|
+| **First Contentful Paint (FCP)** | < 1.5s | Fast 3G (1.5 Mbps), mobile device simulation |
+| **Largest Contentful Paint (LCP)** | < 2.5s | Same |
+| **Cumulative Layout Shift (CLS)** | < 0.1 | All viewports |
+| **Time to Interactive (TTI)** | < 3.5s | Same |
+| **First Input Delay (FID)** | < 100ms | Same |
+
+#### Data Loading Strategy
+
+| Data Type | Strategy | Rationale |
+|-----------|----------|-----------|
+| **Job listings (page)** | SSR + ISR (revalidate 60s) | SEO for guest discovery via Google. Stale-while-revalidate keeps pages fast. |
+| **Job detail** | SSR + ISR (revalidate 60s) | Full content visible to guests. Salary, description, trust signals in initial HTML. |
+| **Dashboard data** | Client-side fetch (React Query, staleTime 30s) | Authenticated, personalized. No SSR benefit. Skeleton loading on first visit. |
+| **Application status** | Client-side fetch (React Query, staleTime 10s) | Real-time-ish. Short stale time ensures "Viewed" signal appears quickly. |
+| **Filter results** | Client-side fetch (React Query, keepPreviousData) | Stale overlay pattern during re-fetch. Previous results visible while new results load. |
+| **Images (logos, avatars)** | `next/image` with `loading="lazy"`, `sizes` attribute, AVIF/WebP with JPEG fallback | Largest bandwidth consumer. Lazy loading prevents above-the-fold images from blocking. |
+| **Portal components** | `next/dynamic` (code splitting per Component Strategy F-7) | Portal JS never loads on community platform pages. |
+
+**"Viewed" hero is always client-rendered (Party Mode finding F-1):** The ApplicationStatusBlock hero treatment (green gradient, pulse, "Good news — {employer} has seen your application") is never part of ISR-rendered HTML. Job detail pages are ISR-cached for guest SEO — calling `auth()` or fetching per-user application status in the Server Component would defeat ISR (per `docs/decisions/isr-pattern.md`). The hero renders exclusively via a client-side `useQuery` with `staleTime: 10000` that fetches the seeker's application status after hydration. This means: (1) guests never see the hero (no application), (2) authenticated seekers see skeleton → hero transition on page load, (3) the "Viewed" signal appears within 10 seconds of the employer's view action (staleTime + server propagation).
+
+#### Degraded Connection Behavior
+
+| Connection State | Detection | User Experience |
+|-----------------|-----------|----------------|
+| **Slow (> 3s for any fetch)** | `PerformanceObserver` long-task detection | Skeleton states render. No change to UX — system handles gracefully. |
+| **Intermittent (fetch fails, retries succeed)** | React Query retry (3 attempts, exponential backoff) | User sees skeleton slightly longer. No error shown if retry succeeds within 10s total. |
+| **Offline (no connectivity)** | `navigator.onLine` + fetch failure without retry success | Persistent top banner: "You're offline — some features may be unavailable." Cached pages (ISR) remain viewable. Actions show disabled state. |
+| **Timeout (fetch fails all retries)** | React Query `onError` after 3 retries | Inline error banner with "Try again" button. Cached stale data shown if available (stale-while-revalidate). |
+
+**No offline queueing in MVP.** Actions that require network (Apply, Post, Message) show a clear disabled state when offline. No background sync, no optimistic offline mutations. This is a deliberate scope decision — offline queueing introduces complex conflict resolution that is not justified for MVP.
+
+#### Image Optimization
+
+- All images served via `next/image` with automatic format negotiation (AVIF > WebP > JPEG)
+- **`PortalAvatar` wrapper component (Party Mode finding F-10):** A wrapper component renders `next/image` when `src` is present and a styled fallback `<div>` (with initial letter, Forest Green bg, white text) when `src` is null or `onError` fires. Both render paths produce identical outer dimensions (enforced by the wrapper's fixed-size container, not by `next/image` layout). This avoids the flash of broken-image-icon that occurs when relying on `next/image`'s `onError` to swap.
+- Employer logos: 40px display → `sizes="40px"`, served at 80px (2x) and 40px (1x)
+- Candidate avatars: 32px display → `sizes="32px"`, served at 64px and 32px
+- Company banner: responsive `sizes="(max-width: 768px) 100vw, 50vw"`
+- `placeholder="blur"` with 10px blurred data URL for above-the-fold images (logos in job cards)
+- Below-the-fold images: `loading="lazy"` (browser native, no IntersectionObserver needed)
+
+#### Font Loading
+
+- Inter and JetBrains Mono loaded via `next/font` (automatic subsetting, `font-display: swap`)
+- Critical subset: Latin + Latin Extended (covers English + Igbo diacritics)
+- No FOIT (Flash of Invisible Text) — swap ensures text renders immediately in fallback font, then swaps to Inter when loaded
+- Font files preloaded for above-the-fold content via `<link rel="preload">`
+
+---
 
 ### Accessibility Strategy
 
-**Compliance Target: WCAG 2.1 Level AA**
+**Compliance Target:** WCAG 2.1 Level AA — the industry standard for inclusive web applications. Level AAA is not targeted globally but specific AAA criteria are adopted where they benefit the portal's user base (e.g., 7:1 contrast ratio in high-contrast mode).
 
-igbo targets WCAG 2.1 AA compliance — the industry standard for inclusive web applications. This is non-negotiable given the user spectrum from Chief Okonkwo (67, low tech comfort, potential vision/motor limitations) to Chidi (28, high tech comfort). Accessible design isn't an accommodation for igbo — it's the design baseline that makes the platform work for everyone.
+**Accessibility Principles (portal-specific):**
 
-**Semantic HTML Structure:**
+1. **Trust signals must be accessible without vision.** Every verification badge, match score, and referral indicator has a text equivalent that screen readers announce. No trust information is conveyed exclusively through color, icon, or position.
 
-| Page Element       | HTML Element          | ARIA Role (if needed)                      |
-| ------------------ | --------------------- | ------------------------------------------ |
-| Page title         | `<h1>`                | —                                          |
-| Section headings   | `<h2>`, `<h3>`        | —                                          |
-| Navigation bar     | `<nav>`               | `aria-label="Main navigation"`             |
-| Bottom tab bar     | `<nav>`               | `aria-label="Main navigation"` (mobile)    |
-| Main content       | `<main>`              | —                                          |
-| Sidebar            | `<aside>`             | `aria-label="Sidebar"`                     |
-| Feed posts         | `<article>`           | —                                          |
-| Feed list          | `<section>`           | `aria-label="Community feed"`              |
-| Chat messages      | `<li>` in `<ol>`      | `role="list"` with `aria-label="Messages"` |
-| Member cards       | `<article>`           | —                                          |
-| Form fields        | `<label>` + `<input>` | `aria-describedby` for error messages      |
-| Buttons            | `<button>`            | `aria-label` when icon-only                |
-| Links              | `<a>`                 | —                                          |
-| Dialog/Modal       | `<dialog>`            | `role="dialog"`, `aria-modal="true"`       |
-| Toast notification | `<div>`               | `role="alert"`, `aria-live="assertive"`    |
-| Loading skeleton   | `<div>`               | `aria-busy="true"`, `aria-label="Loading"` |
+2. **Density modes must not reduce accessibility.** Compact and Dense modes reduce whitespace and line height but never reduce font size below 14px, tap target below 44px, or contrast below WCAG AA ratios. Screen reader experience is identical across density modes.
 
-**Keyboard Navigation:**
+3. **The "Viewed" moment must be accessible.** The ApplicationStatusBlock hero mode announces via `aria-live="assertive"` on first render. The pulsing animation is decorative (`aria-hidden`). The emotional payload is carried by the headline text, not the visual treatment.
 
-| Flow                 | Keys                                             | Behavior                                                       |
-| -------------------- | ------------------------------------------------ | -------------------------------------------------------------- |
-| **Tab**              | `Tab` / `Shift+Tab`                              | Move between focusable elements in DOM order                   |
-| **Navigation items** | `Tab` between items                              | Focus moves through nav items; `Enter`/`Space` activates       |
-| **Feed posts**       | `J` / `K` (optional power-user)                  | Next/previous post in feed                                     |
-| **Dialog**           | `Tab` trapped inside dialog                      | Focus cycles within dialog until dismissed. `Escape` closes.   |
-| **Dropdown menu**    | `Arrow Down`/`Arrow Up`                          | Navigate menu items. `Enter`/`Space` selects. `Escape` closes. |
-| **Tabs**             | `Arrow Left`/`Arrow Right`                       | Switch between tab panels                                      |
-| **Chat**             | `Enter` to send                                  | `Shift+Enter` for newline. `Escape` to close emoji panel.      |
-| **Admin queues**     | `A` approve, `R` reject, `M` more info, `N` next | Keyboard shortcuts for power admin workflow                    |
-| **Search**           | `Enter` submits                                  | `Escape` closes search overlay. `Arrow Down` into results.     |
-| **Skip links**       | `Tab` (first element)                            | "Skip to main content" link visible on first Tab press         |
+4. **Two-handed operations are never required.** All portal interactions can be completed with one hand on mobile (no pinch-zoom required for core flows, no mandatory two-finger gestures). This supports Adaeze's commute use case (phone in one hand, holding a bus rail with the other).
 
-**Focus Management:**
+---
 
-| Scenario                           | Focus Behavior                                                                          |
-| ---------------------------------- | --------------------------------------------------------------------------------------- |
-| Page navigation                    | Focus moves to page `<h1>` heading                                                      |
-| Dialog opens                       | Focus moves to first focusable element in dialog (usually close button or first input)  |
-| Dialog closes                      | Focus returns to the element that triggered the dialog                                  |
-| Toast appears                      | Announced by screen reader (`aria-live="assertive"`), focus does not move               |
-| Sheet opens                        | Focus trapped inside sheet. First focusable element receives focus.                     |
-| Sheet closes                       | Focus returns to trigger element                                                        |
-| Chat opens from member card        | Focus moves to chat input field                                                         |
-| Error on form submit               | Focus moves to first field with error                                                   |
-| Content loads (skeleton → content) | Focus position preserved. Screen reader announces new content via `aria-live="polite"`. |
+### Gesture Patterns (Light)
 
-**Focus Indicator Styling:**
+Touch gestures are supplementary — every gesture has a visible button alternative.
 
-```css
-/* Visible focus ring on all focusable elements */
-:focus-visible {
-  outline: 2px solid var(--ring); /* Primary green at 40% */
-  outline-offset: 2px;
-  border-radius: var(--radius); /* Match element border radius */
-}
+| Gesture | Surface | Alternative | Notes |
+|---------|---------|-------------|-------|
+| Swipe down | ApplyDrawer (mobile) | X button / backdrop tap | Dismiss drawer |
+| Pull to refresh | Job listings, notifications | Browser native or refresh button | Re-fetches current view |
+| Long press | JobCard (mobile) | "..." overflow menu button | Opens save/share/report menu |
 
-/* Remove default outline for mouse users */
-:focus:not(:focus-visible) {
-  outline: none;
-}
-```
+No swipe-to-action (swipe-to-shortlist, swipe-to-reject) in MVP. These require careful UX tuning for accidental activation and accessibility alternatives — deferred to post-launch iteration.
 
-Focus indicators are always visible when navigating by keyboard (`focus-visible`), never shown on mouse click. The green ring at 2px offset is visible on all background colors in the design system.
+---
 
-**Color & Contrast:**
+### RTL Readiness (Light)
 
-| Requirement              | WCAG Criterion                        | igbo Implementation                                                                                      |
-| ------------------------ | ------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| Normal text contrast     | 4.5:1 minimum                         | `--foreground` (#1A1612) on `--background` (#FAF8F5) = ~12:1. All text/bg combinations verified.         |
-| Large text contrast      | 3:1 minimum                           | All headings (18px+ bold, 24px+ regular) meet 3:1 on all backgrounds.                                    |
-| UI component contrast    | 3:1 minimum                           | Buttons, input borders, icons all meet 3:1 against their backgrounds.                                    |
-| Non-text contrast        | 3:1 minimum                           | Chart lines, icons, focus indicators all meet 3:1.                                                       |
-| Color not sole indicator | 1.4.1                                 | All statuses use color + icon + text. Badges use color + icon shape. Event types use color + text label. |
-| Link distinction         | Distinguishable from surrounding text | Links use `--primary` color + underline on hover. In body text, always underlined.                       |
+English and Igbo are both LTR languages. No RTL support is required for launch. However, the portal follows RTL-safe practices to avoid future rework:
 
-**Screen Reader Support:**
+- Use `margin-inline-start` / `padding-inline-end` (logical properties) instead of `margin-left` / `padding-right` where Tailwind supports it
+- Icon placement: use `start` / `end` terminology in component props, not `left` / `right`
+- No layout decisions hardcoded to physical direction
 
-| Element            | Screen Reader Announcement                                                                                       |
-| ------------------ | ---------------------------------------------------------------------------------------------------------------- |
-| Member card        | "[Name], [Badge level if any], [Location]. [Bio preview]. Button: Send message to [Name]."                       |
-| Post card          | "Post by [Author], [time ago]. [Post content]. [Reaction count] reactions, [comment count] comments."            |
-| Online indicator   | "[Name] is online" (when indicator present). Nothing announced when offline (absence = offline).                 |
-| Unread badge       | "[Number] unread messages" on Chat tab. "[Number] unread notifications" on bell icon.                            |
-| Geographic rings   | "Showing [count] members in [location]. Buttons to expand: [State] ([count]), [Country] ([count])."              |
-| Verification badge | "[Level] verified member" — e.g., "Community verified member" for Blue badge.                                    |
-| Points display     | "[Number] community points"                                                                                      |
-| Toast notification | Full message read aloud immediately (`aria-live="assertive"` for errors, `aria-live="polite"` for info/success). |
-| Loading skeleton   | "Loading [content type]" announced once. Content replacement announced via `aria-live="polite"`.                 |
-| Empty state        | Full message + CTA announced. "[Primary message]. [Secondary message]. Button: [CTA text]."                      |
-| Language toggle    | "Language selection. English selected." On change: "Language changed to Igbo."                                   |
+This is a low-effort practice, not a testing requirement. No RTL testing in MVP.
 
-**Reduced Motion Support:**
-
-```css
-@media (prefers-reduced-motion: reduce) {
-  /* Disable all transitions and animations */
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
-}
-```
-
-| Animation                 | Default                                 | Reduced Motion                     |
-| ------------------------- | --------------------------------------- | ---------------------------------- |
-| Geographic fallback rings | Sequential expansion with 300ms stagger | Instant display, all rings visible |
-| Page transitions          | Slide/fade (200-250ms)                  | Instant switch                     |
-| Toast entry               | Slide in from edge                      | Instant appear                     |
-| Skeleton pulse            | Opacity oscillation                     | Static grey placeholder            |
-| Reaction animation        | Heart bounce/scale                      | Static icon change                 |
-| Points earned float-up    | "+50 pts" floats up and fades           | Static toast notification          |
-| Pull-to-refresh spinner   | Rotating spinner                        | Static "Refreshing..." text        |
-| Button press              | Scale(0.98)                             | No scale change                    |
-
-**Bilingual Accessibility:**
-
-| Requirement                 | Implementation                                                                                                                                                 |
-| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `lang` attribute            | Set `<html lang="en">` or `<html lang="ig">` based on selected language. For mixed-language content, use `<span lang="ig">` on Igbo text within English pages. |
-| Font rendering              | Inter validated for Igbo diacritics (ụ, ọ, ṅ) and tone marks (á, à, é, è) at all sizes.                                                                        |
-| Text expansion              | Igbo translations may be 10-20% longer than English. All containers use flexible layouts (no fixed widths on text). Buttons expand to fit text.                |
-| Screen reader pronunciation | `lang` attributes ensure screen readers switch pronunciation rules for Igbo text segments.                                                                     |
-| Right-to-left               | Not needed — both English and Igbo are left-to-right.                                                                                                          |
-
-**Elder-Specific Accessibility (Chief Okonkwo Pattern):**
-
-| Concern                  | Solution                                                                                                 |
-| ------------------------ | -------------------------------------------------------------------------------------------------------- |
-| Small text               | 16px minimum body text, enforced across all components                                                   |
-| Small tap targets        | 44px minimum on all interactive elements, including mobile                                               |
-| Complex navigation       | Progressive complexity — simple surface reveals depth as users grow                                      |
-| Icon-only buttons        | Primary actions always have text labels. Icon-only reserved for toolbar/ghost buttons with `aria-label`. |
-| Confusing error messages | All errors use warm, plain language with specific guidance                                               |
-| Multi-step processes     | Clear progress indicators, "Back" always available, auto-save prevents data loss                         |
-| Low contrast             | 12:1+ contrast for body text, 4.5:1+ for all text, verified across all themes                            |
-| Cognitive overload       | Maximum 5 primary nav items visible. Progressive disclosure for secondary features.                      |
-| Assisted usage           | "Help someone join" flow accommodates granddaughter-assists-elder pattern                                |
+---
 
 ### Testing Strategy
 
-**Responsive Testing Matrix:**
+#### Automated Accessibility Testing (CI Pipeline)
 
-| Device Category      | Specific Devices                                                    | Priority                                  |
-| -------------------- | ------------------------------------------------------------------- | ----------------------------------------- |
-| **Mobile - iOS**     | iPhone SE (375px), iPhone 14 (390px), iPhone 14 Pro Max (430px)     | P0                                        |
-| **Mobile - Android** | Samsung Galaxy S23 (360px), Pixel 7 (412px), budget Android (320px) | P0                                        |
-| **Tablet - iOS**     | iPad (820px), iPad Pro 12.9" (1024px)                               | P1                                        |
-| **Tablet - Android** | Samsung Galaxy Tab (800px)                                          | P1                                        |
-| **Desktop**          | 1280px, 1440px, 1920px widths                                       | P0                                        |
-| **Budget devices**   | Low-RAM Android (2GB), older iPhones (iPhone 8)                     | P1 (critical for Nigeria/SE Asia members) |
+**Layer 1 — axe-core in Vitest (every component test):**
 
-**Browser Testing:**
+Every portal component test file includes at least one axe-core assertion. This catches ~57% of WCAG violations automatically (per Deque's published detection rates).
 
-| Browser          | Platform         | Priority | Notes                                   |
-| ---------------- | ---------------- | -------- | --------------------------------------- |
-| Chrome           | Android, Desktop | P0       | Primary mobile browser globally         |
-| Safari           | iOS, macOS       | P0       | Required for all iPhone/iPad users      |
-| Samsung Internet | Android          | P1       | Significant market share in Africa/Asia |
-| Firefox          | Desktop          | P1       |                                         |
-| Edge             | Desktop          | P2       | Chromium-based, should match Chrome     |
+```tsx
+import { axe, toHaveNoViolations } from "jest-axe";
+expect.extend(toHaveNoViolations);
 
-**Accessibility Testing Protocol:**
+it("has no accessibility violations", async () => {
+  const { container } = render(<JobCard {...defaultProps} />);
+  const results = await axe(container);
+  expect(results).toHaveNoViolations();
+});
+```
 
-| Test Type               | Tool / Method                                             | When                              | Pass Criteria                                                        |
-| ----------------------- | --------------------------------------------------------- | --------------------------------- | -------------------------------------------------------------------- |
-| **Automated scan**      | axe-core (via axe DevTools or Playwright integration)     | Every PR, CI pipeline             | Zero critical/serious violations                                     |
-| **Color contrast**      | Contrast checker in dev tools + manual spot checks        | Component creation, theme changes | All combinations meet WCAG AA ratios                                 |
-| **Keyboard navigation** | Manual testing — navigate entire app using only keyboard  | Sprint review (biweekly)          | All interactive elements reachable, logical tab order, visible focus |
-| **Screen reader**       | VoiceOver (macOS/iOS) + NVDA (Windows)                    | Sprint review (biweekly)          | All content announced, correct structure, meaningful labels          |
-| **Reduced motion**      | `prefers-reduced-motion: reduce` in dev tools             | Every animation added             | All animations properly disabled                                     |
-| **Zoom**                | Browser zoom to 200%                                      | Sprint review                     | No content loss, no overlap, layout adapts                           |
-| **Color blindness**     | Sim Daltonism (macOS) or Chrome DevTools color simulation | Component creation                | Information conveyed without color alone                             |
-| **Text resize**         | Browser text size override to 200%                        | Sprint review                     | Text reflows, no truncation of critical content                      |
+**Required axe assertions per component tier:**
 
-**Real-World Network Testing:**
+| Tier | Minimum axe Tests | Additional A11y Tests |
+|------|-------------------|----------------------|
+| Semantic (StatusPill, MatchPill, TrustBadge) | 1 per component (default props) | `aria-label` present, role correct |
+| Domain (JobCard, CandidateCard, etc.) | 1 per variant × state combination (e.g., JobCard default, saved, applied, expired) | Heading hierarchy, interactive element labels, card landmark structure |
+| Flow (ApplyDrawer, PostingForm) | 1 per step/state + **post-interaction scans** | Focus trap active, focus return on close, `aria-modal`, step announcement via live region, `aria-busy` during submission |
 
-| Condition          | How to Test                        | What to Verify                                                                                               |
-| ------------------ | ---------------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| 3G (1.5 Mbps)      | Chrome DevTools network throttling | Feed loads within 5 seconds. Images progressive-load. Video shows thumbnail only.                            |
-| Slow 3G (400 Kbps) | Chrome DevTools "Slow 3G" preset   | App shell loads within 8 seconds. Text content readable. Images show LQIP.                                   |
-| Offline            | DevTools offline mode              | Cached feed viewable. Chat shows cached messages. "You're offline" banner. Queued actions send on reconnect. |
-| Intermittent       | Toggle online/offline in DevTools  | No data loss. Pending messages sent. No duplicate actions. Graceful recovery.                                |
+**Post-interaction axe scans (Party Mode finding F-7):** Flow component axe tests must include at least one scan *after* a user interaction changes the DOM state. Static-render-only axe catches structural violations but misses dynamic state issues (missing `aria-modal` after drawer opens, broken focus trap, dialog without `aria-labelledby`):
 
-**User Testing with Accessibility Focus:**
+```tsx
+// Not sufficient:
+expect(await axe(container)).toHaveNoViolations();
 
-| Test Scenario            | Participants                                                 | Focus                                                                          |
-| ------------------------ | ------------------------------------------------------------ | ------------------------------------------------------------------------------ |
-| Elder onboarding         | 3-5 participants age 60+                                     | Can they complete profile setup with minimal help? Are text sizes comfortable? |
-| Screen reader navigation | 2-3 screen reader users                                      | Can they navigate feed, send a message, and RSVP to an event?                  |
-| Low-bandwidth usage      | 3-5 participants in Nigeria/SE Asia                          | Does the app feel usable on 3G? Do images load acceptably?                     |
-| Keyboard-only navigation | 2-3 participants (motor disabilities or keyboard-preference) | Can all features be accessed without a mouse?                                  |
+// Required for Flow components:
+fireEvent.click(applyButton);
+await waitFor(() => expect(screen.getByRole("dialog")).toBeVisible());
+expect(await axe(container)).toHaveNoViolations(); // axe AFTER interaction
+```
+
+**Layer 2 — Playwright a11y assertions (E2E suite):**
+
+Playwright E2E tests include accessibility scans on critical pages using `@axe-core/playwright`:
+
+```ts
+import AxeBuilder from "@axe-core/playwright";
+
+test("job listings page passes a11y", async ({ page }) => {
+  await page.goto("/jobs");
+  const results = await new AxeBuilder({ page })
+    .withTags(["wcag2a", "wcag2aa"])
+    .analyze();
+  expect(results.violations).toEqual([]);
+});
+```
+
+**Pages scanned in E2E:**
+- Job listings (guest + authenticated)
+- Job detail
+- Apply flow (drawer open)
+- Employer dashboard
+- Candidate review
+- Admin review queue
+- Empty states (cold start simulation)
+
+**Keyboard-only E2E tests (Party Mode finding F-8):** One Playwright E2E test per critical flow that completes the entire flow using only keyboard (Tab, Enter, Escape, arrow keys, shortcuts). No mouse/touch events. These catch focus traps that don't release, unreachable buttons, broken tab order after dynamic content changes.
+
+| Flow | Steps Tested |
+|------|-------------|
+| **Seeker: Browse → Apply** | Tab to job card → Enter to detail → Tab to Apply → Enter → Tab through form → Submit → Verify confirmation focus |
+| **Employer: Review → Shortlist → Message** | Tab to candidate card → Enter → Tab to Shortlist → Enter → Tab to Message → Enter → Verify chat focus |
+| **Admin: Queue → Approve/Reject** | Tab to queue row → Enter → Tab to Approve → Enter → Verify next row receives focus |
+| **Guest: Browse → Join → Apply (return)** | Tab to Apply → Enter "Join to Apply" → Complete signup via keyboard → Verify return to job detail → Verify ApplyDrawer auto-opens with focus inside |
+
+The guest conversion flow (flow 4) is the highest-risk keyboard chain — it involves a redirect, signup form, return navigation, and auto-opening drawer with focus management across all transitions.
+
+**Layer 3 — Manual testing (pre-launch, per-epic):**
+
+| Test Type | Tool | Frequency | Owner |
+|-----------|------|-----------|-------|
+| VoiceOver walkthrough (macOS/iOS) | Manual | Pre-launch + each epic with new components | QA |
+| NVDA walkthrough (Windows) | Manual | Pre-launch | QA |
+| Keyboard-only navigation | Manual | Pre-launch + each epic | Dev (during component development) |
+| Color contrast audit | Stark (browser extension) | Pre-launch + when tokens change | UX |
+| Color blindness simulation | Sim Daltonism (macOS) | Pre-launch | UX |
+| Zoom 200% layout integrity | Browser zoom | Pre-launch | QA |
+
+#### Responsive Testing
+
+**Automated (CI):**
+
+- Playwright viewport testing at 3 breakpoints: 375px (iPhone SE), 768px (iPad), 1280px (desktop)
+- Visual regression via Playwright screenshot comparison on critical pages at each breakpoint
+- CLS assertion: `expect(cls).toBeLessThan(0.1)` on page load at each viewport
+
+**Manual (pre-launch):**
+
+| Device | Browser | Priority |
+|--------|---------|----------|
+| iPhone SE (375px) | Safari | Critical — smallest supported mobile |
+| iPhone 14 (390px) | Safari | Critical — most common iOS |
+| Samsung Galaxy A14 (412px) | Chrome | Critical — popular Android in Nigeria |
+| iPad 10th gen (810px) | Safari | High — tablet breakpoint validation |
+| MacBook Air 13" (1280px) | Chrome + Safari | High — primary desktop |
+| Windows laptop (1366px) | Chrome + Edge | Medium — common Windows resolution |
+
+**Network simulation:**
+
+- Playwright `--slow-mo` not sufficient — use Chrome DevTools network throttling profiles:
+  - "Fast 3G" (1.5 Mbps down, 750 Kbps up, 40ms RTT) — primary test profile for Lagos user simulation
+  - "Offline" — verify offline banner and disabled action states
+- Lighthouse CI (already in pipeline per Story 12.1) with `--throttling.rttMs=40 --throttling.throughputKbps=1500`
+
+#### Performance Testing
+
+| Metric | Tool | Threshold | Gate |
+|--------|------|-----------|------|
+| FCP | Lighthouse CI | < 1.5s (mobile) | Warning at 2s, fail at 3s |
+| LCP | Lighthouse CI | < 2.5s (mobile) | Warning at 3s, fail at 4s |
+| CLS | Lighthouse CI | < 0.1 | Fail at 0.25 |
+| TTI | Lighthouse CI | < 3.5s (mobile) | Warning at 4s, fail at 5s |
+| JS bundle size | Webpack bundle analyzer | Per-route budgets (see above) | Fail if exceeded |
+| Accessibility score | Lighthouse CI | ≥ 95 | **Warning at 95, fail at 90** (Party Mode finding F-9) |
+
+All thresholds run on every PR via Lighthouse CI (configured in Story 12.1). Mobile throttling profile applied by default. The accessibility score threshold (fail at 90) is set higher than a generic application because the portal's trust-and-community value proposition demands inclusive design — a platform built on trust that fails basic accessibility undermines its own thesis.
+
+---
 
 ### Implementation Guidelines
 
-**Responsive CSS Architecture:**
+**For Developers:**
 
-```
-/* Mobile-first: base styles serve smallest screens */
-/* Progressive enhancement via Tailwind breakpoints */
+1. **Mobile-first media queries.** Write base styles for mobile. Add `md:` and `lg:` for tablet and desktop. Never write desktop-first and subtract.
 
-/* Component example: MemberCard */
-<div class="
-  w-full                          /* Mobile: full width */
-  md:w-[calc(50%-12px)]          /* Tablet: 2 columns */
-  lg:w-[calc(33.333%-16px)]      /* Desktop: 3 columns */
-  p-4                             /* Mobile: 16px padding */
-  md:p-6                          /* Tablet+: 24px padding */
-">
-```
+2. **Use `rem` for typography, `px` for borders/shadows, spacing scale for gaps.** `rem` ensures text scales with user font-size preferences. `px` is appropriate for decorative elements that shouldn't scale (1px borders, box-shadow offsets). Tailwind spacing classes (`p-4`, `gap-6`) use the 8px grid.
 
-**Responsive Development Rules:**
+3. **Tailwind `@container` variants for card adaptation (Party Mode finding F-11).** Don't use viewport breakpoints to style cards. Cards live in grid cells of varying widths — use Tailwind's native `@container` variant syntax (e.g., `@container-sm:flex-col`) to adapt card layout to available space. This maintains consistency with the Tailwind-first approach and ensures JIT compilation handles variants correctly.
 
-1. **Mobile-first media queries only.** Never write `max-width` queries. Start with mobile styles, enhance with `md:`, `lg:`, `xl:`.
-2. **Relative units for typography.** Use `rem` for font sizes. Base `1rem` = 16px. This enables browser text-size override.
-3. **Flexible containers.** Use `%`, `fr`, `min()`, `max()`, `clamp()` for container widths. No fixed-pixel widths except sidebars (which collapse on smaller screens).
-4. **Image optimization.**
-   - `<Image>` component with Next.js automatic optimization
-   - `srcset` with 1x, 2x, 3x for DPR variations
-   - `sizes` attribute matching actual rendered sizes per breakpoint
-   - WebP/AVIF with JPEG fallback
-   - LQIP (Low-Quality Image Placeholder) for progressive loading
-5. **Viewport meta tag.** `<meta name="viewport" content="width=device-width, initial-scale=1">`. Never set `maximum-scale=1` — this prevents users from pinch-zooming, which is an accessibility violation.
-6. **Safe areas.** Use `env(safe-area-inset-bottom)` for iOS devices with home indicators — critical for BottomTabBar.
-7. **Orientation.** Layouts work in both portrait and landscape. No orientation lock. Test chat and video meeting views in landscape on mobile.
+4. **Test every component with axe — including post-interaction states.** The axe assertion is as mandatory as the render test. A component without an axe test is not done. Flow components additionally require axe scans after interactions (drawer open, form error, step change).
 
-**Accessibility Development Rules:**
+5. **Focus management is explicit.** Every overlay, page transition, and multi-step flow must have a documented focus destination (see Focus Management Contracts). Never rely on browser default focus behavior for dynamic content. Use the `usePathname()` focus effect in `PortalLayout` for page navigation focus (Party Mode finding F-12).
 
-1. **Semantic HTML first.** Use `<nav>`, `<main>`, `<article>`, `<section>`, `<aside>`, `<header>`, `<footer>`, `<button>`, `<a>`. Only add ARIA when semantic HTML doesn't suffice.
-2. **Every image has alt text.** User-uploaded images: require alt text in upload flow or use AI-generated descriptions. Decorative images: `alt=""` + `aria-hidden="true"`.
-3. **Every form input has a label.** Use `<label htmlFor="id">` — never rely on placeholder text alone. Error messages linked via `aria-describedby`.
-4. **Every icon button has an aria-label.** `<button aria-label="Close dialog">` for icon-only buttons. `<button aria-label="Send message">` for the send arrow.
-5. **Skip link on every page.** First focusable element: `<a href="#main-content" class="sr-only focus:not-sr-only">Skip to main content</a>`. Visible only on Tab focus.
-6. **Heading hierarchy.** One `<h1>` per page. Logical `<h2>`, `<h3>` nesting. Never skip levels (no `<h1>` → `<h3>`).
-7. **Live regions for dynamic content.** `aria-live="polite"` for non-urgent updates (new feed posts, member came online). `aria-live="assertive"` for errors and critical alerts.
-8. **Focus trap in modals.** When a dialog or sheet is open, `Tab` cycles only through elements within it. `Escape` closes and returns focus to trigger.
-9. **No keyboard traps.** Every interactive element can be focused and unfocused via keyboard. Users can always `Tab` away from any element.
-10. **Test with the 5-second rule.** If a screen reader user can't understand what a page does within 5 seconds of landing on it, the heading structure and landmarks need improvement.
+6. **`PortalAvatar` for all images with fallback (Party Mode finding F-10).** No raw `<img>` tags. Use `PortalAvatar` wrapper: `next/image` when `src` present, styled fallback `<div>` when null/error. Both paths produce identical outer dimensions. Every image has `alt` text (descriptive for content images, empty `alt=""` for decorative).
 
-**Performance Budget (Accessibility-Adjacent):**
+7. **Reduced motion is always respected.** Every CSS animation/transition must have a `prefers-reduced-motion: reduce` override that either disables the animation or reduces it to a simple opacity fade. Test by enabling "Reduce motion" in system settings.
 
-| Metric                      | Target            | Reason                                                        |
-| --------------------------- | ----------------- | ------------------------------------------------------------- |
-| First Contentful Paint      | < 1.5s (3G)       | Users on slow connections must see content quickly            |
-| Largest Contentful Paint    | < 2.5s (3G)       | Hero content (CulturalHeader, featured article) loads fast    |
-| Cumulative Layout Shift     | < 0.1             | Skeleton loading prevents layout shift as content loads       |
-| Time to Interactive         | < 3.5s (3G)       | Users can interact (tap, scroll, navigate) within 3.5 seconds |
-| Total page weight (initial) | < 500KB (gzipped) | Bandwidth-sensitive users in Nigeria, Malaysia, Vietnam       |
-| JavaScript bundle (initial) | < 200KB (gzipped) | Code-split per route. Only load what's needed.                |
+8. **Density is context, not prop.** Components read density from `DensityContext`, never from a `density` prop. If a component renders differently in Compact vs Comfortable, the difference is driven by context — the consuming page sets the provider, the component adapts.
 
-**PWA Considerations:**
+---
 
-| Feature            | Implementation                                                 | Accessibility Impact                                                               |
-| ------------------ | -------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| Install prompt     | Banner after 2nd visit: "Add OBIGBO to home screen"            | Dismissible, not blocking. `aria-live` announcement.                               |
-| Offline mode       | Service worker caches app shell + last feed content            | "You're offline" banner is `aria-live="polite"`. Cached content remains navigable. |
-| Push notifications | Permission request on first relevant action (not on page load) | Clear description of what notifications include. Respect system settings.          |
-| Background sync    | Queued messages and posts sent on reconnect                    | Status update: "Message sent" when queued message delivers.                        |
+### Party Mode Findings Incorporated
+
+| ID | Severity | Finding | Section Modified |
+|----|----------|---------|-----------------|
+| F-1 | Critical | "Viewed" hero always client-rendered, never ISR HTML | Network Resilience |
+| F-2 | Important | Density (visual weight) and container queries (spatial arrangement) are orthogonal axes | Breakpoint Strategy |
+| F-3 | Important | Per-route JS budgets: `/jobs` < 150KB, `/dashboard` < 200KB | Performance Budgets |
+| F-4 | Critical | End-of-list triage focus → results summary region, not loop/drop | Focus Management |
+| F-5 | Important | Tablet split view detail panel: `aria-live="polite"` summary announces on selection | Tablet Strategy |
+| F-6 | Important | "Skip to job results" secondary skip link on filter-heavy pages | Screen Reader |
+| F-7 | Critical | Flow component axe tests must include post-interaction scans | Testing Strategy |
+| F-8 | Important | Keyboard-only E2E tests for 4 critical flows including guest conversion | Testing Strategy |
+| F-9 | Important | Lighthouse a11y fail threshold: 90 (not 85), warning at 95 | Performance Testing |
+| F-10 | Important | `PortalAvatar` wrapper: `next/image` when src present, fallback div when null | Image Optimization, Implementation |
+| F-11 | Important | Tailwind `@container` variant syntax, not raw CSS container queries | Breakpoint Strategy, Implementation |
+| F-12 | Important | `usePathname()` focus-on-navigation effect in `PortalLayout`, portal-scoped | Focus Management, Implementation |

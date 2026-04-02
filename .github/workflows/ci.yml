@@ -17,15 +17,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
+      - uses: pnpm/action-setup@v4
         with:
-          bun-version: latest
-      - uses: actions/cache@v4
+          version: latest
+      - uses: actions/setup-node@v4
         with:
-          path: ~/.bun/install/cache
-          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
-          restore-keys: ${{ runner.os }}-bun-
-      - run: bun install --frozen-lockfile
+          node-version: "22"
+          cache: "pnpm"
+      - run: pnpm install --frozen-lockfile
       - name: Check for critical/high vulnerabilities
         run: npm audit --audit-level=high
 
@@ -38,17 +37,16 @@ jobs:
       NEXT_PUBLIC_REALTIME_URL: http://localhost:3001
     steps:
       - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
+      - uses: pnpm/action-setup@v4
         with:
-          bun-version: latest
-      - uses: actions/cache@v4
+          version: latest
+      - uses: actions/setup-node@v4
         with:
-          path: ~/.bun/install/cache
-          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
-          restore-keys: ${{ runner.os }}-bun-
-      - run: bun install --frozen-lockfile
-      - run: bunx eslint .
-      - run: bunx prettier --check .
+          node-version: "22"
+          cache: "pnpm"
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @igbo/community lint
+      - run: pnpm exec prettier --check .
 
   typecheck:
     name: Type Check
@@ -59,16 +57,15 @@ jobs:
       NEXT_PUBLIC_REALTIME_URL: http://localhost:3001
     steps:
       - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
+      - uses: pnpm/action-setup@v4
         with:
-          bun-version: latest
-      - uses: actions/cache@v4
+          version: latest
+      - uses: actions/setup-node@v4
         with:
-          path: ~/.bun/install/cache
-          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
-          restore-keys: ${{ runner.os }}-bun-
-      - run: bun install --frozen-lockfile
-      - run: bunx tsc --noEmit
+          node-version: "22"
+          cache: "pnpm"
+      - run: pnpm install --frozen-lockfile
+      - run: turbo run typecheck
 
   test:
     name: Unit Tests
@@ -86,16 +83,15 @@ jobs:
       NEXT_PUBLIC_REALTIME_URL: http://localhost:3001
     steps:
       - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
+      - uses: pnpm/action-setup@v4
         with:
-          bun-version: latest
-      - uses: actions/cache@v4
+          version: latest
+      - uses: actions/setup-node@v4
         with:
-          path: ~/.bun/install/cache
-          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
-          restore-keys: ${{ runner.os }}-bun-
-      - run: bun install --frozen-lockfile
-      - run: bunx vitest run
+          node-version: "22"
+          cache: "pnpm"
+      - run: pnpm install --frozen-lockfile
+      - run: turbo run test
 
   build:
     name: Build
@@ -107,22 +103,21 @@ jobs:
       NODE_OPTIONS: "--max-old-space-size=4096"
     steps:
       - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
+      - uses: pnpm/action-setup@v4
         with:
-          bun-version: latest
-      - uses: actions/cache@v4
+          version: latest
+      - uses: actions/setup-node@v4
         with:
-          path: ~/.bun/install/cache
-          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
-          restore-keys: ${{ runner.os }}-bun-
+          node-version: "22"
+          cache: "pnpm"
       # Cache incremental Next.js build output — keys on package.json hash for 40–60% speed-up
       - uses: actions/cache@v4
         with:
-          path: .next/cache
+          path: apps/community/.next/cache
           key: ${{ runner.os }}-nextjs-${{ hashFiles('**/package.json') }}
           restore-keys: ${{ runner.os }}-nextjs-
-      - run: bun install --frozen-lockfile
-      - run: bun run build
+      - run: pnpm install --frozen-lockfile
+      - run: turbo run build
       # Upload standalone server, static assets, and public directory.
       # include-hidden-files required: .next/standalone/.next/ is a hidden dir with manifests.
       - name: Upload build artifact
@@ -131,9 +126,9 @@ jobs:
           name: nextjs-build
           include-hidden-files: true
           path: |
-            .next/standalone
-            .next/static
-            public
+            apps/community/.next/standalone
+            apps/community/.next/static
+            apps/community/public
           retention-days: 1
 
   # ─── Post-build jobs (run in parallel, both need build artifact) ─────────────
@@ -166,32 +161,31 @@ jobs:
       CI: "true"
     steps:
       - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
+      - uses: pnpm/action-setup@v4
         with:
-          bun-version: latest
-      - uses: actions/cache@v4
+          version: latest
+      - uses: actions/setup-node@v4
         with:
-          path: ~/.bun/install/cache
-          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
-          restore-keys: ${{ runner.os }}-bun-
-      - run: bun install --frozen-lockfile
+          node-version: "22"
+          cache: "pnpm"
+      - run: pnpm install --frozen-lockfile
       # Chromium only in CI for speed; full browser matrix runs in nightly workflow
-      - run: bunx playwright install --with-deps chromium
+      - run: pnpm exec playwright install --with-deps chromium
       - name: Download build artifact
         uses: actions/download-artifact@v4
         with:
           name: nextjs-build
-          path: .
+          path: apps/community
       # Run database migrations so the standalone server has tables
       - name: Run database migrations
-        run: for f in src/db/migrations/*.sql; do PGPASSWORD=postgres psql -h localhost -U postgres -d igbo_test -f "$f"; done
+        run: for f in apps/community/src/db/migrations/*.sql; do PGPASSWORD=postgres psql -h localhost -U postgres -d igbo_test -f "$f"; done
       # Prepare standalone server: static files must live inside the standalone dir
       - name: Setup standalone server assets
         run: |
-          cp -r .next/static .next/standalone/.next/static
-          cp -r public .next/standalone/public
+          cp -r apps/community/.next/static apps/community/.next/standalone/.next/static
+          cp -r apps/community/public apps/community/.next/standalone/public
       # Playwright manages the server via webServer config (command: node .next/standalone/server.js)
-      - run: bunx playwright test --reporter=html
+      - run: pnpm exec playwright test --reporter=html
       - name: Upload Playwright report on failure
         if: failure()
         uses: actions/upload-artifact@v4
@@ -227,28 +221,27 @@ jobs:
       REDIS_URL: redis://localhost:6379
     steps:
       - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
+      - uses: pnpm/action-setup@v4
         with:
-          bun-version: latest
-      - uses: actions/cache@v4
+          version: latest
+      - uses: actions/setup-node@v4
         with:
-          path: ~/.bun/install/cache
-          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
-          restore-keys: ${{ runner.os }}-bun-
-      - run: bun install --frozen-lockfile
+          node-version: "22"
+          cache: "pnpm"
+      - run: pnpm install --frozen-lockfile
       - name: Download build artifact
         uses: actions/download-artifact@v4
         with:
           name: nextjs-build
-          path: .
+          path: apps/community
       - name: Run database migrations
-        run: for f in src/db/migrations/*.sql; do PGPASSWORD=postgres psql -h localhost -U postgres -d igbo_test -f "$f"; done
+        run: for f in apps/community/src/db/migrations/*.sql; do PGPASSWORD=postgres psql -h localhost -U postgres -d igbo_test -f "$f"; done
       - name: Setup standalone server assets
         run: |
-          cp -r .next/static .next/standalone/.next/static
-          cp -r public .next/standalone/public
+          cp -r apps/community/.next/static apps/community/.next/standalone/.next/static
+          cp -r apps/community/public apps/community/.next/standalone/public
       - name: Start standalone server
-        run: PORT=3000 node .next/standalone/server.js &
+        run: PORT=3000 node apps/community/.next/standalone/server.js &
       - name: Wait for server to be ready
         run: |
           for i in $(seq 1 15); do
@@ -261,7 +254,7 @@ jobs:
       - name: Run Lighthouse CI
         uses: treosh/lighthouse-ci-action@v12
         with:
-          configPath: ./lighthouserc.js
+          configPath: ./apps/community/lighthouserc.js
           uploadArtifacts: true
           temporaryPublicStorage: false
 
