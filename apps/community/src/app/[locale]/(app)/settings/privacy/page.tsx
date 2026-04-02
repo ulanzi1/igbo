@@ -1,7 +1,7 @@
 import { setRequestLocale, getTranslations } from "next-intl/server";
 import { auth } from "@/server/auth/config";
 import { redirect } from "next/navigation";
-import { getProfileWithSocialLinks } from "@/db/queries/community-profiles";
+import { getProfileWithSocialLinks } from "@igbo/db/queries/community-profiles";
 import { PrivacySettings, SocialLinksManager } from "@/features/profiles";
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {

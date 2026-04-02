@@ -2,7 +2,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const mockSearchMembersByName = vi.fn();
-vi.mock("@/db/queries/community-profiles", () => ({
+vi.mock("@igbo/db/queries/community-profiles", () => ({
   searchMembersByName: (...args: unknown[]) => mockSearchMembersByName(...args),
 }));
 

@@ -4,8 +4,8 @@ import { successResponse } from "@/lib/api-response";
 import { ApiError } from "@/lib/api-error";
 import { requireAuthenticatedSession } from "@/services/permissions";
 import { RATE_LIMIT_PRESETS } from "@/services/rate-limiter";
-import { runGlobalSearch } from "@/db/queries/search";
-import type { SearchFilters } from "@/db/queries/search";
+import { runGlobalSearch } from "@igbo/db/queries/search";
+import type { SearchFilters } from "@igbo/db/queries/search";
 
 const VALID_TYPES = [
   "members",

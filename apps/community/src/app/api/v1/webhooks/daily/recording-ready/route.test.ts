@@ -34,7 +34,7 @@ const mockGetEventByRoomName = vi.fn();
 const mockSetRecordingSourceUrl = vi.fn();
 const mockRunJob = vi.fn();
 
-vi.mock("@/db/queries/events", () => ({
+vi.mock("@igbo/db/queries/events", () => ({
   getEventByRoomName: (...args: unknown[]) => mockGetEventByRoomName(...args),
   setRecordingSourceUrl: (...args: unknown[]) => mockSetRecordingSourceUrl(...args),
 }));

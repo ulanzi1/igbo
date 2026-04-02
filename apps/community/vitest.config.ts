@@ -14,23 +14,59 @@ export default defineConfig({
     },
   },
   resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "./src"),
+    alias: [
+      { find: "@", replacement: path.resolve(__dirname, "./src") },
       // server-only throws outside Next.js server context; no-op in tests
-      "server-only": path.resolve(__dirname, "./src/test/mocks/server-only.ts"),
-      // Resolve @igbo/config to the package source (no build step needed in tests)
-      "@igbo/config": path.resolve(__dirname, "../../packages/config/src"),
-      "@igbo/config/env": path.resolve(__dirname, "../../packages/config/src/env"),
-      "@igbo/config/redis": path.resolve(__dirname, "../../packages/config/src/redis"),
-      "@igbo/config/notifications": path.resolve(
-        __dirname,
-        "../../packages/config/src/notifications",
-      ),
-      "@igbo/config/chat": path.resolve(__dirname, "../../packages/config/src/chat"),
-      "@igbo/config/feed": path.resolve(__dirname, "../../packages/config/src/feed"),
-      "@igbo/config/points": path.resolve(__dirname, "../../packages/config/src/points"),
-      "@igbo/config/realtime": path.resolve(__dirname, "../../packages/config/src/realtime"),
-      "@igbo/config/upload": path.resolve(__dirname, "../../packages/config/src/upload"),
-    },
+      {
+        find: "server-only",
+        replacement: path.resolve(__dirname, "./src/test/mocks/server-only.ts"),
+      },
+      // @igbo/config individual aliases (source-level, no build step needed in tests)
+      {
+        find: "@igbo/config",
+        replacement: path.resolve(__dirname, "../../packages/config/src"),
+      },
+      {
+        find: "@igbo/config/env",
+        replacement: path.resolve(__dirname, "../../packages/config/src/env"),
+      },
+      {
+        find: "@igbo/config/redis",
+        replacement: path.resolve(__dirname, "../../packages/config/src/redis"),
+      },
+      {
+        find: "@igbo/config/notifications",
+        replacement: path.resolve(__dirname, "../../packages/config/src/notifications"),
+      },
+      {
+        find: "@igbo/config/chat",
+        replacement: path.resolve(__dirname, "../../packages/config/src/chat"),
+      },
+      {
+        find: "@igbo/config/feed",
+        replacement: path.resolve(__dirname, "../../packages/config/src/feed"),
+      },
+      {
+        find: "@igbo/config/points",
+        replacement: path.resolve(__dirname, "../../packages/config/src/points"),
+      },
+      {
+        find: "@igbo/config/realtime",
+        replacement: path.resolve(__dirname, "../../packages/config/src/realtime"),
+      },
+      {
+        find: "@igbo/config/upload",
+        replacement: path.resolve(__dirname, "../../packages/config/src/upload"),
+      },
+      // @igbo/db — regex aliases cover all 80+ subpaths without enumeration
+      {
+        find: /^@igbo\/db\/(.+)$/,
+        replacement: path.resolve(__dirname, "../../packages/db/src/$1"),
+      },
+      {
+        find: /^@igbo\/db$/,
+        replacement: path.resolve(__dirname, "../../packages/db/src/index"),
+      },
+    ],
   },
 });

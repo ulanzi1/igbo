@@ -3,7 +3,7 @@ import React from "react";
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { GroupCard } from "./GroupCard";
-import type { DirectoryGroupItem } from "@/db/queries/groups";
+import type { DirectoryGroupItem } from "@igbo/db/queries/groups";
 import { expectNoA11yViolations } from "@/test/a11y-utils";
 
 vi.mock("next-intl", () => ({

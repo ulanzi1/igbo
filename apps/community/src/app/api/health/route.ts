@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { sql } from "drizzle-orm";
-import { db } from "@/db";
+import { db } from "@igbo/db";
 import { getRedisClient } from "@/lib/redis";
 import { env } from "@/env";
 

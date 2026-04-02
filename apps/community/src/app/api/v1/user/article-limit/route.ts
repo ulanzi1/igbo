@@ -1,11 +1,11 @@
 import { withApiHandler } from "@/server/api/middleware";
 import { successResponse } from "@/lib/api-response";
 import { requireAuthenticatedSession } from "@/services/permissions";
-import { getUserMembershipTier } from "@/db/queries/auth-permissions";
-import { getUserPointsTotal, getEffectiveArticleLimit } from "@/db/queries/points";
-import { countWeeklyArticleSubmissions } from "@/db/queries/articles";
-import { db } from "@/db";
-import { platformPostingLimits } from "@/db/schema/platform-posting-limits";
+import { getUserMembershipTier } from "@igbo/db/queries/auth-permissions";
+import { getUserPointsTotal, getEffectiveArticleLimit } from "@igbo/db/queries/points";
+import { countWeeklyArticleSubmissions } from "@igbo/db/queries/articles";
+import { db } from "@igbo/db";
+import { platformPostingLimits } from "@igbo/db/schema/platform-posting-limits";
 import { eq, asc } from "drizzle-orm";
 
 export const GET = withApiHandler(async () => {

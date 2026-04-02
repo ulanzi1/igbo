@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { BADGE_MULTIPLIERS } from "@igbo/config/points";
 import { cn } from "@/lib/utils";
-import type { BadgeType } from "@/db/schema/community-badges";
+import type { BadgeType } from "@igbo/db/schema/community-badges";
 
 type BadgeSize = "sm" | "md";
 

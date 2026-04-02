@@ -5,13 +5,13 @@ import { SignJWT } from "jose";
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { DrizzleAdapter } from "@auth/drizzle-adapter";
-import { db } from "@/db";
-import { authUsers } from "@/db/schema/auth-users";
-import { authSessions } from "@/db/schema/auth-sessions";
-import { communityProfiles } from "@/db/schema/community-profiles";
+import { db } from "@igbo/db";
+import { authUsers } from "@igbo/db/schema/auth-users";
+import { authSessions } from "@igbo/db/schema/auth-sessions";
+import { communityProfiles } from "@igbo/db/schema/community-profiles";
 import { getRedisClient } from "@/lib/redis";
 import { env } from "@/env";
-import { findSessionByToken, deleteSessionByToken } from "@/db/queries/auth-sessions";
+import { findSessionByToken, deleteSessionByToken } from "@igbo/db/queries/auth-sessions";
 import {
   cacheSession,
   getCachedSession,

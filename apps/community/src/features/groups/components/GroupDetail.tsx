@@ -7,7 +7,7 @@ import { GroupFeedTab } from "./GroupFeedTab";
 import { GroupChannelsTab } from "./GroupChannelsTab";
 import { GroupMembersTab } from "./GroupMembersTab";
 import { GroupFilesTab } from "./GroupFilesTab";
-import type { GroupMemberRole, GroupMemberStatus } from "@/db/schema/community-groups";
+import type { GroupMemberRole, GroupMemberStatus } from "@igbo/db/schema/community-groups";
 
 interface SerializedGroup {
   id: string;

@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import { useTranslations } from "next-intl";
 import { SearchIcon } from "lucide-react";
 import { useMessageSearch } from "@/features/chat/hooks/use-message-search";
-import type { MessageSearchResult } from "@/db/queries/chat-conversations";
+import type { MessageSearchResult } from "@igbo/db/queries/chat-conversations";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface MessageSearchProps {

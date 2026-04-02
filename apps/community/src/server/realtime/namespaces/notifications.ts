@@ -8,7 +8,7 @@ import {
   PRESENCE_TTL_SECONDS,
   REPLAY_WINDOW_MS,
 } from "@igbo/config/realtime";
-import { getNotifications } from "@/db/queries/notifications";
+import { getNotifications } from "@igbo/db/queries/notifications";
 
 const HEARTBEAT_INTERVAL_MS = (PRESENCE_TTL_SECONDS / 2) * 1000; // refresh at half TTL
 

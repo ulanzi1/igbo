@@ -6,7 +6,7 @@ import { withApiHandler } from "@/server/api/middleware";
 import { successResponse, errorResponse } from "@/lib/api-response";
 import { env } from "@/env";
 import { z } from "zod/v4";
-import { getEventByRoomName, setRecordingSourceUrl } from "@/db/queries/events";
+import { getEventByRoomName, setRecordingSourceUrl } from "@igbo/db/queries/events";
 import { runJob } from "@/server/jobs/job-runner";
 
 const WebhookPayloadSchema = z.object({

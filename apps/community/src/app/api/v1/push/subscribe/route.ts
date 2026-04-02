@@ -4,7 +4,7 @@ import { requireAuthenticatedSession } from "@/services/permissions";
 import {
   upsertPushSubscription,
   deleteAllUserPushSubscriptions,
-} from "@/db/queries/push-subscriptions";
+} from "@igbo/db/queries/push-subscriptions";
 import { z } from "zod/v4";
 
 const subscribeBodySchema = z.object({

@@ -10,7 +10,7 @@ vi.mock("@/lib/admin-auth", () => ({
 
 const mockGetPlatformSetting = vi.fn();
 const mockUpsertPlatformSetting = vi.fn();
-vi.mock("@/db/queries/platform-settings", () => ({
+vi.mock("@igbo/db/queries/platform-settings", () => ({
   getPlatformSetting: (...args: unknown[]) => mockGetPlatformSetting(...args),
   upsertPlatformSetting: (...args: unknown[]) => mockUpsertPlatformSetting(...args),
 }));

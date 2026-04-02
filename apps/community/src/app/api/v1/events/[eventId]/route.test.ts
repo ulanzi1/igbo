@@ -43,7 +43,7 @@ vi.mock("@/services/event-service", () => ({
   },
 }));
 
-vi.mock("@/db/queries/events", () => ({
+vi.mock("@igbo/db/queries/events", () => ({
   getEventById: vi.fn(),
   createEvent: vi.fn(),
   updateEvent: vi.fn(),
@@ -53,7 +53,7 @@ vi.mock("@/db/queries/events", () => ({
   getEventsByParentId: vi.fn(),
 }));
 
-vi.mock("@/db/queries/groups", () => ({
+vi.mock("@igbo/db/queries/groups", () => ({
   getGroupById: vi.fn().mockResolvedValue(null),
   getGroupMember: vi.fn(),
   getGroupsForUserMembership: vi.fn(),
@@ -68,7 +68,7 @@ vi.mock("@/services/rate-limiter", () => ({
   applyRateLimit: vi.fn().mockResolvedValue({ success: true }),
 }));
 
-import { getEventById } from "@/db/queries/events";
+import { getEventById } from "@igbo/db/queries/events";
 import {
   updateEvent as serviceUpdateEvent,
   cancelEvent as serviceCancelEvent,

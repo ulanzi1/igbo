@@ -4,7 +4,7 @@ import { useTranslations } from "next-intl";
 import { BellIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRouter } from "@/i18n/navigation";
-import type { PlatformNotification } from "@/db/schema/platform-notifications";
+import type { PlatformNotification } from "@igbo/db/schema/platform-notifications";
 
 /**
  * Resolve notification text — if it looks like an i18n key (e.g. "notifications.member_approved.title"),

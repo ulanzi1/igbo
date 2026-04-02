@@ -1,6 +1,6 @@
 import { withApiHandler } from "@/server/api/middleware";
 import { ApiError } from "@/lib/api-error";
-import { getExportRequestByToken } from "@/db/queries/gdpr";
+import { getExportRequestByToken } from "@igbo/db/queries/gdpr";
 
 const handler = async (request: Request): Promise<Response> => {
   // Extract token from URL path: /api/v1/user/account/export/download/{token}

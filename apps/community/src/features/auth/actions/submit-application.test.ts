@@ -16,7 +16,7 @@ const mockFindUserByEmail = vi.fn();
 const mockCreateUser = vi.fn();
 const mockCreateVerificationToken = vi.fn();
 
-vi.mock("@/db/queries/auth-queries", () => ({
+vi.mock("@igbo/db/queries/auth-queries", () => ({
   findUserByEmail: (...args: unknown[]) => mockFindUserByEmail(...args),
   createUser: (...args: unknown[]) => mockCreateUser(...args),
   createVerificationToken: (...args: unknown[]) => mockCreateVerificationToken(...args),

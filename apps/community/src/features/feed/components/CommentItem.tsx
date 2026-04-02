@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { useTranslations } from "next-intl";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ReportDialog } from "@/components/shared/ReportDialog";
-import type { PostComment } from "@/db/queries/post-interactions";
+import type { PostComment } from "@igbo/db/queries/post-interactions";
 
 interface CommentItemProps {
   comment: PostComment;

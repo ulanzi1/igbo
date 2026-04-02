@@ -105,7 +105,7 @@ const nextConfig: NextConfig = {
   outputFileTracingRoot: path.join(__dirname, "../../"),
   reactStrictMode: true,
   poweredByHeader: false,
-  transpilePackages: ["@igbo/config"],
+  transpilePackages: ["@igbo/config", "@igbo/db"],
   outputFileTracingIncludes: {
     "/**": ["./src/lib/lua/*.lua"],
   },

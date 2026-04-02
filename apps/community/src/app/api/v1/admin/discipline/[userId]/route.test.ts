@@ -13,16 +13,16 @@ vi.mock("@/lib/admin-auth", () => ({
   requireAdminSession: (...args: unknown[]) => mockRequireAdminSession(...args),
 }));
 
-vi.mock("@/db/queries/auth-queries", () => ({
+vi.mock("@igbo/db/queries/auth-queries", () => ({
   findUserById: (...args: unknown[]) => mockFindUserById(...args),
 }));
 
-vi.mock("@/db/queries/member-discipline", () => ({
+vi.mock("@igbo/db/queries/member-discipline", () => ({
   listMemberDisciplineHistory: (...args: unknown[]) => mockListMemberDisciplineHistory(...args),
   getActiveSuspension: (...args: unknown[]) => mockGetActiveSuspension(...args),
 }));
 
-vi.mock("@/db/queries/community-profiles", () => ({
+vi.mock("@igbo/db/queries/community-profiles", () => ({
   getProfileByUserId: (...args: unknown[]) => mockGetProfileByUserId(...args),
 }));
 

@@ -1,7 +1,7 @@
 import { withApiHandler } from "@/server/api/middleware";
 import { successResponse } from "@/lib/api-response";
 import { requireAdminSession } from "@/lib/admin-auth";
-import { listFlaggedContent } from "@/db/queries/moderation";
+import { listFlaggedContent } from "@igbo/db/queries/moderation";
 
 const VALID_STATUSES = ["pending", "reviewed", "dismissed"] as const;
 const VALID_CONTENT_TYPES = ["post", "article", "message"] as const;

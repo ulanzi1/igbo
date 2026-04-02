@@ -39,7 +39,7 @@ vi.mock("@/services/permissions", () => ({
   requireAuthenticatedSession: vi.fn().mockResolvedValue({ userId: "user-1", role: "MEMBER" }),
 }));
 
-vi.mock("@/db/queries/groups", () => ({
+vi.mock("@igbo/db/queries/groups", () => ({
   getGroupsForUserMembership: (...args: unknown[]) => mockGetGroupsForUserMembership(...args),
   getGroupById: vi.fn(),
   getGroupMember: vi.fn(),

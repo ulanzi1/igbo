@@ -14,7 +14,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useState } from "react";
-import type { NotificationPreference } from "@/db/queries/chat-conversations";
+import type { NotificationPreference } from "@igbo/db/queries/chat-conversations";
 
 interface ConversationPreferencesProps {
   conversationId: string;

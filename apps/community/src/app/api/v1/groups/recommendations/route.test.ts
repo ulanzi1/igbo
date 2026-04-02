@@ -2,7 +2,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("server-only", () => ({}));
-vi.mock("@/db", () => ({ db: {} }));
+vi.mock("@igbo/db", () => ({ db: {} }));
 
 const mockRequireAuthenticatedSession = vi.fn();
 const mockGetRecommendedGroupsForUser = vi.fn();

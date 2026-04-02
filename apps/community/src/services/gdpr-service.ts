@@ -1,12 +1,12 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
-import { db } from "@/db";
-import { authUsers } from "@/db/schema/auth-users";
-import { communityProfiles } from "@/db/schema/community-profiles";
-import { auditLogs } from "@/db/schema/audit-logs";
-import { createExportRequest } from "@/db/queries/gdpr";
-import { findUserById } from "@/db/queries/auth-queries";
+import { db } from "@igbo/db";
+import { authUsers } from "@igbo/db/schema/auth-users";
+import { communityProfiles } from "@igbo/db/schema/community-profiles";
+import { auditLogs } from "@igbo/db/schema/audit-logs";
+import { createExportRequest } from "@igbo/db/queries/gdpr";
+import { findUserById } from "@igbo/db/queries/auth-queries";
 import { verifyPassword } from "@/services/auth-service";
 import { getRedisClient } from "@/lib/redis";
 import { eventBus } from "@/services/event-bus";
@@ -15,7 +15,7 @@ import { runJob } from "@/server/jobs/job-runner";
 import { ApiError } from "@/lib/api-error";
 import { env } from "@/env";
 
-export { findAccountsPendingAnonymization } from "@/db/queries/gdpr";
+export { findAccountsPendingAnonymization } from "@igbo/db/queries/gdpr";
 
 const DELETION_GRACE_PERIOD_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 const CANCELLATION_TOKEN_TTL_SECONDS = 30 * 24 * 60 * 60; // 30 days

@@ -56,7 +56,7 @@ vi.mock("@/components/ui/alert-dialog", () => ({
     React.createElement("button", { "data-testid": "cancel-block" }, children),
 }));
 
-vi.mock("@/db/queries/chat-conversations", () => ({}));
+vi.mock("@igbo/db/queries/chat-conversations", () => ({}));
 
 const mockFetch = vi.fn();
 global.fetch = mockFetch;

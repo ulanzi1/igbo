@@ -18,7 +18,7 @@ vi.mock("@/services/permissions", () => ({
   requireAuthenticatedSession: (...args: unknown[]) => mockRequireAuthenticatedSession(...args),
 }));
 
-vi.mock("@/db/queries/chat-conversations", () => ({
+vi.mock("@igbo/db/queries/chat-conversations", () => ({
   getConversationById: (...args: unknown[]) => mockGetConversationById(...args),
   isConversationMember: (...args: unknown[]) => mockIsConversationMember(...args),
   addConversationMember: (...args: unknown[]) => mockAddConversationMember(...args),
@@ -35,7 +35,7 @@ vi.mock("@/services/message-service", () => ({
   },
 }));
 
-vi.mock("@/db/queries/community-profiles", () => ({
+vi.mock("@igbo/db/queries/community-profiles", () => ({
   getProfileByUserId: (...args: unknown[]) => mockGetProfileByUserId(...args),
 }));
 

@@ -10,13 +10,13 @@ vi.mock("@/services/permissions", () => ({
 
 const mockGetGroupById = vi.fn();
 const mockGetGroupMember = vi.fn();
-vi.mock("@/db/queries/groups", () => ({
+vi.mock("@igbo/db/queries/groups", () => ({
   getGroupById: (...args: unknown[]) => mockGetGroupById(...args),
   getGroupMember: (...args: unknown[]) => mockGetGroupMember(...args),
 }));
 
 const mockSoftDeleteGroupPost = vi.fn();
-vi.mock("@/db/queries/posts", () => ({
+vi.mock("@igbo/db/queries/posts", () => ({
   softDeleteGroupPost: (...args: unknown[]) => mockSoftDeleteGroupPost(...args),
 }));
 

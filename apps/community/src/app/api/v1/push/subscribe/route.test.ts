@@ -11,7 +11,7 @@ vi.mock("@/services/permissions", () => ({
   requireAuthenticatedSession: (...args: unknown[]) => mockRequireAuthenticatedSession(...args),
 }));
 
-vi.mock("@/db/queries/push-subscriptions", () => ({
+vi.mock("@igbo/db/queries/push-subscriptions", () => ({
   upsertPushSubscription: (...args: unknown[]) => mockUpsertPushSubscription(...args),
   deleteAllUserPushSubscriptions: (...args: unknown[]) =>
     mockDeleteAllUserPushSubscriptions(...args),

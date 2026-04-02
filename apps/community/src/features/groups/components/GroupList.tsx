@@ -6,8 +6,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "@/i18n/navigation";
 import { GroupCard } from "./GroupCard";
 import { useGroups } from "@/features/groups/hooks/use-groups";
-import type { DirectoryGroupItem } from "@/db/queries/groups";
-import type { GroupMemberRole, GroupMemberStatus } from "@/db/schema/community-groups";
+import type { DirectoryGroupItem } from "@igbo/db/queries/groups";
+import type { GroupMemberRole, GroupMemberStatus } from "@igbo/db/schema/community-groups";
 
 interface GroupListProps {
   canCreateGroup?: boolean;

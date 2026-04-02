@@ -10,7 +10,7 @@ vi.mock("next-intl/server", () => ({
   setRequestLocale: vi.fn(),
 }));
 
-vi.mock("@/db/queries/articles", () => ({
+vi.mock("@igbo/db/queries/articles", () => ({
   listPublishedArticlesPublic: vi.fn().mockResolvedValue({ items: [], total: 0 }),
   createArticle: vi.fn(),
   updateArticle: vi.fn(),

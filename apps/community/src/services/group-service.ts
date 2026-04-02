@@ -13,15 +13,15 @@ import {
   type UpdateGroupInput,
   type GroupListItem,
   type GroupDetail,
-} from "@/db/queries/groups";
-import { getUserMembershipTier } from "@/db/queries/auth-permissions";
+} from "@igbo/db/queries/groups";
+import { getUserMembershipTier } from "@igbo/db/queries/auth-permissions";
 import { canCreateGroup } from "@/services/permissions";
 import { eventBus } from "@/services/event-bus";
 import { createDefaultChannel } from "@/services/group-channel-service";
 import {
   listAllChannelConversationIds,
   softDeleteChannelConversation,
-} from "@/db/queries/group-channels";
+} from "@igbo/db/queries/group-channels";
 import type {
   CommunityGroup,
   GroupVisibility,
@@ -29,7 +29,7 @@ import type {
   GroupPostingPermission,
   GroupCommentingPermission,
   GroupMemberRole,
-} from "@/db/schema/community-groups";
+} from "@igbo/db/schema/community-groups";
 
 export type { GroupListItem, GroupDetail, UpdateGroupInput };
 

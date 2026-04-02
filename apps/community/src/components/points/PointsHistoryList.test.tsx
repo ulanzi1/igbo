@@ -18,7 +18,7 @@ vi.mock("@/components/ui/skeleton", () => ({
 }));
 
 import { PointsHistoryList } from "./PointsHistoryList";
-import type { LedgerHistoryRow } from "@/db/queries/points";
+import type { LedgerHistoryRow } from "@igbo/db/queries/points";
 
 const makeEntry = (overrides: Partial<LedgerHistoryRow> = {}): LedgerHistoryRow => ({
   id: "e1",

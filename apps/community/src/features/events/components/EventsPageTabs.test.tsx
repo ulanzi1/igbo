@@ -2,7 +2,7 @@
 import React from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@/test/test-utils";
-import type { EventListItem } from "@/db/queries/events";
+import type { EventListItem } from "@igbo/db/queries/events";
 
 const mockUseSession = vi.fn();
 vi.mock("next-auth/react", () => ({

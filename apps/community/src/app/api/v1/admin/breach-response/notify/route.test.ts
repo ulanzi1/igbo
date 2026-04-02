@@ -22,7 +22,7 @@ vi.mock("@/services/email-service", () => ({
   enqueueEmailJob: (...args: unknown[]) => mockEnqueueEmailJob(...args),
 }));
 
-vi.mock("@/db", () => ({
+vi.mock("@igbo/db", () => ({
   db: {
     select: vi.fn().mockReturnValue({
       from: vi.fn().mockReturnValue({
@@ -35,7 +35,7 @@ vi.mock("@/db", () => ({
   },
 }));
 
-vi.mock("@/db/schema/auth-users", () => ({
+vi.mock("@igbo/db/schema/auth-users", () => ({
   authUsers: {
     id: "id",
     email: "email",
@@ -43,7 +43,7 @@ vi.mock("@/db/schema/auth-users", () => ({
   },
 }));
 
-vi.mock("@/db/schema/audit-logs", () => ({
+vi.mock("@igbo/db/schema/audit-logs", () => ({
   auditLogs: {},
 }));
 

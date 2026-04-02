@@ -10,7 +10,7 @@ vi.mock("@/lib/admin-auth", () => ({
   requireAdminSession: (...args: unknown[]) => mockRequireAdminSession(...args),
 }));
 
-vi.mock("@/db/queries/moderation", () => ({
+vi.mock("@igbo/db/queries/moderation", () => ({
   listFlaggedContent: (...args: unknown[]) => mockListFlaggedContent(...args),
 }));
 

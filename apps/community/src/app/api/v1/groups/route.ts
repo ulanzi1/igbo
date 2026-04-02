@@ -4,7 +4,11 @@
 import { withApiHandler } from "@/server/api/middleware";
 import { successResponse } from "@/lib/api-response";
 import { requireAuthenticatedSession } from "@/services/permissions";
-import { listGroups, listGroupsForDirectory, batchGetGroupMemberships } from "@/db/queries/groups";
+import {
+  listGroups,
+  listGroupsForDirectory,
+  batchGetGroupMemberships,
+} from "@igbo/db/queries/groups";
 import { RATE_LIMIT_PRESETS } from "@/services/rate-limiter";
 
 const getHandler = async (request: Request) => {

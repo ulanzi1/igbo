@@ -11,7 +11,7 @@ vi.mock("@/lib/request-context", () => ({
 
 const mockSetQuietHours = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
 const mockIsUserInQuietHours = vi.hoisted(() => vi.fn().mockResolvedValue(false));
-vi.mock("@/db/queries/notification-preferences", () => ({
+vi.mock("@igbo/db/queries/notification-preferences", () => ({
   setQuietHours: (...args: unknown[]) => mockSetQuietHours(...args),
   isUserInQuietHours: (...args: unknown[]) => mockIsUserInQuietHours(...args),
 }));

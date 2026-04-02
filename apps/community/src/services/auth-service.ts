@@ -6,26 +6,26 @@ import { generateSecret, generateURI, verifySync } from "otplib";
 import qrcode from "qrcode";
 import { UAParser } from "ua-parser-js";
 import { eq, and, gt, isNull } from "drizzle-orm";
-import { db } from "@/db";
-import { authUsers } from "@/db/schema/auth-users";
-import { authTotpSecrets } from "@/db/schema/auth-mfa";
-import { authPasswordResetTokens } from "@/db/schema/auth-password-reset";
-import { authSessions } from "@/db/schema/auth-sessions";
-import { findUserByEmail, findUserById } from "@/db/queries/auth-queries";
+import { db } from "@igbo/db";
+import { authUsers } from "@igbo/db/schema/auth-users";
+import { authTotpSecrets } from "@igbo/db/schema/auth-mfa";
+import { authPasswordResetTokens } from "@igbo/db/schema/auth-password-reset";
+import { authSessions } from "@igbo/db/schema/auth-sessions";
+import { findUserByEmail, findUserById } from "@igbo/db/queries/auth-queries";
 import {
   findActiveSessionsByUserId,
   deleteSessionById,
   deleteOldestSessionForUser,
   deleteAllSessionsForUser,
   countActiveSessionsForUser,
-} from "@/db/queries/auth-sessions";
+} from "@igbo/db/queries/auth-sessions";
 import { evictCachedSession, evictAllUserSessions } from "@/server/auth/redis-session-cache";
 import { setChallenge } from "@/server/auth/config";
 import { getRedisClient } from "@/lib/redis";
 import { checkRateLimit } from "@/lib/rate-limiter";
 import { eventBus } from "@/services/event-bus";
 import { enqueueEmailJob } from "@/services/email-service";
-import { getActiveSuspension } from "@/db/queries/member-discipline";
+import { getActiveSuspension } from "@igbo/db/queries/member-discipline";
 import { env } from "@/env";
 import { ApiError } from "@/lib/api-error";
 

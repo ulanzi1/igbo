@@ -7,7 +7,7 @@ vi.mock("@/lib/admin-auth", () => ({
   requireAdminSession: vi.fn(),
 }));
 
-vi.mock("@/db/queries/admin-approvals", () => ({
+vi.mock("@igbo/db/queries/admin-approvals", () => ({
   listApplications: vi.fn(),
   getApplicationById: vi.fn(),
   updateApplicationStatus: vi.fn(),
@@ -41,8 +41,8 @@ vi.mock("@/env", () => ({
   },
 }));
 
-vi.mock("@/db", () => ({ db: {} }));
-vi.mock("@/db/schema/auth-users", () => ({ authUsers: {} }));
+vi.mock("@igbo/db", () => ({ db: {} }));
+vi.mock("@igbo/db/schema/auth-users", () => ({ authUsers: {} }));
 
 import {
   getApplicationsList,
@@ -57,7 +57,7 @@ import {
   listApplications,
   getApplicationById,
   updateApplicationStatus,
-} from "@/db/queries/admin-approvals";
+} from "@igbo/db/queries/admin-approvals";
 import { logAdminAction } from "@/services/audit-logger";
 import { enqueueEmailJob } from "@/services/email-service";
 import { eventBus } from "@/services/event-bus";

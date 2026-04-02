@@ -1,8 +1,8 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { FileTextIcon, ClockIcon, StarIcon } from "lucide-react";
 import { EmptyState } from "@/components/shared/EmptyState";
-import { listPublishedArticlesPublic } from "@/db/queries/articles";
-import type { PublicArticleListItem } from "@/db/queries/articles";
+import { listPublishedArticlesPublic } from "@igbo/db/queries/articles";
+import type { PublicArticleListItem } from "@igbo/db/queries/articles";
 
 export const revalidate = 60;
 

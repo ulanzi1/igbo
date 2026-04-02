@@ -15,7 +15,7 @@ import {
   evictCachedSession,
   evictAllUserSessions,
 } from "./redis-session-cache";
-import type { AuthSession } from "@/db/schema/auth-sessions";
+import type { AuthSession } from "@igbo/db/schema/auth-sessions";
 
 const mockSession: AuthSession = {
   id: "sess-1",

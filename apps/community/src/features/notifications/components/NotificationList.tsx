@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { NotificationItem } from "./NotificationItem";
-import type { PlatformNotification } from "@/db/schema/platform-notifications";
+import type { PlatformNotification } from "@igbo/db/schema/platform-notifications";
 
 interface NotificationListProps {
   notifications: PlatformNotification[];

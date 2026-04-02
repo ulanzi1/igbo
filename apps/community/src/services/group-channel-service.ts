@@ -2,7 +2,7 @@ import "server-only";
 import { z } from "zod/v4";
 import { ApiError } from "@/lib/api-error";
 import { eventBus } from "@/services/event-bus";
-import { getGroupMember } from "@/db/queries/groups";
+import { getGroupMember } from "@igbo/db/queries/groups";
 import {
   createGroupChannel,
   createChannelConversation,
@@ -15,7 +15,7 @@ import {
   listActiveGroupMemberIds,
   type GroupChannelItem,
   type CommunityGroupChannel,
-} from "@/db/queries/group-channels";
+} from "@igbo/db/queries/group-channels";
 
 export type { GroupChannelItem, CommunityGroupChannel };
 

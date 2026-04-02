@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
-import type { DirectoryGroupItem } from "@/db/queries/groups";
-import type { GroupMemberRole, GroupMemberStatus } from "@/db/schema/community-groups";
+import type { DirectoryGroupItem } from "@igbo/db/queries/groups";
+import type { GroupMemberRole, GroupMemberStatus } from "@igbo/db/schema/community-groups";
 
 interface GroupCardProps {
   group: DirectoryGroupItem;

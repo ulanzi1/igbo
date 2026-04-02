@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import { useSession } from "next-auth/react";
 import { useTransition } from "react";
 import { useRouter } from "@/i18n/navigation";
-import type { CommunityProfile, CommunitySocialLink } from "@/db/schema/community-profiles";
+import type { CommunityProfile, CommunitySocialLink } from "@igbo/db/schema/community-profiles";
 import { createOrFindDirectConversation } from "@/features/chat/actions/create-conversation";
 import { FollowButton } from "./FollowButton";
 import { FollowList } from "./FollowList";

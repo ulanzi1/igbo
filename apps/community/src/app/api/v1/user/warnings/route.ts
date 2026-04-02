@@ -1,7 +1,7 @@
 import { withApiHandler } from "@/server/api/middleware";
 import { successResponse } from "@/lib/api-response";
 import { requireAuthenticatedSession } from "@/services/permissions";
-import { getActiveWarnings } from "@/db/queries/member-discipline";
+import { getActiveWarnings } from "@igbo/db/queries/member-discipline";
 
 export const GET = withApiHandler(async () => {
   const { userId } = await requireAuthenticatedSession();

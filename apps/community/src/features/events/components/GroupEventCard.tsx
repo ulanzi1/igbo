@@ -3,7 +3,7 @@
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { EventFormatBadge } from "./EventFormatBadge";
-import type { EventListItem } from "@/db/queries/events";
+import type { EventListItem } from "@igbo/db/queries/events";
 
 interface GroupEventCardProps {
   event: EventListItem;

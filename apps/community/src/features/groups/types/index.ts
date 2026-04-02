@@ -10,6 +10,6 @@ export type {
   GroupCommentingPermission,
   GroupMemberRole,
   GroupMemberStatus,
-} from "@/db/schema/community-groups";
+} from "@igbo/db/schema/community-groups";
 
-export type { GroupListItem, GroupDetail, DirectoryGroupItem } from "@/db/queries/groups";
+export type { GroupListItem, GroupDetail, DirectoryGroupItem } from "@igbo/db/queries/groups";

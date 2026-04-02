@@ -3,7 +3,7 @@ import { withApiHandler } from "@/server/api/middleware";
 import { successResponse } from "@/lib/api-response";
 import { ApiError } from "@/lib/api-error";
 import { requireAuthenticatedSession } from "@/services/permissions";
-import { dismissGroupRecommendation } from "@/db/queries/recommendations";
+import { dismissGroupRecommendation } from "@igbo/db/queries/recommendations";
 import { invalidateRecommendationCache } from "@/services/recommendation-service";
 
 const uuidSchema = z.string().uuid();

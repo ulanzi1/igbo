@@ -2,7 +2,7 @@
 
 import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
 import { useDeferredValue } from "react";
-import type { SearchFilters } from "@/db/queries/search";
+import type { SearchFilters } from "@igbo/db/queries/search";
 
 export interface SearchResultItem {
   id: string;

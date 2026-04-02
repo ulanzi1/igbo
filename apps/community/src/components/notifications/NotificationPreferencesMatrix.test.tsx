@@ -17,7 +17,7 @@ vi.mock("@/components/notifications/PushSubscriptionToggle", () => ({
   PushSubscriptionToggle: () => <div data-testid="push-toggle-stub" />,
 }));
 
-vi.mock("@/db/queries/notification-preferences", () => ({
+vi.mock("@igbo/db/queries/notification-preferences", () => ({
   DEFAULT_PREFERENCES: {
     message: { inApp: true, email: true, push: true },
     mention: { inApp: true, email: false, push: true },

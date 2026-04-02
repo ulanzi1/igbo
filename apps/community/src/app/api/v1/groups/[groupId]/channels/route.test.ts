@@ -12,7 +12,7 @@ vi.mock("@/services/permissions", () => ({
   requireAuthenticatedSession: (...args: unknown[]) => mockRequireAuthenticatedSession(...args),
 }));
 
-vi.mock("@/db/queries/groups", () => ({
+vi.mock("@igbo/db/queries/groups", () => ({
   getGroupMember: (...args: unknown[]) => mockGetGroupMember(...args),
 }));
 
