@@ -169,7 +169,7 @@ jobs:
           cache: "pnpm"
       - run: pnpm install --frozen-lockfile
       # Chromium only in CI for speed; full browser matrix runs in nightly workflow
-      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm --filter @igbo/community exec playwright install --with-deps chromium
       - name: Download build artifact
         uses: actions/download-artifact@v4
         with:
@@ -184,7 +184,7 @@ jobs:
           cp -r apps/community/.next/static apps/community/.next/standalone/.next/static
           cp -r apps/community/public apps/community/.next/standalone/public
       # Playwright manages the server via webServer config (command: node .next/standalone/server.js)
-      - run: pnpm exec playwright test --reporter=html
+      - run: pnpm --filter @igbo/community exec playwright test --reporter=html
       - name: Upload Playwright report on failure
         if: failure()
         uses: actions/upload-artifact@v4

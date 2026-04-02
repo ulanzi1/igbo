@@ -176,11 +176,15 @@ describe("ReactionBar", () => {
 
     await waitFor(() => screen.getByRole("dialog"));
 
-    fireEvent.mouseDown(document.body);
+    // Create an element outside the component to click on
+    const outside = document.createElement("div");
+    document.body.appendChild(outside);
+    fireEvent.mouseDown(outside);
 
     await waitFor(() => {
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     });
+    outside.remove();
   });
 
   it("trigger has aria-expanded reflecting picker open state", async () => {
