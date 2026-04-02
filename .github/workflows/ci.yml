@@ -267,6 +267,15 @@ jobs:
           echo "Standalone app at: $STANDALONE_APP"
           cp -r apps/community/.next/static "$STANDALONE_APP/.next/static"
           cp -r apps/community/public "$STANDALONE_APP/public"
+          # pnpm's virtual store (.pnpm/) uses symlinks that Next.js file tracing
+          # doesn't follow into the standalone bundle. @next/env is required by
+          # next/dist/server/config.js at runtime but not included by default.
+          # Copy it from the real node_modules (available after pnpm install).
+          STANDALONE_NM="$STANDALONE_APP/node_modules"
+          mkdir -p "$STANDALONE_NM/@next"
+          cp -rL node_modules/@next/env "$STANDALONE_NM/@next/" 2>/dev/null || \
+            cp -rL apps/community/node_modules/@next/env "$STANDALONE_NM/@next/" 2>/dev/null || \
+            echo "Warning: @next/env not found in node_modules, standalone may already include it"
       - name: Start standalone server
         run: |
           if [ -f apps/community/.next/standalone/apps/community/server.js ]; then
