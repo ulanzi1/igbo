@@ -59,7 +59,7 @@ jobs:
           node-version: "22"
           cache: "pnpm"
       - run: pnpm install --frozen-lockfile
-      - run: turbo run typecheck
+      - run: pnpm exec turbo run typecheck
 
   test:
     name: Unit Tests
@@ -83,7 +83,7 @@ jobs:
           node-version: "22"
           cache: "pnpm"
       - run: pnpm install --frozen-lockfile
-      - run: turbo run test
+      - run: pnpm exec turbo run test
 
   build:
     name: Build
@@ -107,7 +107,7 @@ jobs:
           key: ${{ runner.os }}-nextjs-${{ hashFiles('**/package.json') }}
           restore-keys: ${{ runner.os }}-nextjs-
       - run: pnpm install --frozen-lockfile
-      - run: turbo run build
+      - run: pnpm exec turbo run build
       # Upload standalone server, static assets, and public directory.
       # include-hidden-files required: .next/standalone/.next/ is a hidden dir with manifests.
       - name: Upload build artifact
