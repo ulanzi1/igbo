@@ -24,7 +24,7 @@ jobs:
           cache: "pnpm"
       - run: pnpm install --frozen-lockfile
       - name: Check for critical/high vulnerabilities
-        run: npm audit --audit-level=high
+        run: pnpm audit --severity high
 
   lint:
     name: Lint
