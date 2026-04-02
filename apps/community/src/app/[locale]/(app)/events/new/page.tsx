@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
-import { auth } from "@/server/auth/config";
-import { canCreateEvent } from "@/services/permissions";
+import { auth } from "@igbo/auth";
+import { canCreateEvent } from "@igbo/auth/permissions";
 import { getGroupsForUserMembership } from "@igbo/db/queries/groups";
 import { EventForm } from "@/features/events/components/EventForm";
 

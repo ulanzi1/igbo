@@ -26,7 +26,7 @@ vi.mock("next-intl/server", () => ({
   },
 }));
 
-vi.mock("@/server/auth/config", () => ({
+vi.mock("@igbo/auth", () => ({
   auth: (...args: unknown[]) => mockAuth(...args),
 }));
 

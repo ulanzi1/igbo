@@ -17,11 +17,11 @@ vi.mock("@igbo/db/queries/auth-sessions", () => ({
   deleteAllSessionsForUser: vi.fn(),
   countActiveSessionsForUser: vi.fn(),
 }));
-vi.mock("@/server/auth/redis-session-cache", () => ({
+vi.mock("@igbo/auth/session-cache", () => ({
   evictCachedSession: vi.fn(),
   evictAllUserSessions: vi.fn(),
 }));
-vi.mock("@/server/auth/config", () => ({
+vi.mock("@igbo/auth", () => ({
   getChallenge: vi.fn(),
   setChallenge: vi.fn(),
   deleteChallenge: vi.fn(),
@@ -88,7 +88,7 @@ import {
 } from "@/services/auth-service";
 import { findUserByEmail } from "@igbo/db/queries/auth-queries";
 import { getActiveSuspension } from "@igbo/db/queries/member-discipline";
-import { setChallenge } from "@/server/auth/config";
+import { setChallenge } from "@igbo/auth";
 
 beforeEach(() => {
   vi.clearAllMocks();

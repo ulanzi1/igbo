@@ -2,7 +2,7 @@
 import { withApiHandler } from "@/server/api/middleware";
 import { successResponse } from "@/lib/api-response";
 import { ApiError } from "@/lib/api-error";
-import { requireAuthenticatedSession } from "@/services/permissions";
+import { requireAuthenticatedSession } from "@igbo/auth/permissions";
 import { getGroupById, getGroupMember } from "@igbo/db/queries/groups";
 import { approveGroupPost } from "@igbo/db/queries/posts";
 import { eventBus } from "@/services/event-bus";
@@ -67,7 +67,7 @@ const postHandler = async (request: Request) => {
 export const POST = withApiHandler(postHandler, {
   rateLimit: {
     key: async () => {
-      const { requireAuthenticatedSession: getSession } = await import("@/services/permissions");
+      const { requireAuthenticatedSession: getSession } = await import("@igbo/auth/permissions");
       const { userId } = await getSession();
       return `group-manage:${userId}`;
     },

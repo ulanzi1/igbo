@@ -1,7 +1,7 @@
 import { withApiHandler } from "@/server/api/middleware";
 import { successResponse } from "@/lib/api-response";
 import { ApiError } from "@/lib/api-error";
-import { requireAuthenticatedSession } from "@/services/permissions";
+import { requireAuthenticatedSession } from "@igbo/auth/permissions";
 import { batchIsFollowing } from "@igbo/db/queries/follows";
 import { RATE_LIMIT_PRESETS } from "@/services/rate-limiter";
 
@@ -14,7 +14,7 @@ const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}
 
 const rateLimitConfig = {
   key: async () => {
-    const { requireAuthenticatedSession: getSession } = await import("@/services/permissions");
+    const { requireAuthenticatedSession: getSession } = await import("@igbo/auth/permissions");
     const { userId } = await getSession();
     return `follow-status-batch:${userId}`;
   },

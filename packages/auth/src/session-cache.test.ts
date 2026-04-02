@@ -5,8 +5,8 @@ const mockGet = vi.fn();
 const mockSet = vi.fn();
 const mockDel = vi.fn();
 
-vi.mock("@/lib/redis", () => ({
-  getRedisClient: () => ({ get: mockGet, set: mockSet, del: mockDel }),
+vi.mock("./redis", () => ({
+  getAuthRedis: () => ({ get: mockGet, set: mockSet, del: mockDel }),
 }));
 
 import {
@@ -14,7 +14,7 @@ import {
   getCachedSession,
   evictCachedSession,
   evictAllUserSessions,
-} from "./redis-session-cache";
+} from "./session-cache";
 import type { AuthSession } from "@igbo/db/schema/auth-sessions";
 
 const mockSession: AuthSession = {

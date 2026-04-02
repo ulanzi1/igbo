@@ -1,5 +1,5 @@
 import "server-only";
-import { requireAdminSession } from "@/lib/admin-auth";
+import { requireAdminSession } from "@igbo/auth/admin-auth";
 import { eventBus } from "@/services/event-bus";
 import { ApiError } from "@/lib/api-error";
 import {

@@ -2,7 +2,7 @@ import { z } from "zod/v4";
 import { withApiHandler } from "@/server/api/middleware";
 import { successResponse } from "@/lib/api-response";
 import { ApiError } from "@/lib/api-error";
-import { getChallenge } from "@/server/auth/config";
+import { getChallenge } from "@igbo/auth";
 import { sendEmailOtp, verifyEmailOtp } from "@/services/auth-service";
 
 const requestSchema = z.object({

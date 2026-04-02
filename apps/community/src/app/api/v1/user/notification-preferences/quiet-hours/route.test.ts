@@ -2,7 +2,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("server-only", () => ({}));
-vi.mock("@/services/permissions", () => ({
+vi.mock("@igbo/auth/permissions", () => ({
   requireAuthenticatedSession: vi.fn().mockResolvedValue({ userId: "user-1", role: "MEMBER" }),
 }));
 vi.mock("@/lib/request-context", () => ({
@@ -31,7 +31,7 @@ vi.mock("@/env", () => ({
 }));
 
 import { PUT, DELETE } from "./route";
-import { requireAuthenticatedSession } from "@/services/permissions";
+import { requireAuthenticatedSession } from "@igbo/auth/permissions";
 import { ApiError } from "@/lib/api-error";
 
 const mockRequireAuth = vi.mocked(requireAuthenticatedSession);

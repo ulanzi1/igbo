@@ -6,7 +6,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 const mockRequireAuthenticatedSession = vi.fn();
 const mockMarkNotificationAsRead = vi.fn();
 
-vi.mock("@/services/permissions", () => ({
+vi.mock("@igbo/auth/permissions", () => ({
   requireAuthenticatedSession: (...args: unknown[]) => mockRequireAuthenticatedSession(...args),
 }));
 

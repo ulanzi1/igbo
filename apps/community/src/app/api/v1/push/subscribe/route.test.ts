@@ -7,7 +7,7 @@ const mockRequireAuthenticatedSession = vi.fn();
 const mockUpsertPushSubscription = vi.fn();
 const mockDeleteAllUserPushSubscriptions = vi.fn();
 
-vi.mock("@/services/permissions", () => ({
+vi.mock("@igbo/auth/permissions", () => ({
   requireAuthenticatedSession: (...args: unknown[]) => mockRequireAuthenticatedSession(...args),
 }));
 

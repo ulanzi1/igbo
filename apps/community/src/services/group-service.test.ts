@@ -22,7 +22,7 @@ vi.mock("@igbo/db/queries/group-channels", () => ({
   listAllChannelConversationIds: vi.fn().mockResolvedValue([]),
   softDeleteChannelConversation: vi.fn().mockResolvedValue(undefined),
 }));
-vi.mock("@/services/permissions", () => ({
+vi.mock("@igbo/auth/permissions", () => ({
   canCreateGroup: vi.fn(),
 }));
 vi.mock("@/services/event-bus", () => ({ eventBus: { emit: vi.fn() } }));
@@ -63,7 +63,7 @@ import {
   listAllChannelConversationIds,
   softDeleteChannelConversation,
 } from "@igbo/db/queries/group-channels";
-import { canCreateGroup } from "@/services/permissions";
+import { canCreateGroup } from "@igbo/auth/permissions";
 import { eventBus } from "@/services/event-bus";
 
 const mockCreateGroup = vi.mocked(createGroup);

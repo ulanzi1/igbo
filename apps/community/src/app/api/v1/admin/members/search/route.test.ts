@@ -6,7 +6,7 @@ vi.mock("server-only", () => ({}));
 const mockRequireAdminSession = vi.fn();
 const mockSearchMembersForAdmin = vi.fn();
 
-vi.mock("@/lib/admin-auth", () => ({
+vi.mock("@igbo/auth/admin-auth", () => ({
   requireAdminSession: (...a: unknown[]) => mockRequireAdminSession(...a),
 }));
 

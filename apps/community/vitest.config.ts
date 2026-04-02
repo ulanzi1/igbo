@@ -67,6 +67,15 @@ export default defineConfig({
         find: /^@igbo\/db$/,
         replacement: path.resolve(__dirname, "../../packages/db/src/index"),
       },
+      // @igbo/auth — regex aliases cover all subpaths without enumeration
+      {
+        find: /^@igbo\/auth\/(.+)$/,
+        replacement: path.resolve(__dirname, "../../packages/auth/src/$1"),
+      },
+      {
+        find: /^@igbo\/auth$/,
+        replacement: path.resolve(__dirname, "../../packages/auth/src/index"),
+      },
     ],
   },
 });

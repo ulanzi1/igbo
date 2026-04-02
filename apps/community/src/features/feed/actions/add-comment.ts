@@ -1,7 +1,7 @@
 "use server";
 
 import { z } from "zod/v4";
-import { requireAuthenticatedSession } from "@/services/permissions";
+import { requireAuthenticatedSession } from "@igbo/auth/permissions";
 import { applyRateLimit, RATE_LIMIT_PRESETS } from "@/services/rate-limiter";
 import { addComment } from "@/services/post-interaction-service";
 import type { AddCommentResult, AddCommentError } from "@/services/post-interaction-service";

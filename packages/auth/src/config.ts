@@ -1,4 +1,5 @@
 import "server-only";
+import "./types"; // Apply NextAuth module augmentations
 import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { SignJWT } from "jose";
@@ -9,49 +10,10 @@ import { db } from "@igbo/db";
 import { authUsers } from "@igbo/db/schema/auth-users";
 import { authSessions } from "@igbo/db/schema/auth-sessions";
 import { communityProfiles } from "@igbo/db/schema/community-profiles";
-import { getRedisClient } from "@/lib/redis";
-import { env } from "@/env";
 import { findSessionByToken, deleteSessionByToken } from "@igbo/db/queries/auth-sessions";
-import {
-  cacheSession,
-  getCachedSession,
-  evictCachedSession,
-} from "@/server/auth/redis-session-cache";
+import { getAuthRedis } from "./redis";
+import { cacheSession, getCachedSession, evictCachedSession } from "./session-cache";
 import type { Adapter, AdapterSession, AdapterUser } from "next-auth/adapters";
-
-// ─── Auth.js v5 module augmentation ──────────────────────────────────────────
-
-declare module "next-auth" {
-  interface User {
-    role: "MEMBER" | "ADMIN" | "MODERATOR";
-    accountStatus: string;
-    profileCompleted: boolean;
-    membershipTier: "BASIC" | "PROFESSIONAL" | "TOP_TIER";
-  }
-  interface Session {
-    sessionToken?: string;
-    user: {
-      id: string;
-      role: "MEMBER" | "ADMIN" | "MODERATOR";
-      accountStatus: string;
-      profileCompleted: boolean;
-      membershipTier: "BASIC" | "PROFESSIONAL" | "TOP_TIER";
-      name?: string | null;
-      email?: string | null;
-      image?: string | null;
-    };
-  }
-}
-
-declare module "next-auth/jwt" {
-  interface JWT {
-    id: string;
-    role: "MEMBER" | "ADMIN" | "MODERATOR";
-    accountStatus: string;
-    profileCompleted: boolean;
-    membershipTier: "BASIC" | "PROFESSIONAL" | "TOP_TIER";
-  }
-}
 
 // ─── Challenge token helpers ──────────────────────────────────────────────────
 
@@ -67,7 +29,7 @@ export const CHALLENGE_TTL = 300; // 5 minutes
 
 export async function getChallenge(token: string): Promise<ChallengeData | null> {
   try {
-    const redis = getRedisClient();
+    const redis = getAuthRedis();
     const raw = await redis.get(`challenge:${token}`);
     return raw ? (JSON.parse(raw) as ChallengeData) : null;
   } catch {
@@ -78,7 +40,7 @@ export async function getChallenge(token: string): Promise<ChallengeData | null>
 /** Atomically get and delete a challenge token (single-use consumption) */
 export async function consumeChallenge(token: string): Promise<ChallengeData | null> {
   try {
-    const redis = getRedisClient();
+    const redis = getAuthRedis();
     const raw = await redis.getdel(`challenge:${token}`);
     return raw ? (JSON.parse(raw) as ChallengeData) : null;
   } catch {
@@ -87,13 +49,13 @@ export async function consumeChallenge(token: string): Promise<ChallengeData | n
 }
 
 export async function setChallenge(token: string, data: ChallengeData): Promise<void> {
-  const redis = getRedisClient();
+  const redis = getAuthRedis();
   await redis.set(`challenge:${token}`, JSON.stringify(data), "EX", CHALLENGE_TTL);
 }
 
 export async function deleteChallenge(token: string): Promise<void> {
   try {
-    const redis = getRedisClient();
+    const redis = getAuthRedis();
     await redis.del(`challenge:${token}`);
   } catch {
     // Non-critical
@@ -101,6 +63,16 @@ export async function deleteChallenge(token: string): Promise<void> {
 }
 
 // ─── Custom adapter wrapper ───────────────────────────────────────────────────
+
+function getSessionTtl(): number {
+  return parseInt(process.env.SESSION_TTL_SECONDS ?? "86400", 10);
+}
+
+function getAuthSecret(): string {
+  const secret = process.env.AUTH_SECRET;
+  if (!secret) throw new Error("AUTH_SECRET environment variable is required");
+  return secret;
+}
 
 function buildAdapter(): Adapter {
   const base = DrizzleAdapter(db, {
@@ -119,7 +91,7 @@ function buildAdapter(): Adapter {
       let deviceName: string | null = null;
       let deviceIp: string | null = null;
       try {
-        const redis = getRedisClient();
+        const redis = getAuthRedis();
         const deviceInfoRaw = await redis.get(`pending_session_device:${data.userId}`);
         if (deviceInfoRaw) {
           const parsed = JSON.parse(deviceInfoRaw) as { deviceName?: string; deviceIp?: string };
@@ -145,7 +117,7 @@ function buildAdapter(): Adapter {
 
       if (!session) throw new Error("Failed to create session");
 
-      await cacheSession(session, env.SESSION_TTL_SECONDS);
+      await cacheSession(session, getSessionTtl());
 
       return session as unknown as AdapterSession;
     },
@@ -168,7 +140,7 @@ function buildAdapter(): Adapter {
       // Populate cache on miss
       if (result && !cached) {
         const dbSession = await findSessionByToken(sessionToken);
-        if (dbSession) await cacheSession(dbSession, env.SESSION_TTL_SECONDS);
+        if (dbSession) await cacheSession(dbSession, getSessionTtl());
       }
 
       return result;
@@ -187,7 +159,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   adapter: buildAdapter(),
   session: {
     strategy: "jwt",
-    maxAge: env.SESSION_TTL_SECONDS,
+    maxAge: getSessionTtl(),
     updateAge: 86400,
   },
   providers: [
@@ -225,7 +197,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
         // Store device info for createSession to pick up (short TTL: 30s)
         try {
-          const redis = getRedisClient();
+          const redis = getAuthRedis();
           await redis.set(
             `pending_session_device:${user.id}`,
             JSON.stringify({ deviceName: challenge.deviceName, deviceIp: challenge.deviceIp }),
@@ -253,7 +225,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     jwt({ token, user, trigger, session }) {
       if (user) {
         token.id = user.id as string;
-        token.role = (user as { role: "MEMBER" | "ADMIN" | "MODERATOR" }).role;
+        token.role = (
+          user as {
+            role: "MEMBER" | "ADMIN" | "MODERATOR" | "JOB_SEEKER" | "EMPLOYER" | "JOB_ADMIN";
+          }
+        ).role;
         token.accountStatus = (user as { accountStatus: string }).accountStatus;
         token.profileCompleted = (user as { profileCompleted: boolean }).profileCompleted;
         token.membershipTier =
@@ -277,7 +253,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       session.user.membershipTier = token.membershipTier ?? "BASIC";
       session.user.image = (token.picture as string | null | undefined) ?? null;
       // Create a short-lived JWT for Socket.IO auth (realtime server verifies with same AUTH_SECRET)
-      const secret = new TextEncoder().encode(env.AUTH_SECRET);
+      const secret = new TextEncoder().encode(getAuthSecret());
       session.sessionToken = await new SignJWT({ id: token.id })
         .setProtectedHeader({ alg: "HS256" })
         .setExpirationTime("1h")

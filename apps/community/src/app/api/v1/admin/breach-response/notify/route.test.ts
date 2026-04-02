@@ -14,7 +14,7 @@ const { mockRequireAdminSession, mockEnqueueEmailJob, mockSelectWhere, mockInser
     };
   });
 
-vi.mock("@/lib/admin-auth", () => ({
+vi.mock("@igbo/auth/admin-auth", () => ({
   requireAdminSession: (...args: unknown[]) => mockRequireAdminSession(...args),
 }));
 

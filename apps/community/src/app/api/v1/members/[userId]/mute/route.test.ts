@@ -9,7 +9,7 @@ const mockMuteMember = vi.fn();
 const mockUnmuteMember = vi.fn();
 const mockIsUserMuted = vi.fn();
 
-vi.mock("@/services/permissions", () => ({
+vi.mock("@igbo/auth/permissions", () => ({
   requireAuthenticatedSession: (...args: unknown[]) => mockRequireAuthenticatedSession(...args),
 }));
 

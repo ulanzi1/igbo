@@ -6,7 +6,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 vi.mock("server-only", () => ({}));
 
 const mockGetUserMembershipTier = vi.fn();
-const mockEventBusEmit = vi.fn();
+const mockPermissionDeniedHandler = vi.fn();
 const mockFindUserById = vi.fn();
 const mockAuth = vi.fn();
 
@@ -14,15 +14,11 @@ vi.mock("@igbo/db/queries/auth-permissions", () => ({
   getUserMembershipTier: (...args: unknown[]) => mockGetUserMembershipTier(...args),
 }));
 
-vi.mock("@/services/event-bus", () => ({
-  eventBus: { emit: (...args: unknown[]) => mockEventBusEmit(...args) },
-}));
-
 vi.mock("@igbo/db/queries/auth-queries", () => ({
   findUserById: (...args: unknown[]) => mockFindUserById(...args),
 }));
 
-vi.mock("@/server/auth/config", () => ({
+vi.mock("./config", () => ({
   auth: (...args: unknown[]) => mockAuth(...args),
 }));
 
@@ -47,17 +43,20 @@ import {
   checkPermission,
   getTierUpgradeMessage,
   requireAuthenticatedSession,
+  setPermissionDeniedHandler,
 } from "./permissions";
 
 beforeEach(() => {
   mockGetUserMembershipTier.mockReset();
-  mockEventBusEmit.mockReset();
+  mockPermissionDeniedHandler.mockReset();
   mockFindUserById.mockReset();
   mockAuth.mockReset();
   mockGetEffectiveArticleLimit.mockReset();
   // Re-establish defaults
-  mockEventBusEmit.mockResolvedValue(undefined);
+  mockPermissionDeniedHandler.mockResolvedValue(undefined);
   mockGetEffectiveArticleLimit.mockResolvedValue(1); // default: Professional baseline
+  // Wire the handler
+  setPermissionDeniedHandler(mockPermissionDeniedHandler);
 });
 
 describe("getPermissions", () => {
@@ -113,11 +112,10 @@ describe("canCreateGroup", () => {
     expect(result.tierRequired).toBe("TOP_TIER");
   });
 
-  it("emits permission_denied event on deny", async () => {
+  it("calls permission denied handler on deny", async () => {
     mockGetUserMembershipTier.mockResolvedValue("BASIC");
     await canCreateGroup("user-1");
-    expect(mockEventBusEmit).toHaveBeenCalledWith(
-      "member.permission_denied",
+    expect(mockPermissionDeniedHandler).toHaveBeenCalledWith(
       expect.objectContaining({ userId: "user-1", action: "createGroup" }),
     );
   });
@@ -264,11 +262,10 @@ describe("canCreateFeedPost", () => {
     expect(result.allowed).toBe(true);
   });
 
-  it("emits member.permission_denied for BASIC tier", async () => {
+  it("calls permission denied handler for BASIC tier", async () => {
     mockGetUserMembershipTier.mockResolvedValue("BASIC");
     await canCreateFeedPost("user-1");
-    expect(mockEventBusEmit).toHaveBeenCalledWith(
-      "member.permission_denied",
+    expect(mockPermissionDeniedHandler).toHaveBeenCalledWith(
       expect.objectContaining({ userId: "user-1", action: "createFeedPost" }),
     );
   });
@@ -366,7 +363,6 @@ describe("requireAuthenticatedSession — account status enforcement", () => {
 
   it("throws 401 when session is missing", async () => {
     mockAuth.mockResolvedValue(null);
-    const { ApiError } = await import("@/lib/api-error");
     await expect(requireAuthenticatedSession()).rejects.toMatchObject({ status: 401 });
   });
 
@@ -415,5 +411,25 @@ describe("requireAuthenticatedSession — account status enforcement", () => {
       status: 403,
       type: "account_inactive",
     });
+  });
+});
+
+describe("setPermissionDeniedHandler", () => {
+  it("registers and calls the handler on permission denial", async () => {
+    const handler = vi.fn().mockResolvedValue(undefined);
+    setPermissionDeniedHandler(handler);
+    mockGetUserMembershipTier.mockResolvedValue("BASIC");
+
+    await canCreateGroup("user-999");
+
+    expect(handler).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: "user-999",
+        action: "createGroup",
+        timestamp: expect.any(String),
+      }),
+    );
+    // Restore original handler
+    setPermissionDeniedHandler(mockPermissionDeniedHandler);
   });
 });

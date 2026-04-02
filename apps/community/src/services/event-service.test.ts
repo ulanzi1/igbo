@@ -21,7 +21,7 @@ vi.mock("@igbo/db/queries/events", () => ({
   listEventAttendees: vi.fn(),
 }));
 
-vi.mock("@/services/permissions", () => ({
+vi.mock("@igbo/auth/permissions", () => ({
   canCreateEvent: vi.fn(),
   requireAuthenticatedSession: vi.fn().mockResolvedValue({ userId: "user-1", role: "MEMBER" }),
 }));
@@ -98,7 +98,7 @@ import {
   cancelRsvp as dbCancelRsvp,
   cancelAllEventRsvps,
 } from "@igbo/db/queries/events";
-import { canCreateEvent } from "@/services/permissions";
+import { canCreateEvent } from "@igbo/auth/permissions";
 import { eventBus } from "@/services/event-bus";
 
 const mockEvent = {

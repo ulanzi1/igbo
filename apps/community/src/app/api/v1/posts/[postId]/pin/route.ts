@@ -2,7 +2,7 @@
 import { withApiHandler } from "@/server/api/middleware";
 import { successResponse } from "@/lib/api-response";
 import { ApiError } from "@/lib/api-error";
-import { requireAdminSession } from "@/lib/admin-auth";
+import { requireAdminSession } from "@igbo/auth/admin-auth";
 import { db } from "@igbo/db";
 import { communityPosts } from "@igbo/db/schema/community-posts";
 import { eq, isNull, and } from "drizzle-orm";
@@ -61,7 +61,7 @@ const patchHandler = async (request: Request) => {
 export const PATCH = withApiHandler(patchHandler, {
   rateLimit: {
     key: async (request: Request) => {
-      const { requireAdminSession: getAdmin } = await import("@/lib/admin-auth");
+      const { requireAdminSession: getAdmin } = await import("@igbo/auth/admin-auth");
       const { adminId } = await getAdmin(request);
       return `pin-post:${adminId}`;
     },

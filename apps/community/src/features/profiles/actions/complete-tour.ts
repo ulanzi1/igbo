@@ -1,6 +1,6 @@
 "use server";
 import "server-only";
-import { auth } from "@/server/auth/config";
+import { auth } from "@igbo/auth";
 import { completeTour } from "@/services/onboarding-service";
 
 export interface CompleteTourResult {

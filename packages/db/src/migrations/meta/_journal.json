@@ -344,6 +344,13 @@
       "when": 1708000048000,
       "tag": "0048_seed_governance_documents",
       "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "7",
+      "when": 1708000049000,
+      "tag": "0049_portal_roles",
+      "breakpoints": true
     }
   ]
 }

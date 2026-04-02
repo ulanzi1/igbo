@@ -7,7 +7,7 @@ const mockRequireAdminSession = vi.fn();
 const mockGetTopPointsEarners = vi.fn();
 const mockGetThrottledUsersReport = vi.fn();
 
-vi.mock("@/lib/admin-auth", () => ({
+vi.mock("@igbo/auth/admin-auth", () => ({
   requireAdminSession: (...a: unknown[]) => mockRequireAdminSession(...a),
 }));
 

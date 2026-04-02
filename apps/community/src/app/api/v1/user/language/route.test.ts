@@ -7,7 +7,7 @@ const mockRequireAuthenticatedSession = vi.fn();
 const mockUpdateLanguagePreference = vi.fn();
 const mockAuth = vi.fn();
 
-vi.mock("@/services/permissions", () => ({
+vi.mock("@igbo/auth/permissions", () => ({
   requireAuthenticatedSession: (...args: unknown[]) => mockRequireAuthenticatedSession(...args),
 }));
 
@@ -22,7 +22,7 @@ vi.mock("@/lib/request-context", () => ({
   runWithContext: vi.fn((_ctx: unknown, fn: () => unknown) => fn()),
 }));
 
-vi.mock("@/server/auth/config", () => ({
+vi.mock("@igbo/auth", () => ({
   auth: (...args: unknown[]) => mockAuth(...args),
   handlers: {},
   signIn: vi.fn(),

@@ -14,7 +14,7 @@ const mockSendSystemMessage = vi.fn();
 const mockSoftDeleteConversation = vi.fn();
 const mockGetProfileByUserId = vi.fn();
 
-vi.mock("@/services/permissions", () => ({
+vi.mock("@igbo/auth/permissions", () => ({
   requireAuthenticatedSession: (...args: unknown[]) => mockRequireAuthenticatedSession(...args),
 }));
 

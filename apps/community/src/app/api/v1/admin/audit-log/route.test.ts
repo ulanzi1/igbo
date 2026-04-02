@@ -20,7 +20,7 @@ vi.mock("@/lib/api-error", () => ({
   },
 }));
 
-vi.mock("@/lib/admin-auth", () => ({
+vi.mock("@igbo/auth/admin-auth", () => ({
   requireAdminSession: (...args: unknown[]) => mockRequireAdminSession(...args),
 }));
 

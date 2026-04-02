@@ -15,7 +15,7 @@ vi.mock("@/lib/redis", () => ({
   }),
 }));
 
-vi.mock("@/services/permissions", () => ({
+vi.mock("@igbo/auth/permissions", () => ({
   requireAuthenticatedSession: vi.fn(),
 }));
 
@@ -42,7 +42,7 @@ vi.mock("@/env", () => ({
   },
 }));
 
-import { requireAuthenticatedSession } from "@/services/permissions";
+import { requireAuthenticatedSession } from "@igbo/auth/permissions";
 const mockRequireAuth = vi.mocked(requireAuthenticatedSession);
 
 import { GET } from "./route";

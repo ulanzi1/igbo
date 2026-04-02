@@ -1,7 +1,7 @@
 import { withApiHandler } from "@/server/api/middleware";
 import { successResponse, errorResponse } from "@/lib/api-response";
 import { ApiError } from "@/lib/api-error";
-import { requireAdminSession } from "@/lib/admin-auth";
+import { requireAdminSession } from "@igbo/auth/admin-auth";
 import { getRedisClient } from "@/lib/redis";
 import { upsertUserBadge, deleteUserBadge, invalidateBadgeCache } from "@igbo/db/queries/badges";
 import { db } from "@igbo/db";

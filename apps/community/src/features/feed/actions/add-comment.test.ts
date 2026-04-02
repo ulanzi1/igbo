@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { addCommentAction } from "./add-comment";
 
 vi.mock("server-only", () => ({}));
-vi.mock("@/services/permissions", () => ({ requireAuthenticatedSession: vi.fn() }));
+vi.mock("@igbo/auth/permissions", () => ({ requireAuthenticatedSession: vi.fn() }));
 vi.mock("@/services/rate-limiter", () => ({
   applyRateLimit: vi.fn(),
   RATE_LIMIT_PRESETS: { POST_COMMENT: { maxRequests: 20, windowMs: 60_000 } },
@@ -12,7 +12,7 @@ vi.mock("@/services/post-interaction-service", () => ({
   addComment: vi.fn(),
 }));
 
-import { requireAuthenticatedSession } from "@/services/permissions";
+import { requireAuthenticatedSession } from "@igbo/auth/permissions";
 import { applyRateLimit } from "@/services/rate-limiter";
 import { addComment } from "@/services/post-interaction-service";
 import { ApiError } from "@/lib/api-error";

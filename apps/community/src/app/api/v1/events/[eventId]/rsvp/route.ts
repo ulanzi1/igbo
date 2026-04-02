@@ -3,7 +3,7 @@
 // DELETE /api/v1/events/[eventId]/rsvp - cancel RSVP (auth required)
 import { withApiHandler } from "@/server/api/middleware";
 import { successResponse } from "@/lib/api-response";
-import { requireAuthenticatedSession } from "@/services/permissions";
+import { requireAuthenticatedSession } from "@igbo/auth/permissions";
 import { rsvpToEvent, cancelEventRsvp } from "@/services/event-service";
 import { getAttendeeStatus } from "@igbo/db/queries/events";
 import { RATE_LIMIT_PRESETS } from "@/services/rate-limiter";
@@ -35,7 +35,7 @@ const postHandler = async (request: Request) => {
 export const POST = withApiHandler(postHandler, {
   rateLimit: {
     key: async () => {
-      const { requireAuthenticatedSession: getSession } = await import("@/services/permissions");
+      const { requireAuthenticatedSession: getSession } = await import("@igbo/auth/permissions");
       const { userId } = await getSession();
       return `event-rsvp:${userId}`;
     },
@@ -55,7 +55,7 @@ const deleteHandler = async (request: Request) => {
 export const DELETE = withApiHandler(deleteHandler, {
   rateLimit: {
     key: async () => {
-      const { requireAuthenticatedSession: getSession } = await import("@/services/permissions");
+      const { requireAuthenticatedSession: getSession } = await import("@igbo/auth/permissions");
       const { userId } = await getSession();
       return `event-rsvp-cancel:${userId}`;
     },

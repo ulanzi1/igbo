@@ -3,11 +3,11 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
-vi.mock("@/server/auth/config", () => ({ auth: vi.fn() }));
+vi.mock("@igbo/auth", () => ({ auth: vi.fn() }));
 vi.mock("@/services/onboarding-service", () => ({ completeTour: vi.fn() }));
 
 import { completeTourAction } from "./complete-tour";
-import { auth } from "@/server/auth/config";
+import { auth } from "@igbo/auth";
 import { completeTour } from "@/services/onboarding-service";
 
 const mockAuth = vi.mocked(auth);
