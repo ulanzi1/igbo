@@ -37,7 +37,7 @@
       "eslint --config apps/community/eslint.config.mjs --fix",
       "prettier --write"
     ],
-    "packages/**/*.{ts,tsx,mts}": [
+    "packages/config/**/*.{ts,tsx,mts}": [
       "prettier --write"
     ],
     "*.{json,css,md,yml,yaml}": [
