@@ -1,6 +1,6 @@
 import { withApiHandler } from "@/server/api/middleware";
 import { successResponse } from "@/lib/api-response";
-import { requireAuthenticatedSession } from "@/services/permissions";
+import { requireAuthenticatedSession } from "@igbo/auth/permissions";
 import { searchMembersInDirectory } from "@/services/geo-search";
 import { RATE_LIMIT_PRESETS } from "@/services/rate-limiter";
 
@@ -46,7 +46,7 @@ const getHandler = async (request: Request) => {
 export const GET = withApiHandler(getHandler, {
   rateLimit: {
     key: async () => {
-      const { requireAuthenticatedSession: getSession } = await import("@/services/permissions");
+      const { requireAuthenticatedSession: getSession } = await import("@igbo/auth/permissions");
       const { userId } = await getSession();
       return `member-search:${userId}`;
     },

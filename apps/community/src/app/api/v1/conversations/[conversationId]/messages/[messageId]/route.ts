@@ -2,7 +2,7 @@ import { z } from "zod/v4";
 import { withApiHandler } from "@/server/api/middleware";
 import { successResponse } from "@/lib/api-response";
 import { ApiError } from "@/lib/api-error";
-import { requireAuthenticatedSession } from "@/services/permissions";
+import { requireAuthenticatedSession } from "@igbo/auth/permissions";
 import { isConversationMember, getConversationById } from "@igbo/db/queries/chat-conversations";
 import { messageService } from "@/services/message-service";
 import { RATE_LIMIT_PRESETS } from "@/services/rate-limiter";
@@ -131,7 +131,7 @@ const deleteHandler = async (request: Request) => {
 export const PATCH = withApiHandler(patchHandler, {
   rateLimit: {
     key: async () => {
-      const { requireAuthenticatedSession: getSession } = await import("@/services/permissions");
+      const { requireAuthenticatedSession: getSession } = await import("@igbo/auth/permissions");
       const { userId } = await getSession();
       return `message-edit:${userId}`;
     },
@@ -142,7 +142,7 @@ export const PATCH = withApiHandler(patchHandler, {
 export const DELETE = withApiHandler(deleteHandler, {
   rateLimit: {
     key: async () => {
-      const { requireAuthenticatedSession: getSession } = await import("@/services/permissions");
+      const { requireAuthenticatedSession: getSession } = await import("@igbo/auth/permissions");
       const { userId } = await getSession();
       return `message-delete:${userId}`;
     },

@@ -1,3 +1,3 @@
-import { handlers } from "@/server/auth/config";
+import { handlers } from "@igbo/auth";
 
 export const { GET, POST } = handlers;

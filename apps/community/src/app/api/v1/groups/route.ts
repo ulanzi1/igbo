@@ -3,7 +3,7 @@
 // Without directory param → public groups only (default)
 import { withApiHandler } from "@/server/api/middleware";
 import { successResponse } from "@/lib/api-response";
-import { requireAuthenticatedSession } from "@/services/permissions";
+import { requireAuthenticatedSession } from "@igbo/auth/permissions";
 import {
   listGroups,
   listGroupsForDirectory,
@@ -42,7 +42,7 @@ const getHandler = async (request: Request) => {
 export const GET = withApiHandler(getHandler, {
   rateLimit: {
     key: async () => {
-      const { requireAuthenticatedSession: getSession } = await import("@/services/permissions");
+      const { requireAuthenticatedSession: getSession } = await import("@igbo/auth/permissions");
       const { userId } = await getSession();
       return `group-list:${userId}`;
     },

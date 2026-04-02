@@ -1,6 +1,6 @@
 import { withApiHandler } from "@/server/api/middleware";
 import { successResponse } from "@/lib/api-response";
-import { requireAuthenticatedSession } from "@/services/permissions";
+import { requireAuthenticatedSession } from "@igbo/auth/permissions";
 import { RATE_LIMIT_PRESETS } from "@/services/rate-limiter";
 import { getRecommendedGroupsForUser } from "@/services/recommendation-service";
 

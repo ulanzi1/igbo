@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
-vi.mock("@/server/auth/config", () => ({
+vi.mock("@igbo/auth", () => ({
   auth: vi.fn(),
 }));
 
@@ -12,7 +12,7 @@ vi.mock("@/services/onboarding-service", () => ({
 }));
 
 import { saveProfileAction } from "./save-profile";
-import { auth } from "@/server/auth/config";
+import { auth } from "@igbo/auth";
 import { saveProfile } from "@/services/onboarding-service";
 
 const mockAuth = vi.mocked(auth);

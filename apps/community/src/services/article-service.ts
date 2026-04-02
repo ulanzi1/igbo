@@ -2,7 +2,7 @@ import "server-only";
 import { ApiError } from "@/lib/api-error";
 import { generateSlug } from "@/lib/slug";
 import { eventBus } from "@/services/event-bus";
-import { PERMISSION_MATRIX } from "@/services/permissions";
+import { PERMISSION_MATRIX } from "@igbo/auth/permissions";
 import {
   createArticle,
   updateArticle,

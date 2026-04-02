@@ -2,7 +2,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("server-only", () => ({}));
-vi.mock("@/lib/admin-auth", () => ({
+vi.mock("@igbo/auth/admin-auth", () => ({
   requireAdminSession: vi.fn().mockResolvedValue({ adminId: "admin-1" }),
 }));
 vi.mock("@/services/rate-limiter", () => ({
@@ -34,7 +34,7 @@ vi.mock("@igbo/db/schema/community-posts", () => ({
 }));
 
 import { PATCH } from "./route";
-import { requireAdminSession } from "@/lib/admin-auth";
+import { requireAdminSession } from "@igbo/auth/admin-auth";
 import { ApiError } from "@/lib/api-error";
 
 const mockRequireAdmin = vi.mocked(requireAdminSession);

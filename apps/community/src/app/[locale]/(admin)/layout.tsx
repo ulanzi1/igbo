@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { setRequestLocale } from "next-intl/server";
-import { auth } from "@/server/auth/config";
+import { auth } from "@igbo/auth";
 import { AdminShell } from "@/components/layout/AdminShell";
 
 export default async function AdminLayout({

@@ -2,7 +2,7 @@ import { setRequestLocale } from "next-intl/server";
 import { getTranslations } from "next-intl/server";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { auth } from "@/server/auth/config";
+import { auth } from "@igbo/auth";
 import { getOnboardingState } from "@/services/onboarding-service";
 import { findUserById } from "@igbo/db/queries/auth-queries";
 import { renderMarkdown } from "@/lib/render-markdown";

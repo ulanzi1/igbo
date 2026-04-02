@@ -1,0 +1,55 @@
+{
+  "name": "@igbo/auth",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./src/index.ts",
+      "types": "./src/index.ts"
+    },
+    "./permissions": {
+      "import": "./src/permissions.ts",
+      "types": "./src/permissions.ts"
+    },
+    "./admin-auth": {
+      "import": "./src/admin-auth.ts",
+      "types": "./src/admin-auth.ts"
+    },
+    "./session-cache": {
+      "import": "./src/session-cache.ts",
+      "types": "./src/session-cache.ts"
+    },
+    "./portal-role": {
+      "import": "./src/portal-role.ts",
+      "types": "./src/portal-role.ts"
+    },
+    "./api-error": {
+      "import": "./src/api-error.ts",
+      "types": "./src/api-error.ts"
+    }
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@igbo/config": "workspace:*",
+    "@igbo/db": "workspace:*",
+    "@auth/drizzle-adapter": "^1.11.1",
+    "jose": "^6.2.2",
+    "next-auth": "5.0.0-beta.30",
+    "server-only": "^0.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.37",
+    "tsx": "^4.19.4",
+    "typescript": "^5.8.3",
+    "vitest": "^4.0.18"
+  },
+  "peerDependencies": {
+    "drizzle-orm": "^0.45.1",
+    "ioredis": "^5.9.3",
+    "next": ">=15.0.0"
+  }
+}

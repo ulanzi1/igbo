@@ -43,6 +43,9 @@
     "packages/config/**/*.{ts,tsx,mts}": [
       "prettier --write"
     ],
+    "packages/auth/**/*.{ts,mts}": [
+      "prettier --write"
+    ],
     "packages/db/**/*.{ts,mts}": [
       "prettier --write"
     ],

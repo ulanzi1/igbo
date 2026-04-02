@@ -8,7 +8,7 @@ const mockRedisSet = vi.fn();
 const mockRedisDel = vi.fn();
 const mockGetRedisClient = vi.fn();
 
-vi.mock("@/services/permissions", () => ({
+vi.mock("@igbo/auth/permissions", () => ({
   requireAuthenticatedSession: (...args: unknown[]) => mockRequireAuthenticatedSession(...args),
 }));
 

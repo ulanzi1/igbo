@@ -19,8 +19,8 @@ import {
   deleteAllSessionsForUser,
   countActiveSessionsForUser,
 } from "@igbo/db/queries/auth-sessions";
-import { evictCachedSession, evictAllUserSessions } from "@/server/auth/redis-session-cache";
-import { setChallenge } from "@/server/auth/config";
+import { evictCachedSession, evictAllUserSessions } from "@igbo/auth/session-cache";
+import { setChallenge } from "@igbo/auth";
 import { getRedisClient } from "@/lib/redis";
 import { checkRateLimit } from "@/lib/rate-limiter";
 import { eventBus } from "@/services/event-bus";
@@ -286,7 +286,7 @@ export async function verify2faAndComplete(
     });
 
   // Mark challenge as mfa-verified so signIn can create session
-  const { getChallenge, setChallenge: sc } = await import("@/server/auth/config");
+  const { getChallenge, setChallenge: sc } = await import("@igbo/auth");
   const challenge = await getChallenge(challengeToken);
   if (challenge) {
     await sc(challengeToken, { ...challenge, mfaVerified: true, requiresMfaSetup: false });
@@ -322,7 +322,7 @@ export async function verify2fa(challengeToken: string, code: string): Promise<V
   const allowed = await check2faRateLimit(challengeToken);
   if (!allowed) return { status: "invalid" };
 
-  const { getChallenge, setChallenge: sc } = await import("@/server/auth/config");
+  const { getChallenge, setChallenge: sc } = await import("@igbo/auth");
   const challenge = await getChallenge(challengeToken);
 
   if (!challenge || challenge.mfaVerified) return { status: "invalid" };
@@ -368,7 +368,7 @@ export async function verify2fa(challengeToken: string, code: string): Promise<V
 // ─── Email OTP (2FA fallback) ─────────────────────────────────────────────────
 
 export async function sendEmailOtp(userId: string, challengeToken: string): Promise<void> {
-  const { getChallenge } = await import("@/server/auth/config");
+  const { getChallenge } = await import("@igbo/auth");
   const challenge = await getChallenge(challengeToken);
   if (!challenge)
     throw new ApiError({ title: "Bad Request", status: 400, detail: "Invalid challenge" });
@@ -403,7 +403,7 @@ export async function verifyEmailOtp(
   userId: string,
   code: string,
 ): Promise<Verify2faResult> {
-  const { getChallenge, setChallenge: sc } = await import("@/server/auth/config");
+  const { getChallenge, setChallenge: sc } = await import("@igbo/auth");
   const challenge = await getChallenge(challengeToken);
   if (!challenge) return { status: "invalid" };
 

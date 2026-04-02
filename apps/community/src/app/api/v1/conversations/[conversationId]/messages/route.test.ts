@@ -9,7 +9,7 @@ const mockGetMemberJoinedAt = vi.fn();
 const mockGetMessages = vi.fn();
 const mockGetReactionsForMessages = vi.fn();
 
-vi.mock("@/services/permissions", () => ({
+vi.mock("@igbo/auth/permissions", () => ({
   requireAuthenticatedSession: (...args: unknown[]) => mockRequireAuthenticatedSession(...args),
 }));
 

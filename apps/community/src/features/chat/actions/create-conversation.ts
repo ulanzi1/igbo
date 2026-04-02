@@ -1,6 +1,6 @@
 "use server";
 
-import { requireAuthenticatedSession } from "@/services/permissions";
+import { requireAuthenticatedSession } from "@igbo/auth/permissions";
 import {
   createConversation,
   findExistingDirectConversation,

@@ -4,7 +4,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 vi.mock("server-only", () => ({}));
 
 const mockAuth = vi.fn();
-vi.mock("@/server/auth/config", () => ({
+vi.mock("./config", () => ({
   auth: () => mockAuth(),
 }));
 
@@ -14,7 +14,7 @@ vi.mock("@igbo/db/queries/auth-queries", () => ({
 }));
 
 import { requireAdminSession } from "./admin-auth";
-import { ApiError } from "@/lib/api-error";
+import { ApiError } from "./api-error";
 
 beforeEach(() => {
   vi.clearAllMocks();

@@ -6,7 +6,7 @@ vi.mock("server-only", () => ({}));
 const mockRequireAuthenticatedSession = vi.hoisted(() =>
   vi.fn().mockResolvedValue({ userId: "user-1", role: "MEMBER" }),
 );
-vi.mock("@/services/permissions", () => ({
+vi.mock("@igbo/auth/permissions", () => ({
   requireAuthenticatedSession: () => mockRequireAuthenticatedSession(),
 }));
 

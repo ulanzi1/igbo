@@ -1,7 +1,7 @@
 import "server-only";
 import { getUserMembershipTier, updateUserMembershipTier } from "@igbo/db/queries/auth-permissions";
 import { findActiveSessionsByUserId } from "@igbo/db/queries/auth-sessions";
-import { evictAllUserSessions } from "@/server/auth/redis-session-cache";
+import { evictAllUserSessions } from "@igbo/auth/session-cache";
 import { logAdminAction } from "@/services/audit-logger";
 import { eventBus } from "@/services/event-bus";
 import type { MembershipTier } from "@igbo/db/queries/auth-permissions";

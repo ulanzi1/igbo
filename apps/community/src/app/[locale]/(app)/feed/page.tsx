@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
-import { auth } from "@/server/auth/config";
-import { canCreateFeedPost } from "@/services/permissions";
+import { auth } from "@igbo/auth";
+import { canCreateFeedPost } from "@igbo/auth/permissions";
 import { FeedList } from "@/features/feed";
 
 export const dynamic = "force-dynamic"; // Personalized — never cache at SSR level

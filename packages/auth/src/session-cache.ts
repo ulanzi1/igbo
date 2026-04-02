@@ -1,5 +1,5 @@
 // NOTE: No "server-only" — this is used by both Next.js server code and the standalone realtime server
-import { getRedisClient } from "@/lib/redis";
+import { getAuthRedis } from "./redis";
 import type { AuthSession } from "@igbo/db/schema/auth-sessions";
 
 const SESSION_CACHE_PREFIX = "session:";
@@ -10,7 +10,7 @@ function sessionCacheKey(token: string): string {
 
 export async function cacheSession(session: AuthSession, ttlSeconds: number): Promise<void> {
   try {
-    const redis = getRedisClient();
+    const redis = getAuthRedis();
     await redis.set(
       sessionCacheKey(session.sessionToken),
       JSON.stringify(session),
@@ -25,7 +25,7 @@ export async function cacheSession(session: AuthSession, ttlSeconds: number): Pr
 
 export async function getCachedSession(sessionToken: string): Promise<AuthSession | null> {
   try {
-    const redis = getRedisClient();
+    const redis = getAuthRedis();
     const cached = await redis.get(sessionCacheKey(sessionToken));
     if (!cached) return null;
     const parsed = JSON.parse(cached) as AuthSession;
@@ -43,7 +43,7 @@ export async function getCachedSession(sessionToken: string): Promise<AuthSessio
 
 export async function evictCachedSession(sessionToken: string): Promise<void> {
   try {
-    const redis = getRedisClient();
+    const redis = getAuthRedis();
     await redis.del(sessionCacheKey(sessionToken));
   } catch {
     // Eviction failure is non-critical — session will expire from cache naturally
@@ -53,7 +53,7 @@ export async function evictCachedSession(sessionToken: string): Promise<void> {
 export async function evictAllUserSessions(sessionTokens: string[]): Promise<void> {
   if (sessionTokens.length === 0) return;
   try {
-    const redis = getRedisClient();
+    const redis = getAuthRedis();
     const keys = sessionTokens.map(sessionCacheKey);
     await redis.del(...keys);
   } catch {

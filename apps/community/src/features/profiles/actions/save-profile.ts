@@ -1,7 +1,7 @@
 "use server";
 import "server-only";
 import { z } from "zod";
-import { auth } from "@/server/auth/config";
+import { auth } from "@igbo/auth";
 import { saveProfile } from "@/services/onboarding-service";
 import { ApiError } from "@/lib/api-error";
 

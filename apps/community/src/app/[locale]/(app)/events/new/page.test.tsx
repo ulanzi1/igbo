@@ -30,11 +30,11 @@ vi.mock("next-intl/server", () => ({
   setRequestLocale: vi.fn(),
 }));
 
-vi.mock("@/server/auth/config", () => ({
+vi.mock("@igbo/auth", () => ({
   auth: (...args: unknown[]) => mockAuth(...args),
 }));
 
-vi.mock("@/services/permissions", () => ({
+vi.mock("@igbo/auth/permissions", () => ({
   canCreateEvent: (...args: unknown[]) => mockCanCreateEvent(...args),
   requireAuthenticatedSession: vi.fn().mockResolvedValue({ userId: "user-1", role: "MEMBER" }),
 }));

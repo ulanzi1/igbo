@@ -1,8 +1,35 @@
 import "server-only";
 import { findUserById } from "@igbo/db/queries/auth-queries";
 import { getUserMembershipTier, type MembershipTier } from "@igbo/db/queries/auth-permissions";
-import { auth } from "@/server/auth/config";
-import { eventBus } from "@/services/event-bus";
+import { auth } from "./config";
+import { ApiError } from "./api-error";
+
+// ─── EventBus decoupling ──────────────────────────────────────────────────────
+// The EventBus is app-specific. Instead of direct coupling, consumers register
+// a handler via setPermissionDeniedHandler() at app startup.
+
+type PermissionDeniedCallback = (event: {
+  userId: string;
+  action: string;
+  reason: string;
+  timestamp: string;
+}) => void | Promise<void>;
+
+let onPermissionDenied: PermissionDeniedCallback | undefined;
+
+/**
+ * Register a handler for permission denied events.
+ * Called once at app startup (e.g., in instrumentation.ts) to wire the EventBus.
+ *
+ * @example
+ * // apps/community/instrumentation.ts
+ * import { setPermissionDeniedHandler } from "@igbo/auth/permissions";
+ * import { eventBus } from "@/services/event-bus";
+ * setPermissionDeniedHandler((event) => eventBus.emit("member.permission_denied", event));
+ */
+export function setPermissionDeniedHandler(handler: PermissionDeniedCallback): void {
+  onPermissionDenied = handler;
+}
 
 // ─── Permission Matrix ────────────────────────────────────────────────────────
 
@@ -232,25 +259,20 @@ export async function isAuthenticated(): Promise<boolean> {
 export async function requireAuthenticatedSession(): Promise<{ userId: string; role: string }> {
   const session = await auth();
   if (!session?.user?.id) {
-    const { ApiError } = await import("@/lib/api-error");
     throw new ApiError({ title: "Unauthorized", status: 401 });
   }
   // Authoritative DB status check — JWT does not carry real-time account status
   const user = await findUserById(session.user.id);
   if (!user) {
-    const { ApiError } = await import("@/lib/api-error");
     throw new ApiError({ title: "Unauthorized", status: 401, detail: "User not found" });
   }
   if (user.accountStatus === "BANNED") {
-    const { ApiError } = await import("@/lib/api-error");
     throw new ApiError({ title: "Forbidden", status: 403, type: "account_banned" });
   }
   if (user.accountStatus === "SUSPENDED") {
-    const { ApiError } = await import("@/lib/api-error");
     throw new ApiError({ title: "Forbidden", status: 403, type: "account_suspended" });
   }
   if (user.accountStatus === "PENDING_DELETION" || user.accountStatus === "ANONYMIZED") {
-    const { ApiError } = await import("@/lib/api-error");
     throw new ApiError({ title: "Forbidden", status: 403, type: "account_inactive" });
   }
   return { userId: session.user.id, role: session.user.role };
@@ -260,12 +282,7 @@ export async function requireAuthenticatedSession(): Promise<{ userId: string; r
 
 async function emitPermissionDenied(userId: string, action: string, reason: string): Promise<void> {
   try {
-    await eventBus.emit("member.permission_denied", {
-      userId,
-      action,
-      reason,
-      timestamp: new Date().toISOString(),
-    });
+    await onPermissionDenied?.({ userId, action, reason, timestamp: new Date().toISOString() });
   } catch {
     // Non-critical: analytics event emission failure must not block the request
   }

@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
-vi.mock("@/lib/admin-auth", () => ({
+vi.mock("@igbo/auth/admin-auth", () => ({
   requireAdminSession: vi.fn().mockResolvedValue({ adminId: "admin-uuid" }),
 }));
 
@@ -28,7 +28,7 @@ vi.mock("@igbo/db/queries/articles", () => ({
   listArticlesByAuthor: vi.fn(),
 }));
 
-import { requireAdminSession } from "@/lib/admin-auth";
+import { requireAdminSession } from "@igbo/auth/admin-auth";
 import { eventBus } from "@/services/event-bus";
 import {
   listPendingArticles,

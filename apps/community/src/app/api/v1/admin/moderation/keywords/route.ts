@@ -1,7 +1,7 @@
 import { withApiHandler } from "@/server/api/middleware";
 import { successResponse } from "@/lib/api-response";
 import { ApiError } from "@/lib/api-error";
-import { requireAdminSession } from "@/lib/admin-auth";
+import { requireAdminSession } from "@igbo/auth/admin-auth";
 import { listModerationKeywords, addModerationKeyword } from "@igbo/db/queries/moderation";
 import { eventBus } from "@/services/event-bus";
 import { invalidateKeywordCache } from "@/services/moderation-service";

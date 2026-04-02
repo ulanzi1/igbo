@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { setRequestLocale, getTranslations } from "next-intl/server";
-import { auth } from "@/server/auth/config";
+import { auth } from "@igbo/auth";
 import { getPublicProfileForViewer } from "@igbo/db/queries/community-profiles";
 import { ProfileView } from "@/features/profiles";
 import type { Metadata } from "next";

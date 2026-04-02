@@ -10,7 +10,14 @@ import {
 } from "drizzle-orm/pg-core";
 import { membershipTierEnum } from "./auth-permissions";
 
-export const userRoleEnum = pgEnum("user_role", ["MEMBER", "ADMIN", "MODERATOR"]);
+export const userRoleEnum = pgEnum("user_role", [
+  "MEMBER",
+  "ADMIN",
+  "MODERATOR",
+  "JOB_SEEKER",
+  "EMPLOYER",
+  "JOB_ADMIN",
+]);
 
 export const accountStatusEnum = pgEnum("account_status", [
   "PENDING_EMAIL_VERIFICATION",

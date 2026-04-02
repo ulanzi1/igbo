@@ -1,5 +1,5 @@
 import { setRequestLocale, getTranslations } from "next-intl/server";
-import { auth } from "@/server/auth/config";
+import { auth } from "@igbo/auth";
 import { redirect } from "next/navigation";
 import { getProfileWithSocialLinks } from "@igbo/db/queries/community-profiles";
 import { PrivacySettings, SocialLinksManager } from "@/features/profiles";

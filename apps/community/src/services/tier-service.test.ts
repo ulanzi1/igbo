@@ -21,7 +21,7 @@ vi.mock("@igbo/db/queries/auth-sessions", () => ({
   findActiveSessionsByUserId: (...args: unknown[]) => mockFindActiveSessionsByUserId(...args),
 }));
 
-vi.mock("@/server/auth/redis-session-cache", () => ({
+vi.mock("@igbo/auth/session-cache", () => ({
   evictAllUserSessions: (...args: unknown[]) => mockEvictAllUserSessions(...args),
 }));
 

@@ -32,7 +32,7 @@ vi.mock("@/lib/api-error", () => ({
   },
 }));
 
-vi.mock("@/services/permissions", () => ({
+vi.mock("@igbo/auth/permissions", () => ({
   requireAuthenticatedSession: vi.fn().mockResolvedValue({ userId: "user-1", role: "MEMBER" }),
 }));
 
@@ -69,7 +69,7 @@ vi.mock("@/services/rate-limiter", () => ({
   applyRateLimit: vi.fn().mockResolvedValue({ success: true }),
 }));
 
-import { requireAuthenticatedSession } from "@/services/permissions";
+import { requireAuthenticatedSession } from "@igbo/auth/permissions";
 import { rsvpToEvent, cancelEventRsvp } from "@/services/event-service";
 import { getAttendeeStatus } from "@igbo/db/queries/events";
 

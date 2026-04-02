@@ -36,7 +36,7 @@ vi.mock("@igbo/db/queries/auth-sessions", () => ({
   deleteAllSessionsForUser: mockDeleteAllSessionsForUser,
 }));
 
-vi.mock("@/server/auth/redis-session-cache", () => ({
+vi.mock("@igbo/auth/session-cache", () => ({
   evictAllUserSessions: mockEvictAllUserSessions,
 }));
 

@@ -19,7 +19,7 @@ const mockGetPostContentForModeration = vi.fn();
 const mockGetArticleByIdForAdmin = vi.fn();
 const mockTiptapJsonToPlainText = vi.fn();
 
-vi.mock("@/lib/admin-auth", () => ({
+vi.mock("@igbo/auth/admin-auth", () => ({
   requireAdminSession: (...args: unknown[]) => mockRequireAdminSession(...args),
 }));
 

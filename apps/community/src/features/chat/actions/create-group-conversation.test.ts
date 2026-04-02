@@ -16,7 +16,7 @@ const { CONV_ID, CURRENT_USER, USER_A, USER_B, mockCreate, mockCheckBlocks } = v
   };
 });
 
-vi.mock("@/services/permissions", () => ({
+vi.mock("@igbo/auth/permissions", () => ({
   requireAuthenticatedSession: vi.fn().mockResolvedValue({ userId: CURRENT_USER }),
 }));
 

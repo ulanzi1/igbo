@@ -6,7 +6,7 @@ const mockFindUserById = vi.fn();
 const mockAdmin2faReset = vi.fn();
 const mockLogAdminAction = vi.fn();
 
-vi.mock("@/lib/admin-auth", () => ({
+vi.mock("@igbo/auth/admin-auth", () => ({
   requireAdminSession: (...args: unknown[]) => mockRequireAdminSession(...args),
 }));
 vi.mock("@igbo/db/queries/auth-queries", () => ({

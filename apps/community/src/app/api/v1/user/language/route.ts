@@ -1,10 +1,10 @@
 import { withApiHandler } from "@/server/api/middleware";
 import { successResponse } from "@/lib/api-response";
 import { ApiError } from "@/lib/api-error";
-import { requireAuthenticatedSession } from "@/services/permissions";
+import { requireAuthenticatedSession } from "@igbo/auth/permissions";
 import { updateLanguagePreference } from "@igbo/db/queries/auth-queries";
 import { z } from "zod/v4";
-import { auth } from "@/server/auth/config";
+import { auth } from "@igbo/auth";
 import { RATE_LIMIT_PRESETS } from "@/services/rate-limiter";
 
 const languageSchema = z.object({

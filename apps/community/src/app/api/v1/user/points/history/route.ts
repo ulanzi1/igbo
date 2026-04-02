@@ -1,6 +1,6 @@
 import { withApiHandler } from "@/server/api/middleware";
 import { successResponse, errorResponse } from "@/lib/api-response";
-import { requireAuthenticatedSession } from "@/services/permissions";
+import { requireAuthenticatedSession } from "@igbo/auth/permissions";
 import { getPointsLedgerHistory } from "@igbo/db/queries/points";
 
 const VALID_ACTIVITY_TYPES = new Set(["like_received", "event_attended", "article_published"]);

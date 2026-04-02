@@ -4,7 +4,7 @@ import { z } from "zod/v4";
 import { withApiHandler } from "@/server/api/middleware";
 import { successResponse } from "@/lib/api-response";
 import { ApiError } from "@/lib/api-error";
-import { requireAuthenticatedSession } from "@/services/permissions";
+import { requireAuthenticatedSession } from "@igbo/auth/permissions";
 import { getGroupById, getGroupMember, listPendingMembers } from "@igbo/db/queries/groups";
 import { updateGroupSettings } from "@/services/group-service";
 import { RATE_LIMIT_PRESETS } from "@/services/rate-limiter";
@@ -61,7 +61,7 @@ const getHandler = async (request: Request) => {
 export const GET = withApiHandler(getHandler, {
   rateLimit: {
     key: async () => {
-      const { requireAuthenticatedSession: getSession } = await import("@/services/permissions");
+      const { requireAuthenticatedSession: getSession } = await import("@igbo/auth/permissions");
       const { userId } = await getSession();
       return `group-detail:${userId}`;
     },
@@ -124,7 +124,7 @@ const patchHandler = async (request: Request) => {
 export const PATCH = withApiHandler(patchHandler, {
   rateLimit: {
     key: async () => {
-      const { requireAuthenticatedSession: getSession } = await import("@/services/permissions");
+      const { requireAuthenticatedSession: getSession } = await import("@igbo/auth/permissions");
       const { userId } = await getSession();
       return `group-update:${userId}`;
     },

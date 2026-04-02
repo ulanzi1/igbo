@@ -1,6 +1,6 @@
 import "server-only";
-import { auth } from "@/server/auth/config";
-import { ApiError } from "@/lib/api-error";
+import { auth } from "./config";
+import { ApiError } from "./api-error";
 import { findUserById } from "@igbo/db/queries/auth-queries";
 
 export async function requireAdminSession(_request?: Request): Promise<{ adminId: string }> {
