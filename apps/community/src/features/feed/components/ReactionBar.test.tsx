@@ -170,21 +170,17 @@ describe("ReactionBar", () => {
   });
 
   it("closes picker on outside click", async () => {
-    const { container } = renderBar(0);
+    renderBar(0);
     const triggerBtn = screen.getByRole("button", { name: /Feed.reactions.reactAriaLabel/i });
     fireEvent.click(triggerBtn);
 
     await waitFor(() => screen.getByRole("dialog"));
 
-    // Create an element outside the component to click on
-    const outside = document.createElement("div");
-    document.body.appendChild(outside);
-    fireEvent.mouseDown(outside);
+    fireEvent.mouseDown(document.body);
 
     await waitFor(() => {
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     });
-    outside.remove();
   });
 
   it("trigger has aria-expanded reflecting picker open state", async () => {
