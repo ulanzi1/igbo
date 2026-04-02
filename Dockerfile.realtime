@@ -1,25 +1,34 @@
 # Multi-stage Dockerfile for the standalone Socket.IO realtime server
 # Stage 1: Builder — transpile TypeScript with esbuild
+# Build context: monorepo root
 FROM node:22-alpine AS builder
 
 WORKDIR /app
 
-COPY package*.json ./
-RUN npm install --prefer-offline
+RUN corepack enable && corepack prepare pnpm@latest --activate
+
+COPY pnpm-workspace.yaml pnpm-lock.yaml turbo.json ./
+COPY package.json ./
+COPY apps/community/package.json ./apps/community/package.json
+COPY packages/config/package.json ./packages/config/package.json
+
+RUN pnpm install --frozen-lockfile
 
 # Copy full source so esbuild can resolve all @/* path aliases
-COPY tsconfig.json ./
-COPY src/ ./src/
+COPY tsconfig.base.json ./
+COPY apps/community/tsconfig.json ./apps/community/tsconfig.json
+COPY apps/community/src/ ./apps/community/src/
+COPY packages/ ./packages/
 
 # --tsconfig resolves @/* aliases from tsconfig paths
 # --packages=external marks ALL node_modules as external — never breaks as deps grow
-RUN npx esbuild src/server/realtime/index.ts \
+RUN node_modules/.bin/esbuild apps/community/src/server/realtime/index.ts \
   --bundle \
   --platform=node \
   --target=node22 \
   --format=cjs \
   --outfile=dist/realtime.js \
-  --tsconfig=tsconfig.json \
+  --tsconfig=apps/community/tsconfig.json \
   --packages=external \
   --define:process.env.NODE_ENV='"production"'
 
@@ -28,10 +37,12 @@ FROM node:22-alpine AS runner
 
 WORKDIR /app
 
-# Reuse builder node_modules and prune devDeps — no second npm install, no lockfile issues
+# Reuse builder node_modules and prune devDeps
 COPY --from=builder /app/node_modules ./node_modules
-COPY package*.json ./
-RUN npm prune --omit=dev
+COPY --from=builder /app/apps/community/node_modules ./apps/community/node_modules 2>/dev/null || true
+COPY --from=builder /app/package.json ./package.json
+
+RUN npm prune --omit=dev 2>/dev/null || true
 
 # Copy built output
 COPY --from=builder /app/dist/realtime.js ./dist/realtime.js
