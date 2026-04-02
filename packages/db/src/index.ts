@@ -87,18 +87,29 @@ export function createDb(connectionString: string, poolSize?: number) {
 /** Lazy singleton — reads DATABASE_URL at first property access */
 let _db: ReturnType<typeof createDb> | null = null;
 
+function ensureDb(): ReturnType<typeof createDb> {
+  if (!_db) {
+    if (!process.env.DATABASE_URL) {
+      throw new Error("DATABASE_URL is required");
+    }
+    const poolSize = process.env.DATABASE_POOL_SIZE
+      ? parseInt(process.env.DATABASE_POOL_SIZE, 10)
+      : 10;
+    _db = createDb(process.env.DATABASE_URL, poolSize);
+  }
+  return _db;
+}
+
 export const db = new Proxy({} as ReturnType<typeof createDb>, {
   get(_, prop) {
-    if (!_db) {
-      if (!process.env.DATABASE_URL) {
-        throw new Error("DATABASE_URL is required");
-      }
-      const poolSize = process.env.DATABASE_POOL_SIZE
-        ? parseInt(process.env.DATABASE_POOL_SIZE, 10)
-        : 10;
-      _db = createDb(process.env.DATABASE_URL, poolSize);
-    }
-    return (_db as unknown as Record<string | symbol, unknown>)[prop];
+    return (ensureDb() as unknown as Record<string | symbol, unknown>)[prop];
+  },
+  has(_, prop) {
+    return prop in (ensureDb() as object);
+  },
+  // Forward prototype chain so `db instanceof PgDatabase` works (needed for Auth.js adapter)
+  getPrototypeOf() {
+    return Object.getPrototypeOf(ensureDb()) as object;
   },
 });
 
