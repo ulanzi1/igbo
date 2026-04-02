@@ -8,20 +8,20 @@ import {
   updateMessageContent,
   getConversationMessages,
   getThreadReplies as dbGetThreadReplies,
-} from "@/db/queries/chat-messages";
-import { getAttachmentsForMessages } from "@/db/queries/chat-message-attachments";
+} from "@igbo/db/queries/chat-messages";
+import { getAttachmentsForMessages } from "@igbo/db/queries/chat-message-attachments";
 import {
   addReaction as dbAddReaction,
   removeReaction as dbRemoveReaction,
-} from "@/db/queries/chat-message-reactions";
-import { getFileUploadById } from "@/db/queries/file-uploads";
-import { db } from "@/db";
-import { chatMessages } from "@/db/schema/chat-messages";
-import { chatConversations, chatConversationMembers } from "@/db/schema/chat-conversations";
-import { chatMessageAttachments } from "@/db/schema/chat-message-attachments";
-import { authUsers } from "@/db/schema/auth-users";
-import type { ChatMessage, MessageContentType } from "@/db/schema/chat-messages";
-import type { ChatMessageAttachment } from "@/db/schema/chat-message-attachments";
+} from "@igbo/db/queries/chat-message-reactions";
+import { getFileUploadById } from "@igbo/db/queries/file-uploads";
+import { db } from "@igbo/db";
+import { chatMessages } from "@igbo/db/schema/chat-messages";
+import { chatConversations, chatConversationMembers } from "@igbo/db/schema/chat-conversations";
+import { chatMessageAttachments } from "@igbo/db/schema/chat-message-attachments";
+import { authUsers } from "@igbo/db/schema/auth-users";
+import type { ChatMessage, MessageContentType } from "@igbo/db/schema/chat-messages";
+import type { ChatMessageAttachment } from "@igbo/db/schema/chat-message-attachments";
 
 // ── Interface ──────────────────────────────────────────────────────────────────
 
@@ -463,7 +463,7 @@ class PlaintextMessageService implements MessageService {
     const messageIds = replies.map((m) => m.id);
     const [attachments, reactions] = await Promise.all([
       getAttachmentsForMessages(messageIds),
-      import("@/db/queries/chat-message-reactions").then((m) =>
+      import("@igbo/db/queries/chat-message-reactions").then((m) =>
         m.getReactionsForMessages(messageIds),
       ),
     ]);

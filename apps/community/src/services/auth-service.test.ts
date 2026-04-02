@@ -2,14 +2,14 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // ─── Mocks ─────────────────────────────────────────────────────────────────
-vi.mock("@/db", () => ({
+vi.mock("@igbo/db", () => ({
   db: { select: vi.fn(), insert: vi.fn(), update: vi.fn(), delete: vi.fn() },
 }));
-vi.mock("@/db/queries/auth-queries", () => ({
+vi.mock("@igbo/db/queries/auth-queries", () => ({
   findUserByEmail: vi.fn(),
   findUserById: vi.fn(),
 }));
-vi.mock("@/db/queries/auth-sessions", () => ({
+vi.mock("@igbo/db/queries/auth-sessions", () => ({
   findActiveSessionsByUserId: vi.fn(),
   deleteSessionByToken: vi.fn(),
   deleteSessionById: vi.fn(),
@@ -45,7 +45,7 @@ vi.mock("@/lib/rate-limiter", () => ({
   }),
   buildRateLimitHeaders: vi.fn().mockReturnValue({}),
 }));
-vi.mock("@/db/queries/member-discipline", () => ({
+vi.mock("@igbo/db/queries/member-discipline", () => ({
   getActiveSuspension: vi.fn(),
 }));
 vi.mock("@/services/event-bus", () => ({ eventBus: { emit: vi.fn() } }));
@@ -86,8 +86,8 @@ import {
   parseDeviceInfo,
   initiateLogin,
 } from "@/services/auth-service";
-import { findUserByEmail } from "@/db/queries/auth-queries";
-import { getActiveSuspension } from "@/db/queries/member-discipline";
+import { findUserByEmail } from "@igbo/db/queries/auth-queries";
+import { getActiveSuspension } from "@igbo/db/queries/member-discipline";
 import { setChallenge } from "@/server/auth/config";
 
 beforeEach(() => {

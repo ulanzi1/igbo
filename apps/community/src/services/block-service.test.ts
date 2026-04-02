@@ -13,7 +13,7 @@ const mockGetBlockedUserIds = vi.fn();
 const mockGetUsersWhoBlocked = vi.fn();
 const mockGetUsersWhoMuted = vi.fn();
 
-vi.mock("@/db/queries/block-mute", () => ({
+vi.mock("@igbo/db/queries/block-mute", () => ({
   isBlocked: (...args: unknown[]) => mockIsBlocked(...args),
   blockUser: (...args: unknown[]) => mockBlockUser(...args),
   unblockUser: (...args: unknown[]) => mockUnblockUser(...args),

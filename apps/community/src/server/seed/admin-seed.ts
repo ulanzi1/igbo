@@ -1,4 +1,4 @@
-import { findAdminByEmail, insertAdminUser } from "@/db/queries/admin-queries";
+import { findAdminByEmail, insertAdminUser } from "@igbo/db/queries/admin-queries";
 
 async function seedAdmin() {
   const adminEmail = process.env.ADMIN_EMAIL;

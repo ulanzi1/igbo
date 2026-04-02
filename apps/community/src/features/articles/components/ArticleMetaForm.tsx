@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { FileUpload } from "@/components/shared/FileUpload";
-import type { ArticleCategory, ArticleVisibility } from "@/db/schema/community-articles";
+import type { ArticleCategory, ArticleVisibility } from "@igbo/db/schema/community-articles";
 
 interface ArticleMetaFormProps {
   category: ArticleCategory;

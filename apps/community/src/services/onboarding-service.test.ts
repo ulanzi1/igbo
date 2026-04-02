@@ -5,14 +5,14 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
-vi.mock("@/db/queries/community-profiles", () => ({
+vi.mock("@igbo/db/queries/community-profiles", () => ({
   getProfileByUserId: vi.fn(),
   upsertProfile: vi.fn(),
   setGuidelinesAcknowledged: vi.fn(),
   setTourComplete: vi.fn(),
 }));
 
-vi.mock("@/db/queries/auth-queries", () => ({
+vi.mock("@igbo/db/queries/auth-queries", () => ({
   findUserById: vi.fn(),
 }));
 
@@ -30,9 +30,9 @@ vi.mock("@/env", () => ({
   },
 }));
 
-vi.mock("@/db", () => ({ db: {} }));
-vi.mock("@/db/schema/auth-users", () => ({ authUsers: {} }));
-vi.mock("@/db/schema/community-profiles", () => ({ communityProfiles: {} }));
+vi.mock("@igbo/db", () => ({ db: {} }));
+vi.mock("@igbo/db/schema/auth-users", () => ({ authUsers: {} }));
+vi.mock("@igbo/db/schema/community-profiles", () => ({ communityProfiles: {} }));
 
 import {
   getOnboardingState,
@@ -47,9 +47,9 @@ import {
   upsertProfile,
   setGuidelinesAcknowledged,
   setTourComplete,
-} from "@/db/queries/community-profiles";
+} from "@igbo/db/queries/community-profiles";
 
-import { findUserById } from "@/db/queries/auth-queries";
+import { findUserById } from "@igbo/db/queries/auth-queries";
 import { eventBus } from "@/services/event-bus";
 import { enqueueEmailJob } from "@/services/email-service";
 

@@ -1,17 +1,20 @@
 import "server-only";
 import { eq } from "drizzle-orm";
-import { db } from "@/db";
-import { authUsers } from "@/db/schema/auth-users";
-import { findUserById } from "@/db/queries/auth-queries";
-import { findActiveSessionsByUserId, deleteAllSessionsForUser } from "@/db/queries/auth-sessions";
+import { db } from "@igbo/db";
+import { authUsers } from "@igbo/db/schema/auth-users";
+import { findUserById } from "@igbo/db/queries/auth-queries";
+import {
+  findActiveSessionsByUserId,
+  deleteAllSessionsForUser,
+} from "@igbo/db/queries/auth-sessions";
 import { evictAllUserSessions } from "@/server/auth/redis-session-cache";
 import {
   createDisciplineAction,
   getDisciplineActionById,
   listSuspensionsExpiringBefore,
   expireDisciplineAction,
-} from "@/db/queries/member-discipline";
-import { memberDisciplineActions } from "@/db/schema/member-discipline";
+} from "@igbo/db/queries/member-discipline";
+import { memberDisciplineActions } from "@igbo/db/schema/member-discipline";
 import { logAdminAction } from "@/services/audit-logger";
 import { eventBus } from "@/services/event-bus";
 import { ApiError } from "@/lib/api-error";

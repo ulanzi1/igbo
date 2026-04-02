@@ -25,7 +25,7 @@ vi.mock("next-intl/server", () => ({
   setRequestLocale: vi.fn(),
 }));
 
-vi.mock("@/db/queries/events", () => ({
+vi.mock("@igbo/db/queries/events", () => ({
   getEventById: (...args: unknown[]) => mockGetEventById(...args),
   createEvent: vi.fn(),
   updateEvent: vi.fn(),
@@ -35,7 +35,7 @@ vi.mock("@/db/queries/events", () => ({
   getEventsByParentId: vi.fn(),
 }));
 
-vi.mock("@/db/queries/groups", () => ({
+vi.mock("@igbo/db/queries/groups", () => ({
   getGroupById: (...args: unknown[]) => mockGetGroupById(...args),
   getGroupMember: vi.fn(),
   getGroupsForUserMembership: vi.fn(),

@@ -6,7 +6,7 @@ import { ApiError } from "@/lib/api-error";
 import {
   getNotificationPreferences,
   upsertNotificationPreference,
-} from "@/db/queries/notification-preferences";
+} from "@igbo/db/queries/notification-preferences";
 
 const upsertSchema = z.object({
   notificationType: z.enum([

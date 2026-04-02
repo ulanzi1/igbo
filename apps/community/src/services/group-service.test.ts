@@ -2,7 +2,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
-vi.mock("@/db/queries/groups", () => ({
+vi.mock("@igbo/db/queries/groups", () => ({
   createGroup: vi.fn(),
   updateGroup: vi.fn(),
   getGroupById: vi.fn(),
@@ -15,10 +15,10 @@ vi.mock("@/db/queries/groups", () => ({
   softDeleteGroup: vi.fn(),
   getUserPlatformRole: vi.fn(),
 }));
-vi.mock("@/db/queries/auth-permissions", () => ({
+vi.mock("@igbo/db/queries/auth-permissions", () => ({
   getUserMembershipTier: vi.fn(),
 }));
-vi.mock("@/db/queries/group-channels", () => ({
+vi.mock("@igbo/db/queries/group-channels", () => ({
   listAllChannelConversationIds: vi.fn().mockResolvedValue([]),
   softDeleteChannelConversation: vi.fn().mockResolvedValue(undefined),
 }));
@@ -57,12 +57,12 @@ import {
   findEarliestActiveMember,
   softDeleteGroup,
   getUserPlatformRole,
-} from "@/db/queries/groups";
-import { getUserMembershipTier } from "@/db/queries/auth-permissions";
+} from "@igbo/db/queries/groups";
+import { getUserMembershipTier } from "@igbo/db/queries/auth-permissions";
 import {
   listAllChannelConversationIds,
   softDeleteChannelConversation,
-} from "@/db/queries/group-channels";
+} from "@igbo/db/queries/group-channels";
 import { canCreateGroup } from "@/services/permissions";
 import { eventBus } from "@/services/event-bus";
 

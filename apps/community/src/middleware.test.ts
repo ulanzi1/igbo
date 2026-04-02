@@ -12,7 +12,7 @@ vi.mock("@/env", () => ({
 }));
 
 const mockGetActiveSuspension = vi.fn();
-vi.mock("@/db/queries/member-discipline", () => ({
+vi.mock("@igbo/db/queries/member-discipline", () => ({
   getActiveSuspension: (...args: unknown[]) => mockGetActiveSuspension(...args),
 }));
 
@@ -21,10 +21,10 @@ vi.mock("drizzle-orm", () => ({ eq: vi.fn((col: unknown, val: unknown) => ({ col
 const mockDbSelectChain = { from: vi.fn() };
 const mockDbFromChain = { where: vi.fn() };
 const mockDbWhereChain = { limit: vi.fn() };
-vi.mock("@/db", () => ({
+vi.mock("@igbo/db", () => ({
   db: { select: vi.fn(() => mockDbSelectChain) },
 }));
-vi.mock("@/db/schema/auth-users", () => ({
+vi.mock("@igbo/db/schema/auth-users", () => ({
   authUsers: { id: "id", accountStatus: "account_status" },
 }));
 

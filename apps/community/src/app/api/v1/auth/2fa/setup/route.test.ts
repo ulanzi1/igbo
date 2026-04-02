@@ -14,7 +14,7 @@ vi.mock("@/services/auth-service", () => ({
   generate2faSecret: (...args: unknown[]) => mockGenerate2faSecret(...args),
   verify2faAndComplete: (...args: unknown[]) => mockVerify2faAndComplete(...args),
 }));
-vi.mock("@/db/queries/auth-queries", () => ({
+vi.mock("@igbo/db/queries/auth-queries", () => ({
   findUserById: (...args: unknown[]) => mockFindUserById(...args),
 }));
 vi.mock("@/lib/request-context", () => ({

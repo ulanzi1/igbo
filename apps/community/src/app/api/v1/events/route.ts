@@ -5,7 +5,7 @@ import { successResponse } from "@/lib/api-response";
 import { ApiError } from "@/lib/api-error";
 import { requireAuthenticatedSession } from "@/services/permissions";
 import { createEvent, CreateEventSchema } from "@/services/event-service";
-import { listUpcomingEvents, listPastEvents, listMyRsvps } from "@/db/queries/events";
+import { listUpcomingEvents, listPastEvents, listMyRsvps } from "@igbo/db/queries/events";
 import { errorResponse } from "@/lib/api-response";
 import { RATE_LIMIT_PRESETS } from "@/services/rate-limiter";
 import { auth } from "@/server/auth/config";

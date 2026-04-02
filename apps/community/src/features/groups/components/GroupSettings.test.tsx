@@ -3,7 +3,7 @@ import React from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { GroupSettings } from "./GroupSettings";
-import type { CommunityGroup } from "@/db/schema/community-groups";
+import type { CommunityGroup } from "@igbo/db/schema/community-groups";
 
 vi.mock("next-intl", () => ({
   useTranslations: () => (key: string) => key,

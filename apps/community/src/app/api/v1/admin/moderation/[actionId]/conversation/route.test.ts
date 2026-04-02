@@ -13,11 +13,11 @@ vi.mock("@/lib/admin-auth", () => ({
   requireAdminSession: (...args: unknown[]) => mockRequireAdminSession(...args),
 }));
 
-vi.mock("@/db/queries/moderation", () => ({
+vi.mock("@igbo/db/queries/moderation", () => ({
   getModerationActionById: (...args: unknown[]) => mockGetModerationActionById(...args),
 }));
 
-vi.mock("@/db/queries/chat-messages", () => ({
+vi.mock("@igbo/db/queries/chat-messages", () => ({
   getMessageById: (...args: unknown[]) => mockGetMessageById(...args),
   getConversationMessages: (...args: unknown[]) => mockGetConversationMessages(...args),
 }));

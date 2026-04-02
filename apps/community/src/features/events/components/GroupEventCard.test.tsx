@@ -2,7 +2,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@/test/test-utils";
 import { GroupEventCard } from "./GroupEventCard";
-import type { EventListItem } from "@/db/queries/events";
+import type { EventListItem } from "@igbo/db/queries/events";
 
 vi.mock("next-intl", () => ({
   useTranslations: () => (key: string) => `Events.${key}`,

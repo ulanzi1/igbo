@@ -2,7 +2,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { CommentItem } from "./CommentItem";
-import type { PostComment } from "@/db/queries/post-interactions";
+import type { PostComment } from "@igbo/db/queries/post-interactions";
 
 vi.mock("next-intl", () => ({
   useTranslations: (ns?: string) => (key: string, params?: Record<string, unknown>) =>

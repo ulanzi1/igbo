@@ -1,10 +1,10 @@
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { auth } from "@/server/auth/config";
-import { db } from "@/db";
+import { db } from "@igbo/db";
 import { eq } from "drizzle-orm";
-import { getGroupById, getGroupMember } from "@/db/queries/groups";
-import { communityProfiles } from "@/db/schema/community-profiles";
+import { getGroupById, getGroupMember } from "@igbo/db/queries/groups";
+import { communityProfiles } from "@igbo/db/schema/community-profiles";
 import { GroupHeader } from "@/features/groups";
 import { GroupDetail } from "@/features/groups/components/GroupDetail";
 

@@ -2,7 +2,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render } from "@testing-library/react";
 
-vi.mock("@/db/queries/points", () => ({
+vi.mock("@igbo/db/queries/points", () => ({
   getActivePointsRules: vi.fn(),
   getAllPostingLimits: vi.fn(),
 }));
@@ -28,7 +28,7 @@ vi.mock("@igbo/config/points", () => ({
   BADGE_MULTIPLIERS: { blue: 3, red: 6, purple: 10 },
 }));
 
-import { getActivePointsRules, getAllPostingLimits } from "@/db/queries/points";
+import { getActivePointsRules, getAllPostingLimits } from "@igbo/db/queries/points";
 import HowToEarnPage from "./page";
 
 const mockGetActivePointsRules = getActivePointsRules as ReturnType<typeof vi.fn>;

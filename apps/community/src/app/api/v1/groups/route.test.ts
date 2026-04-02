@@ -13,7 +13,7 @@ vi.mock("@/services/permissions", () => ({
 const mockListGroupsForDirectory = vi.fn();
 const mockBatchGetGroupMemberships = vi.fn();
 
-vi.mock("@/db/queries/groups", () => ({
+vi.mock("@igbo/db/queries/groups", () => ({
   listGroups: (...args: unknown[]) => mockListGroups(...args),
   listGroupsForDirectory: (...args: unknown[]) => mockListGroupsForDirectory(...args),
   batchGetGroupMemberships: (...args: unknown[]) => mockBatchGetGroupMemberships(...args),

@@ -2,11 +2,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { ApiError } from "@/lib/api-error";
 
-vi.mock("@/db/queries/groups", () => ({
+vi.mock("@igbo/db/queries/groups", () => ({
   getGroupMember: vi.fn(),
 }));
 
-vi.mock("@/db/queries/group-channels", () => ({
+vi.mock("@igbo/db/queries/group-channels", () => ({
   createGroupChannel: vi.fn(),
   createChannelConversation: vi.fn(),
   addMembersToConversation: vi.fn(),
@@ -22,7 +22,7 @@ vi.mock("@/services/event-bus", () => ({
   eventBus: { emit: vi.fn() },
 }));
 
-import { getGroupMember } from "@/db/queries/groups";
+import { getGroupMember } from "@igbo/db/queries/groups";
 import {
   createGroupChannel,
   createChannelConversation,
@@ -33,7 +33,7 @@ import {
   softDeleteChannelConversation,
   countGroupChannels,
   listActiveGroupMemberIds,
-} from "@/db/queries/group-channels";
+} from "@igbo/db/queries/group-channels";
 
 const mockGetGroupMember = getGroupMember as ReturnType<typeof vi.fn>;
 const mockCreateGroupChannel = createGroupChannel as ReturnType<typeof vi.fn>;

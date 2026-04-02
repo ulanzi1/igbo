@@ -15,7 +15,7 @@ const mockUpdateGroupMemberMutedUntil = vi.fn();
 const mockRemoveGroupMember = vi.fn();
 const mockListGroupLeaders = vi.fn();
 
-vi.mock("@/db/queries/groups", () => ({
+vi.mock("@igbo/db/queries/groups", () => ({
   getGroupById: (...args: unknown[]) => mockGetGroupById(...args),
   getGroupMember: (...args: unknown[]) => mockGetGroupMember(...args),
   getGroupMemberFull: (...args: unknown[]) => mockGetGroupMemberFull(...args),
@@ -33,7 +33,7 @@ vi.mock("@/services/audit-logger", () => ({
 }));
 
 const mockGetPlatformSetting = vi.fn();
-vi.mock("@/db/queries/platform-settings", () => ({
+vi.mock("@igbo/db/queries/platform-settings", () => ({
   getPlatformSetting: (...args: unknown[]) => mockGetPlatformSetting(...args),
 }));
 
@@ -45,7 +45,7 @@ vi.mock("@/services/event-bus", () => ({
 const mockGetDefaultChannelConversationId = vi.fn();
 const mockListAllChannelConversationIds = vi.fn();
 const mockAddMembersToConversation = vi.fn();
-vi.mock("@/db/queries/group-channels", () => ({
+vi.mock("@igbo/db/queries/group-channels", () => ({
   getDefaultChannelConversationId: (...args: unknown[]) =>
     mockGetDefaultChannelConversationId(...args),
   listAllChannelConversationIds: (...args: unknown[]) => mockListAllChannelConversationIds(...args),
@@ -58,8 +58,8 @@ vi.mock("@/services/message-service", () => ({
 }));
 
 const mockDb = vi.hoisted(() => ({ select: vi.fn() }));
-vi.mock("@/db", () => ({ db: mockDb }));
-vi.mock("@/db/schema/community-profiles", () => ({
+vi.mock("@igbo/db", () => ({ db: mockDb }));
+vi.mock("@igbo/db/schema/community-profiles", () => ({
   communityProfiles: { userId: "user_id", displayName: "display_name" },
 }));
 

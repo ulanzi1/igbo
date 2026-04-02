@@ -6,7 +6,7 @@ vi.mock("@/lib/request-context", () => ({
 }));
 
 const mockIsUserInQuietHours = vi.fn().mockResolvedValue(false);
-vi.mock("@/db/queries/notification-preferences", () => ({
+vi.mock("@igbo/db/queries/notification-preferences", () => ({
   isUserInQuietHours: (...args: unknown[]) => mockIsUserInQuietHours(...args),
 }));
 

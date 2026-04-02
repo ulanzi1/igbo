@@ -36,7 +36,7 @@ vi.mock("@/components/shared/VerificationBadge", () => ({
     badgeType ? <span data-testid="badge">{badgeType}</span> : null,
 }));
 
-vi.mock("@/db/schema/community-badges", () => ({
+vi.mock("@igbo/db/schema/community-badges", () => ({
   badgeTypeEnum: {},
   communityUserBadges: {},
 }));

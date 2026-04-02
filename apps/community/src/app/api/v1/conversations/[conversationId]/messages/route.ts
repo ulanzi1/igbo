@@ -6,9 +6,9 @@ import {
   isConversationMember,
   getConversationById,
   getMemberJoinedAt,
-} from "@/db/queries/chat-conversations";
+} from "@igbo/db/queries/chat-conversations";
 import { messageService } from "@/services/message-service";
-import { getReactionsForMessages } from "@/db/queries/chat-message-reactions";
+import { getReactionsForMessages } from "@igbo/db/queries/chat-message-reactions";
 import { RATE_LIMIT_PRESETS } from "@/services/rate-limiter";
 
 // ── GET /api/v1/conversations/[conversationId]/messages ───────────────────────

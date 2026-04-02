@@ -12,7 +12,7 @@ vi.mock("@/lib/redis", () => ({
 
 const mockGetRecommendedGroups = vi.fn();
 
-vi.mock("@/db/queries/recommendations", () => ({
+vi.mock("@igbo/db/queries/recommendations", () => ({
   getRecommendedGroups: (...args: unknown[]) => mockGetRecommendedGroups(...args),
 }));
 

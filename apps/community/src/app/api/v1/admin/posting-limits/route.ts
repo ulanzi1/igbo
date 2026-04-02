@@ -2,7 +2,7 @@ import { withApiHandler } from "@/server/api/middleware";
 import { successResponse } from "@/lib/api-response";
 import { ApiError } from "@/lib/api-error";
 import { requireAdminSession } from "@/lib/admin-auth";
-import { getAllPostingLimits, updatePostingLimit } from "@/db/queries/points";
+import { getAllPostingLimits, updatePostingLimit } from "@igbo/db/queries/points";
 import { logAdminAction } from "@/services/audit-logger";
 import { z } from "zod/v4";
 

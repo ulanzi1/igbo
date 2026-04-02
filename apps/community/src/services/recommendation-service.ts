@@ -1,7 +1,7 @@
 import "server-only";
 import { getRedisClient } from "@/lib/redis";
-import { getRecommendedGroups } from "@/db/queries/recommendations";
-import type { RecommendedGroupItem } from "@/db/queries/recommendations";
+import { getRecommendedGroups } from "@igbo/db/queries/recommendations";
+import type { RecommendedGroupItem } from "@igbo/db/queries/recommendations";
 
 const CACHE_TTL_SECONDS = 12 * 60 * 60; // 43200
 

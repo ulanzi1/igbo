@@ -6,7 +6,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { ReportDialog } from "@/components/shared/ReportDialog";
-import type { ArticleCommentItem } from "@/db/queries/article-comments";
+import type { ArticleCommentItem } from "@igbo/db/queries/article-comments";
 
 interface ArticleCommentsProps {
   articleId: string;

@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { ProfilePhotoUpload, TagInput, useUpdateProfile } from "@/features/profiles";
-import type { CommunityProfile } from "@/db/schema/community-profiles";
+import type { CommunityProfile } from "@igbo/db/schema/community-profiles";
 
 interface Props {
   initialProfile: CommunityProfile;

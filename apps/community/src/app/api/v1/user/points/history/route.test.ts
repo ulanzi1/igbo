@@ -5,7 +5,7 @@ vi.mock("server-only", () => ({}));
 vi.mock("@/services/permissions", () => ({
   requireAuthenticatedSession: vi.fn().mockResolvedValue({ userId: "user-1" }),
 }));
-vi.mock("@/db/queries/points", () => ({
+vi.mock("@igbo/db/queries/points", () => ({
   getPointsLedgerHistory: vi.fn().mockResolvedValue({ entries: [], total: 0 }),
 }));
 vi.mock("@/lib/request-context", () => ({
@@ -14,7 +14,7 @@ vi.mock("@/lib/request-context", () => ({
 
 import { GET } from "./route";
 import { requireAuthenticatedSession } from "@/services/permissions";
-import { getPointsLedgerHistory } from "@/db/queries/points";
+import { getPointsLedgerHistory } from "@igbo/db/queries/points";
 import { ApiError } from "@/lib/api-error";
 
 const mockRequireAuth = vi.mocked(requireAuthenticatedSession);

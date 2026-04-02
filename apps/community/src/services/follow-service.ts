@@ -1,5 +1,5 @@
 import "server-only";
-import { followMember, unfollowMember, isFollowing } from "@/db/queries/follows";
+import { followMember, unfollowMember, isFollowing } from "@igbo/db/queries/follows";
 import { eventBus } from "@/services/event-bus";
 
 export async function followUser(followerId: string, followingId: string): Promise<void> {

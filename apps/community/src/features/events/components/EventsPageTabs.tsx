@@ -7,7 +7,7 @@ import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EventCard } from "./EventCard";
 import { RSVPButton } from "./RSVPButton";
-import type { EventListItem, MyRsvpEventListItem } from "@/db/queries/events";
+import type { EventListItem, MyRsvpEventListItem } from "@igbo/db/queries/events";
 
 interface EventsPageTabsProps {
   initialUpcomingEvents: EventListItem[];

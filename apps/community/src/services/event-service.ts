@@ -3,14 +3,14 @@ import { z } from "zod/v4";
 import { GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { canCreateEvent } from "@/services/permissions";
-import { getUserMembershipTier } from "@/db/queries/auth-permissions";
-import { getPlatformSetting } from "@/db/queries/platform-settings";
+import { getUserMembershipTier } from "@igbo/db/queries/auth-permissions";
+import { getPlatformSetting } from "@igbo/db/queries/platform-settings";
 import { ApiError } from "@/lib/api-error";
 import { eventBus } from "@/services/event-bus";
 import { dailyVideoService } from "@/services/daily-video-service";
 import { getS3Client } from "@/lib/s3-client";
 import { env } from "@/env";
-import { getUserPlatformRole } from "@/db/queries/groups";
+import { getUserPlatformRole } from "@igbo/db/queries/groups";
 import {
   createEvent as dbCreateEvent,
   updateEvent as dbUpdateEvent,
@@ -22,7 +22,7 @@ import {
   markAttended as dbMarkAttended,
   listEventAttendees,
   getAttendeeStatus,
-} from "@/db/queries/events";
+} from "@igbo/db/queries/events";
 
 export { listEventAttendees };
 
@@ -547,8 +547,8 @@ export async function preserveRecording(userId: string, eventId: string): Promis
     RECORDING_QUOTA_DEFAULT_BYTES,
   );
 
-  const { db } = await import("@/db");
-  const { communityEvents: eventsTable } = await import("@/db/schema/community-events");
+  const { db } = await import("@igbo/db");
+  const { communityEvents: eventsTable } = await import("@igbo/db/schema/community-events");
   const { sql: drizzleSql, isNull: drizzleIsNull } = await import("drizzle-orm");
 
   const [quotaRow] = await db

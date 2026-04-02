@@ -2,9 +2,12 @@ import { withApiHandler } from "@/server/api/middleware";
 import { successResponse } from "@/lib/api-response";
 import { ApiError } from "@/lib/api-error";
 import { requireAdminSession } from "@/lib/admin-auth";
-import { findUserById } from "@/db/queries/auth-queries";
-import { listMemberDisciplineHistory, getActiveSuspension } from "@/db/queries/member-discipline";
-import { getProfileByUserId } from "@/db/queries/community-profiles";
+import { findUserById } from "@igbo/db/queries/auth-queries";
+import {
+  listMemberDisciplineHistory,
+  getActiveSuspension,
+} from "@igbo/db/queries/member-discipline";
+import { getProfileByUserId } from "@igbo/db/queries/community-profiles";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 

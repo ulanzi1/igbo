@@ -2,7 +2,8 @@ import { withApiHandler } from "@/server/api/middleware";
 import { successResponse } from "@/lib/api-response";
 import { ApiError } from "@/lib/api-error";
 import { requireAdminSession } from "@/lib/admin-auth";
-import { updateModerationKeyword, deleteModerationKeyword } from "@/db/queries/moderation";
+import { updateModerationKeyword, deleteModerationKeyword } from "@igbo/db/queries/moderation";
+import { invalidateKeywordCache } from "@/services/moderation-service";
 import { z } from "zod/v4";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -34,6 +35,7 @@ export const PATCH = withApiHandler(async (request: Request) => {
   }
 
   await updateModerationKeyword(keywordId, parsed.data);
+  await invalidateKeywordCache();
   return successResponse({ updated: true });
 });
 
@@ -46,5 +48,6 @@ export const DELETE = withApiHandler(async (request: Request) => {
   }
 
   await deleteModerationKeyword(keywordId);
+  await invalidateKeywordCache();
   return successResponse({ deleted: true });
 });

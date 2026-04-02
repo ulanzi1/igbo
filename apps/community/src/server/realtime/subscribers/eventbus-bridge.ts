@@ -8,11 +8,11 @@ import {
   NAMESPACE_NOTIFICATIONS,
   NAMESPACE_CHAT,
 } from "@igbo/config/realtime";
-import { db } from "@/db";
-import { chatMessages } from "@/db/schema/chat-messages";
+import { db } from "@igbo/db";
+import { chatMessages } from "@igbo/db/schema/chat-messages";
 import { eq } from "drizzle-orm";
-import { listGroupChannels } from "@/db/queries/group-channels";
-import { createNotification } from "@/db/queries/notifications";
+import { listGroupChannels } from "@igbo/db/queries/group-channels";
+import { createNotification } from "@igbo/db/queries/notifications";
 import type {
   NotificationCreatedEvent,
   NotificationReadEvent,

@@ -5,7 +5,11 @@ import { headers } from "next/headers";
 import { z } from "zod";
 import { eventBus } from "@/services/event-bus";
 import { enqueueEmailJob } from "@/services/email-service";
-import { createUser, createVerificationToken, findUserByEmail } from "@/db/queries/auth-queries";
+import {
+  createUser,
+  createVerificationToken,
+  findUserByEmail,
+} from "@igbo/db/queries/auth-queries";
 import { env } from "@/env";
 import type {
   ApplicationActionResult,

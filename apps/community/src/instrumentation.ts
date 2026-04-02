@@ -12,7 +12,7 @@ export async function register() {
 
     // Restore maintenance mode state from DB so admin toggle survives container restarts
     try {
-      const { getPlatformSetting } = await import("@/db/queries/platform-settings");
+      const { getPlatformSetting } = await import("@igbo/db/queries/platform-settings");
       const setting = await getPlatformSetting<{ enabled: boolean }>("maintenance_mode", {
         enabled: false,
       });

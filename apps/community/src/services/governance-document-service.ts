@@ -10,7 +10,7 @@ import {
   type CreateGovernanceDocData,
   type UpdateGovernanceDocData,
   type GovernanceDocVisibility,
-} from "@/db/queries/governance-documents";
+} from "@igbo/db/queries/governance-documents";
 import { logAdminAction } from "@/services/audit-logger";
 
 export { getDocumentBySlug, getDocumentById, listPublishedDocuments, listAllDocuments };

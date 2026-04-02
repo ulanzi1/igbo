@@ -3,8 +3,8 @@ import { withApiHandler } from "@/server/api/middleware";
 import { successResponse } from "@/lib/api-response";
 import { ApiError } from "@/lib/api-error";
 import { requireAuthenticatedSession } from "@/services/permissions";
-import { getGroupMember } from "@/db/queries/groups";
-import { listGroupFiles } from "@/db/queries/group-channels";
+import { getGroupMember } from "@igbo/db/queries/groups";
+import { listGroupFiles } from "@igbo/db/queries/group-channels";
 import { RATE_LIMIT_PRESETS } from "@/services/rate-limiter";
 
 const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

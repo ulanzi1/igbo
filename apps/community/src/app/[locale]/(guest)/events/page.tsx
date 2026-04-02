@@ -1,5 +1,5 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import { listUpcomingEvents } from "@/db/queries/events";
+import { listUpcomingEvents } from "@igbo/db/queries/events";
 import { EventsPageTabs } from "@/features/events";
 import { CreateEventButton } from "@/features/events/components/CreateEventButton";
 

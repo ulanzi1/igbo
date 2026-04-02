@@ -5,7 +5,7 @@ import { auth } from "@/server/auth/config";
 import {
   getPublicProfileForViewer,
   getProfileWithSocialLinks,
-} from "@/db/queries/community-profiles";
+} from "@igbo/db/queries/community-profiles";
 
 type ViewerRole = "MEMBER" | "ADMIN" | "MODERATOR";
 

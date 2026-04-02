@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { EventCard } from "./EventCard";
-import type { EventListItem } from "@/db/queries/events";
+import type { EventListItem } from "@igbo/db/queries/events";
 
 interface EventListProps {
   events: EventListItem[];

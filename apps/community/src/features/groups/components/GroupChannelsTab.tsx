@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import dynamic from "next/dynamic";
-import type { GroupChannelItem } from "@/db/queries/group-channels";
+import type { GroupChannelItem } from "@igbo/db/queries/group-channels";
 
 const ChatWindow = dynamic(() => import("@/features/chat").then((m) => m.ChatWindow), {
   ssr: false,

@@ -7,8 +7,8 @@ import {
   getNotificationPreferences,
   getUndigestedNotifications,
   markDigestSent,
-} from "@/db/queries/notification-preferences";
-import { findUserById } from "@/db/queries/auth-queries";
+} from "@igbo/db/queries/notification-preferences";
+import { findUserById } from "@igbo/db/queries/auth-queries";
 import { enqueueEmailJob } from "@/services/email-service";
 
 registerJob("notification-digest", async () => {

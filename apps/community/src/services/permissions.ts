@@ -1,6 +1,6 @@
 import "server-only";
-import { findUserById } from "@/db/queries/auth-queries";
-import { getUserMembershipTier, type MembershipTier } from "@/db/queries/auth-permissions";
+import { findUserById } from "@igbo/db/queries/auth-queries";
+import { getUserMembershipTier, type MembershipTier } from "@igbo/db/queries/auth-permissions";
 import { auth } from "@/server/auth/config";
 import { eventBus } from "@/services/event-bus";
 
@@ -96,8 +96,8 @@ export async function canPublishArticle(userId: string): Promise<PermissionResul
     await emitPermissionDenied(userId, "publishArticle", result.reason!);
     return result;
   }
-  const { countWeeklyArticleSubmissions } = await import("@/db/queries/articles");
-  const { getEffectiveArticleLimit } = await import("@/db/queries/points");
+  const { countWeeklyArticleSubmissions } = await import("@igbo/db/queries/articles");
+  const { getEffectiveArticleLimit } = await import("@igbo/db/queries/points");
   const weeklyCount = await countWeeklyArticleSubmissions(userId);
   const maxPerWeek = await getEffectiveArticleLimit(userId, tier);
   if (weeklyCount >= maxPerWeek) {

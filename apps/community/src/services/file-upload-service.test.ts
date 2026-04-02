@@ -42,7 +42,7 @@ vi.mock("@aws-sdk/s3-request-presigner", () => ({
 const mockCreateFileUpload = vi.fn();
 const mockGetFileUploadByKey = vi.fn();
 
-vi.mock("@/db/queries/file-uploads", () => ({
+vi.mock("@igbo/db/queries/file-uploads", () => ({
   createFileUpload: (...args: unknown[]) => mockCreateFileUpload(...args),
   getFileUploadByKey: (...args: unknown[]) => mockGetFileUploadByKey(...args),
 }));

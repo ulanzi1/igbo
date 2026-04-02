@@ -1,6 +1,6 @@
 // NOTE: No "server-only" — this is used by both Next.js server code and the standalone realtime server
 import { getRedisClient } from "@/lib/redis";
-import type { AuthSession } from "@/db/schema/auth-sessions";
+import type { AuthSession } from "@igbo/db/schema/auth-sessions";
 
 const SESSION_CACHE_PREFIX = "session:";
 

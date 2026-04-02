@@ -10,7 +10,7 @@ import {
   updateApplicationStatus,
   type ListApplicationsOptions,
   type ApplicationStatus,
-} from "@/db/queries/admin-approvals";
+} from "@igbo/db/queries/admin-approvals";
 import { generatePasswordSetToken } from "@/services/auth-service";
 import { ApiError } from "@/lib/api-error";
 import { env } from "@/env";

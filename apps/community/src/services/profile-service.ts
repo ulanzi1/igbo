@@ -3,8 +3,8 @@ import {
   updateProfileFields,
   updatePrivacySettings as updatePrivacySettingsQuery,
   getProfileWithSocialLinks,
-} from "@/db/queries/community-profiles";
-import { upsertSocialLink, deleteSocialLink } from "@/db/queries/community-social-links";
+} from "@igbo/db/queries/community-profiles";
+import { upsertSocialLink, deleteSocialLink } from "@igbo/db/queries/community-social-links";
 import { eventBus } from "@/services/event-bus";
 import type { UpdateProfileData, PrivacySettings, SocialProvider } from "@/features/profiles/types";
 

@@ -2,7 +2,7 @@
 
 import { useTranslations, useLocale } from "next-intl";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { LedgerHistoryRow } from "@/db/queries/points";
+import type { LedgerHistoryRow } from "@igbo/db/queries/points";
 
 interface PointsHistoryListProps {
   entries: LedgerHistoryRow[];

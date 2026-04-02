@@ -8,10 +8,10 @@ import {
   listExpiredRecordings,
   listExpiringRecordings,
   markRecordingWarningSent,
-} from "@/db/queries/events";
+} from "@igbo/db/queries/events";
 import { logAdminAction } from "@/services/audit-logger";
-import { db } from "@/db";
-import { communityEvents } from "@/db/schema/community-events";
+import { db } from "@igbo/db";
+import { communityEvents } from "@igbo/db/schema/community-events";
 import { eq } from "drizzle-orm";
 
 const SYSTEM_ACTOR = "system";

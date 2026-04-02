@@ -3,11 +3,11 @@ import { withApiHandler } from "@/server/api/middleware";
 import { successResponse } from "@/lib/api-response";
 import { ApiError } from "@/lib/api-error";
 import { requireAuthenticatedSession } from "@/services/permissions";
-import { getGroupMember } from "@/db/queries/groups";
-import { db } from "@/db";
-import { communityPosts } from "@/db/schema/community-posts";
+import { getGroupMember } from "@igbo/db/queries/groups";
+import { db } from "@igbo/db";
+import { communityPosts } from "@igbo/db/schema/community-posts";
 import { and, eq, isNull } from "drizzle-orm";
-import { togglePostPin } from "@/db/queries/posts";
+import { togglePostPin } from "@igbo/db/queries/posts";
 import { RATE_LIMIT_PRESETS } from "@/services/rate-limiter";
 
 const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

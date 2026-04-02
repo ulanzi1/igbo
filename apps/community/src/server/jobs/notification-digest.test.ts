@@ -27,7 +27,7 @@ const mockGetNotificationPreferences = vi.hoisted(() => vi.fn().mockResolvedValu
 const mockGetUndigestedNotifications = vi.hoisted(() => vi.fn().mockResolvedValue([]));
 const mockMarkDigestSent = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
 
-vi.mock("@/db/queries/notification-preferences", () => ({
+vi.mock("@igbo/db/queries/notification-preferences", () => ({
   getUsersInQuietHours: (...args: unknown[]) => mockGetUsersInQuietHours(...args),
   getUsersWithDigestDue: (...args: unknown[]) => mockGetUsersWithDigestDue(...args),
   getNotificationPreferences: (...args: unknown[]) => mockGetNotificationPreferences(...args),
@@ -39,7 +39,7 @@ vi.mock("@/db/queries/notification-preferences", () => ({
 }));
 
 const mockGetUserById = vi.hoisted(() => vi.fn());
-vi.mock("@/db/queries/auth-queries", () => ({
+vi.mock("@igbo/db/queries/auth-queries", () => ({
   findUserById: (...args: unknown[]) => mockGetUserById(...args),
   findUserByEmail: vi.fn(),
 }));

@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import type { AuthUser } from "@/db/schema/auth-users";
+import type { AuthUser } from "@igbo/db/schema/auth-users";
 import {
   useApproveApplication,
   useRequestInfo,

@@ -23,7 +23,7 @@ vi.mock("@/env", () => ({
 
 const mockDbLimit = vi.hoisted(() => vi.fn().mockResolvedValue([]));
 
-vi.mock("@/db", () => ({
+vi.mock("@igbo/db", () => ({
   db: {
     select: () => ({
       from: () => ({

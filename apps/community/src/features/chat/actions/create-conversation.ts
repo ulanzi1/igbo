@@ -5,8 +5,8 @@ import {
   createConversation,
   findExistingDirectConversation,
   getConversationById,
-} from "@/db/queries/chat-conversations";
-import { isBlocked } from "@/db/queries/block-mute";
+} from "@igbo/db/queries/chat-conversations";
+import { isBlocked } from "@igbo/db/queries/block-mute";
 
 export async function createOrFindDirectConversation(
   otherUserId: string,

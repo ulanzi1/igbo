@@ -2,8 +2,8 @@
 import type { Socket } from "socket.io";
 import { jwtVerify } from "jose";
 import { and, eq, isNull } from "drizzle-orm";
-import { db } from "@/db";
-import { authUsers } from "@/db/schema/auth-users";
+import { db } from "@igbo/db";
+import { authUsers } from "@igbo/db/schema/auth-users";
 
 const AUTH_SECRET = process.env.AUTH_SECRET;
 

@@ -8,7 +8,7 @@ import {
   findUserByEmail,
   createVerificationToken,
   deleteUserVerificationTokens,
-} from "@/db/queries/auth-queries";
+} from "@igbo/db/queries/auth-queries";
 import { env } from "@/env";
 import type { ResendActionResult } from "@/features/auth/types/application";
 

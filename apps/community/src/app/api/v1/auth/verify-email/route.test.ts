@@ -9,7 +9,7 @@ const mockFindTokenByHash = vi.fn();
 const mockTransitionUser = vi.fn();
 const mockFindUserById = vi.fn();
 
-vi.mock("@/db/queries/auth-queries", () => ({
+vi.mock("@igbo/db/queries/auth-queries", () => ({
   consumeVerificationToken: (...args: unknown[]) => mockConsumeToken(...args),
   findTokenByHash: (...args: unknown[]) => mockFindTokenByHash(...args),
   transitionUserToApprovalPending: (...args: unknown[]) => mockTransitionUser(...args),

@@ -1,7 +1,7 @@
 // POST /api/v1/articles/[articleId]/view — increment view count (public, no auth)
 import { withApiHandler } from "@/server/api/middleware";
 import { successResponse } from "@/lib/api-response";
-import { incrementArticleViewCount } from "@/db/queries/articles";
+import { incrementArticleViewCount } from "@igbo/db/queries/articles";
 
 const postHandler = async (request: Request) => {
   const parts = new URL(request.url).pathname.split("/");

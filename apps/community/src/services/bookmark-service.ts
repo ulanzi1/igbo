@@ -5,7 +5,7 @@ import {
   removeBookmark as dbRemoveBookmark,
   getUserBookmarks as dbGetUserBookmarks,
   type BookmarkedPost,
-} from "@/db/queries/bookmarks";
+} from "@igbo/db/queries/bookmarks";
 
 export type { BookmarkedPost };
 

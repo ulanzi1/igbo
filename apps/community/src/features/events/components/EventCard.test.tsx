@@ -2,7 +2,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@/test/test-utils";
 import { EventCard } from "./EventCard";
-import type { EventListItem } from "@/db/queries/events";
+import type { EventListItem } from "@igbo/db/queries/events";
 import { expectNoA11yViolations } from "@/test/a11y-utils";
 
 vi.mock("next-intl", () => ({

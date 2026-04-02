@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const mockIncrementArticleViewCount = vi.fn();
 
-vi.mock("@/db/queries/articles", () => ({
+vi.mock("@igbo/db/queries/articles", () => ({
   createArticle: vi.fn(),
   updateArticle: vi.fn(),
   submitArticleForReview: vi.fn(),

@@ -9,7 +9,7 @@ import {
   getLatestBreakdownSnapshot,
   currentlyOnlineUsers,
   todayPartialDau,
-} from "@/db/queries/analytics";
+} from "@igbo/db/queries/analytics";
 
 /** ISO date string YYYY-MM-DD */
 function isValidDate(s: string): boolean {

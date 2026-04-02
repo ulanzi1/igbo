@@ -11,7 +11,7 @@ vi.mock("@/lib/admin-auth", () => ({
 const mockUpsertUserBadge = vi.fn();
 const mockDeleteUserBadge = vi.fn();
 const mockInvalidateBadgeCache = vi.fn();
-vi.mock("@/db/queries/badges", () => ({
+vi.mock("@igbo/db/queries/badges", () => ({
   upsertUserBadge: (...args: unknown[]) => mockUpsertUserBadge(...args),
   deleteUserBadge: (...args: unknown[]) => mockDeleteUserBadge(...args),
   invalidateBadgeCache: (...args: unknown[]) => mockInvalidateBadgeCache(...args),
@@ -19,14 +19,14 @@ vi.mock("@/db/queries/badges", () => ({
 
 const mockDbInsert = vi.fn();
 const mockDbSelect = vi.fn();
-vi.mock("@/db", () => ({
+vi.mock("@igbo/db", () => ({
   db: {
     insert: (...args: unknown[]) => mockDbInsert(...args),
     select: (...args: unknown[]) => mockDbSelect(...args),
   },
 }));
 
-vi.mock("@/db/schema/audit-logs", () => ({
+vi.mock("@igbo/db/schema/audit-logs", () => ({
   auditLogs: {
     actorId: "actor_id",
     targetUserId: "target_user_id",
@@ -35,7 +35,7 @@ vi.mock("@/db/schema/audit-logs", () => ({
   },
 }));
 
-vi.mock("@/db/schema/auth-users", () => ({
+vi.mock("@igbo/db/schema/auth-users", () => ({
   authUsers: { id: "id" },
 }));
 

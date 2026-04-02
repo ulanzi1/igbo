@@ -2,7 +2,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
-vi.mock("@/db/queries/bookmarks", () => ({
+vi.mock("@igbo/db/queries/bookmarks", () => ({
   toggleBookmark: vi.fn(),
   addBookmark: vi.fn(),
   removeBookmark: vi.fn(),
@@ -10,7 +10,7 @@ vi.mock("@/db/queries/bookmarks", () => ({
 }));
 
 import { toggleBookmark, addBookmark, removeBookmark, getUserBookmarks } from "./bookmark-service";
-import * as dbBookmarks from "@/db/queries/bookmarks";
+import * as dbBookmarks from "@igbo/db/queries/bookmarks";
 
 const mockDbToggle = vi.mocked(dbBookmarks.toggleBookmark);
 const mockDbAdd = vi.mocked(dbBookmarks.addBookmark);

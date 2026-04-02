@@ -9,7 +9,7 @@ import { PostComposer } from "@/features/feed/components/PostComposer";
 import { FeedItem } from "@/features/feed/components/FeedItem";
 import { GroupEventCard } from "@/features/events/components/GroupEventCard";
 import type { FeedPost } from "@/features/feed/types";
-import type { EventListItem } from "@/db/queries/events";
+import type { EventListItem } from "@igbo/db/queries/events";
 
 interface GroupFeedTabProps {
   groupId: string;

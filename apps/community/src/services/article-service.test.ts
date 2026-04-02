@@ -6,7 +6,7 @@ import { ApiError } from "@/lib/api-error";
 
 vi.mock("server-only", () => ({}));
 
-vi.mock("@/db/queries/articles", () => ({
+vi.mock("@igbo/db/queries/articles", () => ({
   createArticle: vi.fn(),
   updateArticle: vi.fn(),
   submitArticleForReview: vi.fn(),
@@ -15,7 +15,7 @@ vi.mock("@/db/queries/articles", () => ({
   getArticleForEditing: vi.fn(),
 }));
 
-vi.mock("@/db/queries/auth-permissions", () => ({
+vi.mock("@igbo/db/queries/auth-permissions", () => ({
   getUserMembershipTier: vi.fn(),
 }));
 
@@ -56,8 +56,8 @@ import {
   countWeeklyArticleSubmissions,
   upsertArticleTags,
   getArticleForEditing,
-} from "@/db/queries/articles";
-import { getUserMembershipTier } from "@/db/queries/auth-permissions";
+} from "@igbo/db/queries/articles";
+import { getUserMembershipTier } from "@igbo/db/queries/auth-permissions";
 import { eventBus } from "@/services/event-bus";
 import { saveDraft, submitArticle, getArticleForEditingService } from "./article-service";
 

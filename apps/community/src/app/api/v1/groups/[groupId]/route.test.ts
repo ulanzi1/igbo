@@ -14,7 +14,7 @@ vi.mock("@/services/permissions", () => ({
 
 const mockListPendingMembers = vi.fn();
 
-vi.mock("@/db/queries/groups", () => ({
+vi.mock("@igbo/db/queries/groups", () => ({
   getGroupById: (...args: unknown[]) => mockGetGroupById(...args),
   getGroupMember: (...args: unknown[]) => mockGetGroupMember(...args),
   listPendingMembers: (...args: unknown[]) => mockListPendingMembers(...args),

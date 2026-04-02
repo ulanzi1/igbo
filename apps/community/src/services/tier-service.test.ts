@@ -12,12 +12,12 @@ const mockEvictAllUserSessions = vi.fn();
 const mockLogAdminAction = vi.fn();
 const mockEventBusEmit = vi.fn();
 
-vi.mock("@/db/queries/auth-permissions", () => ({
+vi.mock("@igbo/db/queries/auth-permissions", () => ({
   getUserMembershipTier: (...args: unknown[]) => mockGetUserMembershipTier(...args),
   updateUserMembershipTier: (...args: unknown[]) => mockUpdateUserMembershipTier(...args),
 }));
 
-vi.mock("@/db/queries/auth-sessions", () => ({
+vi.mock("@igbo/db/queries/auth-sessions", () => ({
   findActiveSessionsByUserId: (...args: unknown[]) => mockFindActiveSessionsByUserId(...args),
 }));
 

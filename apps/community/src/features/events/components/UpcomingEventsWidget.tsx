@@ -7,7 +7,7 @@ import { Link } from "@/i18n/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import type { MyRsvpEventListItem } from "@/db/queries/events";
+import type { MyRsvpEventListItem } from "@igbo/db/queries/events";
 
 export function UpcomingEventsWidget() {
   const t = useTranslations("Events");

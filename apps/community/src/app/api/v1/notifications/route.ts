@@ -2,7 +2,7 @@ import { withApiHandler } from "@/server/api/middleware";
 import { successResponse } from "@/lib/api-response";
 import { ApiError } from "@/lib/api-error";
 import { requireAuthenticatedSession } from "@/services/permissions";
-import { getNotifications, getUnreadCount } from "@/db/queries/notifications";
+import { getNotifications, getUnreadCount } from "@igbo/db/queries/notifications";
 import { RATE_LIMIT_PRESETS } from "@/services/rate-limiter";
 
 const handler = async (request: Request) => {

@@ -10,7 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { FileUpload } from "@/components/shared/FileUpload";
 import { createPost } from "../actions/create-post";
-import type { PostCategory } from "@/db/schema/community-posts";
+import type { PostCategory } from "@igbo/db/schema/community-posts";
 import type { FeedSortMode, FeedFilter } from "@igbo/config/feed";
 
 interface PostComposerProps {
