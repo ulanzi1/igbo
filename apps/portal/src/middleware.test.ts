@@ -3,6 +3,21 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
+// ─── Mock next-intl/middleware ─────────────────────────────────────────────────
+// next-intl/middleware imports from "next/server" which is unavailable in tests.
+// We mock it to return a simple pass-through response.
+vi.mock("next-intl/middleware", () => ({
+  default: () => (_req: unknown) => {
+    const { NextResponse } = require("next/server");
+    return NextResponse.next();
+  },
+}));
+
+// ─── Mock @/i18n/routing ─────────────────────────────────────────────────────
+vi.mock("@/i18n/routing", () => ({
+  routing: { locales: ["en", "ig"], defaultLocale: "en" },
+}));
+
 // ─── Mock next-auth/jwt ───────────────────────────────────────────────────────
 const mockDecode = vi.fn();
 
@@ -303,6 +318,60 @@ describe("Portal middleware", () => {
       const result = await middleware(req as unknown as NextRequest);
       expect(result.status).toBe(204);
       expect(result.headers.get("Access-Control-Allow-Origin")).toBe("http://localhost:3000");
+    });
+  });
+
+  describe("locale-prefixed public route bypass", () => {
+    it("passes through /en without auth check", async () => {
+      const req = makeRequest("http://localhost:3001/en");
+      const result = await middleware(req as unknown as NextRequest);
+      expect(result.status).not.toBe(307);
+      expect(mockDecode).not.toHaveBeenCalled();
+    });
+
+    it("passes through /ig without auth check", async () => {
+      const req = makeRequest("http://localhost:3001/ig");
+      const result = await middleware(req as unknown as NextRequest);
+      expect(result.status).not.toBe(307);
+      expect(mockDecode).not.toHaveBeenCalled();
+    });
+
+    it("passes through /en/jobs without auth check", async () => {
+      const req = makeRequest("http://localhost:3001/en/jobs");
+      const result = await middleware(req as unknown as NextRequest);
+      expect(result.status).not.toBe(307);
+      expect(mockDecode).not.toHaveBeenCalled();
+    });
+
+    it("passes through /en/apprenticeships without auth check", async () => {
+      const req = makeRequest("http://localhost:3001/en/apprenticeships");
+      const result = await middleware(req as unknown as NextRequest);
+      expect(result.status).not.toBe(307);
+      expect(mockDecode).not.toHaveBeenCalled();
+    });
+
+    it("requires auth for /en/applications (protected path)", async () => {
+      const req = makeRequest("http://localhost:3001/en/applications");
+      const result = await middleware(req as unknown as NextRequest);
+      expect(result.status).toBe(307); // redirected (no session)
+    });
+
+    it("requires auth for /en/dashboard (protected path)", async () => {
+      const req = makeRequest("http://localhost:3001/en/dashboard");
+      const result = await middleware(req as unknown as NextRequest);
+      expect(result.status).toBe(307); // redirected (no session)
+    });
+  });
+
+  describe("returnTo includes full portal URL", () => {
+    it("returnTo includes the full portal URL (not just path)", async () => {
+      const req = makeRequest("http://localhost:3001/en/dashboard");
+      const result = await middleware(req as unknown as NextRequest);
+      const location = result.headers.get("Location") ?? "";
+      // returnTo should include the full URL with host
+      const verifyUrl = new URL(location);
+      const returnTo = verifyUrl.searchParams.get("returnTo") ?? "";
+      expect(returnTo).toContain("http://localhost:3001");
     });
   });
 });

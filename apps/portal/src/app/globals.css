@@ -1,0 +1,160 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@theme inline {
+  /* Map CSS variables to Tailwind utilities */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-info: var(--info);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  /* Portal-specific color tokens */
+  --color-portal-context: var(--portal-context);
+  --color-portal-action: var(--portal-action);
+
+  /* Radius scale */
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  /* Typography */
+  --font-sans: var(--font-inter);
+  --font-mono: var(--font-jetbrains-mono);
+  --font-heading: var(--font-inter);
+
+  /* Animation */
+  --animate-fade-slide-in: fadeSlideIn 300ms ease-out both;
+}
+
+:root {
+  /* Primary Palette — Forest Green (identity/trust — same as community) */
+  --primary: oklch(0.422 0.093 141); /* #2D5A27 Deep Forest Green */
+  --primary-hover: oklch(0.353 0.085 141); /* #234A1F Darker Forest Green */
+  --primary-foreground: oklch(1 0 0); /* #FFFFFF White */
+
+  /* Secondary — Warm Sandy Tan (warmth/community) */
+  --secondary: oklch(0.726 0.08 65); /* #D4A574 Warm Sandy Tan */
+  --secondary-hover: oklch(0.658 0.075 58); /* #C4956A Deeper Tan */
+  --secondary-foreground: oklch(0.216 0.044 45); /* #3D2415 Dark Brown */
+
+  /* Accent — Golden Amber (action/energy — CTAs) */
+  --accent: oklch(0.646 0.118 75); /* #C4922A Golden Amber */
+  --accent-foreground: oklch(0.216 0.044 45); /* Dark brown on amber */
+
+  /* Portal-specific additions */
+  --portal-context: oklch(0.45 0.09 160); /* Teal-shift — active states, match quality */
+  --portal-action: oklch(0.646 0.118 75); /* Golden Amber — Apply, Post Job buttons */
+
+  /* Semantic colors */
+  --success: oklch(0.619 0.13 152); /* #38A169 Leaf Green */
+  --warning: oklch(0.676 0.125 76); /* #D69E2E Warm Amber */
+  --destructive: oklch(0.472 0.178 28); /* #C53030 Muted Terracotta Red */
+  --destructive-foreground: oklch(1 0 0); /* #FFFFFF */
+  --info: oklch(0.54 0.148 254); /* #3182CE Calm Blue */
+
+  /* Neutrals */
+  --background: oklch(0.981 0.006 90); /* #FAF8F5 Warm Off-White */
+  --foreground: oklch(0.122 0.01 55); /* #1A1612 Warm Near-Black */
+  --card: oklch(1 0 0); /* #FFFFFF */
+  --card-foreground: oklch(0.122 0.01 55); /* #1A1612 */
+  --muted: oklch(0.941 0.008 75); /* #F0EDE8 Warm Light Grey */
+  --muted-foreground: oklch(0.521 0.012 55); /* #78716C Warm Mid Grey */
+  --border: oklch(0.899 0.009 75); /* #E7E2DB Warm Border Grey */
+  --input: oklch(0.899 0.009 75); /* #E7E2DB */
+  --ring: oklch(0.422 0.093 141 / 0.4); /* Forest Green @ 40% opacity */
+  --popover: oklch(1 0 0); /* #FFFFFF */
+  --popover-foreground: oklch(0.122 0.01 55); /* #1A1612 */
+
+  /* Spacing & layout */
+  --radius: 0.75rem; /* 12px */
+  --tap-target-min: 44px;
+  --page-padding-mobile: 1rem;
+  --page-padding-desktop: 1.5rem;
+
+  /* Typography scale */
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+  --text-3xl: 1.875rem;
+}
+
+/* High contrast mode */
+[data-contrast="high"] {
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.08 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.08 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.08 0 0);
+  --muted-foreground: oklch(0.32 0.01 55);
+  --border: oklch(0.25 0.01 55);
+  --input: oklch(0.25 0.01 55);
+  --ring: oklch(0.35 0.093 141);
+}
+
+[data-contrast="high"] * {
+  border-width: 2px;
+}
+
+[data-contrast="high"] :focus-visible {
+  outline: 3px solid oklch(0.422 0.093 141) !important;
+  outline-offset: 2px !important;
+}
+
+[data-contrast="high"] .animate-pulse {
+  animation: none;
+  opacity: 0.5;
+}
+
+@keyframes fadeSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-sans), system-ui, sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .animate-pulse {
+      animation: none;
+      opacity: 0.5;
+    }
+  }
+}
