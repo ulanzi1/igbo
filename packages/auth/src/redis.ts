@@ -2,7 +2,10 @@
 // the standalone realtime server (same pattern as community app's lib/redis.ts)
 import type { Redis } from "ioredis";
 
-let redisClient: Redis | null = null;
+// Use globalThis to survive Next.js Turbopack hot-reload.
+// Module-level `let` variables are reset on hot-reload, but globalThis persists
+// for the entire Node.js process lifetime — same pattern as community event-bus.ts.
+const _global = globalThis as unknown as { __igboAuthRedis?: Redis | null };
 
 /**
  * Initialize the Redis client for @igbo/auth.
@@ -14,7 +17,7 @@ let redisClient: Redis | null = null;
  *   initAuthRedis(getRedisClient());
  */
 export function initAuthRedis(client: Redis): void {
-  redisClient = client;
+  _global.__igboAuthRedis = client;
 }
 
 /**
@@ -22,13 +25,14 @@ export function initAuthRedis(client: Redis): void {
  * Throws if initAuthRedis() was not called first.
  */
 export function getAuthRedis(): Redis {
-  if (!redisClient) {
+  const client = _global.__igboAuthRedis;
+  if (!client) {
     throw new Error("Auth Redis not initialized. Call initAuthRedis() at app startup.");
   }
-  return redisClient;
+  return client;
 }
 
 /** Reset the Redis client (for testing). */
 export function _resetAuthRedis(): void {
-  redisClient = null;
+  _global.__igboAuthRedis = null;
 }
