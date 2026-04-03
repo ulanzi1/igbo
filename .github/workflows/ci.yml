@@ -34,7 +34,7 @@ jobs:
     env:
       SKIP_ENV_VALIDATION: "true"
       NEXT_PUBLIC_APP_URL: http://localhost:3000
-      NEXT_PUBLIC_REALTIME_URL: http://localhost:3001
+      NEXT_PUBLIC_REALTIME_URL: http://localhost:3002
       NEXT_PUBLIC_COMMUNITY_URL: http://localhost:3000
       NEXT_PUBLIC_PORTAL_URL: http://localhost:3001
       COMMUNITY_URL: http://localhost:3000
@@ -82,7 +82,7 @@ jobs:
     env:
       SKIP_ENV_VALIDATION: "true"
       NEXT_PUBLIC_APP_URL: http://localhost:3000
-      NEXT_PUBLIC_REALTIME_URL: http://localhost:3001
+      NEXT_PUBLIC_REALTIME_URL: http://localhost:3002
       NEXT_PUBLIC_COMMUNITY_URL: http://localhost:3000
       NEXT_PUBLIC_PORTAL_URL: http://localhost:3001
       COMMUNITY_URL: http://localhost:3000
@@ -144,7 +144,7 @@ jobs:
       REDIS_URL: redis://localhost:6379
       SKIP_ENV_VALIDATION: "true"
       NEXT_PUBLIC_APP_URL: http://localhost:3000
-      NEXT_PUBLIC_REALTIME_URL: http://localhost:3001
+      NEXT_PUBLIC_REALTIME_URL: http://localhost:3002
       NEXT_PUBLIC_COMMUNITY_URL: http://localhost:3000
       NEXT_PUBLIC_PORTAL_URL: http://localhost:3001
       COMMUNITY_URL: http://localhost:3000
@@ -203,7 +203,7 @@ jobs:
     env:
       SKIP_ENV_VALIDATION: "true"
       NEXT_PUBLIC_APP_URL: http://localhost:3000
-      NEXT_PUBLIC_REALTIME_URL: http://localhost:3001
+      NEXT_PUBLIC_REALTIME_URL: http://localhost:3002
       NEXT_PUBLIC_COMMUNITY_URL: http://localhost:3000
       NEXT_PUBLIC_PORTAL_URL: http://localhost:3001
       COMMUNITY_URL: http://localhost:3000
@@ -289,7 +289,7 @@ jobs:
     env:
       SKIP_ENV_VALIDATION: "true"
       NEXT_PUBLIC_APP_URL: http://localhost:3000
-      NEXT_PUBLIC_REALTIME_URL: http://localhost:3001
+      NEXT_PUBLIC_REALTIME_URL: http://localhost:3002
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/igbo_test
       REDIS_URL: redis://localhost:6379
       ADMIN_EMAIL: ci@placeholder.com
@@ -367,7 +367,7 @@ jobs:
     env:
       SKIP_ENV_VALIDATION: "true"
       NEXT_PUBLIC_APP_URL: http://localhost:3000
-      NEXT_PUBLIC_REALTIME_URL: http://localhost:3001
+      NEXT_PUBLIC_REALTIME_URL: http://localhost:3002
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/igbo_test
       REDIS_URL: redis://localhost:6379
       ADMIN_EMAIL: ci@placeholder.com

@@ -37,7 +37,7 @@ export const serverEnvSchema = z.object({
   CLAMAV_HOST: z.string().optional().default("clamav"),
   CLAMAV_PORT: z.coerce.number().int().positive().optional().default(3310),
   // Realtime server (internal URL for health checks, service-name in Docker)
-  REALTIME_INTERNAL_URL: z.url().optional().default("http://localhost:3001"),
+  REALTIME_INTERNAL_URL: z.url().optional().default("http://localhost:3002"),
   // Email Service
   EMAIL_PROVIDER: z.enum(["resend"]).default("resend"),
   RESEND_API_KEY: z.string().optional(),

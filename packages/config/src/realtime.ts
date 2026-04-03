@@ -3,9 +3,19 @@
  * NO server-only import — rate limit constants are also used client-side for display.
  */
 
-export const REALTIME_PORT = parseInt(process.env.REALTIME_PORT ?? "3001", 10);
+export const REALTIME_PORT = parseInt(process.env.REALTIME_PORT ?? "3002", 10);
 
-export const REALTIME_CORS_ORIGIN = process.env.REALTIME_CORS_ORIGIN ?? "http://localhost:3000";
+/**
+ * Parsed array of CORS origins for multi-origin Socket.IO support.
+ * Accepts comma-separated values from REALTIME_CORS_ORIGIN env var.
+ * Default includes both community (3000) and portal (3001) for local dev.
+ */
+export const REALTIME_CORS_ORIGINS = (
+  process.env.REALTIME_CORS_ORIGIN ?? "http://localhost:3000,http://localhost:3001"
+)
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
 
 // Presence TTL in seconds — heartbeat must fire before this expires
 export const PRESENCE_TTL_SECONDS = 30;
@@ -21,6 +31,7 @@ export const CHAT_REPLAY_WINDOW_MS = 24 * 60 * 60 * 1000; // 24 hours
 // Namespace paths
 export const NAMESPACE_NOTIFICATIONS = "/notifications";
 export const NAMESPACE_CHAT = "/chat";
+export const NAMESPACE_PORTAL = "/portal";
 
 // Room patterns
 export const ROOM_USER = (userId: string) => `user:${userId}`;

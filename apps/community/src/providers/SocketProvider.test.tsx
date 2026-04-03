@@ -11,7 +11,7 @@ vi.mock("next-auth/react", () => ({
 
 vi.mock("@/env", () => ({
   env: {
-    NEXT_PUBLIC_REALTIME_URL: "http://localhost:3001",
+    NEXT_PUBLIC_REALTIME_URL: "http://localhost:3002",
   },
 }));
 
@@ -118,11 +118,11 @@ describe("SocketProvider", () => {
     });
 
     expect(mockIo).toHaveBeenCalledWith(
-      "http://localhost:3001/notifications",
+      "http://localhost:3002/notifications",
       expect.objectContaining({ auth: { token: "tok_abc" } }),
     );
     expect(mockIo).toHaveBeenCalledWith(
-      "http://localhost:3001/chat",
+      "http://localhost:3002/chat",
       expect.objectContaining({ auth: { token: "tok_abc" } }),
     );
   });

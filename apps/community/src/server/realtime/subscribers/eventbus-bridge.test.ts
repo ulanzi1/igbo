@@ -821,3 +821,115 @@ describe("stopEventBusBridge", () => {
     expect(subscriber.punsubscribe).toHaveBeenCalledWith("eventbus:*");
   });
 });
+
+describe("portal event isolation", () => {
+  it("job.published does not throw and does not emit to /notifications or /chat", async () => {
+    const notifEmit = vi.fn();
+    const chatEmit = vi.fn();
+    const { subscriber, pmessageCallbacks } = makeSubscriber();
+    const io = makeIo(notifEmit, chatEmit);
+
+    await startEventBusBridge(io, subscriber);
+
+    const payload = { jobId: "j1", eventId: "e1", version: 1, timestamp: new Date().toISOString() };
+    expect(() => {
+      pmessageCallbacks[0]?.("eventbus:*", "eventbus:job.published", JSON.stringify(payload));
+    }).not.toThrow();
+
+    expect(notifEmit).not.toHaveBeenCalled();
+    expect(chatEmit).not.toHaveBeenCalled();
+  });
+
+  it("application.submitted does not emit to /notifications or /chat", async () => {
+    const notifEmit = vi.fn();
+    const chatEmit = vi.fn();
+    const { subscriber, pmessageCallbacks } = makeSubscriber();
+    const io = makeIo(notifEmit, chatEmit);
+
+    await startEventBusBridge(io, subscriber);
+
+    const payload = {
+      applicationId: "a1",
+      jobId: "j1",
+      eventId: "e1",
+      version: 1,
+      timestamp: new Date().toISOString(),
+    };
+    pmessageCallbacks[0]?.("eventbus:*", "eventbus:application.submitted", JSON.stringify(payload));
+
+    expect(notifEmit).not.toHaveBeenCalled();
+    expect(chatEmit).not.toHaveBeenCalled();
+  });
+
+  it("all portal event types are recognized as no-ops — none emit to community namespaces", async () => {
+    const notifEmit = vi.fn();
+    const chatEmit = vi.fn();
+    const { subscriber, pmessageCallbacks } = makeSubscriber();
+    const io = makeIo(notifEmit, chatEmit);
+
+    await startEventBusBridge(io, subscriber);
+
+    const portalEvents = [
+      "job.published",
+      "job.updated",
+      "job.closed",
+      "application.submitted",
+      "application.status_changed",
+      "application.withdrawn",
+    ];
+
+    for (const eventName of portalEvents) {
+      pmessageCallbacks[0]?.(
+        "eventbus:*",
+        `eventbus:${eventName}`,
+        JSON.stringify({ eventId: "e1", version: 1, timestamp: new Date().toISOString() }),
+      );
+    }
+
+    expect(notifEmit).not.toHaveBeenCalled();
+    expect(chatEmit).not.toHaveBeenCalled();
+  });
+
+  it("community events still route correctly after portal events are processed (no regression)", async () => {
+    const notifEmit = vi.fn();
+    const chatEmit = vi.fn();
+    const { subscriber, pmessageCallbacks } = makeSubscriber();
+    const io = makeIo(notifEmit, chatEmit);
+
+    await startEventBusBridge(io, subscriber);
+
+    // Portal event first — must be a no-op
+    pmessageCallbacks[0]?.(
+      "eventbus:*",
+      "eventbus:job.published",
+      JSON.stringify({
+        jobId: "j1",
+        eventId: "e1",
+        version: 1,
+        timestamp: new Date().toISOString(),
+      }),
+    );
+
+    // Community notification event follows
+    const notifPayload = {
+      notificationId: "n1",
+      userId: USER_ID,
+      type: "system",
+      title: "Hello",
+      body: "World",
+      timestamp: new Date().toISOString(),
+    };
+    pmessageCallbacks[0]?.(
+      "eventbus:*",
+      "eventbus:notification.created",
+      JSON.stringify(notifPayload),
+    );
+
+    // Community event must still be routed correctly
+    expect(notifEmit).toHaveBeenCalledWith(
+      "notification:new",
+      expect.objectContaining({ userId: USER_ID }),
+    );
+    expect(chatEmit).not.toHaveBeenCalled();
+  });
+});

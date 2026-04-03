@@ -9,11 +9,12 @@ import { authMiddleware } from "./middleware/auth";
 import { createRateLimiterMiddleware } from "./middleware/rate-limiter";
 import { setupNotificationsNamespace } from "./namespaces/notifications";
 import { setupChatNamespace } from "./namespaces/chat";
+import { setupPortalNamespace } from "./namespaces/portal";
 import { startEventBusBridge } from "./subscribers/eventbus-bridge";
 import { realtimeLogger } from "./logger";
 import {
   REALTIME_PORT,
-  REALTIME_CORS_ORIGIN,
+  REALTIME_CORS_ORIGINS,
   NAMESPACE_NOTIFICATIONS,
   NAMESPACE_CHAT,
 } from "@igbo/config/realtime";
@@ -68,7 +69,7 @@ async function main(): Promise<void> {
 
   const io = new Server(httpServer, {
     cors: {
-      origin: REALTIME_CORS_ORIGIN,
+      origin: REALTIME_CORS_ORIGINS,
       methods: ["GET", "POST"],
       credentials: true,
     },
@@ -140,6 +141,10 @@ async function main(): Promise<void> {
       wsMessagesTotal.inc({ namespace: NAMESPACE_CHAT, event });
     });
   });
+
+  // /portal namespace — proof-of-concept for portal Socket.IO support (P-0.6)
+  // Full handlers added in Epic 5+; no Prometheus metrics wired yet.
+  setupPortalNamespace(io);
 
   // Start EventBus bridge
   await startEventBusBridge(io, bridgeSubscriber);

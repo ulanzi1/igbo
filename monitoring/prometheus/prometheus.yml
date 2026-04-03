@@ -25,7 +25,7 @@ scrape_configs:
     scheme: http
     static_configs:
       - targets:
-          - realtime:3001
+          - realtime:3002
     metrics_path: /metrics
 
   - job_name: node
