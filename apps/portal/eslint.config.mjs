@@ -21,7 +21,7 @@ const eslintConfig = tsEslint.config(
       // Mock factories often use synchronous require() for lazy loading to avoid circular deps
       "@typescript-eslint/no-require-imports": "off",
     },
-  }
+  },
 );
 
 export default eslintConfig;
