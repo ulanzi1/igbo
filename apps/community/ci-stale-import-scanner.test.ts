@@ -90,4 +90,13 @@ describe("scanForStaleImports", () => {
     const results = scanForStaleImports(tmpDir);
     expect(results).toHaveLength(0);
   });
+
+  it("skips ci-stale-import-scanner.test.ts (own test fixtures)", () => {
+    createFile(
+      "apps/community/ci-stale-import-scanner.test.ts",
+      `import { db } from "@/db/index";\nexport {};`,
+    );
+    const results = scanForStaleImports(tmpDir);
+    expect(results).toHaveLength(0);
+  });
 });
