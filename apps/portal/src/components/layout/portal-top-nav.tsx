@@ -5,13 +5,7 @@ import { MenuIcon, XIcon, BriefcaseIcon, ArrowLeftIcon, UserCircleIcon } from "l
 import { useTranslations, useLocale } from "next-intl";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { useActivePortalRole } from "@/hooks/use-active-portal-role";
 
@@ -166,11 +160,7 @@ export function PortalTopNav({ className }: { className?: string }) {
             <SheetContent side="right">
               <SheetHeader>
                 <SheetTitle>
-                  {roleLabel ? (
-                    <Badge variant="outline">{roleLabel}</Badge>
-                  ) : (
-                    "OBIGBO Job Portal"
-                  )}
+                  {roleLabel ? <Badge variant="outline">{roleLabel}</Badge> : "OBIGBO Job Portal"}
                 </SheetTitle>
               </SheetHeader>
               <nav aria-label="Mobile portal navigation" className="flex flex-col py-4 gap-1">
