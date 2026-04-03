@@ -87,13 +87,13 @@ if (process.argv[1]?.endsWith("check-stale-imports.ts")) {
 
   if (stale.length > 0) {
     console.error(
-      "❌ Stale import paths found (migrate to @igbo/db, @igbo/auth, or @igbo/config):"
+      "❌ Stale import paths found (migrate to @igbo/db, @igbo/auth, or @igbo/config):",
     );
     for (const s of stale) {
       console.error(`  ${s}`);
     }
     console.error(
-      `\n${stale.length} stale import(s) detected. Please update to use the shared packages.`
+      `\n${stale.length} stale import(s) detected. Please update to use the shared packages.`,
     );
     process.exit(1);
   } else {
