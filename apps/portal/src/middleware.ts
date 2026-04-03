@@ -1,14 +1,19 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { decode } from "next-auth/jwt";
+import createIntlMiddleware from "next-intl/middleware";
+import { routing } from "@/i18n/routing";
 
-// Public routes that pass through without auth check
-const PUBLIC_PATHS = new Set(["/", "/api/auth"]);
+// Create the i18n routing handler once at module scope
+const handleI18nRouting = createIntlMiddleware(routing);
+
+// Locale-aware public path pattern:
+// Matches: /, /en, /ig, /en/jobs, /ig/jobs, /en/jobs/[id], /en/apprenticeships, etc.
+const PUBLIC_PATH_PATTERN = /^\/(?:en|ig)(?:\/jobs(?:\/[^/]+)?|\/apprenticeships)?$/;
 
 function isPublicPath(pathname: string): boolean {
-  if (PUBLIC_PATHS.has(pathname)) return true;
-  if (pathname.startsWith("/api/auth/")) return true;
-  return false;
+  if (pathname === "/" || pathname.startsWith("/api/auth/")) return true;
+  return PUBLIC_PATH_PATTERN.test(pathname);
 }
 
 const COMMUNITY_BASE_URL =
@@ -87,7 +92,13 @@ export async function middleware(request: NextRequest) {
   }
 
   if (isPublicPath(pathname)) {
-    return NextResponse.next({ headers: responseHeaders });
+    // Public paths still need locale routing for cookie detection
+    const intlResponse = handleI18nRouting(request);
+    // Propagate tracing headers to i18n response
+    responseHeaders.forEach((value, key) => {
+      intlResponse.headers.set(key, value);
+    });
+    return intlResponse;
   }
 
   // Determine cookie name based on environment
@@ -150,7 +161,12 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(cleanUrl);
   }
 
-  return NextResponse.next({ headers: responseHeaders });
+  // Authenticated: run locale routing, then propagate CORS/tracing headers
+  const intlResponse = handleI18nRouting(request);
+  responseHeaders.forEach((value, key) => {
+    intlResponse.headers.set(key, value);
+  });
+  return intlResponse;
 }
 
 export const config = {

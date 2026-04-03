@@ -13,6 +13,7 @@ import {
   StarIcon,
   SearchIcon,
   BookmarkIcon,
+  BriefcaseIcon,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useSession, signOut } from "next-auth/react";
@@ -104,6 +105,16 @@ function TopNav({ className }: { className?: string }) {
               {t(key)}
             </Link>
           ))}
+          {session && (
+            <a
+              href={process.env.NEXT_PUBLIC_PORTAL_URL ?? "http://localhost:3001"}
+              target="_self"
+              className="flex items-center gap-1.5 min-h-[44px] px-3 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <BriefcaseIcon className="size-4" aria-hidden="true" />
+              {t("jobPortal")}
+            </a>
+          )}
         </nav>
 
         {/* Global search — hidden on mobile */}
@@ -234,6 +245,19 @@ function TopNav({ className }: { className?: string }) {
                 </Link>
               </li>
             ))}
+            {session && (
+              <li>
+                <a
+                  href={process.env.NEXT_PUBLIC_PORTAL_URL ?? "http://localhost:3001"}
+                  target="_self"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center gap-2 min-h-[44px] px-6 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                >
+                  <BriefcaseIcon className="size-4" aria-hidden="true" />
+                  {t("jobPortal")}
+                </a>
+              </li>
+            )}
           </ul>
         </nav>
       )}

@@ -76,6 +76,8 @@ export const clientEnvSchema = z.object({
   // Sentry
   NEXT_PUBLIC_SENTRY_DSN: z.string().optional().default(""),
   NEXT_PUBLIC_SENTRY_ENVIRONMENT: z.string().optional(),
+  // Job Portal — optional so community works standalone without portal
+  NEXT_PUBLIC_PORTAL_URL: z.url().optional(),
 });
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>;
