@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { repostAction, shareToConversationAction } from "./share-post";
 
 vi.mock("server-only", () => ({}));
-vi.mock("@/services/permissions", () => ({ requireAuthenticatedSession: vi.fn() }));
+vi.mock("@igbo/auth/permissions", () => ({ requireAuthenticatedSession: vi.fn() }));
 vi.mock("@/services/rate-limiter", () => ({
   applyRateLimit: vi.fn(),
   RATE_LIMIT_PRESETS: { POST_SHARE: { maxRequests: 10, windowMs: 60_000 } },
@@ -14,7 +14,7 @@ vi.mock("@/services/post-interaction-service", () => ({
 }));
 vi.mock("@/env", () => ({ env: { NEXT_PUBLIC_APP_URL: "https://example.com" } }));
 
-import { requireAuthenticatedSession } from "@/services/permissions";
+import { requireAuthenticatedSession } from "@igbo/auth/permissions";
 import { applyRateLimit } from "@/services/rate-limiter";
 import { repostToFeed, shareToConversation } from "@/services/post-interaction-service";
 import { ApiError } from "@/lib/api-error";

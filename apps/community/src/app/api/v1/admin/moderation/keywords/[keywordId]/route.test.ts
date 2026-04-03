@@ -7,7 +7,7 @@ const mockRequireAdminSession = vi.fn();
 const mockUpdateModerationKeyword = vi.fn();
 const mockDeleteModerationKeyword = vi.fn();
 
-vi.mock("@/lib/admin-auth", () => ({
+vi.mock("@igbo/auth/admin-auth", () => ({
   requireAdminSession: (...args: unknown[]) => mockRequireAdminSession(...args),
 }));
 

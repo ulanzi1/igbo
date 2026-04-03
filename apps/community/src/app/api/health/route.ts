@@ -30,7 +30,7 @@ export async function GET() {
   // Check realtime server (Socket.IO container health endpoint)
   // Realtime unavailability → "degraded" (not hard "unhealthy") per NFR failure isolation
   try {
-    const realtimeUrl = env.REALTIME_INTERNAL_URL ?? "http://localhost:3001";
+    const realtimeUrl = env.REALTIME_INTERNAL_URL ?? "http://localhost:3002";
     const resp = await fetch(`${realtimeUrl}/health`, {
       signal: AbortSignal.timeout(2000),
     });

@@ -1,0 +1,363 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1708000000000,
+      "tag": "0000_extensions",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1708000001000,
+      "tag": "0001_platform_settings",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1708000002000,
+      "tag": "0002_auth_users",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1708000003000,
+      "tag": "0003_admin_role_audit_logs",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1708000004000,
+      "tag": "0004_auth_sessions_mfa",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1708000005000,
+      "tag": "0005_community_profiles",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1708000006000,
+      "tag": "0006_profile_privacy_social_links",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1708000007000,
+      "tag": "0007_membership_tiers_rbac",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1708000008000,
+      "tag": "0008_language_preference",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1708000009000,
+      "tag": "0009_gdpr_compliance",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1708000010000,
+      "tag": "0010_file_uploads",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1708000011000,
+      "tag": "0011_notifications_block_mute",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1708000012000,
+      "tag": "0012_auth_users_image_column",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1708000013000,
+      "tag": "0013_chat_tables",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1708000014000,
+      "tag": "0014_message_attachments_reactions",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1708000015000,
+      "tag": "0015_geocoding_gist_index",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1708000016000,
+      "tag": "0016_member_directory_search",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1708000017000,
+      "tag": "0017_member_following",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1708000018000,
+      "tag": "0018_community_posts",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1708000019000,
+      "tag": "0019_post_category",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1708000020000,
+      "tag": "0020_post_interactions",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1708000021000,
+      "tag": "0021_shared_post_content_type",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1708000022000,
+      "tag": "0022_post_bookmarks",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1708000023000,
+      "tag": "0023_community_groups",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1708000024000,
+      "tag": "0024_group_channels",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1708000025000,
+      "tag": "0025_group_moderation",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1708000026000,
+      "tag": "0026_post_status",
+      "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1708000027000,
+      "tag": "0027_articles",
+      "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1708000028000,
+      "tag": "0028_article_rejection_feedback",
+      "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1708000029000,
+      "tag": "0029_article_comments",
+      "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1708000030000,
+      "tag": "0030_article_revision_status",
+      "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1708000031000,
+      "tag": "0031_events",
+      "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1708000032000,
+      "tag": "0032_event_attendance_metadata",
+      "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1708000033000,
+      "tag": "0033_event_recordings_reminders",
+      "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1708000034000,
+      "tag": "0034_event_change_metadata",
+      "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1708000035000,
+      "tag": "0035_points_engine",
+      "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1708000036000,
+      "tag": "0036_verification_badges",
+      "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1708000037000,
+      "tag": "0037_posting_limits",
+      "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1708000038000,
+      "tag": "0038_push_subscriptions",
+      "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1708000039000,
+      "tag": "0039_notification_preferences",
+      "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1708000040000,
+      "tag": "0040_global_search_fts",
+      "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1708000041000,
+      "tag": "0041_dismissed_group_recommendations",
+      "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1708000042000,
+      "tag": "0042_moderation_schema",
+      "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1708000043000,
+      "tag": "0043_platform_reports",
+      "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "7",
+      "when": 1708000044000,
+      "tag": "0044_member_discipline",
+      "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "7",
+      "when": 1708000045000,
+      "tag": "0045_analytics_snapshots",
+      "breakpoints": true
+    },
+    {
+      "idx": 46,
+      "version": "7",
+      "when": 1708000046000,
+      "tag": "0046_audit_logs_extend",
+      "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1708000047000,
+      "tag": "0047_governance_documents",
+      "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1708000048000,
+      "tag": "0048_seed_governance_documents",
+      "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "7",
+      "when": 1708000049000,
+      "tag": "0049_portal_roles",
+      "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1708000050000,
+      "tag": "0050_seed_portal_roles",
+      "breakpoints": true
+    }
+  ]
+}

@@ -58,5 +58,10 @@ export const env = createEnv({
     LOG_LEVEL: process.env.LOG_LEVEL as "debug" | "info" | "warn" | "error" | undefined,
     NEXT_PUBLIC_SENTRY_DSN: process.env.NEXT_PUBLIC_SENTRY_DSN,
     NEXT_PUBLIC_SENTRY_ENVIRONMENT: process.env.NEXT_PUBLIC_SENTRY_ENVIRONMENT,
+    COOKIE_DOMAIN: process.env.COOKIE_DOMAIN,
+    ALLOWED_ORIGINS: process.env.ALLOWED_ORIGINS,
+    COMMUNITY_URL: process.env.COMMUNITY_URL,
+    SESSION_UPDATE_AGE_SECONDS: process.env.SESSION_UPDATE_AGE_SECONDS,
+    NEXT_PUBLIC_PORTAL_URL: process.env.NEXT_PUBLIC_PORTAL_URL,
   },
 });

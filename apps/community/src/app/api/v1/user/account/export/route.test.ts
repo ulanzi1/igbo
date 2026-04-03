@@ -8,7 +8,7 @@ const mockRequestDataExport = vi.fn();
 const mockCheckRateLimit = vi.fn();
 const mockBuildRateLimitHeaders = vi.fn();
 
-vi.mock("@/services/permissions", () => ({
+vi.mock("@igbo/auth/permissions", () => ({
   requireAuthenticatedSession: (...args: unknown[]) => mockRequireAuthenticatedSession(...args),
 }));
 

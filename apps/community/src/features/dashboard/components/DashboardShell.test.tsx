@@ -36,7 +36,7 @@ vi.mock("@/env", () => ({
     ADMIN_PASSWORD: "testpassword",
     AUTH_SECRET: "test-secret",
     NEXT_PUBLIC_APP_URL: "http://localhost:3000",
-    NEXT_PUBLIC_REALTIME_URL: "http://localhost:3001",
+    NEXT_PUBLIC_REALTIME_URL: "http://localhost:3002",
     HETZNER_S3_ENDPOINT: "https://s3.test",
     HETZNER_S3_REGION: "eu-central",
     HETZNER_S3_BUCKET: "test-bucket",

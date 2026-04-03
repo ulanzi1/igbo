@@ -45,7 +45,7 @@ vi.mock("@igbo/db/queries/platform-settings", () => ({
   getPlatformSetting: vi.fn().mockResolvedValue(53_687_091_200),
 }));
 
-vi.mock("@/services/permissions", () => ({
+vi.mock("@igbo/auth/permissions", () => ({
   canCreateEvent: vi.fn().mockResolvedValue({ allowed: true }),
   requireAuthenticatedSession: vi.fn().mockResolvedValue({ userId: "user-1" }),
 }));

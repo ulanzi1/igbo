@@ -6,7 +6,7 @@ vi.mock("server-only", () => ({}));
 const mockRequireAuthenticatedSession = vi.fn();
 const mockLeaveGroup = vi.fn();
 
-vi.mock("@/services/permissions", () => ({
+vi.mock("@igbo/auth/permissions", () => ({
   requireAuthenticatedSession: (...args: unknown[]) => mockRequireAuthenticatedSession(...args),
 }));
 

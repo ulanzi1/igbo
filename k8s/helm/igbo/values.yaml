@@ -31,7 +31,7 @@ realtime:
   replicaCount: 2
   image:
     name: igbo-realtime
-  port: 3001
+  port: 3002
   resources:
     requests:
       memory: "256Mi"
@@ -48,7 +48,7 @@ realtime:
 # ConfigMap keys (non-secret env vars injected into pods)
 config:
   NODE_ENV: production
-  REALTIME_PORT: "3001"
+  REALTIME_PORT: "3002"
   ENABLE_GEOCODING: "false"
   ENABLE_EMAIL_SENDING: "true"
 

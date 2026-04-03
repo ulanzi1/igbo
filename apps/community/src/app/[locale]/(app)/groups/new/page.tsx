@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
-import { auth } from "@/server/auth/config";
-import { canCreateGroup } from "@/services/permissions";
+import { auth } from "@igbo/auth";
+import { canCreateGroup } from "@igbo/auth/permissions";
 import { GroupCreationForm } from "@/features/groups";
 
 export const dynamic = "force-dynamic"; // Personalized — never cache at SSR level

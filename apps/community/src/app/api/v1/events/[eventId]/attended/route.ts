@@ -1,7 +1,7 @@
 // POST /api/v1/events/[eventId]/attended — mark attendance (self via video or host manual check-in)
 import { withApiHandler } from "@/server/api/middleware";
 import { successResponse } from "@/lib/api-response";
-import { requireAuthenticatedSession } from "@/services/permissions";
+import { requireAuthenticatedSession } from "@igbo/auth/permissions";
 import { markAttendance } from "@/services/event-service";
 import { ApiError } from "@/lib/api-error";
 import { z } from "zod/v4";
@@ -37,7 +37,7 @@ const postHandler = async (request: Request) => {
 export const POST = withApiHandler(postHandler, {
   rateLimit: {
     key: async () => {
-      const { requireAuthenticatedSession: getSession } = await import("@/services/permissions");
+      const { requireAuthenticatedSession: getSession } = await import("@igbo/auth/permissions");
       const { userId } = await getSession();
       return `event-attended:${userId}`;
     },

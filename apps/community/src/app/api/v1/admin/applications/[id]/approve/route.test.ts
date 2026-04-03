@@ -14,11 +14,11 @@ vi.mock("@/services/admin-approval-service", () => ({
   approveApplication: (...args: unknown[]) => mockApproveApplication(...args),
 }));
 
-vi.mock("@/lib/admin-auth", () => ({
+vi.mock("@igbo/auth/admin-auth", () => ({
   requireAdminSession: (...args: unknown[]) => mockRequireAdminSession(...args),
 }));
 
-vi.mock("@/services/permissions", () => ({
+vi.mock("@igbo/auth/permissions", () => ({
   isAdmin: (...args: unknown[]) => mockIsAdmin(...args),
 }));
 

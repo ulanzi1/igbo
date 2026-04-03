@@ -6,7 +6,7 @@ const mockGetChallenge = vi.fn();
 const mockSendEmailOtp = vi.fn();
 const mockVerifyEmailOtp = vi.fn();
 
-vi.mock("@/server/auth/config", () => ({
+vi.mock("@igbo/auth", () => ({
   getChallenge: (...args: unknown[]) => mockGetChallenge(...args),
 }));
 vi.mock("@/services/auth-service", () => ({

@@ -1,7 +1,7 @@
 import { withApiHandler } from "@/server/api/middleware";
 import { successResponse } from "@/lib/api-response";
 import { ApiError } from "@/lib/api-error";
-import { auth } from "@/server/auth/config";
+import { auth } from "@igbo/auth";
 import {
   getPublicProfileForViewer,
   getProfileWithSocialLinks,

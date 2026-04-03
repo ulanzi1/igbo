@@ -1,6 +1,6 @@
 import { redirect } from "@/i18n/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
-import { auth } from "@/server/auth/config";
+import { auth } from "@igbo/auth";
 import { getUserBookmarks } from "@/services/bookmark-service";
 import { SavedPostsList } from "@/features/feed/components/SavedPostsList";
 

@@ -362,6 +362,16 @@ function routeToNamespace(io: Server, eventName: string, payload: unknown): void
       })();
       break;
     }
+    // Portal events — recognized but NOT routed to community namespaces (namespace isolation).
+    // Community recognizes these events to prevent log spam if a warning default is ever added.
+    // Routing to /portal namespace for real-time UI updates added in Epic 1+.
+    case "job.published":
+    case "job.updated":
+    case "job.closed":
+    case "application.submitted":
+    case "application.status_changed":
+    case "application.withdrawn":
+      break; // No-op for now — portal namespace handlers added in Epic 1+
     default:
       // Other events not routed in this story
       break;

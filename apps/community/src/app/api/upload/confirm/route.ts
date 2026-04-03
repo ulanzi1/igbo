@@ -1,7 +1,7 @@
 import { withApiHandler } from "@/server/api/middleware";
 import { successResponse } from "@/lib/api-response";
 import { ApiError } from "@/lib/api-error";
-import { requireAuthenticatedSession } from "@/services/permissions";
+import { requireAuthenticatedSession } from "@igbo/auth/permissions";
 import { confirmUpload } from "@/services/file-upload-service";
 import { z } from "zod/v4";
 // Side-effect: registers the file-processing job so runJob("file-processing") works

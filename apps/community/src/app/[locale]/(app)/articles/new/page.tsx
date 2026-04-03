@@ -1,8 +1,8 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
-import { auth } from "@/server/auth/config";
-import { canPublishArticle, PERMISSION_MATRIX } from "@/services/permissions";
+import { auth } from "@igbo/auth";
+import { canPublishArticle, PERMISSION_MATRIX } from "@igbo/auth/permissions";
 import { getUserMembershipTier } from "@igbo/db/queries/auth-permissions";
 import { ArticleEditor } from "@/features/articles";
 

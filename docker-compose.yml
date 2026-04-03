@@ -35,17 +35,17 @@ services:
       dockerfile: Dockerfile.realtime
     restart: unless-stopped
     ports:
-      - "3001:3001"
+      - "3002:3002"
     environment:
       REDIS_URL: redis://redis:6379
-      REALTIME_PORT: 3001
-      REALTIME_CORS_ORIGIN: http://localhost:3000
+      REALTIME_PORT: 3002
+      REALTIME_CORS_ORIGIN: http://localhost:3000,http://localhost:3001
       NODE_ENV: development
     depends_on:
       redis:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:3001/health || exit 1"]
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3002/health || exit 1"]
       interval: 15s
       timeout: 5s
       retries: 3

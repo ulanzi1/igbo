@@ -1,7 +1,7 @@
 import { withApiHandler } from "@/server/api/middleware";
 import { successResponse } from "@/lib/api-response";
 import { ApiError } from "@/lib/api-error";
-import { requireAuthenticatedSession } from "@/services/permissions";
+import { requireAuthenticatedSession } from "@igbo/auth/permissions";
 import { getFeed } from "@/services/feed-service";
 import { RATE_LIMIT_PRESETS } from "@/services/rate-limiter";
 import type { FeedSortMode, FeedFilter } from "@igbo/config/feed";
@@ -34,7 +34,7 @@ const getHandler = async (request: Request) => {
 export const GET = withApiHandler(getHandler, {
   rateLimit: {
     key: async () => {
-      const { requireAuthenticatedSession: getSession } = await import("@/services/permissions");
+      const { requireAuthenticatedSession: getSession } = await import("@igbo/auth/permissions");
       const { userId } = await getSession();
       return `feed-read:${userId}`;
     },

@@ -3,7 +3,7 @@ import React from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 
-vi.mock("@/server/auth/config", () => ({ auth: vi.fn() }));
+vi.mock("@igbo/auth", () => ({ auth: vi.fn() }));
 vi.mock("next/navigation", () => ({ redirect: vi.fn() }));
 vi.mock("@/features/feed", () => ({
   FeedList: ({
@@ -26,13 +26,13 @@ vi.mock("@/features/feed", () => ({
 vi.mock("next-intl/server", () => ({
   getTranslations: vi.fn().mockResolvedValue((key: string) => key),
 }));
-vi.mock("@/services/permissions", () => ({
+vi.mock("@igbo/auth/permissions", () => ({
   canCreateFeedPost: vi.fn(),
 }));
 
-import { auth } from "@/server/auth/config";
+import { auth } from "@igbo/auth";
 import { redirect } from "next/navigation";
-import { canCreateFeedPost } from "@/services/permissions";
+import { canCreateFeedPost } from "@igbo/auth/permissions";
 import FeedPage from "./page";
 
 const mockAuth = vi.mocked(auth);

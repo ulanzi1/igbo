@@ -1,5 +1,5 @@
 import "server-only";
-import { requireAdminSession } from "@/lib/admin-auth";
+import { requireAdminSession } from "@igbo/auth/admin-auth";
 import { logAdminAction } from "@/services/audit-logger";
 import { enqueueEmailJob } from "@/services/email-service";
 import { eventBus } from "@/services/event-bus";

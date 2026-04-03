@@ -5,7 +5,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
-vi.mock("@/services/permissions", () => ({
+vi.mock("@igbo/auth/permissions", () => ({
   canCreateFeedPost: vi.fn(),
   getMaxFeedPostsPerWeek: vi.fn(),
 }));
@@ -32,7 +32,7 @@ vi.mock("@igbo/db/queries/groups", () => ({
 }));
 
 import { createFeedPost, createGroupPost } from "./post-service";
-import { canCreateFeedPost, getMaxFeedPostsPerWeek } from "@/services/permissions";
+import { canCreateFeedPost, getMaxFeedPostsPerWeek } from "@igbo/auth/permissions";
 import { getUserMembershipTier } from "@igbo/db/queries/auth-permissions";
 import {
   getWeeklyFeedPostCount,

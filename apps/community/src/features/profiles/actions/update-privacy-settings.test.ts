@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
-vi.mock("@/server/auth/config", () => ({
+vi.mock("@igbo/auth", () => ({
   auth: vi.fn(),
 }));
 
@@ -21,7 +21,7 @@ vi.mock("@igbo/db/queries/community-social-links", () => ({}));
 vi.mock("@/services/event-bus", () => ({ eventBus: { emit: vi.fn() } }));
 
 import { updatePrivacySettingsAction } from "./update-privacy-settings";
-import { auth } from "@/server/auth/config";
+import { auth } from "@igbo/auth";
 import * as profileService from "@/services/profile-service";
 
 const mockAuth = vi.mocked(auth);

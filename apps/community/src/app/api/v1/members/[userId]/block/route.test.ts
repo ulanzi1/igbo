@@ -9,7 +9,7 @@ const mockBlockMember = vi.fn();
 const mockUnblockMember = vi.fn();
 const mockIsUserBlocked = vi.fn();
 
-vi.mock("@/services/permissions", () => ({
+vi.mock("@igbo/auth/permissions", () => ({
   requireAuthenticatedSession: (...args: unknown[]) => mockRequireAuthenticatedSession(...args),
 }));
 

@@ -1,10 +1,10 @@
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
-import { auth } from "@/server/auth/config";
+import { auth } from "@igbo/auth";
 import { getUserMembershipTier } from "@igbo/db/queries/auth-permissions";
 import { getArticleForEditing } from "@igbo/db/queries/articles";
-import { canPublishArticle, PERMISSION_MATRIX } from "@/services/permissions";
+import { canPublishArticle, PERMISSION_MATRIX } from "@igbo/auth/permissions";
 import { ArticleEditor } from "@/features/articles";
 import type { ArticleEditorInitialData } from "@/features/articles";
 

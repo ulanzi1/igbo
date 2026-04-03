@@ -6,14 +6,17 @@
   "exports": {
     ".": {
       "import": "./dist/index.js",
+      "default": "./dist/index.js",
       "types": "./dist/index.d.ts"
     },
     "./schema/*": {
       "import": "./dist/schema/*.js",
+      "default": "./dist/schema/*.js",
       "types": "./dist/schema/*.d.ts"
     },
     "./queries/*": {
       "import": "./dist/queries/*.js",
+      "default": "./dist/queries/*.js",
       "types": "./dist/queries/*.d.ts"
     }
   },
@@ -21,7 +24,10 @@
     "build": "tsc --build",
     "clean": "rm -rf dist tsconfig.tsbuildinfo",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "db:migrate": "drizzle-kit migrate --config=./drizzle.config.ts",
+    "db:journal-sync": "npx tsx scripts/sync-journal.ts",
+    "db:journal-check": "npx tsx scripts/sync-journal.ts --check"
   },
   "dependencies": {
     "@igbo/config": "workspace:*",
@@ -32,6 +38,8 @@
   },
   "devDependencies": {
     "@types/node": "^20.19.37",
+    "drizzle-kit": "^0.31.9",
+    "tsx": "^4.19.4",
     "typescript": "^5",
     "vitest": "^4.0.18"
   }

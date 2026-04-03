@@ -7,7 +7,7 @@ const mockRequireAuthenticatedSession = vi.fn();
 const mockAddComment = vi.fn();
 const mockListComments = vi.fn();
 
-vi.mock("@/services/permissions", () => ({
+vi.mock("@igbo/auth/permissions", () => ({
   requireAuthenticatedSession: (...args: unknown[]) => mockRequireAuthenticatedSession(...args),
 }));
 

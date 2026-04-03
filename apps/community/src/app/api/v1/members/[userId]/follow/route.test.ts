@@ -9,7 +9,7 @@ const mockFollowUser = vi.fn();
 const mockUnfollowUser = vi.fn();
 const mockIsUserFollowing = vi.fn();
 
-vi.mock("@/services/permissions", () => ({
+vi.mock("@igbo/auth/permissions", () => ({
   requireAuthenticatedSession: (...args: unknown[]) => mockRequireAuthenticatedSession(...args),
 }));
 

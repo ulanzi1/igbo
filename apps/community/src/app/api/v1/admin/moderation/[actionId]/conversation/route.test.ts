@@ -9,7 +9,7 @@ const mockGetMessageById = vi.fn();
 const mockGetConversationMessages = vi.fn();
 const mockLogAdminAction = vi.fn();
 
-vi.mock("@/lib/admin-auth", () => ({
+vi.mock("@igbo/auth/admin-auth", () => ({
   requireAdminSession: (...args: unknown[]) => mockRequireAdminSession(...args),
 }));
 

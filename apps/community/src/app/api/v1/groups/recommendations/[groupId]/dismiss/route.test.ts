@@ -8,7 +8,7 @@ const mockRequireAuthenticatedSession = vi.fn();
 const mockDismissGroupRecommendation = vi.fn();
 const mockInvalidateRecommendationCache = vi.fn();
 
-vi.mock("@/services/permissions", () => ({
+vi.mock("@igbo/auth/permissions", () => ({
   requireAuthenticatedSession: (...args: unknown[]) => mockRequireAuthenticatedSession(...args),
 }));
 

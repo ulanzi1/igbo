@@ -1,5 +1,5 @@
 import { setRequestLocale, getTranslations } from "next-intl/server";
-import { auth } from "@/server/auth/config";
+import { auth } from "@igbo/auth";
 import { redirect } from "@/i18n/navigation";
 import { DashboardShell } from "@/features/dashboard";
 

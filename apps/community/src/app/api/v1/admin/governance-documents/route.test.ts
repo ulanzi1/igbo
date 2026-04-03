@@ -7,7 +7,7 @@ const mockRequireAdminSession = vi.fn();
 const mockListAllDocuments = vi.fn();
 const mockCreateGovernanceDocument = vi.fn();
 
-vi.mock("@/lib/admin-auth", () => ({
+vi.mock("@igbo/auth/admin-auth", () => ({
   requireAdminSession: (...a: unknown[]) => mockRequireAdminSession(...a),
 }));
 

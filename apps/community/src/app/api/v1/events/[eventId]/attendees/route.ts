@@ -1,7 +1,7 @@
 // GET /api/v1/events/[eventId]/attendees — list attendees for check-in UI (creator only)
 import { withApiHandler } from "@/server/api/middleware";
 import { successResponse } from "@/lib/api-response";
-import { requireAuthenticatedSession } from "@/services/permissions";
+import { requireAuthenticatedSession } from "@igbo/auth/permissions";
 import { listEventAttendees } from "@/services/event-service";
 import { getEventById } from "@igbo/db/queries/events";
 import { ApiError } from "@/lib/api-error";

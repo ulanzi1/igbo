@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-vi.mock("@/server/auth/config", () => ({ auth: vi.fn() }));
+vi.mock("@igbo/auth", () => ({ auth: vi.fn() }));
 vi.mock("@/services/bookmark-service", () => ({ getUserBookmarks: vi.fn() }));
 vi.mock("@/features/feed/components/SavedPostsList", () => ({
   SavedPostsList: () => null,
@@ -14,7 +14,7 @@ vi.mock("@/i18n/navigation", () => ({
   redirect: vi.fn(),
 }));
 
-import { auth } from "@/server/auth/config";
+import { auth } from "@igbo/auth";
 import { getUserBookmarks } from "@/services/bookmark-service";
 import { redirect } from "@/i18n/navigation";
 import SavedPage from "./page";

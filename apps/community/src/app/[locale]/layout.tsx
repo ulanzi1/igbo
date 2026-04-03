@@ -6,7 +6,7 @@ import { useTranslations } from "next-intl";
 import { SessionProvider } from "next-auth/react";
 import { Toaster } from "@/components/ui/sonner";
 import { routing } from "@/i18n/routing";
-import { auth } from "@/server/auth/config";
+import { auth } from "@igbo/auth";
 import { CookieConsentBanner } from "@/components/shared/CookieConsentBanner";
 
 export function generateStaticParams() {

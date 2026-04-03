@@ -82,3 +82,15 @@ export async function getUserRoles(userId: string): Promise<AuthRole[]> {
 
   return rows.map((r) => r.role);
 }
+
+type PortalRole = "JOB_SEEKER" | "EMPLOYER" | "JOB_ADMIN";
+
+/**
+ * Get portal roles for a user from the auth_user_roles RBAC table.
+ * Requires migration 0050 (auth_roles rows for JOB_SEEKER/EMPLOYER/JOB_ADMIN).
+ */
+export async function getUserPortalRoles(userId: string): Promise<PortalRole[]> {
+  const PORTAL_ROLE_NAMES = new Set<string>(["JOB_SEEKER", "EMPLOYER", "JOB_ADMIN"]);
+  const roles = await getUserRoles(userId);
+  return roles.map((r) => r.name).filter((n): n is PortalRole => PORTAL_ROLE_NAMES.has(n));
+}

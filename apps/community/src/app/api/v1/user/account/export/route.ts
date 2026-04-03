@@ -1,5 +1,5 @@
 import { withApiHandler } from "@/server/api/middleware";
-import { requireAuthenticatedSession } from "@/services/permissions";
+import { requireAuthenticatedSession } from "@igbo/auth/permissions";
 import { requestDataExport } from "@/services/gdpr-service";
 import { RATE_LIMIT_PRESETS } from "@/services/rate-limiter";
 

@@ -19,7 +19,7 @@ vi.mock("@igbo/db/queries/auth-permissions", () => ({
   getUserMembershipTier: vi.fn(),
 }));
 
-vi.mock("@/services/permissions", () => ({
+vi.mock("@igbo/auth/permissions", () => ({
   PERMISSION_MATRIX: {
     BASIC: {
       canPublishArticle: false,

@@ -122,9 +122,10 @@ describe("docker-compose.prod.yml — port exposure (Task 7.5)", () => {
     expect(webPorts.some((p) => String(p).includes("3000"))).toBe(true);
   });
 
-  it("only realtime exposes port 3001", () => {
+  it("only realtime exposes port 3002 (port 3001 reserved for portal Next.js)", () => {
     const realtimePorts = services.realtime?.ports ?? [];
-    expect(realtimePorts.some((p) => String(p).includes("3001"))).toBe(true);
+    expect(realtimePorts.some((p) => String(p).includes("3002"))).toBe(true);
+    expect(realtimePorts.some((p) => String(p).includes("3001"))).toBe(false);
   });
 
   it("postgres does NOT expose port 5432 to host", () => {

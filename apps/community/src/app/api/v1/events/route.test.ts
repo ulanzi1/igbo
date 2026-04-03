@@ -32,7 +32,7 @@ vi.mock("@/lib/api-error", () => ({
   },
 }));
 
-vi.mock("@/services/permissions", () => ({
+vi.mock("@igbo/auth/permissions", () => ({
   requireAuthenticatedSession: vi.fn().mockResolvedValue({ userId: "user-1", role: "MEMBER" }),
   canCreateEvent: vi.fn().mockResolvedValue({ allowed: true }),
 }));
@@ -72,7 +72,7 @@ vi.mock("@igbo/db/queries/events", () => ({
   cancelAllEventRsvps: vi.fn(),
 }));
 
-vi.mock("@/server/auth/config", () => ({
+vi.mock("@igbo/auth", () => ({
   auth: vi.fn().mockResolvedValue(null),
 }));
 
@@ -84,7 +84,7 @@ vi.mock("@/services/rate-limiter", () => ({
   applyRateLimit: vi.fn().mockResolvedValue({ success: true }),
 }));
 
-import { requireAuthenticatedSession } from "@/services/permissions";
+import { requireAuthenticatedSession } from "@igbo/auth/permissions";
 import { createEvent } from "@/services/event-service";
 import { listUpcomingEvents, listPastEvents, listMyRsvps } from "@igbo/db/queries/events";
 import { CreateEventSchema } from "@/services/event-service";
@@ -217,7 +217,7 @@ describe("GET /api/v1/events?view=my-rsvps", () => {
   });
 
   it("returns my RSVP events for authenticated user", async () => {
-    const { auth } = await import("@/server/auth/config");
+    const { auth } = await import("@igbo/auth");
     vi.mocked(auth).mockResolvedValue({ user: { id: "user-1" } } as Awaited<
       ReturnType<typeof auth>
     >);
@@ -233,7 +233,7 @@ describe("GET /api/v1/events?view=my-rsvps", () => {
   });
 
   it("returns 401 when unauthenticated", async () => {
-    const { auth } = await import("@/server/auth/config");
+    const { auth } = await import("@igbo/auth");
     vi.mocked(auth).mockResolvedValue(null);
     const { GET } = await import("./route");
     const req = new Request("http://localhost/api/v1/events?view=my-rsvps", {
