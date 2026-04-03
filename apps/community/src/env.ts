@@ -62,5 +62,6 @@ export const env = createEnv({
     ALLOWED_ORIGINS: process.env.ALLOWED_ORIGINS,
     COMMUNITY_URL: process.env.COMMUNITY_URL,
     SESSION_UPDATE_AGE_SECONDS: process.env.SESSION_UPDATE_AGE_SECONDS,
+    NEXT_PUBLIC_PORTAL_URL: process.env.NEXT_PUBLIC_PORTAL_URL,
   },
 });
