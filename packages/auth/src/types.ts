@@ -33,10 +33,4 @@ declare module "next-auth" {
   }
 }
 
-declare module "next-auth/jwt" {
-  interface JWT {
-    activePortalRole?: "JOB_SEEKER" | "EMPLOYER" | "JOB_ADMIN" | null;
-  }
-}
-
 export {};

@@ -3,10 +3,7 @@ import type { NextRequest } from "next/server";
 import { decode } from "next-auth/jwt";
 
 // Public routes that pass through without auth check
-const PUBLIC_PATHS = new Set([
-  "/",
-  "/api/auth",
-]);
+const PUBLIC_PATHS = new Set(["/", "/api/auth"]);
 
 function isPublicPath(pathname: string): boolean {
   if (PUBLIC_PATHS.has(pathname)) return true;

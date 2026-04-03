@@ -52,7 +52,6 @@ beforeEach(() => {
   vi.clearAllMocks();
   process.env.AUTH_SECRET = "test-secret-32-bytes-long-minimum-for-hs256";
   process.env.AUTH_URL = "http://localhost:3000";
-  process.env.NODE_ENV = "test";
   delete process.env.ALLOWED_ORIGINS;
 });
 

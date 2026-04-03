@@ -17,6 +17,7 @@ vi.mock("@igbo/auth", () => ({
   initAuthRedis: vi.fn(),
 }));
 
+import type { NextRequest } from "next/server";
 import { GET, POST } from "./route";
 
 describe("Portal auth route handler", () => {
@@ -35,7 +36,7 @@ describe("Portal auth route handler", () => {
     const mockResponse = new Response(JSON.stringify({ user: null }), { status: 200 });
     mockGet.mockResolvedValue(mockResponse);
 
-    const result = await GET(mockRequest);
+    const result = await GET(mockRequest as unknown as NextRequest);
     expect(mockGet).toHaveBeenCalledWith(mockRequest);
     expect(result).toBe(mockResponse);
   });
@@ -50,7 +51,7 @@ describe("Portal auth route handler", () => {
     });
     mockPost.mockResolvedValue(mockResponse);
 
-    const result = await POST(mockRequest);
+    const result = await POST(mockRequest as unknown as NextRequest);
     expect(mockPost).toHaveBeenCalledWith(mockRequest);
     expect(result).toBe(mockResponse);
   });

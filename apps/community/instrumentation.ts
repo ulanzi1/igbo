@@ -28,7 +28,9 @@ export async function register() {
     const { getRedisClient } = await import("@/lib/redis");
     const { eventBus } = await import("@/services/event-bus");
     initAuthRedis(getRedisClient());
-    setPermissionDeniedHandler((event) => eventBus.emit("member.permission_denied", event));
+    setPermissionDeniedHandler((event) => {
+      eventBus.emit("member.permission_denied", event);
+    });
   }
   if (process.env.NEXT_RUNTIME === "edge") {
     await import("./sentry.edge.config");
