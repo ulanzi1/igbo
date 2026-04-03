@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import { ReactionBar } from "./ReactionBar";
 
 vi.mock("../actions/react-to-post", () => ({
@@ -175,6 +175,8 @@ describe("ReactionBar", () => {
     fireEvent.click(triggerBtn);
 
     await waitFor(() => screen.getByRole("dialog"));
+    // Flush pending effects so the mousedown listener is registered before firing
+    await act(async () => {});
 
     // Create an element outside the component to click on
     const outside = document.createElement("div");
