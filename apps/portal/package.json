@@ -11,8 +11,12 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@igbo/auth": "workspace:*",
     "@igbo/config": "workspace:*",
+    "@igbo/db": "workspace:*",
+    "ioredis": "^5.9.3",
     "next": "16.1.6",
+    "next-auth": "5.0.0-beta.30",
     "react": "19.2.3",
     "react-dom": "19.2.3"
   },

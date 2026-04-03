@@ -65,11 +65,26 @@ function validateCsrf(request: Request): void {
   }
 
   if (originHost !== host) {
-    throw new ApiError({
-      title: "Forbidden",
-      status: 403,
-      detail: "CSRF validation failed: Origin does not match Host",
-    });
+    // Secondary allow-list: accept cross-subdomain origins explicitly configured via ALLOWED_ORIGINS.
+    // Compare parsed hosts (not full URLs) to prevent misconfiguration-based bypasses
+    // (e.g. ALLOWED_ORIGINS="https://job.igbo.com" must also match "http://job.igbo.com").
+    const allowedHosts = (process.env.ALLOWED_ORIGINS ?? "")
+      .split(",")
+      .map((s) => {
+        try {
+          return new URL(s.trim()).host;
+        } catch {
+          return "";
+        }
+      })
+      .filter(Boolean);
+    if (!allowedHosts.includes(originHost)) {
+      throw new ApiError({
+        title: "Forbidden",
+        status: 403,
+        detail: "CSRF validation failed: Origin does not match Host",
+      });
+    }
   }
 }
 
