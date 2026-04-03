@@ -29,11 +29,7 @@ export function useActivePortalRole(): ActivePortalRole {
   // Defaults to JOB_SEEKER if user has both roles (as per AC2) or if not set.
   const rawRole = (session as { user?: { activePortalRole?: string } }).user?.activePortalRole;
   const role: PortalRole =
-    rawRole === "EMPLOYER"
-      ? "EMPLOYER"
-      : rawRole === "JOB_ADMIN"
-        ? "JOB_ADMIN"
-        : "JOB_SEEKER";
+    rawRole === "EMPLOYER" ? "EMPLOYER" : rawRole === "JOB_ADMIN" ? "JOB_ADMIN" : "JOB_SEEKER";
 
   return {
     role,

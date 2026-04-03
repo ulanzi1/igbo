@@ -1,6 +1,14 @@
 "use client";
 
-import { HomeIcon, BriefcaseIcon, FileTextIcon, MessageSquareIcon, UserIcon, LayoutDashboardIcon, LogInIcon } from "lucide-react";
+import {
+  HomeIcon,
+  BriefcaseIcon,
+  FileTextIcon,
+  MessageSquareIcon,
+  UserIcon,
+  LayoutDashboardIcon,
+  LogInIcon,
+} from "lucide-react";
 import { useTranslations, useLocale } from "next-intl";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -23,14 +31,24 @@ export function PortalBottomNav() {
   const seekerItems: BottomNavItem[] = [
     { key: "home", href: `/${locale}`, label: t("home"), icon: HomeIcon },
     { key: "jobs", href: `/${locale}/jobs`, label: t("jobs"), icon: BriefcaseIcon },
-    { key: "myApplications", href: `/${locale}/applications`, label: t("myApplications"), icon: FileTextIcon },
+    {
+      key: "myApplications",
+      href: `/${locale}/applications`,
+      label: t("myApplications"),
+      icon: FileTextIcon,
+    },
     { key: "messages", href: `/${locale}/messages`, label: t("messages"), icon: MessageSquareIcon },
     { key: "profile", href: `/${locale}/profile`, label: t("profile"), icon: UserIcon },
   ];
 
   const employerItems: BottomNavItem[] = [
     { key: "home", href: `/${locale}`, label: t("home"), icon: HomeIcon },
-    { key: "dashboard", href: `/${locale}/dashboard`, label: t("dashboard"), icon: LayoutDashboardIcon },
+    {
+      key: "dashboard",
+      href: `/${locale}/dashboard`,
+      label: t("dashboard"),
+      icon: LayoutDashboardIcon,
+    },
     { key: "messages", href: `/${locale}/messages`, label: t("messages"), icon: MessageSquareIcon },
     { key: "profile", href: `/${locale}/profile`, label: t("profile"), icon: UserIcon },
   ];
