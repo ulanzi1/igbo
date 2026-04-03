@@ -189,8 +189,8 @@ development_status:
   p-0-2b-migration-system-journal: done
   p-0-3a-igbo-auth-extraction: done
   p-0-3b-cross-subdomain-sso: done
-  p-0-3c-safari-itp-compatibility: backlog
-  p-0-4-portal-app-scaffold-navigation: backlog
+  p-0-3c-safari-itp-compatibility: done
+  p-0-4-portal-app-scaffold-navigation: ready-for-dev
   p-0-5-ci-pipeline-cross-app-test-gates: backlog
   p-0-6-redis-event-bus-foundation: backlog
   portal-epic-0-retrospective: optional

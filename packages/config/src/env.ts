@@ -65,6 +65,8 @@ export const serverEnvSchema = z.object({
   // Cross-subdomain SSO
   COOKIE_DOMAIN: z.string().optional(), // e.g. ".igbo.com" for prod; undefined = current host only (dev)
   ALLOWED_ORIGINS: z.string().optional(), // comma-separated allowed cross-subdomain origins, e.g. "https://job.igbo.com"
+  COMMUNITY_URL: z.url().optional(), // community app base URL; used by portal verify-session redirect & ITP workaround
+  SESSION_UPDATE_AGE_SECONDS: z.coerce.number().int().positive().default(3600), // how often Auth.js refreshes JWT + re-emits Set-Cookie (resets Safari ITP timer)
 });
 
 export const clientEnvSchema = z.object({

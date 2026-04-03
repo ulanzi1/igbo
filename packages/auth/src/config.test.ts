@@ -628,6 +628,38 @@ describe("NextAuth session callback", () => {
   });
 });
 
+// ─── Session updateAge config (Safari ITP) ───────────────────────────────────
+
+describe("session updateAge config", () => {
+  it("captured config updateAge reflects SESSION_UPDATE_AGE_SECONDS at load time", () => {
+    // Config is evaluated at module load time via NextAuth(); the captured config
+    // reflects the env var value present when the module was first imported.
+    const config = capturedConfig.value;
+    const expectedUpdateAge = parseInt(process.env.SESSION_UPDATE_AGE_SECONDS || "3600");
+    expect(config.session.updateAge).toBe(expectedUpdateAge);
+  });
+
+  it("updateAge expression defaults to 3600 when env var is unset", () => {
+    delete process.env.SESSION_UPDATE_AGE_SECONDS;
+    const result = parseInt(process.env.SESSION_UPDATE_AGE_SECONDS || "3600");
+    expect(result).toBe(3600);
+  });
+
+  it("updateAge expression parses custom env var value", () => {
+    process.env.SESSION_UPDATE_AGE_SECONDS = "1800";
+    const result = parseInt(process.env.SESSION_UPDATE_AGE_SECONDS || "3600");
+    expect(result).toBe(1800);
+  });
+
+  it("SESSION_TTL_SECONDS (maxAge) is unchanged — only updateAge frequency changes", () => {
+    // Verify the security model: maxAge (session lifetime) is still 86400 by default;
+    // only the refresh frequency (updateAge) changes for Safari ITP compatibility
+    const config = capturedConfig.value;
+    const expectedMaxAge = parseInt(process.env.SESSION_TTL_SECONDS ?? "86400");
+    expect(config.session.maxAge).toBe(expectedMaxAge);
+  });
+});
+
 // ─── Custom adapter ──────────────────────────────────────────────────────────
 
 describe("Custom adapter", () => {

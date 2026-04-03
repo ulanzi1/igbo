@@ -11,13 +11,43 @@ function isPublicPath(pathname: string): boolean {
   return false;
 }
 
-const COMMUNITY_BASE_URL = process.env.AUTH_URL ?? "http://localhost:3000";
+const COMMUNITY_BASE_URL =
+  process.env.COMMUNITY_URL ?? process.env.AUTH_URL ?? "http://localhost:3000";
 
 function getAllowedOrigins(): string[] {
   return (process.env.ALLOWED_ORIGINS ?? "")
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
+}
+
+/**
+ * Safari ITP workaround: on the first unauthenticated attempt, redirect to
+ * the community verify-session endpoint instead of the login page. The
+ * verify-session endpoint re-sets the session cookie via HTTP 302 + Set-Cookie,
+ * which counts as a first-party interaction and resets Safari's 7-day ITP timer.
+ *
+ * To prevent infinite redirect loops, the returnTo URL includes `_itp_refresh=1`.
+ * If the middleware sees `_itp_refresh=1` already present, the refresh was already
+ * attempted and failed — fall through to the login page.
+ */
+function itpRefreshOrLogin(request: NextRequest): NextResponse {
+  const hasRefreshed = request.nextUrl.searchParams.get("_itp_refresh") === "1";
+
+  if (hasRefreshed) {
+    // Second attempt — refresh already tried, fall back to login
+    const loginUrl = new URL("/login", COMMUNITY_BASE_URL);
+    loginUrl.searchParams.set("returnTo", request.nextUrl.href);
+    return NextResponse.redirect(loginUrl);
+  }
+
+  // First attempt — redirect to verify-session with _itp_refresh=1 in returnTo
+  const returnToUrl = new URL(request.nextUrl.href);
+  returnToUrl.searchParams.set("_itp_refresh", "1");
+
+  const verifyUrl = new URL("/api/auth/verify-session", COMMUNITY_BASE_URL);
+  verifyUrl.searchParams.set("returnTo", returnToUrl.href);
+  return NextResponse.redirect(verifyUrl);
 }
 
 export async function middleware(request: NextRequest) {
@@ -72,9 +102,7 @@ export async function middleware(request: NextRequest) {
     request.cookies.get("__Secure-authjs.session-token")?.value;
 
   if (!sessionToken) {
-    const loginUrl = new URL("/login", COMMUNITY_BASE_URL);
-    loginUrl.searchParams.set("returnTo", request.nextUrl.href);
-    return NextResponse.redirect(loginUrl);
+    return itpRefreshOrLogin(request);
   }
 
   // Decode and validate JWT
@@ -86,17 +114,13 @@ export async function middleware(request: NextRequest) {
       salt: cookieName,
     });
   } catch {
-    // Malformed JWT — redirect to login
-    const loginUrl = new URL("/login", COMMUNITY_BASE_URL);
-    loginUrl.searchParams.set("returnTo", request.nextUrl.href);
-    return NextResponse.redirect(loginUrl);
+    // Malformed JWT — try ITP refresh before falling back to login
+    return itpRefreshOrLogin(request);
   }
 
   if (!token) {
-    // Expired or invalid JWT
-    const loginUrl = new URL("/login", COMMUNITY_BASE_URL);
-    loginUrl.searchParams.set("returnTo", request.nextUrl.href);
-    return NextResponse.redirect(loginUrl);
+    // Expired or invalid JWT — try ITP refresh before falling back to login
+    return itpRefreshOrLogin(request);
   }
 
   // Check account status
@@ -117,6 +141,13 @@ export async function middleware(request: NextRequest) {
   if (accountStatus === "PENDING_DELETION" || accountStatus === "ANONYMIZED") {
     const loginUrl = new URL("/login", COMMUNITY_BASE_URL);
     return NextResponse.redirect(loginUrl);
+  }
+
+  // Strip _itp_refresh param from URL after successful auth (clean bookmarks/analytics)
+  if (request.nextUrl.searchParams.has("_itp_refresh")) {
+    const cleanUrl = new URL(request.nextUrl.href);
+    cleanUrl.searchParams.delete("_itp_refresh");
+    return NextResponse.redirect(cleanUrl);
   }
 
   return NextResponse.next({ headers: responseHeaders });
