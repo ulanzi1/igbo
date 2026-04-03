@@ -304,6 +304,82 @@ describe("withApiHandler", () => {
       const response = await handler(request);
       expect(response.status).toBe(403);
     });
+
+    describe("cross-subdomain CSRF (ALLOWED_ORIGINS)", () => {
+      afterEach(() => {
+        delete process.env.ALLOWED_ORIGINS;
+      });
+
+      it("allows POST from allowed cross-subdomain origin in ALLOWED_ORIGINS", async () => {
+        process.env.ALLOWED_ORIGINS = "http://job.igbo.com";
+        const handler = withApiHandler(async () => Response.json({ data: { ok: true } }));
+        const request = createRequest("POST", {
+          headers: { Origin: "http://job.igbo.com" },
+        });
+        const response = await handler(request);
+        expect(response.status).toBe(200);
+      });
+
+      it("allows POST when multiple origins in ALLOWED_ORIGINS and origin matches", async () => {
+        process.env.ALLOWED_ORIGINS = "https://app.igbo.com,http://job.igbo.com";
+        const handler = withApiHandler(async () => Response.json({ data: { ok: true } }));
+        const request = createRequest("POST", {
+          headers: { Origin: "http://job.igbo.com" },
+        });
+        const response = await handler(request);
+        expect(response.status).toBe(200);
+      });
+
+      it("blocks POST from unknown origin even when ALLOWED_ORIGINS is set", async () => {
+        process.env.ALLOWED_ORIGINS = "http://job.igbo.com";
+        const handler = withApiHandler(async () => Response.json({ data: {} }));
+        const request = createRequest("POST", {
+          headers: { Origin: "http://evil.com" },
+        });
+        const response = await handler(request);
+        expect(response.status).toBe(403);
+      });
+
+      it("blocks POST from cross-origin when ALLOWED_ORIGINS env is not set", async () => {
+        delete process.env.ALLOWED_ORIGINS;
+        const handler = withApiHandler(async () => Response.json({ data: {} }));
+        const request = createRequest("POST", {
+          headers: { Origin: "http://job.igbo.com" },
+        });
+        const response = await handler(request);
+        expect(response.status).toBe(403);
+      });
+
+      it("blocks POST from cross-origin when ALLOWED_ORIGINS is empty string", async () => {
+        process.env.ALLOWED_ORIGINS = "";
+        const handler = withApiHandler(async () => Response.json({ data: {} }));
+        const request = createRequest("POST", {
+          headers: { Origin: "http://job.igbo.com" },
+        });
+        const response = await handler(request);
+        expect(response.status).toBe(403);
+      });
+
+      it("allows POST when origin protocol differs from ALLOWED_ORIGINS but host matches (host-based comparison)", async () => {
+        process.env.ALLOWED_ORIGINS = "https://job.igbo.com";
+        const handler = withApiHandler(async () => Response.json({ data: { ok: true } }));
+        const request = createRequest("POST", {
+          headers: { Origin: "http://job.igbo.com" },
+        });
+        const response = await handler(request);
+        expect(response.status).toBe(200);
+      });
+
+      it("blocks POST when ALLOWED_ORIGINS contains malformed entries", async () => {
+        process.env.ALLOWED_ORIGINS = "not-a-url,also-bad";
+        const handler = withApiHandler(async () => Response.json({ data: {} }));
+        const request = createRequest("POST", {
+          headers: { Origin: "http://job.igbo.com" },
+        });
+        const response = await handler(request);
+        expect(response.status).toBe(403);
+      });
+    });
   });
 
   describe("request tracing", () => {

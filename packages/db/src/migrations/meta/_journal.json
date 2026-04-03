@@ -351,6 +351,13 @@
       "when": 1708000049000,
       "tag": "0049_portal_roles",
       "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1708000050000,
+      "tag": "0050_seed_portal_roles",
+      "breakpoints": true
     }
   ]
 }

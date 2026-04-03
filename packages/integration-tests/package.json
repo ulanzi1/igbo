@@ -1,0 +1,16 @@
+{
+  "name": "@igbo/integration-tests",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "test": "vitest run --passWithNoTests",
+    "test:integration": "vitest run"
+  },
+  "devDependencies": {
+    "@igbo/auth": "workspace:*",
+    "@igbo/config": "workspace:*",
+    "@igbo/db": "workspace:*",
+    "vitest": "^4.1.2",
+    "typescript": "^5"
+  }
+}

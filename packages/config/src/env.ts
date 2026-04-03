@@ -62,6 +62,9 @@ export const serverEnvSchema = z.object({
   METRICS_SECRET: z.string().optional().default(""),
   // Logging level
   LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]).optional(),
+  // Cross-subdomain SSO
+  COOKIE_DOMAIN: z.string().optional(), // e.g. ".igbo.com" for prod; undefined = current host only (dev)
+  ALLOWED_ORIGINS: z.string().optional(), // comma-separated allowed cross-subdomain origins, e.g. "https://job.igbo.com"
 });
 
 export const clientEnvSchema = z.object({

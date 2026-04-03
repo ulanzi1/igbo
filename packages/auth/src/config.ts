@@ -1,6 +1,7 @@
 import "server-only";
 import "./types"; // Apply NextAuth module augmentations
 import { randomUUID } from "node:crypto";
+import type { PortalRole } from "./portal-role";
 import { eq } from "drizzle-orm";
 import { SignJWT } from "jose";
 import NextAuth from "next-auth";
@@ -162,6 +163,21 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     maxAge: getSessionTtl(),
     updateAge: 86400,
   },
+  cookies: {
+    sessionToken: {
+      name:
+        process.env.NODE_ENV === "production"
+          ? "__Secure-authjs.session-token"
+          : "authjs.session-token",
+      options: {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax" as const,
+        path: "/",
+        domain: process.env.COOKIE_DOMAIN || undefined,
+      },
+    },
+  },
   providers: [
     Credentials({
       credentials: {
@@ -222,7 +238,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     }),
   ],
   callbacks: {
-    jwt({ token, user, trigger, session }) {
+    async jwt({ token, user, trigger, session }) {
       if (user) {
         token.id = user.id as string;
         token.role = (
@@ -236,6 +252,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           (user as { membershipTier?: "BASIC" | "PROFESSIONAL" | "TOP_TIER" }).membershipTier ??
           "BASIC";
         token.picture = (user as { image?: string | null }).image ?? null;
+        // Populate portal role from RBAC table
+        const { getUserPortalRoles } = await import("@igbo/db/queries/auth-permissions");
+        const portalRoles = await getUserPortalRoles(user.id as string);
+        const PRIORITY: PortalRole[] = ["JOB_SEEKER", "EMPLOYER", "JOB_ADMIN"];
+        token.activePortalRole = PRIORITY.find((r) => portalRoles.includes(r)) ?? null;
       }
       // Allow client-side session update to refresh profileCompleted or picture in JWT
       if (trigger === "update") {
@@ -256,6 +277,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         profileCompleted: boolean;
         membershipTier: "BASIC" | "PROFESSIONAL" | "TOP_TIER" | undefined;
         picture?: string | null;
+        activePortalRole?: "JOB_SEEKER" | "EMPLOYER" | "JOB_ADMIN" | null;
       };
       const t = token as unknown as AppToken;
       session.user.id = t.id;
@@ -264,6 +286,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       session.user.profileCompleted = t.profileCompleted;
       session.user.membershipTier = t.membershipTier ?? "BASIC";
       session.user.image = t.picture ?? null;
+      session.user.activePortalRole = t.activePortalRole ?? null;
       // Create a short-lived JWT for Socket.IO auth (realtime server verifies with same AUTH_SECRET)
       const secret = new TextEncoder().encode(getAuthSecret());
       session.sessionToken = await new SignJWT({ id: t.id })

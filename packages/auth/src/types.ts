@@ -6,6 +6,9 @@
 // SYNC POINT: Role union literals below must match userRoleEnum in @igbo/db/schema/auth-users.
 // Module augmentations use literal types because `declare module` cannot reference
 // runtime imports without breaking augmentation propagation.
+//
+// NOTE: Do NOT import PortalRole from ./portal-role here — that creates a circular dep:
+// config.ts → types.ts → portal-role.ts → config.ts. Use inline literal union instead.
 
 declare module "next-auth" {
   interface User {
@@ -25,7 +28,14 @@ declare module "next-auth" {
       name?: string | null;
       email?: string | null;
       image?: string | null;
+      activePortalRole?: "JOB_SEEKER" | "EMPLOYER" | "JOB_ADMIN" | null;
     };
+  }
+}
+
+declare module "next-auth/jwt" {
+  interface JWT {
+    activePortalRole?: "JOB_SEEKER" | "EMPLOYER" | "JOB_ADMIN" | null;
   }
 }
 
