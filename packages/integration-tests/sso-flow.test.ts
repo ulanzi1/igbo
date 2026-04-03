@@ -114,10 +114,7 @@ describe("Migration 0050 — Portal roles seeded in auth_roles", () => {
   it("journal entry for migration 0050 exists", async () => {
     const { readFileSync } = await import("fs");
     const { resolve } = await import("path");
-    const journalPath = resolve(
-      __dirname,
-      "../../packages/db/src/migrations/meta/_journal.json",
-    );
+    const journalPath = resolve(__dirname, "../../packages/db/src/migrations/meta/_journal.json");
     const journal = JSON.parse(readFileSync(journalPath, "utf-8")) as {
       entries: { idx: number; tag: string }[];
     };

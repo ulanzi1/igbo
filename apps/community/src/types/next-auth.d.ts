@@ -20,6 +20,7 @@ declare module "next-auth/jwt" {
     accountStatus: string;
     profileCompleted: boolean;
     membershipTier: "BASIC" | "PROFESSIONAL" | "TOP_TIER";
+    activePortalRole?: "JOB_SEEKER" | "EMPLOYER" | "JOB_ADMIN" | null;
   }
 }
 
