@@ -192,7 +192,7 @@ development_status:
   p-0-3c-safari-itp-compatibility: done
   p-0-4-portal-app-scaffold-navigation: done
   p-0-5-ci-pipeline-cross-app-test-gates: done
-  p-0-6-redis-event-bus-foundation: backlog
+  p-0-6-redis-event-bus-foundation: done
   portal-epic-0-retrospective: optional
 
   # Portal Epic 1: Job Posting & Company Profiles

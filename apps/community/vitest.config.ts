@@ -42,6 +42,10 @@ export default defineConfig({
         replacement: path.resolve(__dirname, "../../packages/config/src/redis"),
       },
       {
+        find: "@igbo/config/events",
+        replacement: path.resolve(__dirname, "../../packages/config/src/events"),
+      },
+      {
         find: "@igbo/config/notifications",
         replacement: path.resolve(__dirname, "../../packages/config/src/notifications"),
       },

@@ -1,13 +1,16 @@
 export async function register() {
   if (process.env.NEXT_RUNTIME === "nodejs") {
+    // Initialize Redis client for auth
     const { initAuthRedis } = await import("@igbo/auth");
-    const Redis = (await import("ioredis")).default;
-    const redis = new Redis(process.env.REDIS_URL!, {
-      maxRetriesPerRequest: 3,
-      lazyConnect: false,
-      connectionName: "igbo:portal",
-    });
-    redis.on("error", (err: Error) => console.error("[portal] Redis error:", err.message));
-    initAuthRedis(redis);
+    const { getRedisClient, getRedisPublisher, getRedisSubscriber } = await import("@/lib/redis");
+    initAuthRedis(getRedisClient());
+
+    // Initialize portal EventBus with Redis publisher
+    const { portalEventBus } = await import("@/services/event-bus");
+    portalEventBus.setPublisher(() => getRedisPublisher());
+
+    // Start event bridge for community→portal events
+    const { startPortalEventBridge } = await import("@/services/event-bridge");
+    startPortalEventBridge(getRedisSubscriber());
   }
 }
