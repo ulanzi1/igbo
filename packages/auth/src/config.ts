@@ -161,7 +161,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   session: {
     strategy: "jwt",
     maxAge: getSessionTtl(),
-    updateAge: 86400,
+    updateAge: parseInt(process.env.SESSION_UPDATE_AGE_SECONDS || "3600"),
   },
   cookies: {
     sessionToken: {

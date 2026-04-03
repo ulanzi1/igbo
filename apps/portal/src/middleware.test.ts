@@ -53,6 +53,7 @@ beforeEach(() => {
   process.env.AUTH_SECRET = "test-secret-32-bytes-long-minimum-for-hs256";
   process.env.AUTH_URL = "http://localhost:3000";
   delete process.env.ALLOWED_ORIGINS;
+  delete process.env.COMMUNITY_URL;
 });
 
 describe("Portal middleware", () => {
@@ -72,14 +73,33 @@ describe("Portal middleware", () => {
     });
   });
 
-  describe("unauthenticated requests", () => {
-    it("redirects to community login with returnTo when no session cookie", async () => {
+  describe("unauthenticated requests — Safari ITP silent refresh", () => {
+    it("redirects to verify-session (not login) when no session cookie and no _itp_refresh param", async () => {
       const req = makeRequest("http://localhost:3001/dashboard");
+      const result = await middleware(req as unknown as NextRequest);
+      expect(result.status).toBe(307);
+      const location = result.headers.get("Location") ?? "";
+      expect(location).toContain("/api/auth/verify-session");
+      expect(location).toContain("returnTo=");
+    });
+
+    it("verify-session returnTo includes _itp_refresh=1 for loop prevention", async () => {
+      const req = makeRequest("http://localhost:3001/dashboard");
+      const result = await middleware(req as unknown as NextRequest);
+      const location = result.headers.get("Location") ?? "";
+      const verifyUrl = new URL(location);
+      const returnTo = verifyUrl.searchParams.get("returnTo") ?? "";
+      expect(new URL(returnTo).searchParams.get("_itp_refresh")).toBe("1");
+    });
+
+    it("falls back to community login when no session cookie AND _itp_refresh=1 is present", async () => {
+      const req = makeRequest("http://localhost:3001/dashboard?_itp_refresh=1");
       const result = await middleware(req as unknown as NextRequest);
       expect(result.status).toBe(307);
       const location = result.headers.get("Location") ?? "";
       expect(location).toContain("http://localhost:3000/login");
       expect(location).toContain("returnTo=");
+      expect(location).not.toContain("verify-session");
     });
   });
 
@@ -160,8 +180,8 @@ describe("Portal middleware", () => {
     });
   });
 
-  describe("malformed/expired JWT", () => {
-    it("redirects to community login when decode throws (malformed JWT)", async () => {
+  describe("malformed/expired JWT — Safari ITP silent refresh", () => {
+    it("redirects to verify-session when decode throws and no _itp_refresh param", async () => {
       mockDecode.mockRejectedValue(new Error("Invalid JWT"));
       const req = makeRequest("http://localhost:3001/dashboard", {
         cookies: { "authjs.session-token": "malformed-token" },
@@ -169,10 +189,23 @@ describe("Portal middleware", () => {
       const result = await middleware(req as unknown as NextRequest);
       expect(result.status).toBe(307);
       const location = result.headers.get("Location") ?? "";
-      expect(location).toContain("/login");
+      expect(location).toContain("/api/auth/verify-session");
+      expect(location).toContain("returnTo=");
     });
 
-    it("redirects to community login when decode returns null (expired JWT)", async () => {
+    it("falls back to login when decode throws AND _itp_refresh=1 is present", async () => {
+      mockDecode.mockRejectedValue(new Error("Invalid JWT"));
+      const req = makeRequest("http://localhost:3001/dashboard?_itp_refresh=1", {
+        cookies: { "authjs.session-token": "malformed-token" },
+      });
+      const result = await middleware(req as unknown as NextRequest);
+      expect(result.status).toBe(307);
+      const location = result.headers.get("Location") ?? "";
+      expect(location).toContain("/login");
+      expect(location).not.toContain("verify-session");
+    });
+
+    it("redirects to verify-session when decode returns null and no _itp_refresh param", async () => {
       mockDecode.mockResolvedValue(null);
       const req = makeRequest("http://localhost:3001/dashboard", {
         cookies: { "authjs.session-token": "expired-token" },
@@ -180,7 +213,44 @@ describe("Portal middleware", () => {
       const result = await middleware(req as unknown as NextRequest);
       expect(result.status).toBe(307);
       const location = result.headers.get("Location") ?? "";
+      expect(location).toContain("/api/auth/verify-session");
+      expect(location).toContain("returnTo=");
+    });
+
+    it("falls back to login when decode returns null AND _itp_refresh=1 is present", async () => {
+      mockDecode.mockResolvedValue(null);
+      const req = makeRequest("http://localhost:3001/dashboard?_itp_refresh=1", {
+        cookies: { "authjs.session-token": "expired-token" },
+      });
+      const result = await middleware(req as unknown as NextRequest);
+      expect(result.status).toBe(307);
+      const location = result.headers.get("Location") ?? "";
       expect(location).toContain("/login");
+      expect(location).not.toContain("verify-session");
+    });
+  });
+
+  describe("_itp_refresh param stripping", () => {
+    it("redirects authenticated request with ?_itp_refresh=1 to clean URL without the param", async () => {
+      mockDecode.mockResolvedValue({ id: "user-1", accountStatus: "APPROVED" });
+      const req = makeRequest("http://localhost:3001/dashboard?_itp_refresh=1", {
+        cookies: { "authjs.session-token": "valid-token" },
+      });
+      const result = await middleware(req as unknown as NextRequest);
+      expect(result.status).toBe(307);
+      const location = result.headers.get("Location") ?? "";
+      expect(location).toContain("http://localhost:3001/dashboard");
+      expect(location).not.toContain("_itp_refresh");
+    });
+
+    it("passes through authenticated request without _itp_refresh unchanged", async () => {
+      mockDecode.mockResolvedValue({ id: "user-1", accountStatus: "APPROVED" });
+      const req = makeRequest("http://localhost:3001/dashboard", {
+        cookies: { "authjs.session-token": "valid-token" },
+      });
+      const result = await middleware(req as unknown as NextRequest);
+      // Should proceed (not redirect to strip _itp_refresh since it's not present)
+      expect(result.status).not.toBe(307);
     });
   });
 
