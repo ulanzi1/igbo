@@ -18,9 +18,11 @@ vi.mock("next-intl/server", () => ({
 import { auth } from "@igbo/auth";
 import Page from "./page";
 
+const mockAuth = auth as unknown as ReturnType<typeof vi.fn>;
+
 describe("Portal Homepage [locale]/page", () => {
   it("shows seeker welcome message for authenticated seeker", async () => {
-    vi.mocked(auth).mockResolvedValue({
+    mockAuth.mockResolvedValue({
       user: { id: "u1", activePortalRole: "JOB_SEEKER" } as Session["user"],
       expires: "2099-01-01",
     } as Session);
@@ -31,7 +33,7 @@ describe("Portal Homepage [locale]/page", () => {
   });
 
   it("shows employer welcome message for authenticated employer", async () => {
-    vi.mocked(auth).mockResolvedValue({
+    mockAuth.mockResolvedValue({
       user: { id: "u2", activePortalRole: "EMPLOYER" } as Session["user"],
       expires: "2099-01-01",
     } as Session);
@@ -42,7 +44,7 @@ describe("Portal Homepage [locale]/page", () => {
   });
 
   it("shows guest welcome with login/join CTAs when auth returns null", async () => {
-    vi.mocked(auth).mockResolvedValue(null);
+    mockAuth.mockResolvedValue(null);
 
     const jsx = await Page({ params: Promise.resolve({ locale: "en" }) });
     const { getByText } = render(jsx as React.ReactElement);
@@ -55,7 +57,7 @@ describe("Portal Homepage [locale]/page", () => {
   it("guest login CTA has returnTo pointing to portal URL (not empty)", async () => {
     process.env.COMMUNITY_URL = "http://localhost:3000";
     process.env.NEXTAUTH_URL = "http://localhost:3001";
-    vi.mocked(auth).mockResolvedValue(null);
+    mockAuth.mockResolvedValue(null);
 
     const jsx = await Page({ params: Promise.resolve({ locale: "en" }) });
     const { container } = render(jsx as React.ReactElement);

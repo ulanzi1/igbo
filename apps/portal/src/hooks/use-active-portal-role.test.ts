@@ -11,10 +11,19 @@ vi.mock("next-auth/react", () => ({
 import { useSession } from "next-auth/react";
 import { useActivePortalRole } from "./use-active-portal-role";
 
-function mockSession(overrides: Partial<Session> & { user?: Record<string, unknown> } = {}) {
+function mockSession(userOverrides: Record<string, unknown> = {}) {
   vi.mocked(useSession).mockReturnValue({
     data: {
-      user: { id: "u1", name: "Test User", email: "test@example.com", ...overrides.user },
+      user: {
+        id: "u1",
+        name: "Test User",
+        email: "test@example.com",
+        role: "MEMBER",
+        accountStatus: "active",
+        profileCompleted: true,
+        membershipTier: "BASIC",
+        ...userOverrides,
+      },
       expires: "2099-01-01",
     } as Session,
     status: "authenticated",
@@ -24,7 +33,7 @@ function mockSession(overrides: Partial<Session> & { user?: Record<string, unkno
 
 describe("useActivePortalRole", () => {
   it("returns JOB_SEEKER with isSeeker=true for seeker session", () => {
-    mockSession({ user: { activePortalRole: "JOB_SEEKER" } });
+    mockSession({ activePortalRole: "JOB_SEEKER" });
     const { result } = renderHook(() => useActivePortalRole());
     expect(result.current.role).toBe("JOB_SEEKER");
     expect(result.current.isSeeker).toBe(true);
@@ -34,7 +43,7 @@ describe("useActivePortalRole", () => {
   });
 
   it("returns EMPLOYER with isEmployer=true for employer session", () => {
-    mockSession({ user: { activePortalRole: "EMPLOYER" } });
+    mockSession({ activePortalRole: "EMPLOYER" });
     const { result } = renderHook(() => useActivePortalRole());
     expect(result.current.role).toBe("EMPLOYER");
     expect(result.current.isEmployer).toBe(true);
@@ -43,7 +52,7 @@ describe("useActivePortalRole", () => {
   });
 
   it("returns JOB_ADMIN with isAdmin=true for admin session", () => {
-    mockSession({ user: { activePortalRole: "JOB_ADMIN" } });
+    mockSession({ activePortalRole: "JOB_ADMIN" });
     const { result } = renderHook(() => useActivePortalRole());
     expect(result.current.role).toBe("JOB_ADMIN");
     expect(result.current.isAdmin).toBe(true);
@@ -66,7 +75,7 @@ describe("useActivePortalRole", () => {
   });
 
   it("defaults to JOB_SEEKER when activePortalRole is not set but user is authenticated", () => {
-    mockSession({ user: {} }); // no activePortalRole
+    mockSession(); // no activePortalRole
     const { result } = renderHook(() => useActivePortalRole());
     expect(result.current.role).toBe("JOB_SEEKER");
     expect(result.current.isSeeker).toBe(true);
