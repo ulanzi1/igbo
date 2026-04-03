@@ -24,7 +24,7 @@ interface BottomNavItem {
 export function PortalBottomNav() {
   const t = useTranslations("Portal.nav");
   const locale = useLocale();
-  const { isSeeker, isEmployer, isAuthenticated } = useActivePortalRole();
+  const { isSeeker, isEmployer } = useActivePortalRole();
   const pathname = usePathname();
   const communityUrl = process.env.NEXT_PUBLIC_COMMUNITY_URL ?? "http://localhost:3000";
 

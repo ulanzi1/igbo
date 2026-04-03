@@ -23,7 +23,7 @@ export function PortalTopNav({ className }: { className?: string }) {
   const t = useTranslations("Portal.nav");
   const tRole = useTranslations("Portal.role");
   const locale = useLocale();
-  const { role, isSeeker, isEmployer, isAdmin, isAuthenticated } = useActivePortalRole();
+  const { isSeeker, isEmployer, isAdmin, isAuthenticated } = useActivePortalRole();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const communityUrl = getCommunityUrl();
 
