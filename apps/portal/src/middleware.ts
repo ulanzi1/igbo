@@ -100,7 +100,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // Check account status
-  const accountStatus = token.accountStatus as string | undefined;
+  const accountStatus = (token as Record<string, unknown>).accountStatus as string | undefined;
 
   if (accountStatus === "BANNED") {
     const loginUrl = new URL("/login", COMMUNITY_BASE_URL);
