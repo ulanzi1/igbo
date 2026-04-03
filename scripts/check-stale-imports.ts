@@ -20,6 +20,9 @@ const STALE_PATTERNS: PatternRule[] = [
 /** Directories to skip during recursive scan */
 const SKIP_DIRS = new Set(["node_modules", ".next", ".git", "dist", "build", ".turbo"]);
 
+/** Files that contain stale import patterns as test fixtures — not actual stale imports */
+const SKIP_FILES = new Set(["ci-stale-import-scanner.test.ts"]);
+
 function collectTsFiles(dir: string, files: string[] = []): string[] {
   if (!existsSync(dir)) return files;
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
@@ -29,7 +32,8 @@ function collectTsFiles(dir: string, files: string[] = []): string[] {
       collectTsFiles(fullPath, files);
     } else if (
       entry.isFile() &&
-      (entry.name.endsWith(".ts") || entry.name.endsWith(".tsx"))
+      (entry.name.endsWith(".ts") || entry.name.endsWith(".tsx")) &&
+      !SKIP_FILES.has(entry.name)
     ) {
       files.push(fullPath);
     }
