@@ -2,6 +2,8 @@ name: CI
 
 on:
   pull_request:
+  push:
+    branches: [main]
   workflow_call:
 
 # Cancel in-progress runs when a new commit is pushed to the same PR/branch
@@ -32,16 +34,46 @@ jobs:
     env:
       SKIP_ENV_VALIDATION: "true"
       NEXT_PUBLIC_APP_URL: http://localhost:3000
-      NEXT_PUBLIC_REALTIME_URL: http://localhost:3001
+      NEXT_PUBLIC_REALTIME_URL: http://localhost:3002
+      NEXT_PUBLIC_COMMUNITY_URL: http://localhost:3000
+      NEXT_PUBLIC_PORTAL_URL: http://localhost:3001
+      COMMUNITY_URL: http://localhost:3000
+      ALLOWED_ORIGINS: http://localhost:3000,http://localhost:3001
+      SESSION_UPDATE_AGE_SECONDS: "3600"
+      AUTH_URL: http://localhost:3000
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
           cache: "pnpm"
       - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter @igbo/community lint
+      # ⚠️ SYNC: broad-impact + turbo-flags blocks are duplicated in lint, typecheck, test jobs — update all together
+      - name: Check for broad-impact changes
+        id: broad-impact
+        if: github.event_name == 'pull_request'
+        run: |
+          PATTERNS="pnpm-lock.yaml|turbo.json|tsconfig.base.json|packages/.*/package\.json|packages/.*/tsconfig\.json|\.github/workflows/ci\.yml"
+          if git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -qE "$PATTERNS"; then
+            echo "full_suite=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::Broad-impact files changed — running full suite (no --affected)"
+          else
+            echo "full_suite=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Determine turbo flags
+        id: turbo-flags
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ] && [ "${{ steps.broad-impact.outputs.full_suite }}" != "true" ]; then
+            echo "flags=--affected" >> "$GITHUB_OUTPUT"
+          else
+            echo "flags=" >> "$GITHUB_OUTPUT"
+          fi
+      - run: pnpm exec turbo run lint ${{ steps.turbo-flags.outputs.flags }}
+      - name: Check for stale import paths
+        run: npx tsx scripts/check-stale-imports.ts
       - run: pnpm exec prettier --check .
 
   typecheck:
@@ -50,19 +82,57 @@ jobs:
     env:
       SKIP_ENV_VALIDATION: "true"
       NEXT_PUBLIC_APP_URL: http://localhost:3000
-      NEXT_PUBLIC_REALTIME_URL: http://localhost:3001
+      NEXT_PUBLIC_REALTIME_URL: http://localhost:3002
+      NEXT_PUBLIC_COMMUNITY_URL: http://localhost:3000
+      NEXT_PUBLIC_PORTAL_URL: http://localhost:3001
+      COMMUNITY_URL: http://localhost:3000
+      ALLOWED_ORIGINS: http://localhost:3000,http://localhost:3001
+      SESSION_UPDATE_AGE_SECONDS: "3600"
+      AUTH_URL: http://localhost:3000
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
           cache: "pnpm"
       - run: pnpm install --frozen-lockfile
-      - run: pnpm exec turbo run typecheck
+      # ⚠️ SYNC: broad-impact + turbo-flags blocks are duplicated in lint, typecheck, test jobs — update all together
+      - name: Check for broad-impact changes
+        id: broad-impact
+        if: github.event_name == 'pull_request'
+        run: |
+          PATTERNS="pnpm-lock.yaml|turbo.json|tsconfig.base.json|packages/.*/package\.json|packages/.*/tsconfig\.json|\.github/workflows/ci\.yml"
+          if git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -qE "$PATTERNS"; then
+            echo "full_suite=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::Broad-impact files changed — running full suite (no --affected)"
+          else
+            echo "full_suite=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Determine turbo flags
+        id: turbo-flags
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ] && [ "${{ steps.broad-impact.outputs.full_suite }}" != "true" ]; then
+            echo "flags=--affected" >> "$GITHUB_OUTPUT"
+          else
+            echo "flags=" >> "$GITHUB_OUTPUT"
+          fi
+      - run: pnpm exec turbo run typecheck ${{ steps.turbo-flags.outputs.flags }}
+
+  # ─── Fail-fast gate: test and build only start when lint + typecheck both pass ─
+
+  quality-gate:
+    name: Quality Gate
+    needs: [lint, typecheck]
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Lint and type checks passed"
 
   test:
     name: Unit Tests
+    needs: [quality-gate]
     runs-on: ubuntu-latest
     services:
       redis:
@@ -74,24 +144,72 @@ jobs:
       REDIS_URL: redis://localhost:6379
       SKIP_ENV_VALIDATION: "true"
       NEXT_PUBLIC_APP_URL: http://localhost:3000
-      NEXT_PUBLIC_REALTIME_URL: http://localhost:3001
+      NEXT_PUBLIC_REALTIME_URL: http://localhost:3002
+      NEXT_PUBLIC_COMMUNITY_URL: http://localhost:3000
+      NEXT_PUBLIC_PORTAL_URL: http://localhost:3001
+      COMMUNITY_URL: http://localhost:3000
+      ALLOWED_ORIGINS: http://localhost:3000,http://localhost:3001
+      SESSION_UPDATE_AGE_SECONDS: "3600"
+      AUTH_URL: http://localhost:3000
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
           cache: "pnpm"
       - run: pnpm install --frozen-lockfile
-      - run: pnpm exec turbo run test
+      # ⚠️ SYNC: broad-impact + turbo-flags blocks are duplicated in lint, typecheck, test jobs — update all together
+      - name: Check for broad-impact changes
+        id: broad-impact
+        if: github.event_name == 'pull_request'
+        run: |
+          PATTERNS="pnpm-lock.yaml|turbo.json|tsconfig.base.json|packages/.*/package\.json|packages/.*/tsconfig\.json|\.github/workflows/ci\.yml"
+          if git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -qE "$PATTERNS"; then
+            echo "full_suite=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::Broad-impact files changed — running full suite (no --affected)"
+          else
+            echo "full_suite=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Determine turbo flags
+        id: turbo-flags
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ] && [ "${{ steps.broad-impact.outputs.full_suite }}" != "true" ]; then
+            echo "flags=--affected" >> "$GITHUB_OUTPUT"
+          else
+            echo "flags=" >> "$GITHUB_OUTPUT"
+          fi
+      - run: pnpm exec turbo run test ${{ steps.turbo-flags.outputs.flags }} --summarize
+      - name: Show test summary
+        if: always()
+        run: |
+          echo "### Turborepo Test Summary" >> $GITHUB_STEP_SUMMARY
+          echo "| Task | Cache | Exit Code |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|-------|-----------|" >> $GITHUB_STEP_SUMMARY
+          if ls .turbo/runs/*.json 1>/dev/null 2>&1; then
+            for f in .turbo/runs/*.json; do
+              jq -r '.tasks[] | "| \(.taskId) | \(.cacheState.source // "miss") | \(.execution.exitCode // "skipped") |"' "$f" >> $GITHUB_STEP_SUMMARY 2>/dev/null
+            done
+          else
+            echo "No Turborepo summary available" >> $GITHUB_STEP_SUMMARY
+          fi
 
   build:
     name: Build
+    needs: [quality-gate]
     runs-on: ubuntu-latest
     env:
       SKIP_ENV_VALIDATION: "true"
       NEXT_PUBLIC_APP_URL: http://localhost:3000
-      NEXT_PUBLIC_REALTIME_URL: http://localhost:3001
+      NEXT_PUBLIC_REALTIME_URL: http://localhost:3002
+      NEXT_PUBLIC_COMMUNITY_URL: http://localhost:3000
+      NEXT_PUBLIC_PORTAL_URL: http://localhost:3001
+      COMMUNITY_URL: http://localhost:3000
+      ALLOWED_ORIGINS: http://localhost:3000,http://localhost:3001
+      SESSION_UPDATE_AGE_SECONDS: "3600"
+      AUTH_URL: http://localhost:3000
       DATABASE_URL: postgresql://placeholder:placeholder@localhost:5432/placeholder
       REDIS_URL: redis://localhost:6379
       ADMIN_EMAIL: ci@placeholder.com
@@ -111,25 +229,40 @@ jobs:
         with:
           node-version: "22"
           cache: "pnpm"
-      # Cache incremental Next.js build output — keys on package.json hash for 40–60% speed-up
+      # Combined Turborepo + Next.js incremental cache for both apps
       - uses: actions/cache@v4
         with:
-          path: apps/community/.next/cache
-          key: ${{ runner.os }}-nextjs-${{ hashFiles('**/package.json') }}
-          restore-keys: ${{ runner.os }}-nextjs-
+          path: |
+            apps/community/.next/cache
+            apps/portal/.next/cache
+            node_modules/.cache/turbo
+          key: ${{ runner.os }}-turbo-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-turbo-
       - run: pnpm install --frozen-lockfile
+      # Build always runs full (no --affected) — artifacts consumed by downstream E2E + Lighthouse
       - run: pnpm exec turbo run build
       # Upload standalone server, static assets, and public directory.
       # include-hidden-files required: .next/standalone/.next/ is a hidden dir with manifests.
-      - name: Upload build artifact
+      - name: Upload community build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: nextjs-build
+          name: nextjs-build-community
           include-hidden-files: true
           path: |
             apps/community/.next/standalone
             apps/community/.next/static
             apps/community/public
+          retention-days: 1
+      - name: Upload portal build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nextjs-build-portal
+          include-hidden-files: true
+          path: |
+            apps/portal/.next/standalone
+            apps/portal/.next/static
+            apps/portal/public
           retention-days: 1
 
   # ─── Post-build jobs (run in parallel, both need build artifact) ─────────────
@@ -156,7 +289,7 @@ jobs:
     env:
       SKIP_ENV_VALIDATION: "true"
       NEXT_PUBLIC_APP_URL: http://localhost:3000
-      NEXT_PUBLIC_REALTIME_URL: http://localhost:3001
+      NEXT_PUBLIC_REALTIME_URL: http://localhost:3002
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/igbo_test
       REDIS_URL: redis://localhost:6379
       ADMIN_EMAIL: ci@placeholder.com
@@ -182,11 +315,14 @@ jobs:
       - name: Download build artifact
         uses: actions/download-artifact@v4
         with:
-          name: nextjs-build
+          name: nextjs-build-community
           path: apps/community
+      # Enforce journal sync gate before applying migrations
+      - name: Check migration journal sync
+        run: pnpm --filter @igbo/db db:journal-check
       # Run database migrations so the standalone server has tables
       - name: Run database migrations
-        run: for f in apps/community/src/db/migrations/*.sql; do PGPASSWORD=postgres psql -h localhost -U postgres -d igbo_test -f "$f"; done
+        run: for f in packages/db/src/migrations/*.sql; do PGPASSWORD=postgres psql -h localhost -U postgres -d igbo_test -f "$f"; done
       # In a monorepo, standalone output nests the app: .next/standalone/apps/community/
       - name: Setup standalone server assets
         run: |
@@ -231,7 +367,7 @@ jobs:
     env:
       SKIP_ENV_VALIDATION: "true"
       NEXT_PUBLIC_APP_URL: http://localhost:3000
-      NEXT_PUBLIC_REALTIME_URL: http://localhost:3001
+      NEXT_PUBLIC_REALTIME_URL: http://localhost:3002
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/igbo_test
       REDIS_URL: redis://localhost:6379
       ADMIN_EMAIL: ci@placeholder.com
@@ -254,10 +390,12 @@ jobs:
       - name: Download build artifact
         uses: actions/download-artifact@v4
         with:
-          name: nextjs-build
+          name: nextjs-build-community
           path: apps/community
+      - name: Check migration journal sync
+        run: pnpm --filter @igbo/db db:journal-check
       - name: Run database migrations
-        run: for f in apps/community/src/db/migrations/*.sql; do PGPASSWORD=postgres psql -h localhost -U postgres -d igbo_test -f "$f"; done
+        run: for f in packages/db/src/migrations/*.sql; do PGPASSWORD=postgres psql -h localhost -U postgres -d igbo_test -f "$f"; done
       - name: Setup standalone server assets
         run: |
           STANDALONE_APP=apps/community/.next/standalone/apps/community
@@ -311,5 +449,6 @@ jobs:
           uploadArtifacts: true
           temporaryPublicStorage: false
 
-# Branch protection note: all 5 parallel jobs (audit, lint, typecheck, test, build) must be configured
-# as required status checks in GitHub repository settings → Branches → Branch protection rules.
+# Branch protection note: required status checks should include:
+# quality-gate, test, build, e2e, lighthouse (and audit as before).
+# lint and typecheck are enforced via quality-gate.

@@ -28,7 +28,7 @@ vi.mock("@/i18n/navigation", () => ({
 }));
 
 const mockAuth = vi.fn();
-vi.mock("@/server/auth/config", () => ({
+vi.mock("@igbo/auth", () => ({
   auth: () => mockAuth(),
 }));
 

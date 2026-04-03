@@ -7,7 +7,7 @@ vi.mock("@igbo/db", () => ({ db: {} }));
 const mockRequireAuthenticatedSession = vi.fn();
 const mockGetRecommendedGroupsForUser = vi.fn();
 
-vi.mock("@/services/permissions", () => ({
+vi.mock("@igbo/auth/permissions", () => ({
   requireAuthenticatedSession: (...args: unknown[]) => mockRequireAuthenticatedSession(...args),
 }));
 

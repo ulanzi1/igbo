@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
-import { auth } from "@/server/auth/config";
+import { auth } from "@igbo/auth";
 import { listArticlesByAuthor } from "@igbo/db/queries/articles";
 import { MyArticlesList } from "@/features/articles/components/MyArticlesList";
 

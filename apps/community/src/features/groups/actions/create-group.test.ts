@@ -2,7 +2,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
-vi.mock("@/services/permissions", () => ({ requireAuthenticatedSession: vi.fn() }));
+vi.mock("@igbo/auth/permissions", () => ({ requireAuthenticatedSession: vi.fn() }));
 vi.mock("@/services/rate-limiter", () => ({
   applyRateLimit: vi.fn(),
   RATE_LIMIT_PRESETS: { GROUP_CREATE: { maxRequests: 5, windowMs: 3_600_000 } },
@@ -10,7 +10,7 @@ vi.mock("@/services/rate-limiter", () => ({
 vi.mock("@/services/group-service", () => ({ createGroupForUser: vi.fn() }));
 
 import { createGroupAction } from "./create-group";
-import { requireAuthenticatedSession } from "@/services/permissions";
+import { requireAuthenticatedSession } from "@igbo/auth/permissions";
 import { applyRateLimit } from "@/services/rate-limiter";
 import { createGroupForUser } from "@/services/group-service";
 

@@ -22,8 +22,9 @@ describe("Sentry configuration files (Task 9.5)", () => {
     expect(existsSync(resolve(ROOT, "sentry.edge.config.ts"))).toBe(true);
   });
 
-  it("src/instrumentation.ts exists", () => {
-    expect(existsSync(resolve(ROOT, "src/instrumentation.ts"))).toBe(true);
+  it("instrumentation.ts exists (root — merged from src/instrumentation.ts in P-0.3B)", () => {
+    // P-0.3B merged src/instrumentation.ts into the root instrumentation.ts
+    expect(existsSync(resolve(ROOT, "instrumentation.ts"))).toBe(true);
   });
 
   it("src/app/global-error.tsx exists", () => {
@@ -31,12 +32,14 @@ describe("Sentry configuration files (Task 9.5)", () => {
   });
 
   it("instrumentation.ts imports sentry.server.config", () => {
-    const content = readFileSync(resolve(ROOT, "src/instrumentation.ts"), "utf-8");
+    // Root instrumentation.ts (merged P-0.3B)
+    const content = readFileSync(resolve(ROOT, "instrumentation.ts"), "utf-8");
     expect(content).toContain("sentry.server.config");
   });
 
   it("instrumentation.ts imports sentry.edge.config", () => {
-    const content = readFileSync(resolve(ROOT, "src/instrumentation.ts"), "utf-8");
+    // Root instrumentation.ts (merged P-0.3B)
+    const content = readFileSync(resolve(ROOT, "instrumentation.ts"), "utf-8");
     expect(content).toContain("sentry.edge.config");
   });
 });

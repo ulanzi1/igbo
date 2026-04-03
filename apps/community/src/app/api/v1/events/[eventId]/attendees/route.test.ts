@@ -31,7 +31,7 @@ vi.mock("@/lib/api-error", () => ({
   },
 }));
 
-vi.mock("@/services/permissions", () => ({
+vi.mock("@igbo/auth/permissions", () => ({
   requireAuthenticatedSession: vi.fn().mockResolvedValue({ userId: "creator-1", role: "MEMBER" }),
 }));
 
@@ -46,7 +46,7 @@ vi.mock("@igbo/db/queries/events", () => ({
   getAttendeeStatus: vi.fn(),
 }));
 
-import { requireAuthenticatedSession } from "@/services/permissions";
+import { requireAuthenticatedSession } from "@igbo/auth/permissions";
 import { listEventAttendees } from "@/services/event-service";
 import { getEventById } from "@igbo/db/queries/events";
 

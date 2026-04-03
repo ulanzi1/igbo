@@ -10,7 +10,7 @@ const mockIsBlocked = vi.fn();
 const mockAddReaction = vi.fn();
 const mockRemoveReaction = vi.fn();
 
-vi.mock("@/services/permissions", () => ({
+vi.mock("@igbo/auth/permissions", () => ({
   requireAuthenticatedSession: (...args: unknown[]) => mockRequireAuthenticatedSession(...args),
 }));
 

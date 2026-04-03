@@ -2,7 +2,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("server-only", () => ({}));
-vi.mock("@/services/permissions", () => ({
+vi.mock("@igbo/auth/permissions", () => ({
   requireAuthenticatedSession: vi.fn().mockResolvedValue({ userId: "user-1" }),
 }));
 vi.mock("@/services/post-interaction-service", () => ({
@@ -22,7 +22,7 @@ vi.mock("@/lib/request-context", () => ({
 }));
 
 import { DELETE } from "./route";
-import { requireAuthenticatedSession } from "@/services/permissions";
+import { requireAuthenticatedSession } from "@igbo/auth/permissions";
 import { deleteComment } from "@/services/post-interaction-service";
 import { ApiError } from "@/lib/api-error";
 

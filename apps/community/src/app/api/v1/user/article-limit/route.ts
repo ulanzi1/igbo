@@ -1,6 +1,6 @@
 import { withApiHandler } from "@/server/api/middleware";
 import { successResponse } from "@/lib/api-response";
-import { requireAuthenticatedSession } from "@/services/permissions";
+import { requireAuthenticatedSession } from "@igbo/auth/permissions";
 import { getUserMembershipTier } from "@igbo/db/queries/auth-permissions";
 import { getUserPointsTotal, getEffectiveArticleLimit } from "@igbo/db/queries/points";
 import { countWeeklyArticleSubmissions } from "@igbo/db/queries/articles";

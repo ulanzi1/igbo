@@ -1,0 +1,46 @@
+{
+  "Portal": {
+    "nav": {
+      "home": "Ụlọ",
+      "jobs": "Ọrụ Maka Gị",
+      "browseAll": "Lelee Ọrụ Niile",
+      "apprenticeships": "Ọzụzụ Ọrụ",
+      "myApplications": "Ngwa M",
+      "savedJobs": "Ọrụ Ndị Echekwara",
+      "dashboard": "Dashibọọdụ",
+      "myJobs": "Ọrụ M",
+      "applications": "Ngwa",
+      "messages": "Ozi",
+      "companyProfile": "Profaịlụ Ụlọ Ọrụ",
+      "backToCommunity": "Laghachi na Obodo",
+      "postJob": "Tinye Ọrụ",
+      "login": "Banye",
+      "joinNow": "Sonye Ugbu a",
+      "profile": "Profaịlụ"
+    },
+    "role": {
+      "seeker": "Onye Na-achọ Ọrụ",
+      "employer": "Onye Ọrụ Na-enye",
+      "admin": "Onye Nlekọta Ọrụ",
+      "switchRole": "Gbanwee Ọrụ"
+    },
+    "home": {
+      "title": "Ụlọ Ọrụ OBIGBO",
+      "subtitle": "Jikọọ ndị Igbo nọ n'ụwa niile na ohere ọrụ",
+      "guestWelcome": "Lelee ohere ọrụ sitere n'aka ndị ọrụ na-enye na obodo Igbo",
+      "seekerWelcome": "Nnọọ! Chọta ohere gị na-esote",
+      "employerWelcome": "Nnọọ! Jikwaa ọrụ ndị ị tinyere"
+    },
+    "guest": {
+      "loginPrompt": "Banye iji tinye akwụkwọ maka ọrụ",
+      "joinPrompt": "Sonye obodo ka ịmalite"
+    },
+    "meta": {
+      "title": "Ụlọ Ọrụ OBIGBO",
+      "description": "Ohere ọrụ maka ndị Igbo nọ n'ụwa niile"
+    }
+  },
+  "Shell": {
+    "skipToContent": "Wụga na nnọọ isi"
+  }
+}

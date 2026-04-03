@@ -5,7 +5,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
-vi.mock("@/services/permissions", () => ({
+vi.mock("@igbo/auth/permissions", () => ({
   requireAuthenticatedSession: vi.fn(),
 }));
 
@@ -19,7 +19,7 @@ vi.mock("@/services/post-service", () => ({
 }));
 
 import { createPost } from "./create-post";
-import { requireAuthenticatedSession } from "@/services/permissions";
+import { requireAuthenticatedSession } from "@igbo/auth/permissions";
 import { applyRateLimit } from "@/services/rate-limiter";
 import { createFeedPost } from "@/services/post-service";
 

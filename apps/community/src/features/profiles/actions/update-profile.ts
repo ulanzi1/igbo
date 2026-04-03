@@ -1,7 +1,7 @@
 "use server";
 import "server-only";
 import { z } from "zod/v4";
-import { auth } from "@/server/auth/config";
+import { auth } from "@igbo/auth";
 import { sanitizeHtml } from "@/lib/sanitize";
 import * as profileService from "@/services/profile-service";
 

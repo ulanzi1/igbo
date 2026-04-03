@@ -17,7 +17,7 @@ services:
     env_file: .env
     environment:
       NODE_ENV: production
-      REALTIME_INTERNAL_URL: http://realtime:3001
+      REALTIME_INTERNAL_URL: http://realtime:3002
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/api/v1/health || exit 1"]
       interval: 30s
@@ -43,13 +43,13 @@ services:
     mem_limit: 512m
     cpus: 0.5
     ports:
-      - "3001:3001"
+      - "3002:3002"
     env_file: .env
     environment:
       NODE_ENV: production
-      REALTIME_CORS_ORIGIN: ${NEXT_PUBLIC_APP_URL}
+      REALTIME_CORS_ORIGIN: ${NEXT_PUBLIC_APP_URL},${NEXT_PUBLIC_PORTAL_URL}
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:3001/health || exit 1"]
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3002/health || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 3

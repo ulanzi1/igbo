@@ -10,8 +10,8 @@ vi.mock("@/services/admin-approval-service", () => ({
 }));
 
 vi.mock("@igbo/db/queries/auth-queries", () => ({ findUserById: vi.fn() }));
-vi.mock("@/lib/admin-auth", () => ({ requireAdminSession: vi.fn() }));
-vi.mock("@/services/permissions", () => ({ isAdmin: vi.fn() }));
+vi.mock("@igbo/auth/admin-auth", () => ({ requireAdminSession: vi.fn() }));
+vi.mock("@igbo/auth/permissions", () => ({ isAdmin: vi.fn() }));
 vi.mock("@/services/event-bus", () => ({ eventBus: { emit: vi.fn() } }));
 vi.mock("@/services/email-service", () => ({ enqueueEmailJob: vi.fn() }));
 vi.mock("@/services/audit-logger", () => ({ logAdminAction: vi.fn() }));

@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
-import { auth } from "@/server/auth/config";
+import { auth } from "@igbo/auth";
 import { getGroupById, getGroupMember } from "@igbo/db/queries/groups";
 import { GroupSettings } from "@/features/groups";
 

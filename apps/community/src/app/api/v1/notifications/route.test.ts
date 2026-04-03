@@ -7,7 +7,7 @@ const mockRequireAuthenticatedSession = vi.fn();
 const mockGetNotifications = vi.fn();
 const mockGetUnreadCount = vi.fn();
 
-vi.mock("@/services/permissions", () => ({
+vi.mock("@igbo/auth/permissions", () => ({
   requireAuthenticatedSession: (...args: unknown[]) => mockRequireAuthenticatedSession(...args),
 }));
 

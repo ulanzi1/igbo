@@ -13,6 +13,7 @@ COPY package.json ./
 COPY apps/community/package.json ./apps/community/package.json
 COPY packages/config/package.json ./packages/config/package.json
 COPY packages/db/package.json ./packages/db/package.json
+COPY packages/auth/package.json ./packages/auth/package.json
 
 RUN pnpm install --frozen-lockfile
 
@@ -26,6 +27,7 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/apps/community/node_modules ./apps/community/node_modules
 COPY --from=deps /app/packages/config/node_modules ./packages/config/node_modules 2>/dev/null || true
 COPY --from=deps /app/packages/db/node_modules ./packages/db/node_modules 2>/dev/null || true
+COPY --from=deps /app/packages/auth/node_modules ./packages/auth/node_modules 2>/dev/null || true
 
 COPY pnpm-workspace.yaml turbo.json tsconfig.base.json ./
 COPY packages/ ./packages/
@@ -73,7 +75,7 @@ COPY --from=builder --chown=nextjs:nodejs /app/apps/community/.next/static ./.ne
 
 # SQL migration files — used by deploy.sh to run migrations via psql before starting the app
 # Only raw SQL files are needed, not Drizzle tooling or node_modules
-COPY --from=builder /app/apps/community/src/db/migrations ./apps/community/src/db/migrations
+COPY --from=builder /app/packages/db/src/migrations ./packages/db/src/migrations
 
 USER nextjs
 

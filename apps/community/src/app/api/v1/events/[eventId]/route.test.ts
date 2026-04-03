@@ -31,7 +31,7 @@ vi.mock("@/lib/api-error", () => ({
   },
 }));
 
-vi.mock("@/services/permissions", () => ({
+vi.mock("@igbo/auth/permissions", () => ({
   requireAuthenticatedSession: vi.fn().mockResolvedValue({ userId: "user-1", role: "MEMBER" }),
 }));
 
@@ -59,7 +59,7 @@ vi.mock("@igbo/db/queries/groups", () => ({
   getGroupsForUserMembership: vi.fn(),
 }));
 
-vi.mock("@/server/auth/config", () => ({
+vi.mock("@igbo/auth", () => ({
   auth: vi.fn().mockResolvedValue({ user: { id: "user-1" } }),
 }));
 
@@ -73,7 +73,7 @@ import {
   updateEvent as serviceUpdateEvent,
   cancelEvent as serviceCancelEvent,
 } from "@/services/event-service";
-import { requireAuthenticatedSession } from "@/services/permissions";
+import { requireAuthenticatedSession } from "@igbo/auth/permissions";
 
 const mockEvent = {
   id: "event-1",

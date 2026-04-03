@@ -7,7 +7,7 @@ const mockGetConversationById = vi.fn();
 const mockMarkConversationRead = vi.fn();
 const mockGetConversationWithMembers = vi.fn();
 
-vi.mock("@/services/permissions", () => ({
+vi.mock("@igbo/auth/permissions", () => ({
   requireAuthenticatedSession: (...args: unknown[]) => mockRequireAuthenticatedSession(...args),
 }));
 

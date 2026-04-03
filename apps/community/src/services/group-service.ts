@@ -15,7 +15,7 @@ import {
   type GroupDetail,
 } from "@igbo/db/queries/groups";
 import { getUserMembershipTier } from "@igbo/db/queries/auth-permissions";
-import { canCreateGroup } from "@/services/permissions";
+import { canCreateGroup } from "@igbo/auth/permissions";
 import { eventBus } from "@/services/event-bus";
 import { createDefaultChannel } from "@/services/group-channel-service";
 import {

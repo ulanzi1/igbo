@@ -1,10 +1,17 @@
 import { defineConfig } from "vitest/config";
+import { loadEnv } from "vite";
 import path from "path";
+
+// Load all .env / .env.local / .env.test / .env.test.local vars into process.env
+// Vitest v4 does not auto-populate process.env from .env files; loadEnv with an
+// empty prefix picks up every variable regardless of prefix.
+const testEnv = loadEnv("test", path.resolve(__dirname), "");
 
 export default defineConfig({
   test: {
     globals: true,
     environment: "jsdom",
+    env: testEnv,
     setupFiles: ["./src/test/setup.ts"],
     include: ["src/**/*.test.{ts,tsx}", "*.test.ts"],
     coverage: {
@@ -33,6 +40,10 @@ export default defineConfig({
       {
         find: "@igbo/config/redis",
         replacement: path.resolve(__dirname, "../../packages/config/src/redis"),
+      },
+      {
+        find: "@igbo/config/events",
+        replacement: path.resolve(__dirname, "../../packages/config/src/events"),
       },
       {
         find: "@igbo/config/notifications",
@@ -66,6 +77,15 @@ export default defineConfig({
       {
         find: /^@igbo\/db$/,
         replacement: path.resolve(__dirname, "../../packages/db/src/index"),
+      },
+      // @igbo/auth — regex aliases cover all subpaths without enumeration
+      {
+        find: /^@igbo\/auth\/(.+)$/,
+        replacement: path.resolve(__dirname, "../../packages/auth/src/$1"),
+      },
+      {
+        find: /^@igbo\/auth$/,
+        replacement: path.resolve(__dirname, "../../packages/auth/src/index"),
       },
     ],
   },

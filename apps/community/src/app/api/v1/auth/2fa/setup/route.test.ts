@@ -7,7 +7,7 @@ const mockGenerate2faSecret = vi.fn();
 const mockVerify2faAndComplete = vi.fn();
 const mockFindUserById = vi.fn();
 
-vi.mock("@/server/auth/config", () => ({
+vi.mock("@igbo/auth", () => ({
   getChallenge: (...args: unknown[]) => mockGetChallenge(...args),
 }));
 vi.mock("@/services/auth-service", () => ({

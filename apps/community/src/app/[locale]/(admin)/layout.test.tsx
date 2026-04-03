@@ -15,7 +15,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 // --- Mocks ---
 
 const mockAuth = vi.fn();
-vi.mock("@/server/auth/config", () => ({
+vi.mock("@igbo/auth", () => ({
   auth: () => mockAuth(),
 }));
 

@@ -9,7 +9,7 @@ const mockGetGroupMember = vi.fn();
 const mockApproveGroupPost = vi.fn();
 const mockEventBusEmit = vi.fn();
 
-vi.mock("@/services/permissions", () => ({
+vi.mock("@igbo/auth/permissions", () => ({
   requireAuthenticatedSession: (...args: unknown[]) => mockRequireAuthenticatedSession(...args),
 }));
 

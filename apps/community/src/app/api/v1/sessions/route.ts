@@ -1,6 +1,6 @@
 import { withApiHandler } from "@/server/api/middleware";
 import { successResponse } from "@/lib/api-response";
-import { requireAuthenticatedSession } from "@/services/permissions";
+import { requireAuthenticatedSession } from "@igbo/auth/permissions";
 import { getUserSessions } from "@/services/auth-service";
 
 export const GET = withApiHandler(async () => {

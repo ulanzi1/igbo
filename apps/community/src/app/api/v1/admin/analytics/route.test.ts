@@ -11,7 +11,7 @@ const mockGetLatestBreakdownSnapshot = vi.fn();
 const mockCurrentlyOnlineUsers = vi.fn();
 const mockTodayPartialDau = vi.fn();
 
-vi.mock("@/lib/admin-auth", () => ({
+vi.mock("@igbo/auth/admin-auth", () => ({
   requireAdminSession: (...args: unknown[]) => mockRequireAdminSession(...args),
 }));
 

@@ -4,7 +4,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 // ─── Mocks ───────────────────────────────────────────────────────────────────
 
 const mockRequireAdminSession = vi.fn();
-vi.mock("@/lib/admin-auth", () => ({
+vi.mock("@igbo/auth/admin-auth", () => ({
   requireAdminSession: () => mockRequireAdminSession(),
 }));
 
@@ -26,8 +26,10 @@ vi.mock("@/lib/redis", () => ({
 }));
 
 const mockSentryCaptureMessage = vi.fn();
+const mockSentryCaptureException = vi.fn();
 vi.mock("@sentry/nextjs", () => ({
   captureMessage: (...args: unknown[]) => mockSentryCaptureMessage(...args),
+  captureException: (...args: unknown[]) => mockSentryCaptureException(...args),
 }));
 
 import { GET, POST } from "./route";

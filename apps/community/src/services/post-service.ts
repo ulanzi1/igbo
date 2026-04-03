@@ -1,5 +1,5 @@
 import "server-only";
-import { canCreateFeedPost, getMaxFeedPostsPerWeek } from "@/services/permissions";
+import { canCreateFeedPost, getMaxFeedPostsPerWeek } from "@igbo/auth/permissions";
 import { getUserMembershipTier } from "@igbo/db/queries/auth-permissions";
 import {
   getWeeklyFeedPostCount,

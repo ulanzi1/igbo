@@ -1,7 +1,7 @@
 import { withApiHandler } from "@/server/api/middleware";
 import { successResponse } from "@/lib/api-response";
 import { ApiError } from "@/lib/api-error";
-import { requireAdminSession } from "@/lib/admin-auth";
+import { requireAdminSession } from "@igbo/auth/admin-auth";
 import { getModerationActionById } from "@igbo/db/queries/moderation";
 import { getMessageById, getConversationMessages } from "@igbo/db/queries/chat-messages";
 import { logAdminAction } from "@/services/audit-logger";

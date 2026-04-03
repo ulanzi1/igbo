@@ -1,5 +1,14 @@
-/** Base fields shared by all event payloads */
+import type { BaseEvent as SharedBaseEvent } from "@igbo/config/events";
+export type { SharedBaseEvent };
+
+/**
+ * Base fields shared by all community event payloads.
+ * Includes optional envelope fields (eventId, version) for future cross-app
+ * compatibility. Community's EventBus will auto-inject these in a future story.
+ */
 interface BaseEvent {
+  eventId?: string; // Optional — future: auto-injected for cross-app dedup tracking
+  version?: number; // Optional — future: schema version for cross-app consumers
   timestamp: string; // ISO 8601
 }
 

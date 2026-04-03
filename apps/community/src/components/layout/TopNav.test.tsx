@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent } from "@/test/test-utils";
 import { TopNav } from "./TopNav";
 
@@ -37,8 +37,9 @@ vi.mock("@/hooks/use-contrast-mode", () => ({
 }));
 
 const mockSignOut = vi.fn();
+const mockUseSession = vi.fn(() => ({ data: null }));
 vi.mock("next-auth/react", () => ({
-  useSession: () => ({ data: null }),
+  useSession: (...args: unknown[]) => mockUseSession(...args),
   signOut: (...args: unknown[]) => mockSignOut(...args),
 }));
 
@@ -177,5 +178,42 @@ describe("TopNav", () => {
     render(<TopNav />);
     fireEvent.click(screen.getByText("Navigation.logout"));
     expect(mockSignOut).toHaveBeenCalled();
+  });
+
+  describe("Job Portal link", () => {
+    beforeEach(() => {
+      process.env.NEXT_PUBLIC_PORTAL_URL = "http://localhost:3001";
+    });
+
+    afterEach(() => {
+      mockUseSession.mockReturnValue({ data: null });
+    });
+
+    it("authenticated user sees 'Job Portal' link in desktop nav", () => {
+      mockUseSession.mockReturnValue({
+        data: { user: { id: "u1", name: "Test" }, expires: "2099-01-01" },
+      });
+      render(<TopNav />);
+      expect(screen.getAllByText("Navigation.jobPortal").length).toBeGreaterThan(0);
+    });
+
+    it("'Job Portal' link href equals NEXT_PUBLIC_PORTAL_URL", () => {
+      mockUseSession.mockReturnValue({
+        data: { user: { id: "u1", name: "Test" }, expires: "2099-01-01" },
+      });
+      render(<TopNav />);
+      const links = screen
+        .getAllByText("Navigation.jobPortal")
+        .map((el) => el.closest("a"))
+        .filter(Boolean);
+      expect(links.length).toBeGreaterThan(0);
+      expect(links[0]).toHaveAttribute("href", "http://localhost:3001");
+    });
+
+    it("'Job Portal' link is NOT present for guests (no session)", () => {
+      mockUseSession.mockReturnValue({ data: null });
+      render(<TopNav />);
+      expect(screen.queryByText("Navigation.jobPortal")).not.toBeInTheDocument();
+    });
   });
 });

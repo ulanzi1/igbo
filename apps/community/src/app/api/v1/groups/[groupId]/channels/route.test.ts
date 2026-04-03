@@ -8,7 +8,7 @@ const mockGetGroupMember = vi.fn();
 const mockListChannelsForGroup = vi.fn();
 const mockCreateChannel = vi.fn();
 
-vi.mock("@/services/permissions", () => ({
+vi.mock("@igbo/auth/permissions", () => ({
   requireAuthenticatedSession: (...args: unknown[]) => mockRequireAuthenticatedSession(...args),
 }));
 

@@ -1,6 +1,6 @@
 import { z } from "zod/v4";
 import { withApiHandler } from "@/server/api/middleware";
-import { requireAuthenticatedSession } from "@/services/permissions";
+import { requireAuthenticatedSession } from "@igbo/auth/permissions";
 import { successResponse } from "@/lib/api-response";
 import { ApiError } from "@/lib/api-error";
 import { setQuietHours, isUserInQuietHours } from "@igbo/db/queries/notification-preferences";

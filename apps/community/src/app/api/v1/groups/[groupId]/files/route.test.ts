@@ -7,7 +7,7 @@ const mockRequireAuthenticatedSession = vi.fn();
 const mockGetGroupMember = vi.fn();
 const mockListGroupFiles = vi.fn();
 
-vi.mock("@/services/permissions", () => ({
+vi.mock("@igbo/auth/permissions", () => ({
   requireAuthenticatedSession: (...args: unknown[]) => mockRequireAuthenticatedSession(...args),
 }));
 

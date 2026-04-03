@@ -1,0 +1,46 @@
+{
+  "Portal": {
+    "nav": {
+      "home": "Home",
+      "jobs": "Jobs for You",
+      "browseAll": "Browse All Jobs",
+      "apprenticeships": "Apprenticeships",
+      "myApplications": "My Applications",
+      "savedJobs": "Saved Jobs",
+      "dashboard": "Dashboard",
+      "myJobs": "My Jobs",
+      "applications": "Applications",
+      "messages": "Messages",
+      "companyProfile": "Company Profile",
+      "backToCommunity": "Back to Community",
+      "postJob": "Post a Job",
+      "login": "Log In",
+      "joinNow": "Join Now",
+      "profile": "Profile"
+    },
+    "role": {
+      "seeker": "Job Seeker",
+      "employer": "Employer",
+      "admin": "Job Admin",
+      "switchRole": "Switch Role"
+    },
+    "home": {
+      "title": "OBIGBO Job Portal",
+      "subtitle": "Connecting the Igbo diaspora with opportunities",
+      "guestWelcome": "Browse job opportunities from employers in the Igbo community",
+      "seekerWelcome": "Welcome back! Find your next opportunity",
+      "employerWelcome": "Welcome back! Manage your job postings"
+    },
+    "guest": {
+      "loginPrompt": "Log in to apply for jobs",
+      "joinPrompt": "Join the community to get started"
+    },
+    "meta": {
+      "title": "OBIGBO Job Portal",
+      "description": "Job opportunities for the Igbo diaspora community"
+    }
+  },
+  "Shell": {
+    "skipToContent": "Skip to main content"
+  }
+}

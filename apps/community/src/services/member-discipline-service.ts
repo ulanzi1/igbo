@@ -7,7 +7,7 @@ import {
   findActiveSessionsByUserId,
   deleteAllSessionsForUser,
 } from "@igbo/db/queries/auth-sessions";
-import { evictAllUserSessions } from "@/server/auth/redis-session-cache";
+import { evictAllUserSessions } from "@igbo/auth/session-cache";
 import {
   createDisciplineAction,
   getDisciplineActionById,

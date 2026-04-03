@@ -1,7 +1,7 @@
 // DELETE /api/v1/groups/[groupId]/channels/[channelId] — delete channel (leader/creator only)
 import { withApiHandler } from "@/server/api/middleware";
 import { ApiError } from "@/lib/api-error";
-import { requireAuthenticatedSession } from "@/services/permissions";
+import { requireAuthenticatedSession } from "@igbo/auth/permissions";
 import { deleteChannel } from "@/services/group-channel-service";
 import { RATE_LIMIT_PRESETS } from "@/services/rate-limiter";
 

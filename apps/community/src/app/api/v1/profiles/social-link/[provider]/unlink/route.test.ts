@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
-vi.mock("@/services/permissions", () => ({
+vi.mock("@igbo/auth/permissions", () => ({
   requireAuthenticatedSession: vi.fn(),
 }));
 
@@ -27,7 +27,7 @@ vi.mock("@/env", () => ({
 }));
 
 import { DELETE } from "./route";
-import { requireAuthenticatedSession } from "@/services/permissions";
+import { requireAuthenticatedSession } from "@igbo/auth/permissions";
 import * as profileService from "@/services/profile-service";
 
 const mockRequireAuth = vi.mocked(requireAuthenticatedSession);

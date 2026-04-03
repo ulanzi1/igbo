@@ -1,7 +1,7 @@
 "use server";
 
 import { saveDraft, submitArticle } from "@/services/article-service";
-import { requireAuthenticatedSession } from "@/services/permissions";
+import { requireAuthenticatedSession } from "@igbo/auth/permissions";
 import type { ArticleCategory, ArticleVisibility } from "@igbo/db/schema/community-articles";
 
 interface SaveDraftActionInput {

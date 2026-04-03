@@ -8,7 +8,7 @@ const mockGetAllPointsRules = vi.fn();
 const mockUpdatePointsRule = vi.fn();
 const mockLogAdminAction = vi.fn();
 
-vi.mock("@/lib/admin-auth", () => ({
+vi.mock("@igbo/auth/admin-auth", () => ({
   requireAdminSession: (...a: unknown[]) => mockRequireAdminSession(...a),
 }));
 

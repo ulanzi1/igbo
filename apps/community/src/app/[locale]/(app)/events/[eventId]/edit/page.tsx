@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
-import { auth } from "@/server/auth/config";
+import { auth } from "@igbo/auth";
 import { getEventById } from "@igbo/db/queries/events";
 import { EventForm } from "@/features/events/components/EventForm";
 

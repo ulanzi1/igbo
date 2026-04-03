@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
-vi.mock("@/server/auth/config", () => ({
+vi.mock("@igbo/auth", () => ({
   auth: vi.fn(),
 }));
 
@@ -28,7 +28,7 @@ vi.mock("@/env", () => ({
 }));
 
 import { GET } from "./route";
-import { auth } from "@/server/auth/config";
+import { auth } from "@igbo/auth";
 import {
   getPublicProfileForViewer,
   getProfileWithSocialLinks,

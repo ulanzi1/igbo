@@ -24,7 +24,7 @@ const {
   };
 });
 
-vi.mock("@/services/permissions", () => ({
+vi.mock("@igbo/auth/permissions", () => ({
   requireAuthenticatedSession: vi.fn().mockResolvedValue({ userId: CURRENT_USER }),
 }));
 

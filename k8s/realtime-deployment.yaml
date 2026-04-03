@@ -26,7 +26,7 @@ spec:
         - name: realtime
           image: ghcr.io/REPLACE_WITH_YOUR_ORG/igbo-realtime:latest # TODO: replace with your GitHub org
           ports:
-            - containerPort: 3001
+            - containerPort: 3002
               name: http
           envFrom:
             - configMapRef:
@@ -43,14 +43,14 @@ spec:
           readinessProbe:
             httpGet:
               path: /health
-              port: 3001
+              port: 3002
             initialDelaySeconds: 10
             periodSeconds: 10
             failureThreshold: 3
           livenessProbe:
             httpGet:
               path: /health
-              port: 3001
+              port: 3002
             initialDelaySeconds: 20
             periodSeconds: 30
             failureThreshold: 3

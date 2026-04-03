@@ -37,7 +37,7 @@ export const serverEnvSchema = z.object({
   CLAMAV_HOST: z.string().optional().default("clamav"),
   CLAMAV_PORT: z.coerce.number().int().positive().optional().default(3310),
   // Realtime server (internal URL for health checks, service-name in Docker)
-  REALTIME_INTERNAL_URL: z.url().optional().default("http://localhost:3001"),
+  REALTIME_INTERNAL_URL: z.url().optional().default("http://localhost:3002"),
   // Email Service
   EMAIL_PROVIDER: z.enum(["resend"]).default("resend"),
   RESEND_API_KEY: z.string().optional(),
@@ -62,6 +62,11 @@ export const serverEnvSchema = z.object({
   METRICS_SECRET: z.string().optional().default(""),
   // Logging level
   LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]).optional(),
+  // Cross-subdomain SSO
+  COOKIE_DOMAIN: z.string().optional(), // e.g. ".igbo.com" for prod; undefined = current host only (dev)
+  ALLOWED_ORIGINS: z.string().optional(), // comma-separated allowed cross-subdomain origins, e.g. "https://job.igbo.com"
+  COMMUNITY_URL: z.url().optional(), // community app base URL; used by portal verify-session redirect & ITP workaround
+  SESSION_UPDATE_AGE_SECONDS: z.coerce.number().int().positive().default(3600), // how often Auth.js refreshes JWT + re-emits Set-Cookie (resets Safari ITP timer)
 });
 
 export const clientEnvSchema = z.object({
@@ -71,6 +76,8 @@ export const clientEnvSchema = z.object({
   // Sentry
   NEXT_PUBLIC_SENTRY_DSN: z.string().optional().default(""),
   NEXT_PUBLIC_SENTRY_ENVIRONMENT: z.string().optional(),
+  // Job Portal — optional so community works standalone without portal
+  NEXT_PUBLIC_PORTAL_URL: z.url().optional(),
 });
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>;
