@@ -16,13 +16,14 @@
     "prepare": "husky",
     "db:migrate": "pnpm --filter @igbo/db db:migrate",
     "db:journal-sync": "pnpm --filter @igbo/db db:journal-sync",
-    "db:journal-check": "pnpm --filter @igbo/db db:journal-check"
+    "db:journal-check": "pnpm --filter @igbo/db db:journal-check",
+    "check:stale-imports": "npx tsx scripts/check-stale-imports.ts"
   },
   "devDependencies": {
     "husky": "^9.1.7",
     "lint-staged": "^16.2.7",
     "prettier": "^3.8.1",
-    "turbo": "^2.7.0"
+    "turbo": "2.7.0"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
@@ -38,6 +39,10 @@
   "lint-staged": {
     "apps/community/**/*.{ts,tsx,mts}": [
       "eslint --config apps/community/eslint.config.mjs --fix",
+      "prettier --write"
+    ],
+    "apps/portal/**/*.{ts,tsx,mts}": [
+      "eslint --config apps/portal/eslint.config.mjs --fix",
       "prettier --write"
     ],
     "packages/config/**/*.{ts,tsx,mts}": [

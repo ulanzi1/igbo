@@ -14,13 +14,23 @@
     "HETZNER_S3_PUBLIC_URL",
     "NEXT_PUBLIC_APP_URL",
     "NEXT_PUBLIC_REALTIME_URL",
-    "NODE_ENV"
+    "NODE_ENV",
+    "NEXT_PUBLIC_PORTAL_URL",
+    "NEXT_PUBLIC_COMMUNITY_URL",
+    "COMMUNITY_URL",
+    "ALLOWED_ORIGINS",
+    "SESSION_UPDATE_AGE_SECONDS",
+    "AUTH_URL"
   ],
   "tasks": {
     "build": { "dependsOn": ["^build"], "outputs": [".next/**", "dist/**"] },
     "dev": { "cache": false, "persistent": true },
     "test": { "dependsOn": ["^build"] },
     "lint": {},
-    "typecheck": { "dependsOn": ["^build"] }
+    "typecheck": { "dependsOn": ["^build"] },
+    "test:integration": {
+      "dependsOn": ["@igbo/community#build", "@igbo/portal#build"],
+      "cache": false
+    }
   }
 }
