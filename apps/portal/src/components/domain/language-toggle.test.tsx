@@ -91,7 +91,6 @@ describe("LanguageToggle", () => {
       <LanguageToggle activeLanguage="en" onLanguageChange={vi.fn()} hasIgbo={true} />,
     );
     const results = await axe(container);
-    // @ts-expect-error jest-axe matcher not in vitest types
     expect(results).toHaveNoViolations();
   });
 });

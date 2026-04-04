@@ -83,7 +83,6 @@ describe("CulturalContextBadges", () => {
     };
     const { container } = render(<CulturalContextBadges culturalContext={culturalContext} />);
     const results = await axe(container);
-    // @ts-expect-error jest-axe matcher not in vitest types
     expect(results).toHaveNoViolations();
   });
 });

@@ -131,7 +131,6 @@ describe("MyJobsPage", () => {
     vi.mocked(getJobPostingsByCompanyId).mockResolvedValue([]);
     const { container } = await renderPage();
     const results = await axe(container);
-    // @ts-expect-error jest-axe matcher not in vitest types
     expect(results).toHaveNoViolations();
   });
 
@@ -139,7 +138,6 @@ describe("MyJobsPage", () => {
     vi.mocked(getJobPostingsByCompanyId).mockResolvedValue(mockPostings as never);
     const { container } = await renderPage();
     const results = await axe(container);
-    // @ts-expect-error jest-axe matcher not in vitest types
     expect(results).toHaveNoViolations();
   });
 });
