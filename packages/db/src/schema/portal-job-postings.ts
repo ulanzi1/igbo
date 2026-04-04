@@ -44,7 +44,7 @@ export const portalJobPostings = pgTable("portal_job_postings", {
   location: varchar("location", { length: 200 }),
   employmentType: portalEmploymentTypeEnum("employment_type").notNull(),
   status: portalJobStatusEnum("status").notNull().default("draft"),
-  culturalContextJson: jsonb("cultural_context_json"),
+  culturalContextJson: jsonb("cultural_context_json").$type<Record<string, boolean> | null>(),
   descriptionIgboHtml: text("description_igbo_html"),
   applicationDeadline: timestamp("application_deadline", { withTimezone: true }),
   expiresAt: timestamp("expires_at", { withTimezone: true }),
