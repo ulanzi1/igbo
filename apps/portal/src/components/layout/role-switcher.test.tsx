@@ -249,7 +249,6 @@ describe("RoleSwitcher", () => {
     setSession({ activePortalRole: "JOB_SEEKER", portalRoles: ["JOB_SEEKER", "EMPLOYER"] });
     const { container } = render(<RoleSwitcher />);
     const results = await axe(container);
-    // @ts-expect-error -- jest-axe extends expect at runtime via expect.extend(toHaveNoViolations)
     expect(results).toHaveNoViolations();
   });
 
@@ -257,7 +256,6 @@ describe("RoleSwitcher", () => {
     setSession({ activePortalRole: "JOB_SEEKER", portalRoles: ["JOB_SEEKER"] });
     const { container } = render(<RoleSwitcher />);
     const results = await axe(container);
-    // @ts-expect-error -- jest-axe extends expect at runtime via expect.extend(toHaveNoViolations)
     expect(results).toHaveNoViolations();
   });
 });
