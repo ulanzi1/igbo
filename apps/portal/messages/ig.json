@@ -118,6 +118,102 @@
       "non_profit": "Ọrụ Ọha",
       "government": "Gọọmentin",
       "other": "Ndị Ọzọ"
+    },
+    "posting": {
+      "createTitle": "Mepụta Ntinye Ọrụ",
+      "title": "Aha Ọrụ",
+      "titlePlaceholder": "dịka, Onye Injinia Sọftụwia Okenye",
+      "titleRequired": "Aha ọrụ dị mkpa",
+      "description": "Nkọwa Ọrụ",
+      "descriptionPlaceholder": "Kọọwa ọrụ ahụ, ọrụ ndị a na-arụ, na ihe na-eme ya dị mma...",
+      "requirements": "Ihe A Chọrọ",
+      "requirementsPlaceholder": "Depụta nka, ahụmịhe, na ikike ndị a chọrọ...",
+      "location": "Ọnọdụ",
+      "locationPlaceholder": "dịka, Lagos, Naịjirịa ma ọ bụ ọrụ n'ụlọ",
+      "employmentType": "Ụdị Ọrụ",
+      "employmentTypePlaceholder": "Họrọ ụdị ọrụ",
+      "applicationDeadline": "Njedebe Ngwa",
+      "applicationDeadlineHelp": "Nhọrọ. Hapụ ọcha maka ọ nweghị njedebe.",
+      "save": "Chekwaa dị ka Ihe Edebara",
+      "saving": "Na-echekwa...",
+      "created": "Emepụtara ntinye ọrụ dị ka ihe edebara",
+      "companyRequired": "Mepụta profaịlụ ụlọ ọrụ gị tupu",
+      "viewMyJobs": "Lee Ọrụ M",
+      "editPosting": "Dezie Ntinye",
+      "errorGeneric": "Mperi mere",
+      "createdAt": "Emepụtara {date}",
+      "bilingual": "Asụsụ Abụọ",
+      "addIgboDescription": "Tinye Nkọwa Igbo",
+      "addIgboDescriptionHelp": "Nye nkọwa n'asụsụ Igbo maka ndị chọrọ ọrụ",
+      "descriptionIgbo": "Nkọwa Ọrụ (Igbo)",
+      "descriptionIgboPlaceholder": "Kọọwa ọrụ ahụ n'asụsụ Igbo...",
+      "type": {
+        "full_time": "Oge Niile",
+        "part_time": "Oge Ụfọdụ",
+        "contract": "Nkwekọrịta",
+        "internship": "Ọzụzụ Ọrụ"
+      },
+      "status": {
+        "draft": "Ihe Edebara",
+        "pending_review": "Na-atọ Nyocha",
+        "active": "Na-arụ Ọrụ",
+        "paused": "Kwụsịrị",
+        "filled": "Juputara",
+        "expired": "Njedebe Eruo",
+        "rejected": "Jụrụ"
+      }
+    },
+    "culturalContext": {
+      "title": "Omenala",
+      "diasporaFriendly": "Dị Mma Maka Ndị Igbo N'Ụwa",
+      "diasporaFriendlyHelp": "Ọrụ ndị dịkwuru maka ndị bi n'ụwa",
+      "igboLanguagePreferred": "Asụsụ Igbo A Chọrọ",
+      "igboLanguagePreferredHelp": "A chọrọ ndị maara asụ Igbo nke ọma",
+      "communityReferred": "Obodo Ntụnye Aka",
+      "communityReferredHelp": "Ọrụ a na-edozi site n'obodo",
+      "badgeDiaspora": "Ndị Igbo N'Ụwa",
+      "badgeIgbo": "Asụsụ Igbo",
+      "badgeCommunity": "Obodo Ntụnye"
+    },
+    "languageToggle": {
+      "english": "Bekee",
+      "igbo": "Igbo",
+      "bilingual": "Asụsụ Abụọ"
+    },
+    "salary": {
+      "range": "Oke Ugwo",
+      "min": "Kacha Obere",
+      "max": "Kacha Elu",
+      "competitive": "Nkwekọrịta",
+      "preferNotToDisclose": "Achọghị ikọ ugwo",
+      "from": "Site na {amount}",
+      "upTo": "Ruo {amount}",
+      "rangeFormat": "{min} – {max}",
+      "minGreaterThanMax": "Ugwo kacha obere ga-abụ obere karịa kacha elu"
+    },
+    "editor": {
+      "heading2": "Isi Nke Abụọ",
+      "heading3": "Isi Nke Atọ",
+      "bold": "Ọnụ",
+      "italic": "Dị ìhèlà",
+      "bulletList": "Ndepụta Njedebe",
+      "orderedList": "Ndepụta Nọmbụ",
+      "blockquote": "Okwu Ndị Ọzọ",
+      "link": "Njikọ",
+      "removeLink": "Wepu Njikọ",
+      "linkUrl": "URL",
+      "linkApply": "Tinye",
+      "linkCancel": "Kagbuo",
+      "characterCount": "{count} mkpụrụedemede"
+    },
+    "myJobs": {
+      "title": "Ntinye Ọrụ M",
+      "createNew": "Mepụta Ọrụ Ọhụrụ",
+      "empty": "Ọ dịghị ntinye ọrụ ka",
+      "emptyDescription": "Mepụta ntinye ọrụ gị nke mbụ ka ị malite igwu ndị na-achọ ọrụ.",
+      "createFirst": "Mepụta Ọrụ Gị Nke Mbụ",
+      "createdAt": "Emepụtara {date}",
+      "edit": "Dezie"
     }
   },
   "Shell": {
