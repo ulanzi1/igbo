@@ -19,7 +19,8 @@
       "profile": "Profaịlụ",
       "reviewQueue": "Usoro Nyocha",
       "reports": "Akụkọ",
-      "settings": "Ntọala"
+      "settings": "Ntọala",
+      "myJobsEmpty": "Ọrụ ndị ị tinyere ga-apụta ebe a."
     },
     "role": {
       "seeker": "Onye Na-achọ Ọrụ",
@@ -52,6 +53,71 @@
       "postingLimitExceeded": "Ị rutela ọnụ ọgụgụ kacha maka ọrụ ndị ị tinyere.",
       "duplicateApplication": "Ị abanye akwụkwọ maka ọrụ a.",
       "invalidStatusTransition": "Ọgbanwe ọnọdụ a anaghị ikwe ya."
+    },
+    "company": {
+      "createTitle": "Mepụta Profaịlụ Ụlọ Ọrụ",
+      "editTitle": "Dezie Profaịlụ Ụlọ Ọrụ",
+      "viewTitle": "Profaịlụ Ụlọ Ọrụ",
+      "name": "Aha Ụlọ Ọrụ",
+      "namePlaceholder": "Tinye aha ụlọ ọrụ gị",
+      "nameRequired": "Aha ụlọ ọrụ dị mkpa",
+      "logo": "Akara Ụlọ Ọrụ",
+      "logoUpload": "Bulite akara",
+      "logoUploading": "Na-ebuliteri...",
+      "description": "Nkọwa",
+      "descriptionPlaceholder": "Kọọ ndị chọrọ ọrụ maka ụlọ ọrụ gị",
+      "industry": "Ụlọ Ọrụ",
+      "industryPlaceholder": "Họrọ ụdị ụlọ ọrụ",
+      "companySize": "Nnukwu Ụlọ Ọrụ",
+      "companySizePlaceholder": "Họrọ nnukwu ụlọ ọrụ",
+      "cultureInfo": "Omenala & Ụkpụrụ",
+      "cultureInfoPlaceholder": "Gịnị mere omenala ụlọ ọrụ gị pụtara ìhè?",
+      "save": "Chekwaa Profaịlụ",
+      "saving": "Na-echekwa...",
+      "created": "Emepụtara profaịlụ ụlọ ọrụ nke ọma",
+      "updated": "Edeziri profaịlụ ụlọ ọrụ nke ọma",
+      "duplicateError": "Ị nwelarịa profaịlụ ụlọ ọrụ",
+      "edit": "Dezie Profaịlụ",
+      "activeJobs": "Ọrụ Ndị Dị Ugbu A",
+      "noJobsYet": "Ọ dịghị ọrụ ndị atinyewo",
+      "createProfileFirst": "Mepụta profaịlụ ụlọ ọrụ gị ka ị malite",
+      "onboardingPrompt": "Ị chọrọ profaịlụ ụlọ ọrụ tupu ị tinye ọrụ",
+      "errorGeneric": "Mperi mere",
+      "errorUnexpected": "Mperi anaghị atụ anya ya mere"
+    },
+    "trust": {
+      "verifiedMember": "Onye Otu A Nyochara",
+      "memberSince": "Onye otu kemgbe {year}",
+      "engagementLow": "Onye Otu Ọhụrụ",
+      "engagementMedium": "Onye Otu Na-arụ Ọrụ",
+      "engagementHigh": "Onye Otu A Tụkwasịrị Obi",
+      "communityTrust": "Ntụkwasị Obi Obodo"
+    },
+    "upload": {
+      "dragOrClick": "Dọba ma ọ bụ pịa iji bulite",
+      "maxSize": "Ogo faịlụ kacha: {size}MB",
+      "invalidType": "Ụdị faịlụ a abụghị. Ndị anabatara: {types}",
+      "tooLarge": "Faịlụ dị oke ukwuu. Ogo kacha: {size}MB",
+      "uploadFailed": "Ọ dịghị mma ịbuliteri. Biko nwalee ọzọ.",
+      "uploading": "Na-ebuliteri...",
+      "logoPreview": "Ihe nlere akara ụlọ ọrụ"
+    },
+    "industries": {
+      "technology": "Teknọlọjị",
+      "finance": "Ego & Ụlọ Akụ",
+      "healthcare": "Ahụike",
+      "education": "Ọzụzụ",
+      "manufacturing": "Mmepụta Ihe",
+      "retail": "Ahịa & Azụmahịa",
+      "agriculture": "Ọrụ Ugbo",
+      "energy": "Ọkụ & Ihe Ọkụ",
+      "media": "Mgbasa Ozi & Ihe Nkiri",
+      "consulting": "Ndụmọdụ",
+      "legal": "Iwu",
+      "real_estate": "Ụlọ na Ala",
+      "non_profit": "Ọrụ Ọha",
+      "government": "Gọọmentin",
+      "other": "Ndị Ọzọ"
     }
   },
   "Shell": {
