@@ -1,6 +1,19 @@
 // @vitest-environment node
 import { describe, it, expect, vi, beforeAll, afterAll } from "vitest";
 
+const { mockEnv } = vi.hoisted(() => {
+  const mockEnv: Record<string, string | undefined> = {
+    METRICS_SECRET: "test-secret-token",
+    NODE_ENV: "test",
+  };
+  return { mockEnv };
+});
+vi.mock("@/env", () => ({
+  get env() {
+    return mockEnv;
+  },
+}));
+
 vi.mock("@/lib/metrics", () => ({
   metricsRegistry: {
     metrics: () => Promise.resolve("# HELP test_metric A test metric\ntest_metric 1\n"),
@@ -34,15 +47,9 @@ vi.mock("@/lib/rate-limiter", () => ({
 import { GET } from "./route";
 
 describe("GET /api/metrics", () => {
-  let origMetricsSecret: string | undefined;
-
   beforeAll(() => {
-    origMetricsSecret = process.env.METRICS_SECRET;
-    process.env.METRICS_SECRET = "test-secret-token";
-  });
-
-  afterAll(() => {
-    process.env.METRICS_SECRET = origMetricsSecret;
+    mockEnv.METRICS_SECRET = "test-secret-token";
+    mockEnv.NODE_ENV = "test";
   });
 
   it("returns 200 with Prometheus text format when correct bearer token provided", async () => {
@@ -93,10 +100,10 @@ describe("GET /api/metrics", () => {
   });
 
   it("returns 503 in production when METRICS_SECRET is not configured", async () => {
-    const origSecret = process.env.METRICS_SECRET;
-    const origNodeEnv = process.env.NODE_ENV;
-    process.env.METRICS_SECRET = "";
-    process.env.NODE_ENV = "production";
+    const origSecret = mockEnv.METRICS_SECRET;
+    const origNodeEnv = mockEnv.NODE_ENV;
+    mockEnv.METRICS_SECRET = "";
+    mockEnv.NODE_ENV = "production";
     try {
       const request = new Request("http://localhost:3000/api/metrics", { method: "GET" });
       const response = await GET(request);
@@ -104,8 +111,8 @@ describe("GET /api/metrics", () => {
       const text = await response.text();
       expect(text).toContain("METRICS_SECRET not configured");
     } finally {
-      process.env.METRICS_SECRET = origSecret;
-      process.env.NODE_ENV = origNodeEnv;
+      mockEnv.METRICS_SECRET = origSecret;
+      mockEnv.NODE_ENV = origNodeEnv;
     }
   });
 });

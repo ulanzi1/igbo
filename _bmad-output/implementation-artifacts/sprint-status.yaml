@@ -183,7 +183,7 @@ development_status:
   # Parallel after P-E1: P-E2(seeker 2.1-2.4) || P-E3(min 3.1-3.3) || P-E4
 
   # Portal Epic 0: Monorepo Migration & Portal Foundation
-  portal-epic-0: in-progress
+  portal-epic-0: done
   p-0-1-monorepo-structure-igbo-config: done
   p-0-2a-igbo-db-extraction-read-layer: done
   p-0-2b-migration-system-journal: done
@@ -193,7 +193,42 @@ development_status:
   p-0-4-portal-app-scaffold-navigation: done
   p-0-5-ci-pipeline-cross-app-test-gates: done
   p-0-6-redis-event-bus-foundation: done
-  portal-epic-0-retrospective: optional
+  portal-epic-0-retrospective: done
+
+  # Portal Epic 0 — Retro Action Items
+  portal-epic-0-ai-1-monorepo-playbook: done          # docs/monorepo-playbook.md
+  portal-epic-0-ai-2-test-reference-files: done        # _example.test.ts in 4 packages
+  portal-epic-0-ai-3-ci-enforcement-top3: done           # composable CI scanners (stale imports, process.env, server-only)
+  portal-epic-0-ai-4-debt-labeling: done               # labeled below + Playbook §6.2
+  portal-epic-0-ai-5-resolve-skipped-tests: done        # Redis in CI verified; 11 tests now execute
+  portal-epic-0-ai-6-tiptap-audit: backlog             # gate for P-1.3A, not urgent yet
+  portal-epic-0-cp-1-docker-build: done                # pnpm workspace fix
+  portal-epic-0-prep-1-migration-runbook: done         # docs/migration-runbook.md
+  portal-epic-0-prep-2-density-context: done           # docs/decisions/density-context.md
+
+  # ============================================
+  # TECHNICAL DEBT REGISTRY (labeled per Playbook §6.2)
+  # ============================================
+  # Velocity-debt (acceptable, time-bound — trigger documented)
+  #   VD-1: Copied shadcn/ui in portal (no @igbo/ui)
+  #         Trigger: 3+ components duplicated across apps → create shared package
+  #   VD-2: Portal event types are stubs (IDs only)
+  #         Trigger: P-1.1A schema exists → enrich event payloads
+  #   VD-3: Community eventbus-bridge portal handlers are placeholders
+  #         Trigger: First portal event actually emitted in production
+  #   VD-4: Community Redis keys not migrated to createRedisKey()
+  #         Trigger: Second app (portal) reads community Redis keys directly
+  #
+  # Structural-debt (must fix before scale)
+  #   SD-1: Inconsistent injection patterns (3 variations) — RESOLVED via Playbook §1 frozen API
+  #   SD-2: Test mock conventions vary per package — RESOLVED via _example.test.ts reference files
+  #   SD-3: No CI enforcement for env guards, server-only usage — RESOLVED (AI-3 composable scanners)
+  #   SD-4: 17 skipped tests carried across multiple epics — RESOLVED (AI-5 Redis in CI, 11 now execute; 6 SSO stays skipped until staging)
+  #   SD-5: Docker build broken (pnpm workspace in container) — RESOLVED (CP-1)
+
+  # ============================================
+  # JOB PORTAL (Phase 1 — Preparing for Epic 1)
+  # ============================================
 
   # Portal Epic 1: Job Posting & Company Profiles
   portal-epic-1: backlog

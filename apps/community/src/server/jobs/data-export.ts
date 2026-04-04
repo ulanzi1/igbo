@@ -12,7 +12,7 @@ import { eventBus } from "@/services/event-bus";
 import { enqueueEmailJob } from "@/services/email-service";
 import { env } from "@/env";
 
-const INCLUDE_RECEIVED_MESSAGES = process.env.INCLUDE_RECEIVED_MESSAGES_IN_EXPORT === "true";
+const INCLUDE_RECEIVED_MESSAGES = process.env.INCLUDE_RECEIVED_MESSAGES_IN_EXPORT === "true"; // ci-allow-process-env — not in env schema (ops-only toggle)
 const DOWNLOAD_TOKEN_TTL_MS = 48 * 60 * 60 * 1000; // 48 hours
 
 registerJob("data-export", async () => {

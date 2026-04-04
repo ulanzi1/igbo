@@ -17,7 +17,7 @@
     "db:migrate": "pnpm --filter @igbo/db db:migrate",
     "db:journal-sync": "pnpm --filter @igbo/db db:journal-sync",
     "db:journal-check": "pnpm --filter @igbo/db db:journal-check",
-    "check:stale-imports": "npx tsx scripts/check-stale-imports.ts"
+    "ci-checks": "npx tsx scripts/ci-checks/index.ts"
   },
   "devDependencies": {
     "husky": "^9.1.7",
