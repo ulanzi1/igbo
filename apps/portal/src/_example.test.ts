@@ -23,7 +23,8 @@ describe("example: your feature under test", () => {
       user: { id: "user-1", role: "MEMBER" },
       expires: new Date(Date.now() + 86400000).toISOString(),
     };
-    vi.mocked(auth).mockResolvedValue(session);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    vi.mocked(auth).mockResolvedValue(session as any);
 
     const result = await auth();
 
