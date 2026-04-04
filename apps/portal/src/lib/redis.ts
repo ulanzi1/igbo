@@ -6,8 +6,8 @@ let publisherClient: Redis | null = null;
 let subscriberClient: Redis | null = null;
 
 function createClient(name: string): Redis {
-  const client = new Redis(process.env.REDIS_URL!, {
-    // ci-allow-process-env — shared with standalone server
+  const url = process.env.REDIS_URL!; // ci-allow-process-env — shared with standalone server
+  const client = new Redis(url, {
     maxRetriesPerRequest: 3,
     lazyConnect: false,
     connectionName: `igbo:portal:${name}`,

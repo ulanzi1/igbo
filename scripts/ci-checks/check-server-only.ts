@@ -41,7 +41,9 @@ const DIRECTORY_RULES: DirectoryRule[] = [
     // packages/auth/src/**/*.ts (excluding test/**)
     prefix: /^packages\/auth\/src\//,
     isExempt: (relPath, fileName) =>
-      AUTH_EXEMPT_FILES.has(fileName) || relPath.includes("/test/"),
+      AUTH_EXEMPT_FILES.has(fileName) ||
+      relPath.includes("/test/") ||
+      relPath.includes("/test-utils/"),
   },
 ];
 
