@@ -1,3 +1,4 @@
+import "server-only";
 /**
  * VideoService abstraction — decouples the app from any specific video provider.
  * The Daily.co implementation lives in daily-video-service.ts.

@@ -19,8 +19,8 @@ export default async function PortalHomePage({ params }: PageProps) {
   const activePortalRole = (session?.user as { activePortalRole?: string } | undefined)
     ?.activePortalRole;
 
-  const communityUrl = process.env.COMMUNITY_URL ?? "http://localhost:3000";
-  const portalUrl = process.env.NEXTAUTH_URL ?? "http://localhost:3001";
+  const communityUrl = process.env.COMMUNITY_URL ?? "http://localhost:3000"; // ci-allow-process-env — portal env.ts not yet created (VD-6)
+  const portalUrl = process.env.NEXTAUTH_URL ?? "http://localhost:3001"; // ci-allow-process-env — portal env.ts not yet created (VD-6)
 
   if (!session) {
     return (

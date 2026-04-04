@@ -26,11 +26,17 @@ vi.mock("@/lib/logger", () => ({
 }));
 
 // ─── Env mock ─────────────────────────────────────────────────────────────────
-vi.mock("@/env", () => ({
-  env: {
+const { mockEnv } = vi.hoisted(() => {
+  const mockEnv: Record<string, string | undefined> = {
     SENTRY_DSN: "https://test@sentry.io/123",
     METRICS_SECRET: "test-secret",
     NODE_ENV: "test",
+  };
+  return { mockEnv };
+});
+vi.mock("@/env", () => ({
+  get env() {
+    return mockEnv;
   },
 }));
 
@@ -307,11 +313,11 @@ describe("withApiHandler", () => {
 
     describe("cross-subdomain CSRF (ALLOWED_ORIGINS)", () => {
       afterEach(() => {
-        delete process.env.ALLOWED_ORIGINS;
+        delete mockEnv.ALLOWED_ORIGINS;
       });
 
       it("allows POST from allowed cross-subdomain origin in ALLOWED_ORIGINS", async () => {
-        process.env.ALLOWED_ORIGINS = "http://job.igbo.com";
+        mockEnv.ALLOWED_ORIGINS = "http://job.igbo.com";
         const handler = withApiHandler(async () => Response.json({ data: { ok: true } }));
         const request = createRequest("POST", {
           headers: { Origin: "http://job.igbo.com" },
@@ -321,7 +327,7 @@ describe("withApiHandler", () => {
       });
 
       it("allows POST when multiple origins in ALLOWED_ORIGINS and origin matches", async () => {
-        process.env.ALLOWED_ORIGINS = "https://app.igbo.com,http://job.igbo.com";
+        mockEnv.ALLOWED_ORIGINS = "https://app.igbo.com,http://job.igbo.com";
         const handler = withApiHandler(async () => Response.json({ data: { ok: true } }));
         const request = createRequest("POST", {
           headers: { Origin: "http://job.igbo.com" },
@@ -331,7 +337,7 @@ describe("withApiHandler", () => {
       });
 
       it("blocks POST from unknown origin even when ALLOWED_ORIGINS is set", async () => {
-        process.env.ALLOWED_ORIGINS = "http://job.igbo.com";
+        mockEnv.ALLOWED_ORIGINS = "http://job.igbo.com";
         const handler = withApiHandler(async () => Response.json({ data: {} }));
         const request = createRequest("POST", {
           headers: { Origin: "http://evil.com" },
@@ -341,7 +347,7 @@ describe("withApiHandler", () => {
       });
 
       it("blocks POST from cross-origin when ALLOWED_ORIGINS env is not set", async () => {
-        delete process.env.ALLOWED_ORIGINS;
+        delete mockEnv.ALLOWED_ORIGINS;
         const handler = withApiHandler(async () => Response.json({ data: {} }));
         const request = createRequest("POST", {
           headers: { Origin: "http://job.igbo.com" },
@@ -351,7 +357,7 @@ describe("withApiHandler", () => {
       });
 
       it("blocks POST from cross-origin when ALLOWED_ORIGINS is empty string", async () => {
-        process.env.ALLOWED_ORIGINS = "";
+        mockEnv.ALLOWED_ORIGINS = "";
         const handler = withApiHandler(async () => Response.json({ data: {} }));
         const request = createRequest("POST", {
           headers: { Origin: "http://job.igbo.com" },
@@ -361,7 +367,7 @@ describe("withApiHandler", () => {
       });
 
       it("allows POST when origin protocol differs from ALLOWED_ORIGINS but host matches (host-based comparison)", async () => {
-        process.env.ALLOWED_ORIGINS = "https://job.igbo.com";
+        mockEnv.ALLOWED_ORIGINS = "https://job.igbo.com";
         const handler = withApiHandler(async () => Response.json({ data: { ok: true } }));
         const request = createRequest("POST", {
           headers: { Origin: "http://job.igbo.com" },
@@ -371,7 +377,7 @@ describe("withApiHandler", () => {
       });
 
       it("blocks POST when ALLOWED_ORIGINS contains malformed entries", async () => {
-        process.env.ALLOWED_ORIGINS = "not-a-url,also-bad";
+        mockEnv.ALLOWED_ORIGINS = "not-a-url,also-bad";
         const handler = withApiHandler(async () => Response.json({ data: {} }));
         const request = createRequest("POST", {
           headers: { Origin: "http://job.igbo.com" },
@@ -573,13 +579,13 @@ describe("withApiHandler — Sentry integration (Task 9.6)", () => {
   let origSentryDsn: string | undefined;
   beforeEach(() => {
     vi.clearAllMocks();
-    origSentryDsn = process.env.SENTRY_DSN;
-    process.env.SENTRY_DSN = "https://test@sentry.io/123";
+    origSentryDsn = mockEnv.SENTRY_DSN;
+    mockEnv.SENTRY_DSN = "https://test@sentry.io/123";
     mockCheckRateLimit.mockResolvedValue({ allowed: true, remaining: 9, resetAt: 0, limit: 10 });
     mockBuildRateLimitHeaders.mockReturnValue({});
   });
   afterEach(() => {
-    process.env.SENTRY_DSN = origSentryDsn;
+    mockEnv.SENTRY_DSN = origSentryDsn;
   });
 
   it("calls Sentry.captureException on unhandled error with traceId and user context", async () => {
