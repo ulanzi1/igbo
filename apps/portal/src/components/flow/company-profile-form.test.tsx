@@ -200,7 +200,6 @@ describe("CompanyProfileForm", () => {
   it("passes axe-core accessibility assertion", async () => {
     const { container } = render(<CompanyProfileForm mode="create" />);
     const results = await axe(container);
-    // @ts-expect-error jest-axe matcher
     expect(results).toHaveNoViolations();
   });
 });
