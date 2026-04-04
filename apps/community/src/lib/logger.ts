@@ -50,7 +50,7 @@ function buildEntry(
 }
 
 function isDebugEnabled(): boolean {
-  if (process.env.LOG_LEVEL === "debug") return true;
+  if (process.env.LOG_LEVEL === "debug") return true; // ci-allow-process-env — shared with standalone realtime server
   if (process.env.NODE_ENV !== "production") return true;
   return false;
 }

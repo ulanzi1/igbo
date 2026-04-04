@@ -1,4 +1,4 @@
-// NOTE: No "server-only" — may run in Next.js nodejs runtime
+// ci-allow-no-server-only — shared with standalone server
 import type Redis from "ioredis";
 import { COMMUNITY_CROSS_APP_EVENTS, createEventEnvelope } from "@igbo/config/events";
 import type { CommunityCrossAppEvent, CommunityCrossAppEventMap } from "@igbo/config/events";

@@ -1,3 +1,4 @@
+import "server-only";
 import { randomUUID } from "node:crypto";
 import * as Sentry from "@sentry/nextjs";
 import { ApiError } from "@/lib/api-error";
@@ -5,6 +6,7 @@ import { errorResponse } from "@/lib/api-response";
 import { getRequestContext, runWithContext } from "@/lib/request-context";
 import { logger } from "@/lib/logger";
 import { httpDuration, httpRequestsTotal, appErrorsTotal } from "@/lib/metrics";
+import { env } from "@/env";
 import type { RateLimitResult } from "@/lib/rate-limiter";
 
 type RouteHandler = (request: Request) => Promise<Response>;
@@ -68,7 +70,7 @@ function validateCsrf(request: Request): void {
     // Secondary allow-list: accept cross-subdomain origins explicitly configured via ALLOWED_ORIGINS.
     // Compare parsed hosts (not full URLs) to prevent misconfiguration-based bypasses
     // (e.g. ALLOWED_ORIGINS="https://job.igbo.com" must also match "http://job.igbo.com").
-    const allowedHosts = (process.env.ALLOWED_ORIGINS ?? "")
+    const allowedHosts = (env.ALLOWED_ORIGINS ?? "")
       .split(",")
       .map((s) => {
         try {
@@ -121,6 +123,7 @@ export function withApiHandler(handler: RouteHandler, options?: ApiHandlerOption
     try {
       // Maintenance mode check — env var approach (O(1), zero failure modes)
       if (process.env.MAINTENANCE_MODE === "true") {
+        // ci-allow-process-env — runtime flag set by admin maintenance route
         const pathname = new URL(request.url).pathname;
         const isExempt = MAINTENANCE_EXEMPT_PATHS.has(pathname);
         if (!isExempt) {
@@ -211,7 +214,7 @@ export function withApiHandler(handler: RouteHandler, options?: ApiHandlerOption
       }
 
       // Unknown error — capture in Sentry + log server-side
-      if (process.env.SENTRY_DSN) {
+      if (env.SENTRY_DSN) {
         const userId = getRequestContext()?.userId;
         Sentry.captureException(error, {
           tags: { traceId },

@@ -1,4 +1,4 @@
-// NOTE: No "server-only" — may run in both Next.js and standalone server contexts
+// ci-allow-no-server-only — shared with standalone server
 import { EventEmitter } from "node:events";
 import type {
   PortalEventMap,

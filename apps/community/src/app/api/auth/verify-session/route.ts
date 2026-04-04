@@ -31,16 +31,17 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { decode } from "next-auth/jwt";
 import { checkRateLimit } from "@/lib/rate-limiter";
+import { env } from "@/env";
 
 const COOKIE_NAME =
-  process.env.NODE_ENV === "production" ? "__Secure-authjs.session-token" : "authjs.session-token";
+  env.NODE_ENV === "production" ? "__Secure-authjs.session-token" : "authjs.session-token";
 
 function getCommunityBaseUrl(): string {
-  return process.env.COMMUNITY_URL ?? process.env.AUTH_URL ?? "http://localhost:3000";
+  return env.COMMUNITY_URL ?? env.AUTH_URL ?? "http://localhost:3000";
 }
 
 function getAllowedOrigins(): string[] {
-  return (process.env.ALLOWED_ORIGINS ?? "")
+  return (env.ALLOWED_ORIGINS ?? "")
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
@@ -48,7 +49,7 @@ function getAllowedOrigins(): string[] {
 
 export async function GET(request: NextRequest) {
   // Fail-closed: AUTH_SECRET must be set for JWT decoding
-  if (!process.env.AUTH_SECRET) {
+  if (!env.AUTH_SECRET) {
     return new NextResponse("Server configuration error", { status: 500 });
   }
 
@@ -108,7 +109,7 @@ export async function GET(request: NextRequest) {
   try {
     token = await decode({
       token: sessionToken,
-      secret: process.env.AUTH_SECRET!,
+      secret: env.AUTH_SECRET,
       salt: COOKIE_NAME,
     });
   } catch {
@@ -137,13 +138,13 @@ export async function GET(request: NextRequest) {
     "Path=/",
     "HttpOnly",
     "SameSite=Lax",
-    `Max-Age=${process.env.SESSION_TTL_SECONDS ?? "86400"}`,
+    `Max-Age=${env.SESSION_TTL_SECONDS ?? "86400"}`,
   ];
-  if (process.env.NODE_ENV === "production") {
+  if (env.NODE_ENV === "production") {
     cookieParts.push("Secure");
   }
-  if (process.env.COOKIE_DOMAIN) {
-    cookieParts.push(`Domain=${process.env.COOKIE_DOMAIN}`);
+  if (env.COOKIE_DOMAIN) {
+    cookieParts.push(`Domain=${env.COOKIE_DOMAIN}`);
   }
   response.headers.set("Set-Cookie", cookieParts.join("; "));
 

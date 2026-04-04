@@ -3,6 +3,21 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
+// ─── Env mock ────────────────────────────────────────────────────────────────
+const { mockEnv } = vi.hoisted(() => {
+  const mockEnv: Record<string, string | undefined> = {
+    NODE_ENV: "test",
+    AUTH_SECRET: "test-secret-32-bytes-long-minimum-for-hs256",
+    COMMUNITY_URL: "http://localhost:3000",
+  };
+  return { mockEnv };
+});
+vi.mock("@/env", () => ({
+  get env() {
+    return mockEnv;
+  },
+}));
+
 // ─── Mock next-auth/jwt ───────────────────────────────────────────────────────
 const mockDecode = vi.fn();
 
@@ -54,11 +69,12 @@ import type { NextRequest } from "next/server";
 
 beforeEach(() => {
   vi.clearAllMocks();
-  process.env.AUTH_SECRET = "test-secret-32-bytes-long-minimum-for-hs256";
-  process.env.COMMUNITY_URL = "http://localhost:3000";
-  delete process.env.ALLOWED_ORIGINS;
-  delete process.env.COOKIE_DOMAIN;
-  delete process.env.SESSION_TTL_SECONDS;
+  mockEnv.AUTH_SECRET = "test-secret-32-bytes-long-minimum-for-hs256";
+  mockEnv.COMMUNITY_URL = "http://localhost:3000";
+  mockEnv.NODE_ENV = "test";
+  delete mockEnv.ALLOWED_ORIGINS;
+  delete mockEnv.COOKIE_DOMAIN;
+  delete mockEnv.SESSION_TTL_SECONDS;
   // Default: rate limit allows
   mockCheckRateLimit.mockResolvedValue({
     allowed: true,
@@ -71,7 +87,7 @@ beforeEach(() => {
 describe("GET /api/auth/verify-session", () => {
   describe("AUTH_SECRET guard", () => {
     it("returns 500 when AUTH_SECRET is not set", async () => {
-      delete process.env.AUTH_SECRET;
+      delete mockEnv.AUTH_SECRET;
       const req = makeRequest(
         "http://localhost:3000/api/auth/verify-session?returnTo=http://localhost:3001/dashboard",
       );
@@ -121,7 +137,7 @@ describe("GET /api/auth/verify-session", () => {
 
   describe("returnTo validation", () => {
     it("returns 400 when returnTo origin is not in ALLOWED_ORIGINS", async () => {
-      process.env.ALLOWED_ORIGINS = "http://localhost:3001";
+      mockEnv.ALLOWED_ORIGINS = "http://localhost:3001";
       const req = makeRequest(
         "http://localhost:3000/api/auth/verify-session?returnTo=http://evil.com/steal",
       );
@@ -130,7 +146,7 @@ describe("GET /api/auth/verify-session", () => {
     });
 
     it("returns 400 when returnTo is a malformed URL (when ALLOWED_ORIGINS is set)", async () => {
-      process.env.ALLOWED_ORIGINS = "http://localhost:3001";
+      mockEnv.ALLOWED_ORIGINS = "http://localhost:3001";
       const req = makeRequest(
         "http://localhost:3000/api/auth/verify-session?returnTo=not-a-valid-url",
       );
@@ -246,7 +262,7 @@ describe("GET /api/auth/verify-session", () => {
     });
 
     it("includes Domain in Set-Cookie when COOKIE_DOMAIN is set", async () => {
-      process.env.COOKIE_DOMAIN = ".igbo.com";
+      mockEnv.COOKIE_DOMAIN = ".igbo.com";
       mockDecode.mockResolvedValue({ id: "user-1", accountStatus: "APPROVED" });
       const req = makeRequest(
         "http://localhost:3000/api/auth/verify-session?returnTo=http://localhost:3001/dashboard",
@@ -258,7 +274,7 @@ describe("GET /api/auth/verify-session", () => {
     });
 
     it("does not include Domain in Set-Cookie when COOKIE_DOMAIN is not set", async () => {
-      delete process.env.COOKIE_DOMAIN;
+      delete mockEnv.COOKIE_DOMAIN;
       mockDecode.mockResolvedValue({ id: "user-1", accountStatus: "APPROVED" });
       const req = makeRequest(
         "http://localhost:3000/api/auth/verify-session?returnTo=http://localhost:3001/dashboard",
@@ -284,7 +300,7 @@ describe("GET /api/auth/verify-session", () => {
     });
 
     it("respects SESSION_TTL_SECONDS env var in Set-Cookie Max-Age", async () => {
-      process.env.SESSION_TTL_SECONDS = "7200";
+      mockEnv.SESSION_TTL_SECONDS = "7200";
       mockDecode.mockResolvedValue({ id: "user-1", accountStatus: "APPROVED" });
       const req = makeRequest(
         "http://localhost:3000/api/auth/verify-session?returnTo=http://localhost:3001/dashboard",

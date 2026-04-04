@@ -72,8 +72,8 @@ jobs:
             echo "flags=" >> "$GITHUB_OUTPUT"
           fi
       - run: pnpm exec turbo run lint ${{ steps.turbo-flags.outputs.flags }}
-      - name: Check for stale import paths
-        run: npx tsx scripts/check-stale-imports.ts
+      - name: Run CI checks (stale imports, process.env, server-only)
+        run: npx tsx scripts/ci-checks/index.ts
       - run: pnpm exec prettier --check .
 
   typecheck:

@@ -1,4 +1,4 @@
-// NOTE: No "server-only" — used by both Next.js and the standalone realtime server
+// ci-allow-no-server-only — shared with standalone realtime server
 import { EventEmitter } from "node:events";
 import type { EventMap, EventName } from "@/types/events";
 import { getRedisPublisher } from "@/lib/redis";

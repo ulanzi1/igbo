@@ -214,19 +214,22 @@ describe("Workspace dependency graph (Task 10.16–10.18)", () => {
 
 // ─── Stale import and artifact tests ─────────────────────────────────────────
 
-describe("Stale import scanner and artifacts (Task 10.19–10.22)", () => {
-  it("10.19 stale import scanner script exists + scanner unit tests exist", () => {
-    expect(existsSync(resolve(ROOT, "scripts/check-stale-imports.ts"))).toBe(true);
-    expect(existsSync(resolve(ROOT, "apps/community/ci-stale-import-scanner.test.ts"))).toBe(true);
+describe("CI checks scanner and artifacts (Task 10.19–10.22)", () => {
+  it("10.19 CI checks scanner directory exists + scanner unit tests exist", () => {
+    expect(existsSync(resolve(ROOT, "scripts/ci-checks/index.ts"))).toBe(true);
+    expect(existsSync(resolve(ROOT, "scripts/ci-checks/check-stale-imports.ts"))).toBe(true);
+    expect(existsSync(resolve(ROOT, "scripts/ci-checks/check-process-env.ts"))).toBe(true);
+    expect(existsSync(resolve(ROOT, "scripts/ci-checks/check-server-only.ts"))).toBe(true);
+    expect(existsSync(resolve(ROOT, "apps/community/ci-checks.test.ts"))).toBe(true);
   });
 
-  it("10.20 root package.json has check:stale-imports script", () => {
-    expect(rootPkg.scripts["check:stale-imports"]).toBeDefined();
-    expect(rootPkg.scripts["check:stale-imports"]).toContain("check-stale-imports");
+  it("10.20 root package.json has ci-checks script", () => {
+    expect(rootPkg.scripts["ci-checks"]).toBeDefined();
+    expect(rootPkg.scripts["ci-checks"]).toContain("ci-checks");
   });
 
-  it("10.21 ci.yml has stale import check step", () => {
-    expect(ciContent).toContain("check-stale-imports");
+  it("10.21 ci.yml has CI checks step", () => {
+    expect(ciContent).toContain("ci-checks");
   });
 
   it("10.22 ci.yml build job uploads both nextjs-build-community and nextjs-build-portal artifacts", () => {

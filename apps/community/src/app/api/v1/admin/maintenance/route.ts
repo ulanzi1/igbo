@@ -100,7 +100,7 @@ export const POST = withApiHandler(async (request: Request) => {
   // LIMITATION: Only affects this container. For multi-instance K8s deployments, add
   // Redis pub/sub broadcast so all instances update in-memory state. Acceptable for
   // current single-server Docker Compose architecture.
-  process.env.MAINTENANCE_MODE = enabled ? "true" : "false";
+  process.env.MAINTENANCE_MODE = enabled ? "true" : "false"; // ci-allow-process-env — runtime toggle for in-process middleware
 
   // Update Redis cache for the client-side banner
   try {

@@ -1,4 +1,4 @@
-// NOTE: No "server-only" — used by both Next.js and the standalone realtime server
+// ci-allow-no-server-only — shared with standalone realtime server
 import { and, count, eq } from "drizzle-orm";
 import { eventBus } from "@/services/event-bus";
 import {
