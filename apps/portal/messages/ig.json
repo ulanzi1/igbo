@@ -38,6 +38,14 @@
     "meta": {
       "title": "Ụlọ Ọrụ OBIGBO",
       "description": "Ohere ọrụ maka ndị Igbo nọ n'ụwa niile"
+    },
+    "errors": {
+      "roleMismatch": "Ọrụ gị ugbu a enweghị ike ịnweta ihe a. Biko gbanwee ọrụ gị wee nwalee ọzọ.",
+      "notFound": "Ihe a chọrọ adịghị ebe a.",
+      "companyRequired": "Ị ga-enwe profaịlụ ụlọ ọrụ iji mezue nke a.",
+      "postingLimitExceeded": "Ị rutela ọnụ ọgụgụ kacha maka ọrụ ndị ị tinyere.",
+      "duplicateApplication": "Ị abanye akwụkwọ maka ọrụ a.",
+      "invalidStatusTransition": "Ọgbanwe ọnọdụ a anaghị ikwe ya."
     }
   },
   "Shell": {

@@ -119,24 +119,60 @@ describe("COMMUNITY_CROSS_APP_EVENTS", () => {
 
 describe("Serialization contract", () => {
   it("JobPublishedEvent round-trips through JSON without data loss", () => {
-    const event: JobPublishedEvent = { ...createEventEnvelope(), jobId: "job-123" };
+    const event: JobPublishedEvent = {
+      ...createEventEnvelope(),
+      jobId: "job-123",
+      companyId: "cp-1",
+      title: "Software Engineer",
+      employmentType: "full_time",
+      status: "active",
+    };
     const roundTripped = JSON.parse(JSON.stringify(event)) as JobPublishedEvent;
     expect(roundTripped.eventId).toBe(event.eventId);
     expect(roundTripped.version).toBe(event.version);
     expect(roundTripped.timestamp).toBe(event.timestamp);
     expect(roundTripped.jobId).toBe("job-123");
+    expect(roundTripped.companyId).toBe("cp-1");
+    expect(roundTripped.title).toBe("Software Engineer");
+    expect(roundTripped.employmentType).toBe("full_time");
+    expect(roundTripped.status).toBe("active");
   });
 
   it("JobUpdatedEvent round-trips through JSON", () => {
-    const event: JobUpdatedEvent = { ...createEventEnvelope(), jobId: "job-456" };
+    const event: JobUpdatedEvent = {
+      ...createEventEnvelope(),
+      jobId: "job-456",
+      companyId: "cp-2",
+      changes: { title: "New Title" },
+    };
     const roundTripped = JSON.parse(JSON.stringify(event)) as JobUpdatedEvent;
     expect(roundTripped.jobId).toBe("job-456");
+    expect(roundTripped.companyId).toBe("cp-2");
+    expect(roundTripped.changes).toEqual({ title: "New Title" });
   });
 
   it("JobClosedEvent round-trips through JSON", () => {
-    const event: JobClosedEvent = { ...createEventEnvelope(), jobId: "job-789" };
+    const event: JobClosedEvent = {
+      ...createEventEnvelope(),
+      jobId: "job-789",
+      companyId: "cp-3",
+      reason: "Position filled",
+    };
     const roundTripped = JSON.parse(JSON.stringify(event)) as JobClosedEvent;
     expect(roundTripped.jobId).toBe("job-789");
+    expect(roundTripped.companyId).toBe("cp-3");
+    expect(roundTripped.reason).toBe("Position filled");
+  });
+
+  it("JobClosedEvent round-trips without optional reason", () => {
+    const event: JobClosedEvent = {
+      ...createEventEnvelope(),
+      jobId: "job-790",
+      companyId: "cp-3",
+    };
+    const roundTripped = JSON.parse(JSON.stringify(event)) as JobClosedEvent;
+    expect(roundTripped.jobId).toBe("job-790");
+    expect(roundTripped.reason).toBeUndefined();
   });
 
   it("ApplicationSubmittedEvent round-trips through JSON", () => {
@@ -144,19 +180,29 @@ describe("Serialization contract", () => {
       ...createEventEnvelope(),
       applicationId: "app-1",
       jobId: "job-1",
+      seekerUserId: "u-seeker-1",
     };
     const roundTripped = JSON.parse(JSON.stringify(event)) as ApplicationSubmittedEvent;
     expect(roundTripped.applicationId).toBe("app-1");
     expect(roundTripped.jobId).toBe("job-1");
+    expect(roundTripped.seekerUserId).toBe("u-seeker-1");
   });
 
   it("ApplicationStatusChangedEvent round-trips through JSON", () => {
     const event: ApplicationStatusChangedEvent = {
       ...createEventEnvelope(),
       applicationId: "app-2",
+      seekerUserId: "u-seeker-2",
+      companyId: "cp-4",
+      previousStatus: "submitted",
+      newStatus: "under_review",
     };
     const roundTripped = JSON.parse(JSON.stringify(event)) as ApplicationStatusChangedEvent;
     expect(roundTripped.applicationId).toBe("app-2");
+    expect(roundTripped.seekerUserId).toBe("u-seeker-2");
+    expect(roundTripped.companyId).toBe("cp-4");
+    expect(roundTripped.previousStatus).toBe("submitted");
+    expect(roundTripped.newStatus).toBe("under_review");
   });
 
   it("ApplicationWithdrawnEvent round-trips through JSON", () => {
@@ -232,11 +278,16 @@ describe("PortalAllEventMap", () => {
 const _jobPublished: PortalEventMap["job.published"] = {
   ...createEventEnvelope(),
   jobId: "j1",
+  companyId: "cp-1",
+  title: "Engineer",
+  employmentType: "full_time",
+  status: "active",
 };
 const _appSubmitted: PortalEventMap["application.submitted"] = {
   ...createEventEnvelope(),
   applicationId: "a1",
   jobId: "j1",
+  seekerUserId: "u1",
 };
 // Suppress "unused variable" lint errors
 void _jobPublished;
