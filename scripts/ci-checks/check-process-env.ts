@@ -58,9 +58,7 @@ export function scanDirectProcessEnv(rootDir: string): CheckResult[] {
       // Tier 2: check each process.env.X match individually — a line with both
       // process.env.NODE_ENV (exempt) and process.env.SECRET (violation) is flagged
       const matches = line.match(/process\.env\.\w+/g) ?? [];
-      const hasViolation = matches.some(
-        (m) => !TIER2_CONTENT_EXEMPTIONS.some((p) => p.test(m)),
-      );
+      const hasViolation = matches.some((m) => !TIER2_CONTENT_EXEMPTIONS.some((p) => p.test(m)));
       if (!hasViolation) continue;
 
       results.push({
