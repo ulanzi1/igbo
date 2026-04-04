@@ -19,7 +19,8 @@
       "profile": "Profile",
       "reviewQueue": "Review Queue",
       "reports": "Reports",
-      "settings": "Settings"
+      "settings": "Settings",
+      "myJobsEmpty": "Your job postings will appear here."
     },
     "role": {
       "seeker": "Job Seeker",
@@ -52,6 +53,71 @@
       "postingLimitExceeded": "You have reached the maximum number of active job postings.",
       "duplicateApplication": "You have already applied for this job.",
       "invalidStatusTransition": "This status change is not allowed."
+    },
+    "company": {
+      "createTitle": "Create Company Profile",
+      "editTitle": "Edit Company Profile",
+      "viewTitle": "Company Profile",
+      "name": "Company Name",
+      "namePlaceholder": "Enter your company name",
+      "nameRequired": "Company name is required",
+      "logo": "Company Logo",
+      "logoUpload": "Upload logo",
+      "logoUploading": "Uploading...",
+      "description": "Description",
+      "descriptionPlaceholder": "Tell job seekers about your company",
+      "industry": "Industry",
+      "industryPlaceholder": "Select an industry",
+      "companySize": "Company Size",
+      "companySizePlaceholder": "Select company size",
+      "cultureInfo": "Culture & Values",
+      "cultureInfoPlaceholder": "What makes your company culture unique?",
+      "save": "Save Profile",
+      "saving": "Saving...",
+      "created": "Company profile created successfully",
+      "updated": "Company profile updated successfully",
+      "duplicateError": "You already have a company profile",
+      "edit": "Edit Profile",
+      "activeJobs": "Active Job Postings",
+      "noJobsYet": "No job postings yet",
+      "createProfileFirst": "Create your company profile to get started",
+      "onboardingPrompt": "You need a company profile before posting jobs",
+      "errorGeneric": "An error occurred",
+      "errorUnexpected": "An unexpected error occurred"
+    },
+    "trust": {
+      "verifiedMember": "Verified Member",
+      "memberSince": "Member since {year}",
+      "engagementLow": "New Member",
+      "engagementMedium": "Active Member",
+      "engagementHigh": "Trusted Member",
+      "communityTrust": "Community Trust"
+    },
+    "upload": {
+      "dragOrClick": "Drag & drop or click to upload",
+      "maxSize": "Max file size: {size}MB",
+      "invalidType": "Invalid file type. Accepted: {types}",
+      "tooLarge": "File too large. Maximum size: {size}MB",
+      "uploadFailed": "Upload failed. Please try again.",
+      "uploading": "Uploading...",
+      "logoPreview": "Company logo preview"
+    },
+    "industries": {
+      "technology": "Technology",
+      "finance": "Finance & Banking",
+      "healthcare": "Healthcare",
+      "education": "Education",
+      "manufacturing": "Manufacturing",
+      "retail": "Retail & Commerce",
+      "agriculture": "Agriculture",
+      "energy": "Energy & Utilities",
+      "media": "Media & Entertainment",
+      "consulting": "Consulting",
+      "legal": "Legal",
+      "real_estate": "Real Estate",
+      "non_profit": "Non-Profit",
+      "government": "Government",
+      "other": "Other"
     }
   },
   "Shell": {
