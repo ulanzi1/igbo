@@ -8,6 +8,9 @@ import {
   UserIcon,
   LayoutDashboardIcon,
   LogInIcon,
+  ShieldCheckIcon,
+  BarChart3Icon,
+  SettingsIcon,
 } from "lucide-react";
 import { useTranslations, useLocale } from "next-intl";
 import { usePathname } from "next/navigation";
@@ -24,7 +27,7 @@ interface BottomNavItem {
 export function PortalBottomNav() {
   const t = useTranslations("Portal.nav");
   const locale = useLocale();
-  const { isSeeker, isEmployer } = useActivePortalRole();
+  const { isSeeker, isEmployer, isAdmin } = useActivePortalRole();
   const pathname = usePathname();
   const communityUrl = process.env.NEXT_PUBLIC_COMMUNITY_URL ?? "http://localhost:3000";
 
@@ -53,13 +56,36 @@ export function PortalBottomNav() {
     { key: "profile", href: `/${locale}/profile`, label: t("profile"), icon: UserIcon },
   ];
 
+  const adminItems: BottomNavItem[] = [
+    { key: "home", href: `/${locale}`, label: t("home"), icon: HomeIcon },
+    {
+      key: "reviewQueue",
+      href: `/${locale}/admin`,
+      label: t("reviewQueue"),
+      icon: ShieldCheckIcon,
+    },
+    { key: "reports", href: `/${locale}/admin/reports`, label: t("reports"), icon: BarChart3Icon },
+    {
+      key: "settings",
+      href: `/${locale}/admin/settings`,
+      label: t("settings"),
+      icon: SettingsIcon,
+    },
+  ];
+
   const guestItems: BottomNavItem[] = [
     { key: "home", href: `/${locale}`, label: t("home"), icon: HomeIcon },
     { key: "browseAll", href: `/${locale}/jobs`, label: t("browseAll"), icon: BriefcaseIcon },
     { key: "login", href: `${communityUrl}/login`, label: t("login"), icon: LogInIcon },
   ];
 
-  const items = isEmployer ? employerItems : isSeeker ? seekerItems : guestItems;
+  const items = isEmployer
+    ? employerItems
+    : isAdmin
+      ? adminItems
+      : isSeeker
+        ? seekerItems
+        : guestItems;
 
   return (
     <nav
