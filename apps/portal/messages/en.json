@@ -16,13 +16,19 @@
       "postJob": "Post a Job",
       "login": "Log In",
       "joinNow": "Join Now",
-      "profile": "Profile"
+      "profile": "Profile",
+      "reviewQueue": "Review Queue",
+      "reports": "Reports",
+      "settings": "Settings"
     },
     "role": {
       "seeker": "Job Seeker",
       "employer": "Employer",
-      "admin": "Job Admin",
-      "switchRole": "Switch Role"
+      "jobAdmin": "Job Admin",
+      "switchRole": "Switch Role",
+      "switchRoleLabel": "Switch portal role",
+      "switchingRole": "Switching role...",
+      "switchedTo": "Switched to {role}"
     },
     "home": {
       "title": "OBIGBO Job Portal",

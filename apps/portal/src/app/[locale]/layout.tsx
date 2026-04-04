@@ -7,6 +7,7 @@ import { routing } from "@/i18n/routing";
 import { auth } from "@igbo/auth";
 import { PortalLayout } from "@/components/layout/portal-layout";
 import { SkipLink } from "@/components/layout/skip-link";
+import { Toaster } from "@/components/ui/sonner";
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
@@ -34,6 +35,7 @@ export default async function LocaleLayout({
       <NextIntlClientProvider>
         <SkipLink href="#main-content" />
         <PortalLayout>{children}</PortalLayout>
+        <Toaster />
       </NextIntlClientProvider>
     </SessionProvider>
   );
