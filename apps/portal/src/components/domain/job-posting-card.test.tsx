@@ -1,0 +1,129 @@
+import { describe, it, expect, vi } from "vitest";
+import { render, screen } from "@testing-library/react";
+import { axe, toHaveNoViolations } from "jest-axe";
+
+expect.extend(toHaveNoViolations);
+
+vi.mock("next-intl", () => ({
+  useTranslations: () => (key: string, params?: Record<string, string>) =>
+    params ? `${key}:${JSON.stringify(params)}` : key,
+  useLocale: () => "en",
+}));
+
+vi.mock("@/components/semantic/salary-display", () => ({
+  SalaryDisplay: ({
+    competitiveOnly,
+    min,
+    max,
+  }: {
+    competitiveOnly: boolean;
+    min?: number | null;
+    max?: number | null;
+  }) => {
+    if (competitiveOnly) return <span>competitive</span>;
+    if (min != null && max != null) return <span>{`${min}-${max}`}</span>;
+    return null;
+  },
+  SalaryDisplaySkeleton: () => <span>SalarySkeleton</span>,
+}));
+
+import { JobPostingCard } from "./job-posting-card";
+
+const mockPosting = {
+  id: "posting-uuid",
+  title: "Senior Software Engineer",
+  status: "draft",
+  employmentType: "full_time",
+  location: "Lagos, Nigeria",
+  salaryMin: 500000,
+  salaryMax: 750000,
+  salaryCompetitiveOnly: false,
+  createdAt: new Date("2026-03-01T00:00:00Z"),
+};
+
+describe("JobPostingCard", () => {
+  it("renders posting title", () => {
+    render(<JobPostingCard posting={mockPosting} />);
+    expect(screen.getByText("Senior Software Engineer")).toBeTruthy();
+  });
+
+  it("renders draft status badge", () => {
+    render(<JobPostingCard posting={mockPosting} />);
+    const badge = screen.getByTestId("status-badge");
+    expect(badge.textContent).toContain("status.draft");
+  });
+
+  it("renders active status badge", () => {
+    render(<JobPostingCard posting={{ ...mockPosting, status: "active" }} />);
+    const badge = screen.getByTestId("status-badge");
+    expect(badge.textContent).toContain("status.active");
+  });
+
+  it("renders employment type", () => {
+    render(<JobPostingCard posting={mockPosting} />);
+    expect(screen.getByText("type.full_time")).toBeTruthy();
+  });
+
+  it("renders location", () => {
+    render(<JobPostingCard posting={mockPosting} />);
+    expect(screen.getByText("Lagos, Nigeria")).toBeTruthy();
+  });
+
+  it("renders edit link pointing to /en/jobs/[id]/edit with locale prefix", () => {
+    render(<JobPostingCard posting={mockPosting} />);
+    const link = screen.getByRole("link", { name: "editPosting" });
+    expect(link.getAttribute("href")).toBe("/en/jobs/posting-uuid/edit");
+  });
+
+  it("renders creation date using i18n createdAt key", () => {
+    render(<JobPostingCard posting={mockPosting} />);
+    expect(screen.getByText(/createdAt/)).toBeTruthy();
+  });
+
+  it("renders salary display", () => {
+    render(<JobPostingCard posting={mockPosting} />);
+    expect(screen.getByText("500000-750000")).toBeTruthy();
+  });
+
+  it("passes axe-core accessibility assertion", async () => {
+    const { container } = render(<JobPostingCard posting={mockPosting} />);
+    const results = await axe(container);
+    // @ts-expect-error jest-axe matcher not in vitest types
+    expect(results).toHaveNoViolations();
+  });
+
+  // Cultural context badge tests
+  it("shows cultural context badges when flags are set", () => {
+    render(
+      <JobPostingCard
+        posting={{
+          ...mockPosting,
+          culturalContextJson: {
+            diasporaFriendly: true,
+            igboLanguagePreferred: false,
+            communityReferred: false,
+          },
+        }}
+      />,
+    );
+    expect(screen.getByTestId("cultural-context-badges")).toBeTruthy();
+    expect(screen.getByText("badgeDiaspora")).toBeTruthy();
+  });
+
+  it("shows no cultural context badges when culturalContext is null", () => {
+    render(<JobPostingCard posting={{ ...mockPosting, culturalContextJson: null }} />);
+    expect(screen.queryByTestId("cultural-context-badges")).toBeNull();
+  });
+
+  it("shows 'Bilingual' indicator when Igbo description exists", () => {
+    render(<JobPostingCard posting={{ ...mockPosting, descriptionIgboHtml: "<p>Nkọwa</p>" }} />);
+    expect(screen.getByTestId("bilingual-badge")).toBeTruthy();
+    expect(screen.getByTestId("bilingual-badge").textContent).toBe("bilingual");
+  });
+
+  it("backward compatible -- no badges and no bilingual indicator when no cultural context", () => {
+    render(<JobPostingCard posting={mockPosting} />);
+    expect(screen.queryByTestId("cultural-context-badges")).toBeNull();
+    expect(screen.queryByTestId("bilingual-badge")).toBeNull();
+  });
+});
