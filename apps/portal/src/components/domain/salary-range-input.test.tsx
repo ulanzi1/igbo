@@ -131,7 +131,6 @@ describe("SalaryRangeInput", () => {
   it("passes axe-core accessibility assertion", async () => {
     const { container } = render(<SalaryRangeInput {...defaultProps} />);
     const results = await axe(container);
-    // @ts-expect-error jest-axe matcher not in vitest types
     expect(results).toHaveNoViolations();
   });
 });

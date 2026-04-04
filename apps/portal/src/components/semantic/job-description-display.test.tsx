@@ -91,7 +91,6 @@ describe("JobDescriptionDisplay", () => {
       <JobDescriptionDisplay descriptionHtml={EN_HTML} descriptionIgboHtml={IG_HTML} />,
     );
     const results = await axe(container);
-    // @ts-expect-error jest-axe matcher not in vitest types
     expect(results).toHaveNoViolations();
   });
 });
