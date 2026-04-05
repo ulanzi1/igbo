@@ -4,6 +4,18 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const ISO_8601_REGEX = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/;
 
+// Reusable minimal payloads matching enriched event interfaces
+const JOB_PUBLISHED_PAYLOAD = {
+  jobId: "j1",
+  companyId: "cp-1",
+  title: "Engineer",
+  employmentType: "full_time",
+  status: "active",
+};
+const JOB_UPDATED_PAYLOAD = { jobId: "j1", companyId: "cp-1", changes: { title: "New" } };
+const JOB_CLOSED_PAYLOAD = { jobId: "j1", companyId: "cp-1" };
+const APP_SUBMITTED_PAYLOAD = { applicationId: "a1", jobId: "j1", seekerUserId: "u1" };
+
 // Reset module between tests to clear the HMR singleton
 beforeEach(() => {
   const g = globalThis as unknown as { __portalEventBus?: unknown };
@@ -21,7 +33,7 @@ describe("emit() — local handler delivery", () => {
     const bus = await getBus();
     const handler = vi.fn();
     bus.on("job.published", handler);
-    bus.emit("job.published", { jobId: "j1" });
+    bus.emit("job.published", JOB_PUBLISHED_PAYLOAD);
     expect(handler).toHaveBeenCalledWith(expect.objectContaining({ jobId: "j1" }));
     bus.removeAllListeners();
   });
@@ -30,7 +42,7 @@ describe("emit() — local handler delivery", () => {
     const bus = await getBus();
     const handler = vi.fn();
     bus.on("job.published", handler);
-    bus.emit("job.published", { jobId: "j1" });
+    bus.emit("job.published", JOB_PUBLISHED_PAYLOAD);
     const payload = handler.mock.calls[0]![0] as { eventId: string };
     expect(payload.eventId).toMatch(UUID_REGEX);
     bus.removeAllListeners();
@@ -40,7 +52,7 @@ describe("emit() — local handler delivery", () => {
     const bus = await getBus();
     const handler = vi.fn();
     bus.on("job.published", handler);
-    bus.emit("job.published", { jobId: "j1" });
+    bus.emit("job.published", JOB_PUBLISHED_PAYLOAD);
     const payload = handler.mock.calls[0]![0] as { version: number };
     expect(payload.version).toBe(1);
     bus.removeAllListeners();
@@ -50,7 +62,7 @@ describe("emit() — local handler delivery", () => {
     const bus = await getBus();
     const handler = vi.fn();
     bus.on("job.published", handler);
-    bus.emit("job.published", { jobId: "j1" });
+    bus.emit("job.published", JOB_PUBLISHED_PAYLOAD);
     const payload = handler.mock.calls[0]![0] as { timestamp: string };
     expect(payload.timestamp).toMatch(ISO_8601_REGEX);
     bus.removeAllListeners();
@@ -61,7 +73,7 @@ describe("emit() — local handler delivery", () => {
     const handler = vi.fn();
     bus.on("job.published", handler);
     const customEventId = "custom-event-id-123";
-    bus.emit("job.published", { jobId: "j1", eventId: customEventId });
+    bus.emit("job.published", { ...JOB_PUBLISHED_PAYLOAD, eventId: customEventId });
     const payload = handler.mock.calls[0]![0] as { eventId: string };
     expect(payload.eventId).toBe(customEventId);
     bus.removeAllListeners();
@@ -71,7 +83,7 @@ describe("emit() — local handler delivery", () => {
     const bus = await getBus();
     const handler = vi.fn();
     bus.on("job.published", handler);
-    bus.emit("job.published", { jobId: "j1", version: 2 });
+    bus.emit("job.published", { ...JOB_PUBLISHED_PAYLOAD, version: 2 });
     const payload = handler.mock.calls[0]![0] as { version: number };
     expect(payload.version).toBe(2);
     bus.removeAllListeners();
@@ -82,7 +94,7 @@ describe("emit() — local handler delivery", () => {
     const handler = vi.fn();
     bus.on("job.published", handler);
     const ts = "2026-01-01T00:00:00.000Z";
-    bus.emit("job.published", { jobId: "j1", timestamp: ts });
+    bus.emit("job.published", { ...JOB_PUBLISHED_PAYLOAD, timestamp: ts });
     const payload = handler.mock.calls[0]![0] as { timestamp: string };
     expect(payload.timestamp).toBe(ts);
     bus.removeAllListeners();
@@ -96,11 +108,11 @@ describe("emit() — Redis publish", () => {
     const mockRedis = { publish: mockPublish } as unknown as import("ioredis").default;
     bus.setPublisher(() => mockRedis);
 
-    bus.emit("job.published", { jobId: "j1" });
+    bus.emit("job.published", JOB_PUBLISHED_PAYLOAD);
 
     expect(mockPublish).toHaveBeenCalledWith(
       "eventbus:job.published",
-      expect.stringContaining('"jobId":"j1"'),
+      expect.stringContaining('"companyId":"cp-1"'),
     );
     bus.removeAllListeners();
   });
@@ -111,7 +123,7 @@ describe("emit() — Redis publish", () => {
     bus.on("job.published", handler);
 
     // No setPublisher() called — should not throw
-    expect(() => bus.emit("job.published", { jobId: "j1" })).not.toThrow();
+    expect(() => bus.emit("job.published", JOB_PUBLISHED_PAYLOAD)).not.toThrow();
     expect(handler).toHaveBeenCalled();
     bus.removeAllListeners();
   });
@@ -129,7 +141,7 @@ describe("emit() — Redis publish", () => {
     bus.on("job.published", handler);
 
     // Should not throw even when Redis publish fails
-    expect(() => bus.emit("job.published", { jobId: "j1" })).not.toThrow();
+    expect(() => bus.emit("job.published", JOB_PUBLISHED_PAYLOAD)).not.toThrow();
     // Local handler still fires
     expect(handler).toHaveBeenCalled();
     bus.removeAllListeners();
@@ -138,8 +150,8 @@ describe("emit() — Redis publish", () => {
   it("emit('job.published', { jobId }) is type-safe without envelope fields", async () => {
     const bus = await getBus();
     // TypeScript compilation success = this test passing at type-level
-    bus.emit("job.published", { jobId: "j1" }); // no eventId/version/timestamp
-    bus.emit("application.submitted", { applicationId: "a1", jobId: "j1" });
+    bus.emit("job.published", JOB_PUBLISHED_PAYLOAD); // no eventId/version/timestamp
+    bus.emit("application.submitted", APP_SUBMITTED_PAYLOAD);
     // Test passes if TypeScript doesn't complain (no runtime assertion needed)
     expect(true).toBe(true);
   });
@@ -150,11 +162,11 @@ describe("on() and off()", () => {
     const bus = await getBus();
     const handler = vi.fn();
     bus.on("job.updated", handler);
-    bus.emit("job.updated", { jobId: "j1" });
+    bus.emit("job.updated", JOB_UPDATED_PAYLOAD);
     expect(handler).toHaveBeenCalledTimes(1);
 
     bus.off("job.updated", handler);
-    bus.emit("job.updated", { jobId: "j2" });
+    bus.emit("job.updated", { ...JOB_UPDATED_PAYLOAD, jobId: "j2" });
     expect(handler).toHaveBeenCalledTimes(1); // still 1 — not called again
     bus.removeAllListeners();
   });
@@ -165,8 +177,8 @@ describe("once()", () => {
     const bus = await getBus();
     const handler = vi.fn();
     bus.once("job.closed", handler);
-    bus.emit("job.closed", { jobId: "j1" });
-    bus.emit("job.closed", { jobId: "j2" });
+    bus.emit("job.closed", JOB_CLOSED_PAYLOAD);
+    bus.emit("job.closed", { ...JOB_CLOSED_PAYLOAD, jobId: "j2" });
     expect(handler).toHaveBeenCalledTimes(1);
     bus.removeAllListeners();
   });
@@ -224,7 +236,7 @@ describe("emitLocal()", () => {
     bus.on("job.published", handler);
 
     const payload = {
-      jobId: "j1",
+      ...JOB_PUBLISHED_PAYLOAD,
       eventId: "e1",
       version: 1 as const,
       timestamp: "2026-01-01T00:00:00.000Z",

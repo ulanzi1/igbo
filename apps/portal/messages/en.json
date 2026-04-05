@@ -38,6 +38,14 @@
     "meta": {
       "title": "OBIGBO Job Portal",
       "description": "Job opportunities for the Igbo diaspora community"
+    },
+    "errors": {
+      "roleMismatch": "Your current role does not have access to this resource. Please switch roles and try again.",
+      "notFound": "The requested resource was not found.",
+      "companyRequired": "You must have a company profile to perform this action.",
+      "postingLimitExceeded": "You have reached the maximum number of active job postings.",
+      "duplicateApplication": "You have already applied for this job.",
+      "invalidStatusTransition": "This status change is not allowed."
     }
   },
   "Shell": {
