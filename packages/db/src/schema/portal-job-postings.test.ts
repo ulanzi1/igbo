@@ -4,10 +4,12 @@ import {
   portalJobPostings,
   portalEmploymentTypeEnum,
   portalJobStatusEnum,
+  portalClosedOutcomeEnum,
   type PortalJobPosting,
   type NewPortalJobPosting,
   type PortalEmploymentType,
   type PortalJobStatus,
+  type PortalClosedOutcome,
 } from "./portal-job-postings";
 
 describe("portalJobPostings schema", () => {
@@ -32,6 +34,24 @@ describe("portalJobPostings schema", () => {
     expect(cols).toContain("updatedAt");
   });
 
+  it("has new lifecycle columns (adminFeedbackComment, closedOutcome, closedAt)", () => {
+    const cols = Object.keys(portalJobPostings);
+    expect(cols).toContain("adminFeedbackComment");
+    expect(cols).toContain("closedOutcome");
+    expect(cols).toContain("closedAt");
+  });
+
+  it("has archivedAt column for soft-archive support", () => {
+    const cols = Object.keys(portalJobPostings);
+    expect(cols).toContain("archivedAt");
+  });
+
+  it("has viewCount and communityPostId columns for analytics and share tracking", () => {
+    const cols = Object.keys(portalJobPostings);
+    expect(cols).toContain("viewCount");
+    expect(cols).toContain("communityPostId");
+  });
+
   it("exports PortalJobPosting select type with all required columns", () => {
     const _check: PortalJobPosting = {
       id: "uuid-1",
@@ -49,11 +69,20 @@ describe("portalJobPostings schema", () => {
       descriptionIgboHtml: null,
       applicationDeadline: null,
       expiresAt: null,
+      adminFeedbackComment: null,
+      closedOutcome: null,
+      closedAt: null,
+      archivedAt: null,
+      viewCount: 0,
+      communityPostId: null,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
     expect(_check.id).toBe("uuid-1");
     expect(_check.status).toBe("draft");
+    expect(_check.adminFeedbackComment).toBeNull();
+    expect(_check.closedOutcome).toBeNull();
+    expect(_check.closedAt).toBeNull();
   });
 
   it("exports NewPortalJobPosting insert type", () => {
@@ -63,6 +92,19 @@ describe("portalJobPostings schema", () => {
       employmentType: "contract",
     };
     expect(_check.employmentType).toBe("contract");
+  });
+
+  it("NewPortalJobPosting type auto-expands to include lifecycle fields", () => {
+    const _check: NewPortalJobPosting = {
+      companyId: "uuid-2",
+      title: "Engineer",
+      employmentType: "contract",
+      adminFeedbackComment: "Missing required information",
+      closedOutcome: "filled_via_portal",
+      closedAt: new Date(),
+    };
+    expect(_check.adminFeedbackComment).toBe("Missing required information");
+    expect(_check.closedOutcome).toBe("filled_via_portal");
   });
 
   it("portalEmploymentTypeEnum has all 5 values", () => {
@@ -85,10 +127,19 @@ describe("portalJobPostings schema", () => {
     expect(portalJobStatusEnum.enumValues).toContain("rejected");
   });
 
-  it("PortalEmploymentType and PortalJobStatus type-level check", () => {
+  it("portalClosedOutcomeEnum has all 3 values", () => {
+    expect(portalClosedOutcomeEnum.enumValues).toHaveLength(3);
+    expect(portalClosedOutcomeEnum.enumValues).toContain("filled_via_portal");
+    expect(portalClosedOutcomeEnum.enumValues).toContain("filled_internally");
+    expect(portalClosedOutcomeEnum.enumValues).toContain("cancelled");
+  });
+
+  it("PortalEmploymentType, PortalJobStatus, and PortalClosedOutcome type-level check", () => {
     const _et: PortalEmploymentType = "full_time";
     const _js: PortalJobStatus = "active";
+    const _co: PortalClosedOutcome = "filled_via_portal";
     expect(_et).toBe("full_time");
     expect(_js).toBe("active");
+    expect(_co).toBe("filled_via_portal");
   });
 });

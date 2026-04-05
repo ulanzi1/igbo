@@ -4,6 +4,7 @@ import { useState, useRef, useCallback } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import TiptapImage from "@tiptap/extension-image";
+import TiptapLink from "@tiptap/extension-link";
 import TiptapMention from "@tiptap/extension-mention";
 import { useTranslations } from "next-intl";
 import { buildMentionSuggestion } from "../utils/mention-suggestion";
@@ -32,6 +33,7 @@ export function TiptapEditor({ content, onChange, placeholder, disabled }: Tipta
     extensions: [
       StarterKit,
       TiptapImage.configure({ inline: false }),
+      TiptapLink.configure({ openOnClick: false }),
       TiptapMention.configure({
         suggestion: buildMentionSuggestion({
           noResultsLabel: t("mentions.noResults"),

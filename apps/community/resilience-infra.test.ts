@@ -157,7 +157,7 @@ describe("i18n — new resilience keys present in both locales (Task 7.3)", () =
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe("Middleware — maintenance mode path handling (Task 7.4)", () => {
-  const middlewarePath = resolve(SRC, "middleware.ts");
+  const middlewarePath = resolve(SRC, "proxy.ts");
   let content = "";
 
   beforeAll(() => {
@@ -166,19 +166,19 @@ describe("Middleware — maintenance mode path handling (Task 7.4)", () => {
     }
   });
 
-  it("middleware.ts contains MAINTENANCE_MODE env var check", () => {
+  it("proxy.ts contains MAINTENANCE_MODE env var check", () => {
     expect(content).toContain('MAINTENANCE_MODE === "true"');
   });
 
-  it("middleware.ts exempts admin paths from maintenance redirect", () => {
+  it("proxy.ts exempts admin paths from maintenance redirect", () => {
     expect(content).toContain("isAdminPath");
   });
 
-  it("middleware.ts exempts maintenance page itself from redirect", () => {
+  it("proxy.ts exempts maintenance page itself from redirect", () => {
     expect(content).toContain("isMaintenancePage");
   });
 
-  it("middleware.ts sets Retry-After header on maintenance redirect", () => {
+  it("proxy.ts sets Retry-After header on maintenance redirect", () => {
     expect(content).toContain("Retry-After");
   });
 });

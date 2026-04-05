@@ -10,6 +10,7 @@ import {
   getMembershipDuration,
   getUserEngagementLevel,
   getReferralChain,
+  getCommunityTrustSignals,
 } from "./cross-app";
 
 beforeEach(() => {
@@ -152,5 +153,115 @@ describe("getReferralChain", () => {
     const result = await getReferralChain("u-1");
     expect(result.referrals).toHaveLength(1);
     expect(result.referrals[0]).toEqual({ userId: "u-alice", depth: 1 });
+  });
+});
+
+describe("getCommunityTrustSignals", () => {
+  function makeMultiSelectMock(calls: Array<unknown[] | null>) {
+    let callCount = 0;
+    vi.mocked(db.select).mockImplementation(() => {
+      const returnValue = calls[callCount++];
+      // Points query (3rd call) has no .limit()
+      if (returnValue === null) {
+        // aggregate — no limit
+        const where = vi.fn().mockResolvedValue([{ total: "0" }]);
+        const from = vi.fn().mockReturnValue({ where });
+        return { from } as unknown as ReturnType<typeof db.select>;
+      }
+      const limit = vi.fn().mockResolvedValue(returnValue);
+      const where = vi.fn().mockReturnValue({ limit });
+      const from = vi.fn().mockReturnValue({ where });
+      return { from } as unknown as ReturnType<typeof db.select>;
+    });
+  }
+
+  it("returns null for non-existent user", async () => {
+    // authUsers query returns []
+    makeMultiSelectMock([[]]);
+    const result = await getCommunityTrustSignals("u-missing");
+    expect(result).toBeNull();
+  });
+
+  it("returns isVerified: true when user has a badge", async () => {
+    const createdAt = new Date("2024-01-01");
+    // calls: authUsers (1), communityProfiles (2), communityUserBadges (3), platformPointsLedger (4), communityProfiles for lastActive (5)
+    makeMultiSelectMock([
+      [{ createdAt }], // authUsers
+      [{ displayName: "Ngozi" }], // communityProfiles
+      [{ badgeType: "gold", assignedAt: new Date() }], // communityUserBadges (getCommunityVerificationStatus)
+      null, // platformPointsLedger aggregate (getUserEngagementLevel points)
+      [{ updatedAt: new Date() }], // communityProfiles for lastActive
+    ]);
+    const result = await getCommunityTrustSignals("u-1");
+    expect(result).not.toBeNull();
+    expect(result!.isVerified).toBe(true);
+  });
+
+  it("returns correct displayName from community profile", async () => {
+    const createdAt = new Date("2024-06-01");
+    makeMultiSelectMock([
+      [{ createdAt }],
+      [{ displayName: "Chukwuemeka" }],
+      [], // no badge
+      null, // points aggregate
+      [], // no profile for lastActive
+    ]);
+    const result = await getCommunityTrustSignals("u-2");
+    expect(result!.displayName).toBe("Chukwuemeka");
+    expect(result!.memberSince).toEqual(createdAt);
+  });
+
+  it("returns displayName: null when no community profile row exists", async () => {
+    const createdAt = new Date("2025-01-01");
+    makeMultiSelectMock([
+      [{ createdAt }],
+      [], // no community profile
+      [], // no badge
+      null, // points
+      [], // no lastActive
+    ]);
+    const result = await getCommunityTrustSignals("u-3");
+    expect(result!.displayName).toBeNull();
+  });
+
+  it("returns engagementLevel passthrough from getUserEngagementLevel", async () => {
+    const createdAt = new Date("2023-01-01");
+    // points = 600 → high
+    let callCount = 0;
+    vi.mocked(db.select).mockImplementation(() => {
+      callCount++;
+      if (callCount === 1) {
+        // authUsers
+        const limit = vi.fn().mockResolvedValue([{ createdAt }]);
+        const where = vi.fn().mockReturnValue({ limit });
+        const from = vi.fn().mockReturnValue({ where });
+        return { from } as unknown as ReturnType<typeof db.select>;
+      } else if (callCount === 2) {
+        // communityProfiles displayName
+        const limit = vi.fn().mockResolvedValue([{ displayName: "Ada" }]);
+        const where = vi.fn().mockReturnValue({ limit });
+        const from = vi.fn().mockReturnValue({ where });
+        return { from } as unknown as ReturnType<typeof db.select>;
+      } else if (callCount === 3) {
+        // getCommunityVerificationStatus: communityUserBadges
+        const limit = vi.fn().mockResolvedValue([]);
+        const where = vi.fn().mockReturnValue({ limit });
+        const from = vi.fn().mockReturnValue({ where });
+        return { from } as unknown as ReturnType<typeof db.select>;
+      } else if (callCount === 4) {
+        // getUserEngagementLevel: platformPointsLedger aggregate
+        const where = vi.fn().mockResolvedValue([{ total: "600" }]);
+        const from = vi.fn().mockReturnValue({ where });
+        return { from } as unknown as ReturnType<typeof db.select>;
+      } else {
+        // getUserEngagementLevel: communityProfiles lastActive
+        const limit = vi.fn().mockResolvedValue([{ updatedAt: new Date() }]);
+        const where = vi.fn().mockReturnValue({ limit });
+        const from = vi.fn().mockReturnValue({ where });
+        return { from } as unknown as ReturnType<typeof db.select>;
+      }
+    });
+    const result = await getCommunityTrustSignals("u-4");
+    expect(result!.engagementLevel).toBe("high");
   });
 });

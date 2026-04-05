@@ -96,6 +96,44 @@ export async function getUserEngagementLevel(userId: string): Promise<{
   return { level, score, lastActive };
 }
 
+export interface CommunityTrustSignals {
+  isVerified: boolean;
+  memberSince: Date | null;
+  displayName: string | null;
+  /** Points-based engagement level from getUserEngagementLevel */
+  engagementLevel: "low" | "medium" | "high";
+}
+
+export async function getCommunityTrustSignals(
+  userId: string,
+): Promise<CommunityTrustSignals | null> {
+  const [user] = await db
+    .select({ createdAt: authUsers.createdAt })
+    .from(authUsers)
+    .where(eq(authUsers.id, userId))
+    .limit(1);
+  if (!user) return null;
+
+  // Parallelize independent queries (profile, verification, engagement)
+  const [profile, verification, engagement] = await Promise.all([
+    db
+      .select({ displayName: communityProfiles.displayName })
+      .from(communityProfiles)
+      .where(eq(communityProfiles.userId, userId))
+      .limit(1)
+      .then(([p]) => p ?? null),
+    getCommunityVerificationStatus(userId),
+    getUserEngagementLevel(userId),
+  ]);
+
+  return {
+    isVerified: verification.isVerified,
+    memberSince: user.createdAt,
+    displayName: profile?.displayName ?? null,
+    engagementLevel: engagement.level as "low" | "medium" | "high",
+  };
+}
+
 /**
  * Returns the **upstream** referral ancestry for a user — i.e. who referred
  * this user, who referred *them*, etc., up to MAX_DEPTH levels.

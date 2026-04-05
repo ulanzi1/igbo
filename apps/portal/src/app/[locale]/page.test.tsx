@@ -1,11 +1,19 @@
 // @vitest-environment jsdom
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render } from "@testing-library/react";
 import React from "react";
 import type { Session } from "next-auth";
 
 vi.mock("@igbo/auth", () => ({
   auth: vi.fn(),
+}));
+vi.mock("@igbo/db/queries/portal-companies", () => ({
+  getCompanyByOwnerId: vi.fn(),
+}));
+vi.mock("next/navigation", () => ({
+  redirect: vi.fn().mockImplementation((url: string) => {
+    throw new Error(`REDIRECT:${url}`);
+  }),
 }));
 
 vi.mock("next-intl/server", () => ({
@@ -16,12 +24,63 @@ vi.mock("next-intl/server", () => ({
 }));
 
 import { auth } from "@igbo/auth";
+import { getCompanyByOwnerId } from "@igbo/db/queries/portal-companies";
 import Page from "./page";
 
 const mockAuth = auth as unknown as ReturnType<typeof vi.fn>;
+const mockGetCompany = getCompanyByOwnerId as unknown as ReturnType<typeof vi.fn>;
+
+const completedProfile = {
+  id: "cp-1",
+  ownerUserId: "u2",
+  name: "Acme",
+  onboardingCompletedAt: new Date("2026-01-01"),
+  createdAt: new Date(),
+  updatedAt: new Date(),
+};
 
 describe("Portal Homepage [locale]/page", () => {
-  it("shows seeker welcome message for authenticated seeker", async () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("redirects employer without company profile to onboarding", async () => {
+    mockAuth.mockResolvedValue({
+      user: { id: "u2", activePortalRole: "EMPLOYER" },
+      expires: "2099-01-01",
+    });
+    mockGetCompany.mockResolvedValue(null);
+
+    await expect(Page({ params: Promise.resolve({ locale: "en" }) })).rejects.toThrow(
+      "REDIRECT:/en/onboarding",
+    );
+  });
+
+  it("redirects employer with incomplete onboarding to onboarding", async () => {
+    mockAuth.mockResolvedValue({
+      user: { id: "u2", activePortalRole: "EMPLOYER" },
+      expires: "2099-01-01",
+    });
+    mockGetCompany.mockResolvedValue({ ...completedProfile, onboardingCompletedAt: null });
+
+    await expect(Page({ params: Promise.resolve({ locale: "en" }) })).rejects.toThrow(
+      "REDIRECT:/en/onboarding",
+    );
+  });
+
+  it("shows employer welcome message for employer with completed onboarding", async () => {
+    mockAuth.mockResolvedValue({
+      user: { id: "u2", activePortalRole: "EMPLOYER" } as Session["user"],
+      expires: "2099-01-01",
+    } as Session);
+    mockGetCompany.mockResolvedValue(completedProfile);
+
+    const jsx = await Page({ params: Promise.resolve({ locale: "en" }) });
+    const { getByText } = render(jsx as React.ReactElement);
+    expect(getByText(/employerWelcome/i)).toBeInTheDocument();
+  });
+
+  it("shows seeker welcome message for authenticated seeker (no company check)", async () => {
     mockAuth.mockResolvedValue({
       user: { id: "u1", activePortalRole: "JOB_SEEKER" } as Session["user"],
       expires: "2099-01-01",
@@ -30,17 +89,8 @@ describe("Portal Homepage [locale]/page", () => {
     const jsx = await Page({ params: Promise.resolve({ locale: "en" }) });
     const { getByText } = render(jsx as React.ReactElement);
     expect(getByText(/seekerWelcome/i)).toBeInTheDocument();
-  });
-
-  it("shows employer welcome message for authenticated employer", async () => {
-    mockAuth.mockResolvedValue({
-      user: { id: "u2", activePortalRole: "EMPLOYER" } as Session["user"],
-      expires: "2099-01-01",
-    } as Session);
-
-    const jsx = await Page({ params: Promise.resolve({ locale: "en" }) });
-    const { getByText } = render(jsx as React.ReactElement);
-    expect(getByText(/employerWelcome/i)).toBeInTheDocument();
+    // Seeker role should not trigger company profile lookup
+    expect(mockGetCompany).not.toHaveBeenCalledWith("u1");
   });
 
   it("shows guest welcome with login/join CTAs when auth returns null", async () => {
