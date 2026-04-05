@@ -30,6 +30,12 @@ export const portalJobStatusEnum = pgEnum("portal_job_status", [
   "rejected",
 ]);
 
+export const portalClosedOutcomeEnum = pgEnum("portal_closed_outcome", [
+  "filled_via_portal",
+  "filled_internally",
+  "cancelled",
+]);
+
 export const portalJobPostings = pgTable("portal_job_postings", {
   id: uuid("id").primaryKey().defaultRandom(),
   companyId: uuid("company_id")
@@ -48,6 +54,9 @@ export const portalJobPostings = pgTable("portal_job_postings", {
   descriptionIgboHtml: text("description_igbo_html"),
   applicationDeadline: timestamp("application_deadline", { withTimezone: true }),
   expiresAt: timestamp("expires_at", { withTimezone: true }),
+  adminFeedbackComment: text("admin_feedback_comment"),
+  closedOutcome: portalClosedOutcomeEnum("closed_outcome"),
+  closedAt: timestamp("closed_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
@@ -56,3 +65,4 @@ export type PortalJobPosting = typeof portalJobPostings.$inferSelect;
 export type NewPortalJobPosting = typeof portalJobPostings.$inferInsert;
 export type PortalEmploymentType = (typeof portalEmploymentTypeEnum.enumValues)[number];
 export type PortalJobStatus = (typeof portalJobStatusEnum.enumValues)[number];
+export type PortalClosedOutcome = (typeof portalClosedOutcomeEnum.enumValues)[number];

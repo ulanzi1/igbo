@@ -1,7 +1,7 @@
 import { useTranslations, useLocale } from "next-intl";
-import Link from "next/link";
 import { SalaryDisplay } from "@/components/semantic/salary-display";
 import { CulturalContextBadges } from "@/components/semantic/cultural-context-badges";
+import type React from "react";
 
 interface Posting {
   id: string;
@@ -15,10 +15,12 @@ interface Posting {
   createdAt: Date;
   culturalContextJson?: Record<string, boolean> | null;
   descriptionIgboHtml?: string | null;
+  adminFeedbackComment?: string | null;
 }
 
 interface JobPostingCardProps {
   posting: Posting;
+  actions?: React.ReactNode;
 }
 
 const STATUS_BADGE_CLASSES: Record<string, string> = {
@@ -31,7 +33,7 @@ const STATUS_BADGE_CLASSES: Record<string, string> = {
   rejected: "bg-red-100 text-red-700",
 };
 
-export function JobPostingCard({ posting }: JobPostingCardProps) {
+export function JobPostingCard({ posting, actions }: JobPostingCardProps) {
   const t = useTranslations("Portal.posting");
   const locale = useLocale();
 
@@ -43,51 +45,58 @@ export function JobPostingCard({ posting }: JobPostingCardProps) {
   );
 
   return (
-    <div className="flex items-start justify-between rounded-lg border border-border bg-card p-4">
-      <div className="min-w-0 flex-1">
-        <h3 className="truncate font-medium">{posting.title}</h3>
-        <div className="mt-1 flex flex-wrap items-center gap-2">
-          <span
-            className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-medium ${badgeClass}`}
-            data-testid="status-badge"
-          >
-            {t(`status.${posting.status}`)}
-          </span>
-          {posting.employmentType && (
-            <span className="text-xs text-muted-foreground">
-              {t(`type.${posting.employmentType}`)}
-            </span>
-          )}
-          {posting.location && (
-            <span className="text-xs text-muted-foreground">{posting.location}</span>
-          )}
-          {posting.descriptionIgboHtml && (
+    <div className="rounded-lg border border-border bg-card p-4">
+      <div className="flex items-start justify-between">
+        <div className="min-w-0 flex-1">
+          <h3 className="truncate font-medium">{posting.title}</h3>
+          <div className="mt-1 flex flex-wrap items-center gap-2">
             <span
-              className="inline-flex items-center rounded px-2 py-0.5 text-xs font-medium bg-indigo-50 text-indigo-700"
-              data-testid="bilingual-badge"
+              className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-medium ${badgeClass}`}
+              data-testid="status-badge"
             >
-              {t("bilingual")}
+              {t(`status.${posting.status}`)}
             </span>
-          )}
-        </div>
-        <CulturalContextBadges culturalContext={posting.culturalContextJson ?? null} />
-        <div className="mt-1 flex items-center gap-3">
-          <SalaryDisplay
-            min={posting.salaryMin ?? null}
-            max={posting.salaryMax ?? null}
-            competitiveOnly={posting.salaryCompetitiveOnly}
-          />
-          <span className="text-xs text-muted-foreground">
-            {t("createdAt", { date: createdDate })}
-          </span>
+            {posting.employmentType && (
+              <span className="text-xs text-muted-foreground">
+                {t(`type.${posting.employmentType}`)}
+              </span>
+            )}
+            {posting.location && (
+              <span className="text-xs text-muted-foreground">{posting.location}</span>
+            )}
+            {posting.descriptionIgboHtml && (
+              <span
+                className="inline-flex items-center rounded px-2 py-0.5 text-xs font-medium bg-indigo-50 text-indigo-700"
+                data-testid="bilingual-badge"
+              >
+                {t("bilingual")}
+              </span>
+            )}
+          </div>
+          <CulturalContextBadges culturalContext={posting.culturalContextJson ?? null} />
+          <div className="mt-1 flex items-center gap-3">
+            <SalaryDisplay
+              min={posting.salaryMin ?? null}
+              max={posting.salaryMax ?? null}
+              competitiveOnly={posting.salaryCompetitiveOnly}
+            />
+            <span className="text-xs text-muted-foreground">
+              {t("createdAt", { date: createdDate })}
+            </span>
+          </div>
         </div>
       </div>
-      <Link
-        href={`/${locale}/jobs/${posting.id}/edit`}
-        className="ml-4 shrink-0 text-sm text-primary hover:underline"
-      >
-        {t("editPosting")}
-      </Link>
+
+      {posting.status === "rejected" && posting.adminFeedbackComment && (
+        <div
+          className="mt-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800"
+          data-testid="admin-feedback"
+        >
+          {posting.adminFeedbackComment}
+        </div>
+      )}
+
+      {actions && <div className="mt-3">{actions}</div>}
     </div>
   );
 }

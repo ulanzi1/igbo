@@ -153,6 +153,8 @@
         "contract": "Nkwekọrịta",
         "internship": "Ọzụzụ Ọrụ"
       },
+      "saveChanges": "Chekwaa Mgbanwe",
+      "updated": "Edeziri ntinye ọrụ",
       "status": {
         "draft": "Ihe Edebara",
         "pending_review": "Na-atọ Nyocha",
@@ -161,6 +163,12 @@
         "filled": "Juputara",
         "expired": "Njedebe Eruo",
         "rejected": "Jụrụ"
+      },
+      "editTitle": "Dezie Ntinye Ọrụ",
+      "closedOutcome": {
+        "filled_via_portal": "Juputara Site n'Portal",
+        "filled_internally": "Juputara N'ime",
+        "cancelled": "Kagbuworo"
       }
     },
     "culturalContext": {
@@ -214,6 +222,32 @@
       "createFirst": "Mepụta Ọrụ Gị Nke Mbụ",
       "createdAt": "Emepụtara {date}",
       "edit": "Dezie"
+    },
+    "lifecycle": {
+      "preview": "Lelee",
+      "previewBanner": "Nlele — Emebochaghị",
+      "submitForReview": "Zipu Maka Nyocha",
+      "submitConfirmation": "Ezipugo ntinye gị maka nyocha onye nlekọta",
+      "pause": "Kwụsị",
+      "unpause": "Malitegharị",
+      "closePosting": "Mechie Ntinye",
+      "closeModalTitle": "Mechie Ntinye Ọrụ",
+      "closeModalDescription": "Họrọ ihe kpatara ị mechie ntinye a",
+      "closeConfirm": "Gwa ka A Mechie",
+      "reReviewWarning": "Idezie ntinye na-arụ ọrụ ga-achọ nkwado ọzọ n'aka onye nlekọta",
+      "rejectionFeedbackLabel": "Nzaghachi Onye Nlekọta",
+      "editAndResubmit": "Dezie & Ziputegharị",
+      "awaitingReview": "A na-enyocha ntinye a. Biko chere nzaghachi onye nlekọta tupu ị mee mgbanwe ọ bụla.",
+      "pendingReviewInfo": "Na-atọ nyocha onye nlekọta",
+      "viewApplications": "Lee Ngwa",
+      "comingSoon": "Na-abịa n'oge na-adịghị anya",
+      "filterAll": "Niile",
+      "noPostingsForFilter": "Ọ dịghị ntinye kwekọrọ na nzacha a",
+      "postingLimitReached": "Ị rutela ọnụ ọgụgụ kacha nke {max} ntinye na-arụ ọrụ",
+      "staleEditError": "Emenye ntinye a mgbanwe. Biko zaghachi ma nwalee ọzọ.",
+      "cannotEditPendingReview": "Enweghi ike idezie n'oge a na-enyocha",
+      "cancel": "Kagbuo",
+      "closeSuccess": "Emechiela ntinye nke ọma"
     }
   },
   "Shell": {
