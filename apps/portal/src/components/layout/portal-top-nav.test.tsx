@@ -14,6 +14,14 @@ vi.mock("next-intl", () => ({
   useLocale: () => "en",
 }));
 
+vi.mock("next/navigation", () => ({
+  useRouter: vi.fn().mockReturnValue({ push: vi.fn() }),
+}));
+
+vi.mock("sonner", () => ({
+  toast: vi.fn(),
+}));
+
 import { useSession } from "next-auth/react";
 import { PortalTopNav } from "./portal-top-nav";
 
@@ -52,10 +60,12 @@ describe("PortalTopNav", () => {
       expect(screen.getAllByText("savedJobs").length).toBeGreaterThan(0);
     });
 
-    it("shows role indicator badge with seeker text", () => {
-      setSession({ user: { activePortalRole: "JOB_SEEKER" } });
+    it("shows role switcher for multi-role seeker user", () => {
+      setSession({
+        user: { activePortalRole: "JOB_SEEKER", portalRoles: ["JOB_SEEKER", "EMPLOYER"] },
+      });
       render(<PortalTopNav />);
-      expect(screen.getAllByText("seeker").length).toBeGreaterThan(0);
+      expect(screen.getByRole("button", { name: "switchRoleLabel" })).toBeInTheDocument();
     });
   });
 
@@ -69,10 +79,31 @@ describe("PortalTopNav", () => {
       expect(screen.getAllByText("companyProfile").length).toBeGreaterThan(0);
     });
 
-    it("shows role indicator badge with employer text", () => {
-      setSession({ user: { activePortalRole: "EMPLOYER" } });
+    it("shows role switcher for multi-role employer user", () => {
+      setSession({
+        user: { activePortalRole: "EMPLOYER", portalRoles: ["JOB_SEEKER", "EMPLOYER"] },
+      });
       render(<PortalTopNav />);
-      expect(screen.getAllByText("employer").length).toBeGreaterThan(0);
+      // RoleSwitcher trigger button rendered for multi-role
+      expect(screen.getByRole("button", { name: "switchRoleLabel" })).toBeInTheDocument();
+    });
+  });
+
+  describe("admin role", () => {
+    it("renders admin nav items", () => {
+      setSession({ user: { activePortalRole: "JOB_ADMIN" } });
+      render(<PortalTopNav />);
+      expect(screen.getAllByText("reviewQueue").length).toBeGreaterThan(0);
+      expect(screen.getAllByText("reports").length).toBeGreaterThan(0);
+      expect(screen.getAllByText("settings").length).toBeGreaterThan(0);
+    });
+
+    it("does not show seeker items for admin role", () => {
+      setSession({ user: { activePortalRole: "JOB_ADMIN" } });
+      render(<PortalTopNav />);
+      // Admin nav should not have seeker-specific items
+      expect(screen.queryByText("myApplications")).not.toBeInTheDocument();
+      expect(screen.queryByText("savedJobs")).not.toBeInTheDocument();
     });
   });
 

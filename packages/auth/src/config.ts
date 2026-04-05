@@ -252,17 +252,34 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           (user as { membershipTier?: "BASIC" | "PROFESSIONAL" | "TOP_TIER" }).membershipTier ??
           "BASIC";
         token.picture = (user as { image?: string | null }).image ?? null;
-        // Populate portal role from RBAC table
+        // Populate portal role from RBAC table.
+        // Priority: JOB_SEEKER > EMPLOYER > JOB_ADMIN at sign-in. Users with multiple
+        // roles always land as seeker first; they can switch via the RoleSwitcher component.
         const { getUserPortalRoles } = await import("@igbo/db/queries/auth-permissions");
         const portalRoles = await getUserPortalRoles(user.id as string);
         const PRIORITY: PortalRole[] = ["JOB_SEEKER", "EMPLOYER", "JOB_ADMIN"];
         token.activePortalRole = PRIORITY.find((r) => portalRoles.includes(r)) ?? null;
+        token.portalRoles = portalRoles; // persist full array for multi-role awareness
       }
-      // Allow client-side session update to refresh profileCompleted or picture in JWT
+      // Allow client-side session update to refresh profileCompleted, picture, or activePortalRole
       if (trigger === "update") {
-        const s = session as { profileCompleted?: boolean; picture?: string | null };
+        const s = session as {
+          profileCompleted?: boolean;
+          picture?: string | null;
+          activePortalRole?: PortalRole;
+        };
         if (s?.profileCompleted !== undefined) token.profileCompleted = s.profileCompleted;
         if (s?.picture !== undefined) token.picture = s.picture;
+        if (s?.activePortalRole) {
+          // Validate the requested role against the user's actual RBAC assignments
+          const { getUserPortalRoles } = await import("@igbo/db/queries/auth-permissions");
+          const portalRoles = await getUserPortalRoles(token.id as string);
+          token.portalRoles = portalRoles; // always refresh the array on any switch attempt
+          if (portalRoles.includes(s.activePortalRole)) {
+            token.activePortalRole = s.activePortalRole;
+          }
+          // If invalid role requested, silently keep current — fail-closed
+        }
       }
       return token;
     },
@@ -278,6 +295,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         membershipTier: "BASIC" | "PROFESSIONAL" | "TOP_TIER" | undefined;
         picture?: string | null;
         activePortalRole?: "JOB_SEEKER" | "EMPLOYER" | "JOB_ADMIN" | null;
+        portalRoles?: ("JOB_SEEKER" | "EMPLOYER" | "JOB_ADMIN")[];
       };
       const t = token as unknown as AppToken;
       session.user.id = t.id;
@@ -287,6 +305,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       session.user.membershipTier = t.membershipTier ?? "BASIC";
       session.user.image = t.picture ?? null;
       session.user.activePortalRole = t.activePortalRole ?? null;
+      session.user.portalRoles = t.portalRoles ?? [];
       // Create a short-lived JWT for Socket.IO auth (realtime server verifies with same AUTH_SECRET)
       const secret = new TextEncoder().encode(getAuthSecret());
       session.sessionToken = await new SignJWT({ id: t.id })

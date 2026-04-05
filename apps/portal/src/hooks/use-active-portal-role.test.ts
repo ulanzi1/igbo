@@ -81,4 +81,52 @@ describe("useActivePortalRole", () => {
     expect(result.current.isSeeker).toBe(true);
     expect(result.current.isAuthenticated).toBe(true);
   });
+
+  it("returns allRoles and hasMultipleRoles=true for multi-role user", () => {
+    mockSession({
+      activePortalRole: "JOB_SEEKER",
+      portalRoles: ["JOB_SEEKER", "EMPLOYER"],
+    });
+    const { result } = renderHook(() => useActivePortalRole());
+    expect(result.current.allRoles).toEqual(["JOB_SEEKER", "EMPLOYER"]);
+    expect(result.current.hasMultipleRoles).toBe(true);
+  });
+
+  it("returns allRoles and hasMultipleRoles=false for single-role user", () => {
+    mockSession({
+      activePortalRole: "JOB_SEEKER",
+      portalRoles: ["JOB_SEEKER"],
+    });
+    const { result } = renderHook(() => useActivePortalRole());
+    expect(result.current.allRoles).toEqual(["JOB_SEEKER"]);
+    expect(result.current.hasMultipleRoles).toBe(false);
+  });
+
+  it("returns all three roles for triple-role user", () => {
+    mockSession({
+      activePortalRole: "JOB_SEEKER",
+      portalRoles: ["JOB_SEEKER", "EMPLOYER", "JOB_ADMIN"],
+    });
+    const { result } = renderHook(() => useActivePortalRole());
+    expect(result.current.allRoles).toEqual(["JOB_SEEKER", "EMPLOYER", "JOB_ADMIN"]);
+    expect(result.current.hasMultipleRoles).toBe(true);
+  });
+
+  it("returns allRoles=[] and hasMultipleRoles=false for unauthenticated", () => {
+    vi.mocked(useSession).mockReturnValue({
+      data: null,
+      status: "unauthenticated",
+      update: vi.fn(),
+    });
+    const { result } = renderHook(() => useActivePortalRole());
+    expect(result.current.allRoles).toEqual([]);
+    expect(result.current.hasMultipleRoles).toBe(false);
+  });
+
+  it("defaults allRoles to [] when portalRoles is not in session", () => {
+    mockSession({ activePortalRole: "EMPLOYER" }); // no portalRoles field
+    const { result } = renderHook(() => useActivePortalRole());
+    expect(result.current.allRoles).toEqual([]);
+    expect(result.current.hasMultipleRoles).toBe(false);
+  });
 });

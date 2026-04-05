@@ -29,6 +29,7 @@ declare module "next-auth" {
       email?: string | null;
       image?: string | null;
       activePortalRole?: "JOB_SEEKER" | "EMPLOYER" | "JOB_ADMIN" | null;
+      portalRoles?: ("JOB_SEEKER" | "EMPLOYER" | "JOB_ADMIN")[];
     };
   }
 }

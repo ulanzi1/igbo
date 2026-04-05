@@ -10,6 +10,8 @@ export interface ActivePortalRole {
   isEmployer: boolean;
   isAdmin: boolean;
   isAuthenticated: boolean;
+  allRoles: Exclude<PortalRole, null>[];
+  hasMultipleRoles: boolean;
 }
 
 export function useActivePortalRole(): ActivePortalRole {
@@ -22,6 +24,8 @@ export function useActivePortalRole(): ActivePortalRole {
       isEmployer: false,
       isAdmin: false,
       isAuthenticated: false,
+      allRoles: [],
+      hasMultipleRoles: false,
     };
   }
 
@@ -31,11 +35,21 @@ export function useActivePortalRole(): ActivePortalRole {
   const role: PortalRole =
     rawRole === "EMPLOYER" ? "EMPLOYER" : rawRole === "JOB_ADMIN" ? "JOB_ADMIN" : "JOB_SEEKER";
 
+  // portalRoles array: populated by JWT callback on sign-in and refreshed on role switch.
+  // The JWT array never contains null — Exclude<PortalRole, null> is the correct type.
+  const rawPortalRoles = (session as { user?: { portalRoles?: string[] } }).user?.portalRoles;
+  const allRoles = (rawPortalRoles ?? []).filter(
+    (r): r is Exclude<PortalRole, null> =>
+      r === "JOB_SEEKER" || r === "EMPLOYER" || r === "JOB_ADMIN",
+  );
+
   return {
     role,
     isSeeker: role === "JOB_SEEKER",
     isEmployer: role === "EMPLOYER",
     isAdmin: role === "JOB_ADMIN",
     isAuthenticated: true,
+    allRoles,
+    hasMultipleRoles: allRoles.length > 1,
   };
 }

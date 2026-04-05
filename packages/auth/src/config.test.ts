@@ -507,6 +507,86 @@ describe("NextAuth jwt callback", () => {
     expect(result.activePortalRole).toBe("EMPLOYER");
     expect(mockGetUserPortalRoles).not.toHaveBeenCalled();
   });
+
+  it("populates portalRoles array at sign-in", async () => {
+    mockGetUserPortalRoles.mockResolvedValue(["JOB_SEEKER", "EMPLOYER"]);
+    const token = {} as Record<string, unknown>;
+    const user = {
+      id: "user-6",
+      role: "MEMBER",
+      accountStatus: "APPROVED",
+      profileCompleted: true,
+      membershipTier: "BASIC",
+    };
+    const result = await jwtCallback({ token, user, trigger: undefined, session: undefined });
+    expect(result.portalRoles).toEqual(["JOB_SEEKER", "EMPLOYER"]);
+  });
+
+  it("accepts valid role switch on trigger=update", async () => {
+    mockGetUserPortalRoles.mockResolvedValue(["JOB_SEEKER", "EMPLOYER"]);
+    const token = {
+      id: "user-7",
+      activePortalRole: "JOB_SEEKER",
+      portalRoles: ["JOB_SEEKER", "EMPLOYER"],
+    } as Record<string, unknown>;
+    const result = await jwtCallback({
+      token,
+      user: undefined,
+      trigger: "update",
+      session: { activePortalRole: "EMPLOYER" },
+    });
+    expect(result.activePortalRole).toBe("EMPLOYER");
+    expect(result.portalRoles).toEqual(["JOB_SEEKER", "EMPLOYER"]); // refreshed
+  });
+
+  it("rejects invalid role switch on trigger=update (silently keeps current)", async () => {
+    mockGetUserPortalRoles.mockResolvedValue(["JOB_SEEKER"]); // only seeker
+    const token = {
+      id: "user-8",
+      activePortalRole: "JOB_SEEKER",
+      portalRoles: ["JOB_SEEKER"],
+    } as Record<string, unknown>;
+    const result = await jwtCallback({
+      token,
+      user: undefined,
+      trigger: "update",
+      session: { activePortalRole: "JOB_ADMIN" }, // not held
+    });
+    expect(result.activePortalRole).toBe("JOB_SEEKER"); // unchanged
+    expect(result.portalRoles).toEqual(["JOB_SEEKER"]); // refreshed to actual
+  });
+
+  it("refreshes portalRoles array on valid role switch", async () => {
+    mockGetUserPortalRoles.mockResolvedValue(["JOB_SEEKER", "EMPLOYER"]);
+    const token = {
+      id: "user-9",
+      activePortalRole: "JOB_SEEKER",
+      portalRoles: ["JOB_SEEKER"], // stale (was seeker only before)
+    } as Record<string, unknown>;
+    const result = await jwtCallback({
+      token,
+      user: undefined,
+      trigger: "update",
+      session: { activePortalRole: "EMPLOYER" },
+    });
+    expect(result.portalRoles).toEqual(["JOB_SEEKER", "EMPLOYER"]); // fresh from DB
+  });
+
+  it("community backward compat: session.update({ profileCompleted }) still works", async () => {
+    const token = {
+      id: "user-comm",
+      profileCompleted: false,
+      picture: null,
+    } as Record<string, unknown>;
+    const result = await jwtCallback({
+      token,
+      user: undefined,
+      trigger: "update",
+      session: { profileCompleted: true },
+    });
+    expect(result.profileCompleted).toBe(true);
+    expect(mockGetUserPortalRoles).not.toHaveBeenCalled(); // no portal role lookup
+  });
 });
 
 // ─── Cookie domain configuration ─────────────────────────────────────────────
@@ -625,6 +705,33 @@ describe("NextAuth session callback", () => {
     };
     const result = await sessionCallback({ session, token });
     expect(result.user.membershipTier).toBe("BASIC");
+  });
+
+  it("forwards portalRoles array from token to session.user", async () => {
+    const session = { user: {} } as Record<string, Record<string, unknown>>;
+    const token = {
+      id: "user-1",
+      role: "MEMBER",
+      accountStatus: "APPROVED",
+      profileCompleted: false,
+      picture: null,
+      portalRoles: ["JOB_SEEKER", "EMPLOYER"],
+    };
+    const result = await sessionCallback({ session, token });
+    expect(result.user.portalRoles).toEqual(["JOB_SEEKER", "EMPLOYER"]);
+  });
+
+  it("defaults portalRoles to [] when token has no portalRoles", async () => {
+    const session = { user: {} } as Record<string, Record<string, unknown>>;
+    const token = {
+      id: "user-1",
+      role: "MEMBER",
+      accountStatus: "APPROVED",
+      profileCompleted: false,
+      picture: null,
+    };
+    const result = await sessionCallback({ session, token });
+    expect(result.user.portalRoles).toEqual([]);
   });
 });
 

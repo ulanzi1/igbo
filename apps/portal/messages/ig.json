@@ -16,13 +16,19 @@
       "postJob": "Tinye Ọrụ",
       "login": "Banye",
       "joinNow": "Sonye Ugbu a",
-      "profile": "Profaịlụ"
+      "profile": "Profaịlụ",
+      "reviewQueue": "Usoro Nyocha",
+      "reports": "Akụkọ",
+      "settings": "Ntọala"
     },
     "role": {
       "seeker": "Onye Na-achọ Ọrụ",
       "employer": "Onye Ọrụ Na-enye",
-      "admin": "Onye Nlekọta Ọrụ",
-      "switchRole": "Gbanwee Ọrụ"
+      "jobAdmin": "Onye Nlekọta Ọrụ",
+      "switchRole": "Gbanwee Ọrụ",
+      "switchRoleLabel": "Gbanwee ọrụ portal",
+      "switchingRole": "Na-agbanwe ọrụ...",
+      "switchedTo": "Agbanweela na {role}"
     },
     "home": {
       "title": "Ụlọ Ọrụ OBIGBO",

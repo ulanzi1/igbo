@@ -3,11 +3,11 @@
 import { useState } from "react";
 import { MenuIcon, XIcon, BriefcaseIcon, ArrowLeftIcon, UserCircleIcon } from "lucide-react";
 import { useTranslations, useLocale } from "next-intl";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { useActivePortalRole } from "@/hooks/use-active-portal-role";
+import { RoleSwitcher } from "./role-switcher";
 
 function getCommunityUrl() {
   return process.env.NEXT_PUBLIC_COMMUNITY_URL ?? "http://localhost:3000";
@@ -21,7 +21,6 @@ interface NavLink {
 
 export function PortalTopNav({ className }: { className?: string }) {
   const t = useTranslations("Portal.nav");
-  const tRole = useTranslations("Portal.role");
   const locale = useLocale();
   const { isSeeker, isEmployer, isAdmin, isAuthenticated } = useActivePortalRole();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -43,20 +42,24 @@ export function PortalTopNav({ className }: { className?: string }) {
     { key: "companyProfile", href: `/${locale}/company-profile`, label: t("companyProfile") },
   ];
 
+  const adminLinks: NavLink[] = [
+    { key: "reviewQueue", href: `/${locale}/admin`, label: t("reviewQueue") },
+    { key: "reports", href: `/${locale}/admin/reports`, label: t("reports") },
+    { key: "settings", href: `/${locale}/admin/settings`, label: t("settings") },
+  ];
+
   const guestLinks: NavLink[] = [
     { key: "browseAll", href: `/${locale}/jobs`, label: t("browseAll") },
     { key: "apprenticeships", href: `/${locale}/apprenticeships`, label: t("apprenticeships") },
   ];
 
-  const navLinks = isEmployer ? employerLinks : isSeeker || isAdmin ? seekerLinks : guestLinks;
-
-  const roleLabel = isEmployer
-    ? tRole("employer")
+  const navLinks = isEmployer
+    ? employerLinks
     : isAdmin
-      ? tRole("admin")
-      : isAuthenticated
-        ? tRole("seeker")
-        : null;
+      ? adminLinks
+      : isSeeker
+        ? seekerLinks
+        : guestLinks;
 
   return (
     <>
@@ -104,12 +107,10 @@ export function PortalTopNav({ className }: { className?: string }) {
             {t("backToCommunity")}
           </a>
 
-          {/* Role indicator badge */}
-          {roleLabel && (
-            <Badge variant="outline" className="hidden sm:inline-flex text-xs">
-              {roleLabel}
-            </Badge>
-          )}
+          {/* Role switcher / indicator (hidden on mobile — Sheet has its own instance) */}
+          <div className="hidden sm:flex">
+            <RoleSwitcher />
+          </div>
 
           {/* Employer CTA */}
           {isEmployer && (
@@ -159,9 +160,7 @@ export function PortalTopNav({ className }: { className?: string }) {
             </SheetTrigger>
             <SheetContent side="right">
               <SheetHeader>
-                <SheetTitle>
-                  {roleLabel ? <Badge variant="outline">{roleLabel}</Badge> : "OBIGBO Job Portal"}
-                </SheetTitle>
+                <SheetTitle>{isAuthenticated ? <RoleSwitcher /> : "OBIGBO Job Portal"}</SheetTitle>
               </SheetHeader>
               <nav aria-label="Mobile portal navigation" className="flex flex-col py-4 gap-1">
                 {navLinks.map(({ key, href, label }) => (
