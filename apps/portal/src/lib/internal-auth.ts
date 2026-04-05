@@ -8,7 +8,7 @@ import { ApiError } from "@/lib/api-error";
  *   Authorization: Bearer dev-secret
  */
 export function requireInternalAuth(req: Request): void {
-  const secret = process.env.INTERNAL_JOB_SECRET;
+  const secret = process.env.INTERNAL_JOB_SECRET; // ci-allow-process-env
   if (!secret) {
     throw new ApiError({ title: "INTERNAL_JOB_SECRET is not configured", status: 401 });
   }
