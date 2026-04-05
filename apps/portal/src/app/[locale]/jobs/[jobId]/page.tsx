@@ -21,7 +21,7 @@ export default async function JobDetailPage({ params }: PageProps) {
   const { posting, company } = result;
 
   return (
-    <main id="main-content" className="container max-w-2xl py-8">
+    <div className="max-w-2xl py-8">
       <ViewTracker jobId={jobId} />
 
       <div className="mb-6">
@@ -71,6 +71,6 @@ export default async function JobDetailPage({ params }: PageProps) {
           />
         </section>
       )}
-    </main>
+    </div>
   );
 }

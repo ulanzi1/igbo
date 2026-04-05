@@ -32,12 +32,12 @@ export default async function OnboardingPage({ params }: PageProps) {
   const initialStep = profile ? 2 : 1;
 
   return (
-    <main id="main-content">
+    <div className="py-8">
       <OnboardingFlow
         initialStep={initialStep as 1 | 2}
         companyProfile={profile ?? undefined}
         locale={locale}
       />
-    </main>
+    </div>
   );
 }

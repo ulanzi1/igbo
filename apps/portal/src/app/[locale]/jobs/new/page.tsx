@@ -23,7 +23,7 @@ export default async function NewJobPage({ params, searchParams }: PageProps) {
   }
 
   return (
-    <main id="main-content" className="container max-w-2xl py-8">
+    <div className="max-w-2xl py-8">
       {fromOnboarding && (
         <div className="mb-4 flex items-center gap-2 rounded-lg border border-border bg-muted px-4 py-3 text-sm">
           <Link href={`/${locale}/onboarding`} className="text-primary underline">
@@ -33,6 +33,6 @@ export default async function NewJobPage({ params, searchParams }: PageProps) {
       )}
       <h1 className="mb-6 text-2xl font-bold">{t("createTitle")}</h1>
       <JobPostingForm companyId={profile.id} />
-    </main>
+    </div>
   );
 }

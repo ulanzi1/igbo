@@ -33,7 +33,10 @@ export function PortalRichTextEditor({
 
   const editor = useEditor({
     immediatelyRender: false,
-    extensions: [StarterKit, TiptapLink.configure({ openOnClick: false })],
+    extensions: [
+      StarterKit.configure({ link: false }),
+      TiptapLink.configure({ openOnClick: false }),
+    ],
     content: content || undefined,
     editable: !disabled,
     editorProps: {

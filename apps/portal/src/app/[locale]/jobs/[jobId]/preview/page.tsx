@@ -26,7 +26,7 @@ export default async function JobPostingPreviewPage({ params }: PageProps) {
   const isDraft = posting.status === "draft";
 
   return (
-    <main id="main-content" className="container max-w-2xl py-8">
+    <div className="max-w-2xl py-8">
       <div className="mb-6">
         <h1 className="sr-only">{t("lifecycle.previewBanner")}</h1>
         <p className="text-sm text-muted-foreground">
@@ -34,6 +34,6 @@ export default async function JobPostingPreviewPage({ params }: PageProps) {
         </p>
       </div>
       <JobPostingPreview posting={posting} company={result.company} isDraft={isDraft} />
-    </main>
+    </div>
   );
 }

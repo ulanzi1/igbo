@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { MenuIcon, XIcon, BriefcaseIcon, ArrowLeftIcon, UserCircleIcon } from "lucide-react";
 import { useTranslations, useLocale } from "next-intl";
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,8 @@ export function PortalTopNav({ className }: { className?: string }) {
   const locale = useLocale();
   const { isSeeker, isEmployer, isAdmin, isAuthenticated } = useActivePortalRole();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
   const communityUrl = getCommunityUrl();
 
   const seekerLinks: NavLink[] = [
@@ -142,66 +144,78 @@ export function PortalTopNav({ className }: { className?: string }) {
             </button>
           )}
 
-          {/* Mobile hamburger */}
-          <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-            <SheetTrigger asChild>
-              <button
-                type="button"
-                aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
-                aria-expanded={mobileMenuOpen}
-                className="flex lg:hidden items-center justify-center h-11 w-11 rounded-md text-muted-foreground hover:bg-accent transition-colors"
-              >
-                {mobileMenuOpen ? (
-                  <XIcon className="size-5" aria-hidden="true" />
-                ) : (
-                  <MenuIcon className="size-5" aria-hidden="true" />
-                )}
-              </button>
-            </SheetTrigger>
-            <SheetContent side="right">
-              <SheetHeader>
-                <SheetTitle>{isAuthenticated ? <RoleSwitcher /> : "OBIGBO Job Portal"}</SheetTitle>
-              </SheetHeader>
-              <nav aria-label="Mobile portal navigation" className="flex flex-col py-4 gap-1">
-                {navLinks.map(({ key, href, label }) => (
-                  <a
-                    key={key}
-                    href={href}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center min-h-[44px] px-4 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-colors rounded-md"
-                  >
-                    {label}
-                  </a>
-                ))}
-                <div className="border-t border-border my-2" />
-                <a
-                  href={communityUrl}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center gap-2 min-h-[44px] px-4 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-colors rounded-md"
-                  data-testid="back-to-community-mobile"
+          {/* Mobile hamburger — client-only to avoid Radix aria-controls hydration mismatch */}
+          {mounted ? (
+            <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+              <SheetTrigger asChild>
+                <button
+                  type="button"
+                  aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+                  aria-expanded={mobileMenuOpen}
+                  className="flex lg:hidden items-center justify-center h-11 w-11 rounded-md text-muted-foreground hover:bg-accent transition-colors"
                 >
-                  <ArrowLeftIcon className="size-4" aria-hidden="true" />
-                  {t("backToCommunity")}
-                </a>
-                {!isAuthenticated && (
-                  <>
+                  {mobileMenuOpen ? (
+                    <XIcon className="size-5" aria-hidden="true" />
+                  ) : (
+                    <MenuIcon className="size-5" aria-hidden="true" />
+                  )}
+                </button>
+              </SheetTrigger>
+              <SheetContent side="right">
+                <SheetHeader>
+                  <SheetTitle>
+                    {isAuthenticated ? <RoleSwitcher /> : "OBIGBO Job Portal"}
+                  </SheetTitle>
+                </SheetHeader>
+                <nav aria-label="Mobile portal navigation" className="flex flex-col py-4 gap-1">
+                  {navLinks.map(({ key, href, label }) => (
                     <a
-                      href={`${communityUrl}/login`}
+                      key={key}
+                      href={href}
+                      onClick={() => setMobileMenuOpen(false)}
                       className="flex items-center min-h-[44px] px-4 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-colors rounded-md"
                     >
-                      {t("login")}
+                      {label}
                     </a>
-                    <a
-                      href={`${communityUrl}/join`}
-                      className="flex items-center min-h-[44px] px-4 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-colors rounded-md"
-                    >
-                      {t("joinNow")}
-                    </a>
-                  </>
-                )}
-              </nav>
-            </SheetContent>
-          </Sheet>
+                  ))}
+                  <div className="border-t border-border my-2" />
+                  <a
+                    href={communityUrl}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center gap-2 min-h-[44px] px-4 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-colors rounded-md"
+                    data-testid="back-to-community-mobile"
+                  >
+                    <ArrowLeftIcon className="size-4" aria-hidden="true" />
+                    {t("backToCommunity")}
+                  </a>
+                  {!isAuthenticated && (
+                    <>
+                      <a
+                        href={`${communityUrl}/login`}
+                        className="flex items-center min-h-[44px] px-4 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-colors rounded-md"
+                      >
+                        {t("login")}
+                      </a>
+                      <a
+                        href={`${communityUrl}/join`}
+                        className="flex items-center min-h-[44px] px-4 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-colors rounded-md"
+                      >
+                        {t("joinNow")}
+                      </a>
+                    </>
+                  )}
+                </nav>
+              </SheetContent>
+            </Sheet>
+          ) : (
+            <button
+              type="button"
+              aria-label="Open menu"
+              className="flex lg:hidden items-center justify-center h-11 w-11 rounded-md text-muted-foreground hover:bg-accent transition-colors"
+            >
+              <MenuIcon className="size-5" aria-hidden="true" />
+            </button>
+          )}
         </div>
       </header>
     </>

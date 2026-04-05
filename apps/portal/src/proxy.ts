@@ -91,6 +91,12 @@ export async function proxy(request: NextRequest) {
     return new NextResponse(null, { status: 204, headers: responseHeaders });
   }
 
+  // API routes bypass i18n routing entirely — they handle their own auth
+  if (pathname.startsWith("/api/")) {
+    const response = NextResponse.next({ headers: responseHeaders });
+    return response;
+  }
+
   if (isPublicPath(pathname)) {
     // Public paths still need locale routing for cookie detection
     const intlResponse = handleI18nRouting(request);

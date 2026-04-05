@@ -30,7 +30,7 @@ export default async function CompanyProfilePage({ params, searchParams }: PageP
 
   if (isCreateMode) {
     return (
-      <main id="main-content" className="container max-w-2xl py-8">
+      <div className="max-w-2xl py-8">
         <Card>
           <CardHeader>
             <CardTitle>{t("createTitle")}</CardTitle>
@@ -39,13 +39,13 @@ export default async function CompanyProfilePage({ params, searchParams }: PageP
             <CompanyProfileForm mode="create" showOnboardingToast={onboarding === "true"} />
           </CardContent>
         </Card>
-      </main>
+      </div>
     );
   }
 
   if (isEditMode) {
     return (
-      <main id="main-content" className="container max-w-2xl py-8">
+      <div className="max-w-2xl py-8">
         <Card>
           <CardHeader>
             <CardTitle>{t("editTitle")}</CardTitle>
@@ -54,13 +54,13 @@ export default async function CompanyProfilePage({ params, searchParams }: PageP
             <CompanyProfileForm mode="edit" initialData={profile} />
           </CardContent>
         </Card>
-      </main>
+      </div>
     );
   }
 
   // View mode
   return (
-    <main id="main-content" className="container max-w-2xl py-8">
+    <div className="max-w-2xl py-8">
       <Card>
         <CardHeader>
           <div className="flex items-start justify-between">
@@ -99,6 +99,6 @@ export default async function CompanyProfilePage({ params, searchParams }: PageP
           )}
         </CardContent>
       </Card>
-    </main>
+    </div>
   );
 }

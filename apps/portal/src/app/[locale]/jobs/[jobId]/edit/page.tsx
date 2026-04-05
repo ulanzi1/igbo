@@ -31,7 +31,7 @@ export default async function JobPostingEditPage({ params }: PageProps) {
   }
 
   return (
-    <main id="main-content" className="container max-w-2xl py-8">
+    <div className="max-w-2xl py-8">
       <h1 className="mb-6 text-2xl font-bold">{t("posting.editTitle")}</h1>
       <JobPostingForm
         companyId={company.id}
@@ -65,6 +65,6 @@ export default async function JobPostingEditPage({ params }: PageProps) {
             }) ?? null,
         }}
       />
-    </main>
+    </div>
   );
 }

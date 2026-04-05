@@ -24,7 +24,7 @@ export default async function CompanyDetailPage({ params }: PageProps) {
   const trustSignals = await getCommunityTrustSignals(profile.ownerUserId);
 
   return (
-    <main id="main-content" className="container max-w-3xl py-8">
+    <div className="max-w-3xl py-8">
       <Card>
         <CardHeader>
           <div className="flex items-start gap-4">
@@ -74,6 +74,6 @@ export default async function CompanyDetailPage({ params }: PageProps) {
           </div>
         </CardContent>
       </Card>
-    </main>
+    </div>
   );
 }

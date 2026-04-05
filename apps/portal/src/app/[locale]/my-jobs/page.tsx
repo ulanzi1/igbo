@@ -65,7 +65,7 @@ export default async function MyJobsPage({ params, searchParams }: PageProps) {
   }
 
   return (
-    <main id="main-content" className="container py-8">
+    <div className="py-8">
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-bold">{t("title")}</h1>
         <Link
@@ -168,6 +168,6 @@ export default async function MyJobsPage({ params, searchParams }: PageProps) {
           ))}
         </ul>
       )}
-    </main>
+    </div>
   );
 }

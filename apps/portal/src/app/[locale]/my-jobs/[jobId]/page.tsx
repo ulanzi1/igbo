@@ -34,7 +34,7 @@ export default async function EmployerJobDetailPage({ params }: PageProps) {
   const isShared = analytics?.communityPostId != null;
 
   return (
-    <main id="main-content" className="container max-w-3xl py-8">
+    <div className="max-w-3xl py-8">
       <div className="mb-4 flex items-center gap-2 text-sm text-muted-foreground">
         <Link href={`/${locale}/my-jobs`} className="hover:text-foreground">
           {jt("myJobs")}
@@ -85,6 +85,6 @@ export default async function EmployerJobDetailPage({ params }: PageProps) {
         <p className="mb-3 text-sm text-muted-foreground">{t("shareDescription")}</p>
         <ShareToCommunityButton jobId={jobId} isActive={isActive} isShared={isShared} />
       </section>
-    </main>
+    </div>
   );
 }
