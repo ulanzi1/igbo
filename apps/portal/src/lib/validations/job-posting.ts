@@ -1,4 +1,5 @@
 import { z } from "zod/v4";
+import { portalJobStatusEnum, portalClosedOutcomeEnum } from "@igbo/db/schema/portal-job-postings";
 
 export const EMPLOYMENT_TYPE_OPTIONS = [
   "full_time",
@@ -39,3 +40,20 @@ export const jobPostingSchema = z
   );
 
 export type JobPostingInput = z.infer<typeof jobPostingSchema>;
+
+// Schema for editing a posting — extends jobPostingSchema with optimistic locking
+// adminFeedbackComment is intentionally excluded (not in jobPostingSchema)
+export const editJobPostingSchema = jobPostingSchema.extend({
+  expectedUpdatedAt: z.string().datetime().optional(),
+});
+
+export type EditJobPostingInput = z.infer<typeof editJobPostingSchema>;
+
+// Schema for status transitions
+export const statusTransitionSchema = z.object({
+  targetStatus: z.enum(portalJobStatusEnum.enumValues),
+  closedOutcome: z.enum(portalClosedOutcomeEnum.enumValues).optional(),
+  expectedUpdatedAt: z.string().datetime().optional(),
+});
+
+export type StatusTransitionInput = z.infer<typeof statusTransitionSchema>;

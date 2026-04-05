@@ -365,6 +365,13 @@
       "when": 1708000051000,
       "tag": "0051_portal_schema",
       "breakpoints": true
+    },
+    {
+      "idx": 52,
+      "version": "7",
+      "when": 1708000052000,
+      "tag": "0052_job_posting_lifecycle",
+      "breakpoints": true
     }
   ]
 }

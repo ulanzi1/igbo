@@ -153,6 +153,8 @@
         "contract": "Contract",
         "internship": "Internship"
       },
+      "saveChanges": "Save Changes",
+      "updated": "Job posting updated",
       "status": {
         "draft": "Draft",
         "pending_review": "Pending Review",
@@ -161,6 +163,12 @@
         "filled": "Filled",
         "expired": "Expired",
         "rejected": "Rejected"
+      },
+      "editTitle": "Edit Job Posting",
+      "closedOutcome": {
+        "filled_via_portal": "Filled via Portal",
+        "filled_internally": "Filled Internally",
+        "cancelled": "Cancelled"
       }
     },
     "culturalContext": {
@@ -214,6 +222,32 @@
       "createFirst": "Create Your First Job",
       "createdAt": "Created {date}",
       "edit": "Edit"
+    },
+    "lifecycle": {
+      "preview": "Preview",
+      "previewBanner": "Preview — Not Yet Published",
+      "submitForReview": "Submit for Review",
+      "submitConfirmation": "Your posting has been submitted for admin review",
+      "pause": "Pause",
+      "unpause": "Resume",
+      "closePosting": "Close Posting",
+      "closeModalTitle": "Close Job Posting",
+      "closeModalDescription": "Select the reason for closing this posting",
+      "closeConfirm": "Confirm Close",
+      "reReviewWarning": "Editing an active posting will require re-approval by an admin",
+      "rejectionFeedbackLabel": "Admin Feedback",
+      "editAndResubmit": "Edit & Resubmit",
+      "awaitingReview": "This posting is under review. Please wait for admin feedback before making changes.",
+      "pendingReviewInfo": "Awaiting admin review",
+      "viewApplications": "View Applications",
+      "comingSoon": "Coming soon",
+      "filterAll": "All",
+      "noPostingsForFilter": "No postings match this filter",
+      "postingLimitReached": "You have reached the maximum of {max} active postings",
+      "staleEditError": "This posting was modified. Please reload and try again.",
+      "cannotEditPendingReview": "Cannot edit while under review",
+      "cancel": "Cancel",
+      "closeSuccess": "Posting closed successfully"
     }
   },
   "Shell": {

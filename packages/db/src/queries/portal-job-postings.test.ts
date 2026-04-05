@@ -9,6 +9,9 @@ import {
   createJobPosting,
   getJobPostingById,
   getJobPostingsByCompanyId,
+  getJobPostingsByCompanyIdWithFilter,
+  getJobPostingWithCompany,
+  countActivePostingsByCompanyId,
   updateJobPosting,
   updateJobPostingStatus,
 } from "./portal-job-postings";
@@ -30,6 +33,9 @@ const POSTING: PortalJobPosting = {
   descriptionIgboHtml: null,
   applicationDeadline: null,
   expiresAt: null,
+  adminFeedbackComment: null,
+  closedOutcome: null,
+  closedAt: null,
   createdAt: new Date("2026-01-01"),
   updatedAt: new Date("2026-01-01"),
 };
@@ -142,6 +148,87 @@ describe("updateJobPostingStatus", () => {
   it("returns null when not found", async () => {
     makeUpdateMock(undefined);
     const result = await updateJobPostingStatus("jp-999", "active");
+    expect(result).toBeNull();
+  });
+});
+
+describe("getJobPostingsByCompanyIdWithFilter", () => {
+  it("returns all postings when no statusFilter provided", async () => {
+    makeSelectManyMock([POSTING]);
+    const result = await getJobPostingsByCompanyIdWithFilter("cp-1");
+    expect(result).toHaveLength(1);
+    expect(result[0]?.id).toBe("jp-1");
+  });
+
+  it("returns empty array when no postings match", async () => {
+    makeSelectManyMock([]);
+    const result = await getJobPostingsByCompanyIdWithFilter("cp-1", "active");
+    expect(result).toHaveLength(0);
+  });
+
+  it("calls db.select when statusFilter is provided", async () => {
+    makeSelectManyMock([{ ...POSTING, status: "active" as const }]);
+    const result = await getJobPostingsByCompanyIdWithFilter("cp-1", "active");
+    expect(result[0]?.status).toBe("active");
+    expect(db.select).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("countActivePostingsByCompanyId", () => {
+  it("returns count of active postings", async () => {
+    const where = vi.fn().mockResolvedValue([{ count: 3 }]);
+    const from = vi.fn().mockReturnValue({ where });
+    vi.mocked(db.select).mockReturnValue({ from } as unknown as ReturnType<typeof db.select>);
+
+    const result = await countActivePostingsByCompanyId("cp-1");
+    expect(result).toBe(3);
+  });
+
+  it("returns 0 when no active postings", async () => {
+    const where = vi.fn().mockResolvedValue([{ count: 0 }]);
+    const from = vi.fn().mockReturnValue({ where });
+    vi.mocked(db.select).mockReturnValue({ from } as unknown as ReturnType<typeof db.select>);
+
+    const result = await countActivePostingsByCompanyId("cp-1");
+    expect(result).toBe(0);
+  });
+});
+
+describe("getJobPostingWithCompany", () => {
+  it("returns posting with company when found", async () => {
+    const mockCompany = {
+      id: "cp-1",
+      ownerUserId: "user-1",
+      name: "Acme Corp",
+      logoUrl: null,
+      description: null,
+      industry: null,
+      companySize: null,
+      cultureInfo: null,
+      trustBadge: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    const limit = vi.fn().mockResolvedValue([{ posting: POSTING, company: mockCompany }]);
+    const where = vi.fn().mockReturnValue({ limit });
+    const innerJoin = vi.fn().mockReturnValue({ where });
+    const from = vi.fn().mockReturnValue({ innerJoin });
+    vi.mocked(db.select).mockReturnValue({ from } as unknown as ReturnType<typeof db.select>);
+
+    const result = await getJobPostingWithCompany("jp-1");
+    expect(result).not.toBeNull();
+    expect(result?.posting.id).toBe("jp-1");
+    expect(result?.company.name).toBe("Acme Corp");
+  });
+
+  it("returns null when posting not found", async () => {
+    const limit = vi.fn().mockResolvedValue([]);
+    const where = vi.fn().mockReturnValue({ limit });
+    const innerJoin = vi.fn().mockReturnValue({ where });
+    const from = vi.fn().mockReturnValue({ innerJoin });
+    vi.mocked(db.select).mockReturnValue({ from } as unknown as ReturnType<typeof db.select>);
+
+    const result = await getJobPostingWithCompany("jp-999");
     expect(result).toBeNull();
   });
 });

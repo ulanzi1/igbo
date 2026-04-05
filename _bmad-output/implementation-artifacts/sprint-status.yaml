@@ -241,7 +241,7 @@ development_status:
   # VD-5: portal/src/lib/sanitize.ts duplicates community sanitize.ts — trigger: 3rd app needs sanitization → extract to @igbo/packages/sanitize
   # R7-backlog: community TiptapEditor.tsx missing @tiptap/extension-link import — RESOLVED (import + extension added)
   p-1-3b-igbo-cultural-context-bilingual-descriptions: done
-  p-1-4-job-posting-lifecycle-management: backlog
+  p-1-4-job-posting-lifecycle-management: done
   p-1-5-job-posting-expiry-auto-archive-templates: backlog
   p-1-6-employer-onboarding-densitycontext: backlog
   p-1-7-application-analytics-community-feed-sharing: backlog

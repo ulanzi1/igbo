@@ -13,6 +13,8 @@ import {
 import { SalaryRangeInput } from "@/components/domain/salary-range-input";
 import { CulturalContextToggles } from "@/components/domain/cultural-context-toggles";
 import { PortalRichTextEditorSkeleton } from "./portal-rich-text-editor";
+import type { JobPostingInput } from "@/lib/validations/job-posting";
+import type { PortalJobStatus } from "@igbo/db/schema/portal-job-postings";
 
 const PortalRichTextEditor = dynamic(
   () => import("./portal-rich-text-editor").then((m) => ({ default: m.PortalRichTextEditor })),
@@ -22,6 +24,14 @@ const PortalRichTextEditor = dynamic(
 interface JobPostingFormProps {
   companyId: string;
   onSuccess?: (postingId: string) => void;
+  mode?: "create" | "edit";
+  initialData?: Omit<JobPostingInput, "descriptionIgboHtml"> & {
+    id: string;
+    updatedAt: string;
+    status: PortalJobStatus;
+    adminFeedbackComment?: string | null;
+    descriptionIgboHtml?: string | null;
+  };
 }
 
 interface FormErrors {
@@ -38,33 +48,54 @@ const DEFAULT_CULTURAL_CONTEXT: CulturalContext = {
   communityReferred: false,
 };
 
-export function JobPostingForm({ companyId: _companyId, onSuccess }: JobPostingFormProps) {
+export function JobPostingForm({
+  companyId: _companyId,
+  onSuccess,
+  mode = "create",
+  initialData,
+}: JobPostingFormProps) {
   const t = useTranslations("Portal.posting");
+  const lt = useTranslations("Portal.lifecycle");
   const router = useRouter();
 
-  const [title, setTitle] = useState("");
-  const [employmentType, setEmploymentType] = useState("");
-  const [location, setLocation] = useState("");
-  const [salaryMin, setSalaryMin] = useState<number | null>(null);
-  const [salaryMax, setSalaryMax] = useState<number | null>(null);
-  const [salaryCompetitiveOnly, setSalaryCompetitiveOnly] = useState(false);
-  const [applicationDeadline, setApplicationDeadline] = useState("");
-  const [descriptionHtml, setDescriptionHtml] = useState("");
-  const [requirementsHtml, setRequirementsHtml] = useState("");
+  const [title, setTitle] = useState(initialData?.title ?? "");
+  const [employmentType, setEmploymentType] = useState(initialData?.employmentType ?? "");
+  const [location, setLocation] = useState(initialData?.location ?? "");
+  const [salaryMin, setSalaryMin] = useState<number | null>(initialData?.salaryMin ?? null);
+  const [salaryMax, setSalaryMax] = useState<number | null>(initialData?.salaryMax ?? null);
+  const [salaryCompetitiveOnly, setSalaryCompetitiveOnly] = useState(
+    initialData?.salaryCompetitiveOnly ?? false,
+  );
+  const [applicationDeadline, setApplicationDeadline] = useState(
+    initialData?.applicationDeadline
+      ? new Date(initialData.applicationDeadline).toISOString().split("T")[0]
+      : "",
+  );
+  const [descriptionHtml, setDescriptionHtml] = useState(initialData?.descriptionHtml ?? "");
+  const [requirementsHtml, setRequirementsHtml] = useState(initialData?.requirements ?? "");
 
   // Cultural context + Igbo description state
-  const [culturalContextJson, setCulturalContextJson] =
-    useState<CulturalContext>(DEFAULT_CULTURAL_CONTEXT);
-  const [showIgboEditor, setShowIgboEditor] = useState(false);
-  const [descriptionIgboHtml, setDescriptionIgboHtml] = useState("");
+  const [culturalContextJson, setCulturalContextJson] = useState<CulturalContext>(
+    (initialData?.culturalContextJson as CulturalContext) ?? DEFAULT_CULTURAL_CONTEXT,
+  );
+  const [showIgboEditor, setShowIgboEditor] = useState(!!initialData?.descriptionIgboHtml);
+  const [descriptionIgboHtml, setDescriptionIgboHtml] = useState(
+    initialData?.descriptionIgboHtml ?? "",
+  );
 
   const [errors, setErrors] = useState<FormErrors>({});
   const [saving, setSaving] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
   const savedRef = useRef(false);
+  // Skip dirty tracking on initial mount when initialData is provided
+  const isInitialMount = useRef(true);
 
-  // Dirty tracking
+  // Dirty tracking — skip initial mount to prevent pre-fill from triggering beforeunload
   useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
     if (savedRef.current) return;
     if (
       title ||
@@ -137,29 +168,49 @@ export function JobPostingForm({ companyId: _companyId, onSuccess }: JobPostingF
     setSaving(true);
 
     try {
-      const res = await fetch("/api/v1/jobs", {
-        method: "POST",
+      const isEdit = mode === "edit" && initialData;
+      const url = isEdit ? `/api/v1/jobs/${initialData.id}` : "/api/v1/jobs";
+      const method = isEdit ? "PATCH" : "POST";
+
+      const res = await fetch(url, {
+        method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...parsed.data,
           culturalContextJson,
           descriptionIgboHtml: showIgboEditor && descriptionIgboHtml ? descriptionIgboHtml : null,
+          ...(isEdit && { expectedUpdatedAt: initialData.updatedAt }),
         }),
       });
 
-      const body = (await res.json()) as { data?: { id: string } };
+      const body = (await res.json()) as { data?: { posting?: { id: string } } | { id: string } };
 
-      if (res.ok && body.data) {
+      if (res.ok) {
         savedRef.current = true;
         setIsDirty(false);
-        toast.success(t("created"));
-        if (onSuccess) {
-          onSuccess(body.data.id);
+        if (isEdit) {
+          toast.success(t("updated"));
+        } else {
+          toast.success(t("created"));
+        }
+        // Extract posting id from response
+        const postingData = body.data;
+        const postingId =
+          postingData && "posting" in postingData
+            ? postingData.posting?.id
+            : postingData && "id" in postingData
+              ? postingData.id
+              : undefined;
+
+        if (onSuccess && postingId) {
+          onSuccess(postingId);
         } else {
           router.push("/my-jobs");
         }
       } else if (res.status === 403) {
         toast.error(t("companyRequired"));
+      } else if (res.status === 409) {
+        toast.error(lt("staleEditError"));
       } else {
         toast.error(t("errorGeneric"));
       }
@@ -170,8 +221,34 @@ export function JobPostingForm({ companyId: _companyId, onSuccess }: JobPostingF
     }
   };
 
+  const isActive = initialData?.status === "active";
+  const isRejected = initialData?.status === "rejected";
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6" noValidate>
+      {/* Re-review warning for active postings */}
+      {isActive && (
+        <div
+          role="alert"
+          className="rounded-lg border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-800"
+          data-testid="re-review-warning"
+        >
+          {lt("reReviewWarning")}
+        </div>
+      )}
+
+      {/* Admin rejection feedback */}
+      {isRejected && initialData?.adminFeedbackComment && (
+        <div
+          role="alert"
+          className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
+          data-testid="rejection-feedback"
+        >
+          <p className="font-medium">{lt("rejectionFeedbackLabel")}</p>
+          <p className="mt-1">{initialData.adminFeedbackComment}</p>
+        </div>
+      )}
+
       {/* Job Details section */}
       <section className="space-y-4">
         {/* Title */}
@@ -331,7 +408,7 @@ export function JobPostingForm({ companyId: _companyId, onSuccess }: JobPostingF
           disabled={saving}
           className="rounded-md bg-primary px-6 py-2 text-sm font-medium text-primary-foreground transition-opacity disabled:opacity-50"
         >
-          {saving ? t("saving") : t("save")}
+          {saving ? t("saving") : mode === "edit" ? t("saveChanges") : t("save")}
         </button>
       </div>
     </form>

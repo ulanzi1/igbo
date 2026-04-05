@@ -5,7 +5,12 @@ vi.mock("@/lib/require-company-profile", () => ({
   requireCompanyProfile: vi.fn(),
 }));
 vi.mock("@igbo/db/queries/portal-job-postings", () => ({
-  getJobPostingsByCompanyId: vi.fn(),
+  getJobPostingsByCompanyIdWithFilter: vi.fn(),
+}));
+vi.mock("@igbo/db/schema/portal-job-postings", () => ({
+  portalJobStatusEnum: {
+    enumValues: ["draft", "pending_review", "active", "paused", "filled", "expired", "rejected"],
+  },
 }));
 vi.mock("next/navigation", () => ({
   redirect: vi.fn((url: string) => {
@@ -13,20 +18,50 @@ vi.mock("next/navigation", () => ({
   }),
 }));
 vi.mock("next-intl/server", () => ({
-  getTranslations: vi.fn().mockResolvedValue((key: string) => key),
+  getTranslations: vi.fn().mockImplementation((ns: string) =>
+    Promise.resolve((key: string, params?: Record<string, string>) => {
+      const full = `${ns}.${key}`;
+      if (params) return `${full}:${JSON.stringify(params)}`;
+      return full;
+    }),
+  ),
 }));
 vi.mock("@/components/domain/job-posting-card", () => ({
-  JobPostingCard: ({ posting }: { posting: { id: string; title: string; status: string } }) => (
+  JobPostingCard: ({
+    posting,
+    actions,
+  }: {
+    posting: { id: string; title: string; status: string };
+    actions?: React.ReactNode;
+  }) => (
     <div data-testid="job-posting-card" data-id={posting.id}>
       <span>{posting.title}</span>
       <span data-testid={`status-${posting.id}`}>{posting.status}</span>
+      {actions && <div data-testid="card-actions">{actions}</div>}
     </div>
   ),
   JobPostingCardSkeleton: () => <div>CardSkeleton</div>,
 }));
+vi.mock("@/components/domain/posting-status-actions", () => ({
+  PostingStatusActions: ({ postingId, status }: { postingId: string; status: string }) => (
+    <div data-testid={`actions-${postingId}`} data-status={status}>
+      Actions
+    </div>
+  ),
+}));
 vi.mock("next/link", () => ({
-  default: ({ children, href }: { children: React.ReactNode; href: string }) => (
-    <a href={href}>{children}</a>
+  default: ({
+    children,
+    href,
+    ...rest
+  }: {
+    children: React.ReactNode;
+    href: string;
+    [key: string]: unknown;
+  }) => (
+    <a href={href} {...rest}>
+      {children}
+    </a>
   ),
 }));
 
@@ -34,7 +69,7 @@ import React from "react";
 import { render, screen } from "@testing-library/react";
 import { axe, toHaveNoViolations } from "jest-axe";
 import { requireCompanyProfile } from "@/lib/require-company-profile";
-import { getJobPostingsByCompanyId } from "@igbo/db/queries/portal-job-postings";
+import { getJobPostingsByCompanyIdWithFilter } from "@igbo/db/queries/portal-job-postings";
 import Page from "./page";
 
 expect.extend(toHaveNoViolations);
@@ -65,6 +100,7 @@ const mockPostings = [
     salaryCompetitiveOnly: false,
     createdAt: new Date("2026-03-01"),
     updatedAt: new Date("2026-03-01"),
+    adminFeedbackComment: null,
   },
   {
     id: "posting-2",
@@ -77,30 +113,34 @@ const mockPostings = [
     salaryCompetitiveOnly: true,
     createdAt: new Date("2026-03-02"),
     updatedAt: new Date("2026-03-02"),
+    adminFeedbackComment: null,
   },
 ];
 
 beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(requireCompanyProfile).mockResolvedValue(mockProfile as never);
-  vi.mocked(getJobPostingsByCompanyId).mockResolvedValue([]);
+  vi.mocked(getJobPostingsByCompanyIdWithFilter).mockResolvedValue([]);
 });
 
-async function renderPage() {
-  const node = await Page({ params: Promise.resolve({ locale: "en" }) });
+async function renderPage(locale = "en", status?: string) {
+  const node = await Page({
+    params: Promise.resolve({ locale }),
+    searchParams: Promise.resolve(status ? { status } : {}),
+  });
   return render(node as React.ReactElement);
 }
 
 describe("MyJobsPage", () => {
   it("renders empty state when no postings", async () => {
-    vi.mocked(getJobPostingsByCompanyId).mockResolvedValue([]);
+    vi.mocked(getJobPostingsByCompanyIdWithFilter).mockResolvedValue([]);
     await renderPage();
-    expect(screen.getByText("empty")).toBeTruthy();
-    expect(screen.getByText("emptyDescription")).toBeTruthy();
+    expect(screen.getByText("Portal.myJobs.empty")).toBeTruthy();
+    expect(screen.getByText("Portal.myJobs.emptyDescription")).toBeTruthy();
   });
 
   it("renders list of postings when postings exist", async () => {
-    vi.mocked(getJobPostingsByCompanyId).mockResolvedValue(mockPostings as never);
+    vi.mocked(getJobPostingsByCompanyIdWithFilter).mockResolvedValue(mockPostings as never);
     await renderPage();
     const cards = screen.getAllByTestId("job-posting-card");
     expect(cards.length).toBe(2);
@@ -110,15 +150,15 @@ describe("MyJobsPage", () => {
 
   it("shows Create New Job button linking to /jobs/new", async () => {
     await renderPage();
-    const createLinks = screen.getAllByRole("link", { name: "createNew" });
+    const createLinks = screen.getAllByRole("link", { name: "Portal.myJobs.createNew" });
     expect(createLinks.length).toBeGreaterThan(0);
     expect(createLinks[0]!.getAttribute("href")).toContain("/jobs/new");
   });
 
-  it("shows Create First Job link in empty state", async () => {
-    vi.mocked(getJobPostingsByCompanyId).mockResolvedValue([]);
+  it("shows Create First Job link in empty state when no filter", async () => {
+    vi.mocked(getJobPostingsByCompanyIdWithFilter).mockResolvedValue([]);
     await renderPage();
-    const link = screen.getByRole("link", { name: "createFirst" });
+    const link = screen.getByRole("link", { name: "Portal.myJobs.createFirst" });
     expect(link.getAttribute("href")).toContain("/jobs/new");
   });
 
@@ -127,15 +167,67 @@ describe("MyJobsPage", () => {
     await expect(renderPage()).rejects.toThrow("REDIRECT:/en");
   });
 
+  it("renders filter tabs including All tab", async () => {
+    await renderPage();
+    expect(screen.getByTestId("filter-tab-all")).toBeTruthy();
+    expect(screen.getByTestId("filter-tab-draft")).toBeTruthy();
+    expect(screen.getByTestId("filter-tab-active")).toBeTruthy();
+    expect(screen.getByTestId("filter-tab-pending_review")).toBeTruthy();
+  });
+
+  it("renders expired tab as disabled span", async () => {
+    await renderPage();
+    expect(screen.getByTestId("filter-tab-expired-disabled")).toBeTruthy();
+  });
+
+  it("filters postings by status from searchParams", async () => {
+    vi.mocked(getJobPostingsByCompanyIdWithFilter).mockResolvedValue(mockPostings as never);
+    await renderPage("en", "draft");
+    // Only draft postings shown
+    const cards = screen.getAllByTestId("job-posting-card");
+    expect(cards.length).toBe(1);
+    expect(screen.getByText("Senior Engineer")).toBeTruthy();
+    expect(screen.queryByText("Junior Designer")).toBeNull();
+  });
+
+  it("shows noPostingsForFilter message when filter has no results", async () => {
+    vi.mocked(getJobPostingsByCompanyIdWithFilter).mockResolvedValue([]);
+    await renderPage("en", "active");
+    expect(screen.getByText("Portal.lifecycle.noPostingsForFilter")).toBeTruthy();
+    // Should NOT show emptyDescription (that's only for unfiltered empty state)
+    expect(screen.queryByText("Portal.myJobs.emptyDescription")).toBeNull();
+  });
+
+  it("treats invalid status as 'show all'", async () => {
+    vi.mocked(getJobPostingsByCompanyIdWithFilter).mockResolvedValue(mockPostings as never);
+    await renderPage("en", "invalid_status");
+    const cards = screen.getAllByTestId("job-posting-card");
+    expect(cards.length).toBe(2);
+  });
+
+  it("renders PostingStatusActions for each posting", async () => {
+    vi.mocked(getJobPostingsByCompanyIdWithFilter).mockResolvedValue(mockPostings as never);
+    await renderPage();
+    expect(screen.getByTestId("actions-posting-1")).toBeTruthy();
+    expect(screen.getByTestId("actions-posting-2")).toBeTruthy();
+  });
+
+  it("PostingStatusActions receives correct status", async () => {
+    vi.mocked(getJobPostingsByCompanyIdWithFilter).mockResolvedValue(mockPostings as never);
+    await renderPage();
+    expect(screen.getByTestId("actions-posting-1").getAttribute("data-status")).toBe("draft");
+    expect(screen.getByTestId("actions-posting-2").getAttribute("data-status")).toBe("active");
+  });
+
   it("passes axe-core accessibility assertion on empty state", async () => {
-    vi.mocked(getJobPostingsByCompanyId).mockResolvedValue([]);
+    vi.mocked(getJobPostingsByCompanyIdWithFilter).mockResolvedValue([]);
     const { container } = await renderPage();
     const results = await axe(container);
     expect(results).toHaveNoViolations();
   });
 
   it("passes axe-core accessibility assertion with postings", async () => {
-    vi.mocked(getJobPostingsByCompanyId).mockResolvedValue(mockPostings as never);
+    vi.mocked(getJobPostingsByCompanyIdWithFilter).mockResolvedValue(mockPostings as never);
     const { container } = await renderPage();
     const results = await axe(container);
     expect(results).toHaveNoViolations();

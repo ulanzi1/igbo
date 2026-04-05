@@ -69,10 +69,51 @@ describe("JobPostingCard", () => {
     expect(screen.getByText("Lagos, Nigeria")).toBeTruthy();
   });
 
-  it("renders edit link pointing to /en/jobs/[id]/edit with locale prefix", () => {
+  it("renders actions slot when provided", () => {
+    render(
+      <JobPostingCard
+        posting={mockPosting}
+        actions={<button data-testid="action-btn">Action</button>}
+      />,
+    );
+    expect(screen.getByTestId("action-btn")).toBeTruthy();
+  });
+
+  it("does not render actions slot when not provided", () => {
     render(<JobPostingCard posting={mockPosting} />);
-    const link = screen.getByRole("link", { name: "editPosting" });
-    expect(link.getAttribute("href")).toBe("/en/jobs/posting-uuid/edit");
+    expect(screen.queryByTestId("action-btn")).toBeNull();
+  });
+
+  it("shows admin feedback when status=rejected and feedback exists", () => {
+    render(
+      <JobPostingCard
+        posting={{
+          ...mockPosting,
+          status: "rejected",
+          adminFeedbackComment: "Missing salary info",
+        }}
+      />,
+    );
+    expect(screen.getByTestId("admin-feedback")).toBeTruthy();
+    expect(screen.getByTestId("admin-feedback").textContent).toBe("Missing salary info");
+  });
+
+  it("does not show admin feedback when adminFeedbackComment is null", () => {
+    render(
+      <JobPostingCard
+        posting={{ ...mockPosting, status: "rejected", adminFeedbackComment: null }}
+      />,
+    );
+    expect(screen.queryByTestId("admin-feedback")).toBeNull();
+  });
+
+  it("does not show admin feedback for non-rejected status", () => {
+    render(
+      <JobPostingCard
+        posting={{ ...mockPosting, status: "draft", adminFeedbackComment: "Some text" }}
+      />,
+    );
+    expect(screen.queryByTestId("admin-feedback")).toBeNull();
   });
 
   it("renders creation date using i18n createdAt key", () => {
