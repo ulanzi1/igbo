@@ -8,7 +8,7 @@ import { getJobPostingWithCompany, updateJobPosting } from "@igbo/db/queries/por
 import { ApiError } from "@/lib/api-error";
 import { successResponse } from "@/lib/api-response";
 import { PORTAL_ERRORS } from "@/lib/portal-errors";
-import { canEditPosting, editActivePosting } from "@/services/job-posting-service";
+import { canEditPosting, editActivePosting, renewPosting } from "@/services/job-posting-service";
 
 export const GET = withApiHandler(async (req) => {
   const session = await requireEmployerRole();
@@ -106,6 +106,7 @@ export const PATCH = withApiHandler(async (req) => {
     descriptionHtml,
     requirements,
     applicationDeadline,
+    expiresAt,
     descriptionIgboHtml,
     culturalContextJson,
     expectedUpdatedAt,
@@ -130,6 +131,7 @@ export const PATCH = withApiHandler(async (req) => {
     descriptionIgboHtml: sanitizedIgboDesc,
     culturalContextJson: storedContext,
     applicationDeadline: applicationDeadline ? new Date(applicationDeadline) : null,
+    expiresAt: expiresAt ? new Date(expiresAt) : null,
   };
 
   if (posting.status === "active") {
@@ -140,6 +142,18 @@ export const PATCH = withApiHandler(async (req) => {
       updateData,
       expectedUpdatedAt ?? posting.updatedAt.toISOString(),
     );
+  } else if (posting.status === "expired") {
+    // "Edit & Renew" path — expiresAt is required
+    if (!expiresAt) {
+      throw new ApiError({
+        title: "expiresAt is required when renewing an expired posting",
+        status: 400,
+      });
+    }
+    // Persist content edits first
+    await updateJobPosting(jobId, updateData);
+    // Then transition to pending_review and set new expires_at
+    await renewPosting(jobId, company.id, expiresAt, true, "EMPLOYER");
   } else {
     // Simple update for draft, paused, rejected
     await updateJobPosting(jobId, updateData);

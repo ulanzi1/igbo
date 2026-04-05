@@ -7,11 +7,13 @@ import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import type { PortalJobStatus } from "@igbo/db/schema/portal-job-postings";
 import { ClosePostingModal } from "@/components/flow/close-posting-modal";
+import { ExtendPostingModal } from "@/components/flow/extend-posting-modal";
 
 interface PostingStatusActionsProps {
   postingId: string;
   status: PortalJobStatus;
   locale: string;
+  expiresAt?: Date | string | null;
   onStatusChange?: () => void;
 }
 
@@ -19,13 +21,16 @@ export function PostingStatusActions({
   postingId,
   status,
   locale,
+  expiresAt,
   onStatusChange,
 }: PostingStatusActionsProps) {
   const t = useTranslations("Portal.posting");
   const lt = useTranslations("Portal.lifecycle");
+  const et = useTranslations("Portal.expiry");
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [closeModalOpen, setCloseModalOpen] = useState(false);
+  const [extendModalOpen, setExtendModalOpen] = useState(false);
 
   const patchStatus = async (targetStatus: PortalJobStatus) => {
     setLoading(true);
@@ -70,6 +75,25 @@ export function PostingStatusActions({
     }
   };
 
+  const handleExtendSuccess = () => {
+    setExtendModalOpen(false);
+    if (onStatusChange) {
+      onStatusChange();
+    } else {
+      router.refresh();
+    }
+  };
+
+  // Compute "expiring soon" — within 7 days from now
+  const isExpiringSoon =
+    status === "active" &&
+    expiresAt != null &&
+    (() => {
+      const d = expiresAt instanceof Date ? expiresAt : new Date(expiresAt);
+      const msUntilExpiry = d.getTime() - Date.now();
+      return msUntilExpiry > 0 && msUntilExpiry <= 7 * 24 * 60 * 60 * 1000;
+    })();
+
   if (status === "pending_review") {
     return (
       <p className="text-sm text-muted-foreground" data-testid="awaiting-review-text">
@@ -78,7 +102,7 @@ export function PostingStatusActions({
     );
   }
 
-  if (status === "filled" || status === "expired") {
+  if (status === "filled") {
     return (
       <div>
         <button
@@ -91,6 +115,48 @@ export function PostingStatusActions({
         >
           {lt("viewApplications")}
         </button>
+      </div>
+    );
+  }
+
+  if (status === "expired") {
+    return (
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          onClick={() => setExtendModalOpen(true)}
+          className="rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground"
+          data-testid="extend-button"
+        >
+          {et("extend")}
+        </button>
+        <Link
+          href={`/${locale}/jobs/${postingId}/edit`}
+          className="rounded-md border border-input px-3 py-1.5 text-sm hover:bg-accent"
+          data-testid="edit-renew-link"
+        >
+          {et("editAndRenew")}
+        </Link>
+        <button
+          type="button"
+          onClick={() => setCloseModalOpen(true)}
+          className="rounded-md border border-input px-3 py-1.5 text-sm transition-opacity"
+          data-testid="close-posting-button"
+        >
+          {lt("closePosting")}
+        </button>
+        <ClosePostingModal
+          postingId={postingId}
+          open={closeModalOpen}
+          onOpenChange={setCloseModalOpen}
+          onSuccess={handleCloseSuccess}
+        />
+        <ExtendPostingModal
+          postingId={postingId}
+          open={extendModalOpen}
+          onOpenChange={setExtendModalOpen}
+          onSuccess={handleExtendSuccess}
+        />
       </div>
     );
   }
@@ -111,6 +177,15 @@ export function PostingStatusActions({
 
   return (
     <div className="flex flex-wrap items-center gap-2">
+      {isExpiringSoon && (
+        <span
+          className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800"
+          data-testid="expiring-soon-badge"
+        >
+          {et("expiringSoon")}
+        </span>
+      )}
+
       {status === "draft" && (
         <>
           <Link

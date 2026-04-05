@@ -8,15 +8,25 @@ vi.mock("@/lib/portal-permissions", () => ({
 vi.mock("@igbo/db/queries/portal-companies", () => ({
   getCompanyByOwnerId: vi.fn(),
 }));
+vi.mock("@igbo/db/queries/portal-job-postings", () => ({
+  getJobPostingById: vi.fn(),
+}));
 vi.mock("@/services/job-posting-service", () => ({
   transitionStatus: vi.fn(),
   closePosting: vi.fn(),
   submitForReview: vi.fn(),
+  renewPosting: vi.fn(),
 }));
 
 import { requireEmployerRole } from "@/lib/portal-permissions";
 import { getCompanyByOwnerId } from "@igbo/db/queries/portal-companies";
-import { transitionStatus, closePosting, submitForReview } from "@/services/job-posting-service";
+import { getJobPostingById } from "@igbo/db/queries/portal-job-postings";
+import {
+  transitionStatus,
+  closePosting,
+  submitForReview,
+  renewPosting,
+} from "@/services/job-posting-service";
 import { ApiError } from "@/lib/api-error";
 import { PORTAL_ERRORS } from "@/lib/portal-errors";
 import { PATCH } from "./route";
@@ -58,6 +68,9 @@ beforeEach(() => {
   vi.mocked(transitionStatus).mockResolvedValue(undefined);
   vi.mocked(closePosting).mockResolvedValue(undefined);
   vi.mocked(submitForReview).mockResolvedValue(undefined);
+  vi.mocked(renewPosting).mockResolvedValue(undefined);
+  // Default: posting is not expired (so active → transitionStatus, not renewPosting)
+  vi.mocked(getJobPostingById).mockResolvedValue(null);
 });
 
 describe("PATCH /api/v1/jobs/[jobId]/status", () => {
@@ -242,5 +255,99 @@ describe("PATCH /api/v1/jobs/[jobId]/status", () => {
     );
     const res = await PATCH(makePatchRequest("posting-uuid", { targetStatus: "paused" }));
     expect(res.status).toBe(404);
+  });
+});
+
+describe("PATCH /api/v1/jobs/[jobId]/status — renew expired posting", () => {
+  const expiredPosting = {
+    id: "posting-uuid",
+    companyId: "company-uuid",
+    status: "expired" as const,
+    expiresAt: new Date("2025-12-01"),
+    archivedAt: null,
+  };
+
+  beforeEach(() => {
+    vi.mocked(getJobPostingById).mockResolvedValue(expiredPosting as never);
+  });
+
+  it("renews without content changes → 200, calls renewPosting(contentChanged=false)", async () => {
+    const newExpiresAt = "2026-12-31T00:00:00.000Z";
+    const res = await PATCH(
+      makePatchRequest("posting-uuid", {
+        targetStatus: "active",
+        newExpiresAt,
+        contentChanged: false,
+      }),
+    );
+    expect(res.status).toBe(200);
+    expect(renewPosting).toHaveBeenCalledWith(
+      "posting-uuid",
+      "company-uuid",
+      newExpiresAt,
+      false,
+      "EMPLOYER",
+    );
+    expect(transitionStatus).not.toHaveBeenCalled();
+  });
+
+  it("renews with content changes → 200, calls renewPosting(contentChanged=true)", async () => {
+    const newExpiresAt = "2026-12-31T00:00:00.000Z";
+    const res = await PATCH(
+      makePatchRequest("posting-uuid", {
+        targetStatus: "active",
+        newExpiresAt,
+        contentChanged: true,
+      }),
+    );
+    expect(res.status).toBe(200);
+    expect(renewPosting).toHaveBeenCalledWith(
+      "posting-uuid",
+      "company-uuid",
+      newExpiresAt,
+      true,
+      "EMPLOYER",
+    );
+  });
+
+  it("returns 400 when newExpiresAt is missing for expired posting", async () => {
+    const res = await PATCH(makePatchRequest("posting-uuid", { targetStatus: "active" }));
+    expect(res.status).toBe(400);
+    expect(renewPosting).not.toHaveBeenCalled();
+  });
+
+  it("returns 409 when renewPosting throws active posting limit exceeded", async () => {
+    vi.mocked(renewPosting).mockRejectedValue(
+      new ApiError({
+        title: "Active posting limit reached",
+        status: 409,
+        extensions: { code: PORTAL_ERRORS.POSTING_LIMIT_EXCEEDED },
+      }),
+    );
+    const res = await PATCH(
+      makePatchRequest("posting-uuid", {
+        targetStatus: "active",
+        newExpiresAt: "2026-12-31T00:00:00.000Z",
+      }),
+    );
+    expect(res.status).toBe(409);
+  });
+
+  it("closes expired posting with filled outcome via closePosting", async () => {
+    const res = await PATCH(
+      makePatchRequest("posting-uuid", {
+        targetStatus: "filled",
+        closedOutcome: "filled_internally",
+      }),
+    );
+    expect(res.status).toBe(200);
+    expect(closePosting).toHaveBeenCalledWith("posting-uuid", "filled_internally", "company-uuid");
+    expect(renewPosting).not.toHaveBeenCalled();
+  });
+
+  it("returns 400 when closing expired posting without closedOutcome", async () => {
+    const res = await PATCH(makePatchRequest("posting-uuid", { targetStatus: "filled" }));
+    expect(res.status).toBe(400);
+    expect(closePosting).not.toHaveBeenCalled();
   });
 });

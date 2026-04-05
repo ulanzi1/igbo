@@ -54,17 +54,39 @@ vi.mock("@/components/flow/close-posting-modal", () => ({
     ) : null,
 }));
 
+vi.mock("@/components/flow/extend-posting-modal", () => ({
+  ExtendPostingModal: ({
+    open,
+    onOpenChange,
+  }: {
+    open: boolean;
+    onOpenChange: (v: boolean) => void;
+  }) =>
+    open ? (
+      <div data-testid="extend-modal">
+        <button type="button" data-testid="extend-modal-cancel" onClick={() => onOpenChange(false)}>
+          Cancel
+        </button>
+      </div>
+    ) : null,
+}));
+
 import React from "react";
 import { toast } from "sonner";
 import { PostingStatusActions } from "./posting-status-actions";
 import type { PortalJobStatus } from "@igbo/db/schema/portal-job-postings";
 
-function renderActions(status: PortalJobStatus, onStatusChange?: () => void) {
+function renderActions(
+  status: PortalJobStatus,
+  onStatusChange?: () => void,
+  expiresAt?: Date | string | null,
+) {
   return render(
     <PostingStatusActions
       postingId="posting-uuid"
       status={status}
       locale="en"
+      expiresAt={expiresAt}
       onStatusChange={onStatusChange}
     />,
   );
@@ -197,10 +219,58 @@ describe("PostingStatusActions", () => {
   });
 
   describe("expired status", () => {
-    it("shows disabled View Applications button", () => {
+    it("shows Extend, Edit & Renew, and Close buttons for expired posting", () => {
       renderActions("expired");
-      const btn = screen.getByTestId("view-applications-disabled") as HTMLButtonElement;
-      expect(btn.disabled).toBe(true);
+      expect(screen.getByTestId("extend-button")).toBeInTheDocument();
+      expect(screen.getByTestId("edit-renew-link")).toBeInTheDocument();
+      expect(screen.getByTestId("close-posting-button")).toBeInTheDocument();
+    });
+
+    it("Edit & Renew link points to edit page", () => {
+      renderActions("expired");
+      const link = screen.getByTestId("edit-renew-link") as HTMLAnchorElement;
+      expect(link.href).toContain("/en/jobs/posting-uuid/edit");
+    });
+
+    it("Extend button opens extend modal", async () => {
+      const user = userEvent.setup();
+      renderActions("expired");
+      expect(screen.queryByTestId("extend-modal")).toBeNull();
+      await user.click(screen.getByTestId("extend-button"));
+      expect(screen.getByTestId("extend-modal")).toBeInTheDocument();
+    });
+
+    it("Close button opens close modal", async () => {
+      const user = userEvent.setup();
+      renderActions("expired");
+      expect(screen.queryByTestId("close-modal")).toBeNull();
+      await user.click(screen.getByTestId("close-posting-button"));
+      expect(screen.getByTestId("close-modal")).toBeInTheDocument();
+    });
+  });
+
+  describe("expiring-soon badge", () => {
+    it("shows expiring-soon badge when active and expiresAt is within 7 days", () => {
+      const soonDate = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString();
+      renderActions("active", undefined, soonDate);
+      expect(screen.getByTestId("expiring-soon-badge")).toBeInTheDocument();
+    });
+
+    it("does NOT show expiring-soon badge when active and expiresAt is more than 7 days away", () => {
+      const farDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+      renderActions("active", undefined, farDate);
+      expect(screen.queryByTestId("expiring-soon-badge")).toBeNull();
+    });
+
+    it("does NOT show expiring-soon badge when status is draft (not active)", () => {
+      const soonDate = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString();
+      renderActions("draft", undefined, soonDate);
+      expect(screen.queryByTestId("expiring-soon-badge")).toBeNull();
+    });
+
+    it("does NOT show expiring-soon badge when expiresAt is null", () => {
+      renderActions("active", undefined, null);
+      expect(screen.queryByTestId("expiring-soon-badge")).toBeNull();
     });
   });
 

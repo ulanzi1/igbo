@@ -372,6 +372,13 @@
       "when": 1708000052000,
       "tag": "0052_job_posting_lifecycle",
       "breakpoints": true
+    },
+    {
+      "idx": 53,
+      "version": "7",
+      "when": 1708000053000,
+      "tag": "0053_job_posting_expiry_archive",
+      "breakpoints": true
     }
   ]
 }

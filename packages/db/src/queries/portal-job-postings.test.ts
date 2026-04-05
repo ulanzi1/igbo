@@ -2,7 +2,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("server-only", () => ({}));
-vi.mock("../index", () => ({ db: { insert: vi.fn(), select: vi.fn(), update: vi.fn() } }));
+vi.mock("../index", () => ({
+  db: { insert: vi.fn(), select: vi.fn(), update: vi.fn() },
+}));
 
 import { db } from "../index";
 import {
@@ -14,6 +16,11 @@ import {
   countActivePostingsByCompanyId,
   updateJobPosting,
   updateJobPostingStatus,
+  getExpiredPostings,
+  getExpiringPostings,
+  getArchivablePostings,
+  archivePosting,
+  batchExpirePostings,
 } from "./portal-job-postings";
 import type { PortalJobPosting } from "../schema/portal-job-postings";
 
@@ -36,6 +43,7 @@ const POSTING: PortalJobPosting = {
   adminFeedbackComment: null,
   closedOutcome: null,
   closedAt: null,
+  archivedAt: null,
   createdAt: new Date("2026-01-01"),
   updatedAt: new Date("2026-01-01"),
 };
@@ -56,6 +64,13 @@ function makeSelectOneMock(returnValue: PortalJobPosting | undefined) {
 function makeSelectManyMock(returnValues: PortalJobPosting[]) {
   const orderBy = vi.fn().mockResolvedValue(returnValues);
   const where = vi.fn().mockReturnValue({ orderBy });
+  const from = vi.fn().mockReturnValue({ where });
+  vi.mocked(db.select).mockReturnValue({ from } as unknown as ReturnType<typeof db.select>);
+}
+
+// For queries that end with .where() (no .orderBy() call)
+function makeSelectWhereEndsMock(returnValues: PortalJobPosting[]) {
+  const where = vi.fn().mockResolvedValue(returnValues);
   const from = vi.fn().mockReturnValue({ where });
   vi.mocked(db.select).mockReturnValue({ from } as unknown as ReturnType<typeof db.select>);
 }
@@ -230,5 +245,132 @@ describe("getJobPostingWithCompany", () => {
 
     const result = await getJobPostingWithCompany("jp-999");
     expect(result).toBeNull();
+  });
+});
+
+describe("getJobPostingsByCompanyIdWithFilter — archived filter", () => {
+  it("returns archived postings when statusFilter is 'archived'", async () => {
+    const archivedPosting = { ...POSTING, archivedAt: new Date() };
+    makeSelectManyMock([archivedPosting]);
+    const result = await getJobPostingsByCompanyIdWithFilter("cp-1", "archived");
+    expect(result).toHaveLength(1);
+    expect(db.select).toHaveBeenCalledTimes(1);
+  });
+
+  it("excludes archived postings when no statusFilter (default behavior)", async () => {
+    makeSelectManyMock([POSTING]); // non-archived
+    const result = await getJobPostingsByCompanyIdWithFilter("cp-1");
+    expect(result).toHaveLength(1);
+    expect(db.select).toHaveBeenCalledTimes(1);
+  });
+
+  it("excludes archived postings when filtering by a real status", async () => {
+    makeSelectManyMock([{ ...POSTING, status: "active" as const }]);
+    const result = await getJobPostingsByCompanyIdWithFilter("cp-1", "active");
+    expect(result[0]?.status).toBe("active");
+    expect(db.select).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("getExpiredPostings", () => {
+  it("returns active postings past their expires_at", async () => {
+    const expiredPosting = {
+      ...POSTING,
+      status: "active" as const,
+      expiresAt: new Date("2025-01-01"),
+    };
+    makeSelectWhereEndsMock([expiredPosting]);
+    const result = await getExpiredPostings();
+    expect(result).toHaveLength(1);
+    expect(db.select).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns empty array when no expired postings", async () => {
+    makeSelectWhereEndsMock([]);
+    const result = await getExpiredPostings();
+    expect(result).toHaveLength(0);
+  });
+});
+
+describe("getExpiringPostings", () => {
+  it("returns active postings expiring within window", async () => {
+    const soon = {
+      ...POSTING,
+      status: "active" as const,
+      expiresAt: new Date(Date.now() + 86400000 * 2),
+    };
+    makeSelectWhereEndsMock([soon]);
+    const result = await getExpiringPostings(3);
+    expect(result).toHaveLength(1);
+    expect(db.select).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns empty when no postings expiring within window", async () => {
+    makeSelectWhereEndsMock([]);
+    const result = await getExpiringPostings(3);
+    expect(result).toHaveLength(0);
+  });
+});
+
+describe("getArchivablePostings", () => {
+  it("returns expired postings past grace period without archived_at", async () => {
+    const old = {
+      ...POSTING,
+      status: "expired" as const,
+      expiresAt: new Date("2025-01-01"),
+      archivedAt: null,
+    };
+    makeSelectWhereEndsMock([old]);
+    const result = await getArchivablePostings(30);
+    expect(result).toHaveLength(1);
+    expect(db.select).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns empty when no archivable postings", async () => {
+    makeSelectWhereEndsMock([]);
+    const result = await getArchivablePostings(30);
+    expect(result).toHaveLength(0);
+  });
+});
+
+describe("archivePosting", () => {
+  it("sets archived_at and returns 1 when successful", async () => {
+    const returning = vi.fn().mockResolvedValue([{ id: "jp-1" }]);
+    const where = vi.fn().mockReturnValue({ returning });
+    const set = vi.fn().mockReturnValue({ where });
+    vi.mocked(db.update).mockReturnValue({ set } as unknown as ReturnType<typeof db.update>);
+
+    const result = await archivePosting("jp-1");
+    expect(result).toBe(1);
+    expect(db.update).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns 0 when posting already archived or not found", async () => {
+    const returning = vi.fn().mockResolvedValue([]);
+    const where = vi.fn().mockReturnValue({ returning });
+    const set = vi.fn().mockReturnValue({ where });
+    vi.mocked(db.update).mockReturnValue({ set } as unknown as ReturnType<typeof db.update>);
+
+    const result = await archivePosting("jp-999");
+    expect(result).toBe(0);
+  });
+});
+
+describe("batchExpirePostings", () => {
+  it("returns 0 immediately for empty id array", async () => {
+    const result = await batchExpirePostings([]);
+    expect(result).toBe(0);
+    expect(db.update).not.toHaveBeenCalled();
+  });
+
+  it("updates status to expired and returns count", async () => {
+    const returning = vi.fn().mockResolvedValue([{ id: "jp-1" }, { id: "jp-2" }]);
+    const where = vi.fn().mockReturnValue({ returning });
+    const set = vi.fn().mockReturnValue({ where });
+    vi.mocked(db.update).mockReturnValue({ set } as unknown as ReturnType<typeof db.update>);
+
+    const result = await batchExpirePostings(["jp-1", "jp-2"]);
+    expect(result).toBe(2);
+    expect(db.update).toHaveBeenCalledTimes(1);
   });
 });

@@ -247,7 +247,37 @@
       "staleEditError": "This posting was modified. Please reload and try again.",
       "cannotEditPendingReview": "Cannot edit while under review",
       "cancel": "Cancel",
-      "closeSuccess": "Posting closed successfully"
+      "closeSuccess": "Posting closed successfully",
+      "archived": "Archived",
+      "filterArchived": "Archived"
+    },
+    "expiry": {
+      "expiresAt": "Expiry Date",
+      "expiresOn": "Expires on {date}",
+      "expiredOn": "Expired on {date}",
+      "archivedOn": "Archived on {date}",
+      "expiringSoon": "Expiring soon",
+      "expiringSoonDays": "Expires in {days} days",
+      "setExpiryDate": "Set Expiry Date",
+      "expiryDateHelp": "The posting will be automatically removed from active listings on this date",
+      "extend": "Extend",
+      "extendPosting": "Extend Job Posting",
+      "extendDescription": "Set a new expiry date to re-activate this posting",
+      "newExpiryDate": "New Expiry Date",
+      "extendSuccess": "Posting extended and re-activated",
+      "mustBeFutureDate": "Expiry date must be in the future",
+      "editAndRenew": "Edit & Renew",
+      "renewRequiresReview": "Editing content during renewal requires admin re-approval"
+    },
+    "templates": {
+      "useTemplate": "Use Template",
+      "selectTemplate": "Select a Template",
+      "selectDescription": "Choose a role template to pre-fill the form",
+      "softwareEngineer": "Software Engineer",
+      "marketingManager": "Marketing Manager",
+      "salesRepresentative": "Sales Representative",
+      "customerSupport": "Customer Support",
+      "administrativeAssistant": "Administrative Assistant"
     }
   },
   "Shell": {

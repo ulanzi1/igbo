@@ -35,6 +35,7 @@ export const POST = withApiHandler(async (req) => {
     descriptionHtml,
     requirements,
     applicationDeadline,
+    expiresAt,
     descriptionIgboHtml,
     culturalContextJson,
     ...rest
@@ -59,6 +60,7 @@ export const POST = withApiHandler(async (req) => {
     companyId: company.id,
     status: "draft",
     applicationDeadline: applicationDeadline ? new Date(applicationDeadline) : null,
+    expiresAt: expiresAt ? new Date(expiresAt) : null,
   });
 
   return successResponse(posting, undefined, 201);

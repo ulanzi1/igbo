@@ -12,6 +12,7 @@ import {
 } from "@/lib/validations/job-posting";
 import { SalaryRangeInput } from "@/components/domain/salary-range-input";
 import { CulturalContextToggles } from "@/components/domain/cultural-context-toggles";
+import { TemplateSelector } from "@/components/domain/template-selector";
 import { PortalRichTextEditorSkeleton } from "./portal-rich-text-editor";
 import type { JobPostingInput } from "@/lib/validations/job-posting";
 import type { PortalJobStatus } from "@igbo/db/schema/portal-job-postings";
@@ -56,6 +57,7 @@ export function JobPostingForm({
 }: JobPostingFormProps) {
   const t = useTranslations("Portal.posting");
   const lt = useTranslations("Portal.lifecycle");
+  const et = useTranslations("Portal.expiry");
   const router = useRouter();
 
   const [title, setTitle] = useState(initialData?.title ?? "");
@@ -70,6 +72,9 @@ export function JobPostingForm({
     initialData?.applicationDeadline
       ? new Date(initialData.applicationDeadline).toISOString().split("T")[0]
       : "",
+  );
+  const [expiresAt, setExpiresAt] = useState(
+    initialData?.expiresAt ? new Date(initialData.expiresAt).toISOString().split("T")[0] : "",
   );
   const [descriptionHtml, setDescriptionHtml] = useState(initialData?.descriptionHtml ?? "");
   const [requirementsHtml, setRequirementsHtml] = useState(initialData?.requirements ?? "");
@@ -135,6 +140,18 @@ export function JobPostingForm({
     };
   }, [isDirty]);
 
+  const handleTemplateSelect = (template: import("@/lib/job-templates").JobTemplate) => {
+    setTitle(template.title);
+    setEmploymentType(template.employmentType);
+    setDescriptionHtml(template.descriptionHtml);
+    setRequirementsHtml(template.requirements);
+    if (template.descriptionIgboHtml) {
+      setDescriptionIgboHtml(template.descriptionIgboHtml);
+      setShowIgboEditor(true);
+    }
+    setIsDirty(true);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -148,6 +165,7 @@ export function JobPostingForm({
       applicationDeadline: applicationDeadline
         ? new Date(applicationDeadline).toISOString()
         : undefined,
+      expiresAt: expiresAt ? new Date(expiresAt).toISOString() : undefined,
       descriptionHtml: descriptionHtml || undefined,
       requirements: requirementsHtml || undefined,
     });
@@ -177,6 +195,7 @@ export function JobPostingForm({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...parsed.data,
+          expiresAt: expiresAt ? new Date(expiresAt).toISOString() : null,
           culturalContextJson,
           descriptionIgboHtml: showIgboEditor && descriptionIgboHtml ? descriptionIgboHtml : null,
           ...(isEdit && { expectedUpdatedAt: initialData.updatedAt }),
@@ -226,6 +245,13 @@ export function JobPostingForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6" noValidate>
+      {/* Template selector — create mode only */}
+      {mode === "create" && (
+        <div className="flex items-center gap-2">
+          <TemplateSelector onSelect={handleTemplateSelect} disabled={saving} />
+        </div>
+      )}
+
       {/* Re-review warning for active postings */}
       {isActive && (
         <div
@@ -346,6 +372,22 @@ export function JobPostingForm({
           className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
         />
         <p className="text-xs text-muted-foreground">{t("applicationDeadlineHelp")}</p>
+      </div>
+
+      {/* Expiry Date section */}
+      <div className="space-y-1">
+        <label htmlFor="expires-at" className="block text-sm font-medium">
+          {et("expiresAt")}
+        </label>
+        <input
+          id="expires-at"
+          type="date"
+          value={expiresAt}
+          onChange={(e) => setExpiresAt(e.target.value)}
+          data-testid="expires-at-input"
+          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+        />
+        <p className="text-xs text-muted-foreground">{et("expiryDateHelp")}</p>
       </div>
 
       {/* Description (English Tiptap — lazy loaded) */}

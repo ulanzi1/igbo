@@ -17,6 +17,8 @@ import type {
   JobPublishedEvent,
   JobUpdatedEvent,
   JobClosedEvent,
+  JobExpiredEvent,
+  JobExpiryWarningEvent,
   ApplicationSubmittedEvent,
   ApplicationStatusChangedEvent,
   ApplicationWithdrawnEvent,
@@ -64,22 +66,27 @@ describe("createEventEnvelope", () => {
 });
 
 describe("PortalEventMap keys", () => {
-  it("includes all required portal events", () => {
+  it("includes all required portal events (including P-1.5 expiry events)", () => {
     // TypeScript compile-time check — verified via type assertions below
     const requiredKeys: PortalEventName[] = [
       "job.published",
       "job.updated",
       "job.closed",
+      "job.expired",
+      "job.expiry_warning",
       "application.submitted",
       "application.status_changed",
       "application.withdrawn",
     ];
-    // Runtime check: ensure PORTAL_CROSS_APP_EVENTS doesn't include non-existent keys
     for (const key of requiredKeys) {
-      // Type narrowing: PortalEventName is the union of these strings
       expect(typeof key).toBe("string");
     }
-    expect(requiredKeys).toHaveLength(6);
+    expect(requiredKeys).toHaveLength(8);
+  });
+
+  it("job.expired and job.expiry_warning are NOT in PORTAL_CROSS_APP_EVENTS (employer-only events)", () => {
+    expect(PORTAL_CROSS_APP_EVENTS).not.toContain("job.expired");
+    expect(PORTAL_CROSS_APP_EVENTS).not.toContain("job.expiry_warning");
   });
 });
 
@@ -212,6 +219,37 @@ describe("Serialization contract", () => {
     };
     const roundTripped = JSON.parse(JSON.stringify(event)) as ApplicationWithdrawnEvent;
     expect(roundTripped.applicationId).toBe("app-3");
+  });
+
+  it("JobExpiredEvent round-trips through JSON", () => {
+    const event: JobExpiredEvent = {
+      ...createEventEnvelope(),
+      jobId: "job-exp-1",
+      companyId: "cp-5",
+      title: "Expired Role",
+      employerUserId: "user-emp-1",
+    };
+    const roundTripped = JSON.parse(JSON.stringify(event)) as JobExpiredEvent;
+    expect(roundTripped.jobId).toBe("job-exp-1");
+    expect(roundTripped.companyId).toBe("cp-5");
+    expect(roundTripped.title).toBe("Expired Role");
+    expect(roundTripped.employerUserId).toBe("user-emp-1");
+  });
+
+  it("JobExpiryWarningEvent round-trips through JSON", () => {
+    const event: JobExpiryWarningEvent = {
+      ...createEventEnvelope(),
+      jobId: "job-warn-1",
+      companyId: "cp-6",
+      title: "Expiring Role",
+      employerUserId: "user-emp-2",
+      expiresAt: "2026-05-01T00:00:00.000Z",
+      daysRemaining: 3,
+    };
+    const roundTripped = JSON.parse(JSON.stringify(event)) as JobExpiryWarningEvent;
+    expect(roundTripped.jobId).toBe("job-warn-1");
+    expect(roundTripped.expiresAt).toBe("2026-05-01T00:00:00.000Z");
+    expect(roundTripped.daysRemaining).toBe(3);
   });
 });
 

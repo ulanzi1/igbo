@@ -596,3 +596,101 @@ describe("JobPostingForm — edit mode", () => {
     });
   });
 });
+
+describe("JobPostingForm — expiry date field (Task 12)", () => {
+  it("renders the expiry date input field", () => {
+    render(<JobPostingForm companyId="company-uuid" />);
+    expect(screen.getByTestId("expires-at-input")).toBeInTheDocument();
+  });
+
+  it("pre-fills expiresAt from initialData in edit mode", () => {
+    const baseInitialData = {
+      id: "posting-uuid",
+      updatedAt: "2026-01-01T00:00:00.000Z",
+      status: "draft" as const,
+      adminFeedbackComment: null,
+      title: "Job",
+      descriptionHtml: "",
+      requirements: "",
+      salaryMin: null,
+      salaryMax: null,
+      salaryCompetitiveOnly: false,
+      location: undefined,
+      employmentType: "full_time" as const,
+      applicationDeadline: null,
+      expiresAt: "2026-12-31T00:00:00.000Z",
+      descriptionIgboHtml: null,
+      culturalContextJson: null,
+    };
+    render(<JobPostingForm companyId="company-uuid" mode="edit" initialData={baseInitialData} />);
+    const input = screen.getByTestId("expires-at-input") as HTMLInputElement;
+    expect(input.value).toBe("2026-12-31");
+  });
+
+  it("includes expiresAt in POST payload when set", async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ data: { id: "posting-uuid" } }),
+    });
+
+    render(<JobPostingForm companyId="company-uuid" />);
+    await userEvent.type(screen.getByLabelText("title"), "Job");
+    fireEvent.change(screen.getByLabelText("employmentType"), { target: { value: "full_time" } });
+    fireEvent.change(screen.getByTestId("expires-at-input"), { target: { value: "2099-12-31" } });
+    fireEvent.click(screen.getByRole("button", { name: "save" }));
+
+    await waitFor(() => {
+      const call = mockFetch.mock.calls[0]!;
+      const body = JSON.parse(call[1].body as string);
+      expect(body.expiresAt).toBeTruthy();
+      expect(body.expiresAt).toContain("2099");
+    });
+  });
+
+  it("includes expiresAt as null in payload when field is empty", async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ data: { id: "posting-uuid" } }),
+    });
+
+    render(<JobPostingForm companyId="company-uuid" />);
+    await userEvent.type(screen.getByLabelText("title"), "Job");
+    fireEvent.change(screen.getByLabelText("employmentType"), { target: { value: "full_time" } });
+    fireEvent.click(screen.getByRole("button", { name: "save" }));
+
+    await waitFor(() => {
+      const call = mockFetch.mock.calls[0]!;
+      const body = JSON.parse(call[1].body as string);
+      expect(body.expiresAt).toBeNull();
+    });
+  });
+});
+
+describe("JobPostingForm — template selector (Task 8)", () => {
+  it("shows Use Template button in create mode", () => {
+    render(<JobPostingForm companyId="company-uuid" />);
+    expect(screen.getByTestId("use-template-button")).toBeInTheDocument();
+  });
+
+  it("does NOT show Use Template button in edit mode", () => {
+    const baseInitialData = {
+      id: "posting-uuid",
+      updatedAt: "2026-01-01T00:00:00.000Z",
+      status: "draft" as const,
+      adminFeedbackComment: null,
+      title: "Job",
+      descriptionHtml: "",
+      requirements: "",
+      salaryMin: null,
+      salaryMax: null,
+      salaryCompetitiveOnly: false,
+      location: undefined,
+      employmentType: "full_time" as const,
+      applicationDeadline: null,
+      descriptionIgboHtml: null,
+      culturalContextJson: null,
+    };
+    render(<JobPostingForm companyId="company-uuid" mode="edit" initialData={baseInitialData} />);
+    expect(screen.queryByTestId("use-template-button")).not.toBeInTheDocument();
+  });
+});
