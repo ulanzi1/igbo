@@ -233,7 +233,7 @@ development_status:
   # Portal Epic 1: Job Posting & Company Profiles
   portal-epic-1: in-progress
   p-1-1a-portal-schema-foundation-role-model: done
-  p-1-1b-role-switcher-portal-navigation: backlog
+  p-1-1b-role-switcher-portal-navigation: done
   p-1-2-company-profile-creation-management: backlog
   p-1-3a-job-posting-creation-with-rich-text: backlog
   p-1-3b-igbo-cultural-context-bilingual-descriptions: backlog
