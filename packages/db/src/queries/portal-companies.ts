@@ -5,7 +5,7 @@ import type {
   NewPortalCompanyProfile,
   PortalCompanyProfile,
 } from "../schema/portal-company-profiles";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 
 export async function createCompanyProfile(
   data: NewPortalCompanyProfile,
@@ -43,6 +43,27 @@ export async function updateCompanyProfile(
     .update(portalCompanyProfiles)
     .set({ ...data, updatedAt: new Date() })
     .where(eq(portalCompanyProfiles.id, id))
+    .returning();
+  return updated ?? null;
+}
+
+/**
+ * Mark employer onboarding as complete.
+ * Idempotent: no-op if onboarding_completed_at is already set.
+ * Returns the updated row, or null if company doesn't exist.
+ */
+export async function markOnboardingComplete(
+  companyId: string,
+): Promise<PortalCompanyProfile | null> {
+  const [updated] = await db
+    .update(portalCompanyProfiles)
+    .set({ onboardingCompletedAt: new Date() })
+    .where(
+      and(
+        eq(portalCompanyProfiles.id, companyId),
+        isNull(portalCompanyProfiles.onboardingCompletedAt),
+      ),
+    )
     .returning();
   return updated ?? null;
 }

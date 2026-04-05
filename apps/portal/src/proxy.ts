@@ -55,7 +55,7 @@ function itpRefreshOrLogin(request: NextRequest): NextResponse {
   return NextResponse.redirect(verifyUrl);
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Fail-closed: AUTH_SECRET must be set for JWT decoding
@@ -89,6 +89,12 @@ export async function middleware(request: NextRequest) {
   // Handle CORS preflight requests
   if (request.method === "OPTIONS") {
     return new NextResponse(null, { status: 204, headers: responseHeaders });
+  }
+
+  // API routes bypass i18n routing entirely — they handle their own auth
+  if (pathname.startsWith("/api/")) {
+    const response = NextResponse.next({ headers: responseHeaders });
+    return response;
   }
 
   if (isPublicPath(pathname)) {

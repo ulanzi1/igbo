@@ -16,7 +16,8 @@ const TIER1_PATH_PATTERNS: RegExp[] = [
   /\/instrumentation\.ts$/, // startup hooks
   /\.config\./, // config files (next.config, vitest.config, sentry.*, etc.)
   /(^|\/)scripts\//, // build/CI/seed scripts at any level
-  /\/middleware\.ts$/, // Edge runtime
+  /\/middleware\.ts$/, // Edge runtime (deprecated convention)
+  /\/proxy\.ts$/, // Edge runtime (Next.js 16+ convention)
   /\/realtime\//, // standalone server shared
   /^packages\//, // shared packages (can't import app-level @/env)
   /\/seed\//, // seed scripts (run outside Next.js context)

@@ -194,18 +194,18 @@ beforeEach(() => {
 
 // ─── Request-Id tests ─────────────────────────────────────────────────────────
 
-describe("middleware — request tracing", () => {
+describe("proxy — request tracing", () => {
   it("echoes existing X-Request-Id to the response", async () => {
-    const { middleware } = await import("./middleware");
-    const response = await middleware(
+    const { proxy } = await import("./proxy");
+    const response = await proxy(
       makeRequest("/en/about", {}, { "X-Request-Id": "existing-trace-id" }) as never,
     );
     expect(response.headers.get("X-Request-Id")).toBe("existing-trace-id");
   });
 
   it("generates a UUID X-Request-Id when not provided", async () => {
-    const { middleware } = await import("./middleware");
-    const response = await middleware(makeRequest("/en/about") as never);
+    const { proxy } = await import("./proxy");
+    const response = await proxy(makeRequest("/en/about") as never);
     const traceId = response.headers.get("X-Request-Id");
     expect(traceId).toMatch(
       /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
@@ -213,8 +213,8 @@ describe("middleware — request tracing", () => {
   });
 
   it("echoes X-Request-Id on locale redirect responses", async () => {
-    const { middleware } = await import("./middleware");
-    const response = await middleware(makeRequest("/") as never);
+    const { proxy } = await import("./proxy");
+    const response = await proxy(makeRequest("/") as never);
     expect(response.status).toBe(307);
     expect(response.headers.get("X-Request-Id")).toMatch(/^[0-9a-f-]{36}$/);
   });
@@ -222,23 +222,23 @@ describe("middleware — request tracing", () => {
 
 // ─── Auth redirect tests ──────────────────────────────────────────────────────
 
-describe("middleware — auth protection", () => {
+describe("proxy — auth protection", () => {
   it("redirects unauthenticated access to /en/dashboard to login", async () => {
-    const { middleware } = await import("./middleware");
-    const response = await middleware(makeRequest("/en/dashboard") as never);
+    const { proxy } = await import("./proxy");
+    const response = await proxy(makeRequest("/en/dashboard") as never);
     expect(response.status).toBe(307);
     expect(response.headers.get("Location")).toContain("/en/login");
   });
 
   it("redirects unauthenticated /ig/chat to /ig/login", async () => {
-    const { middleware } = await import("./middleware");
-    const response = await middleware(makeRequest("/ig/chat") as never);
+    const { proxy } = await import("./proxy");
+    const response = await proxy(makeRequest("/ig/chat") as never);
     expect(response.status).toBe(307);
     expect(response.headers.get("Location")).toContain("/ig/login");
   });
 
   it("allows access to public guest routes without session", async () => {
-    const { middleware } = await import("./middleware");
+    const { proxy } = await import("./proxy");
     for (const pathname of [
       "/en",
       "/en/about",
@@ -249,122 +249,122 @@ describe("middleware — auth protection", () => {
       "/en/terms",
       "/en/privacy",
     ]) {
-      const response = await middleware(makeRequest(pathname) as never);
+      const response = await proxy(makeRequest(pathname) as never);
       expect(response.status, `Expected 200 for ${pathname}`).toBe(200);
     }
   });
 
   it("allows access to auth routes without session", async () => {
-    const { middleware } = await import("./middleware");
-    const response = await middleware(makeRequest("/en/login") as never);
+    const { proxy } = await import("./proxy");
+    const response = await proxy(makeRequest("/en/login") as never);
     expect(response.status).toBe(200);
   });
 
   it("allows authenticated access to protected routes", async () => {
-    const { middleware } = await import("./middleware");
+    const { proxy } = await import("./proxy");
     mockDecode.mockResolvedValue({ accountStatus: "APPROVED", profileCompleted: true });
-    const response = await middleware(makeRequest("/en/dashboard", WITH_SESSION) as never);
+    const response = await proxy(makeRequest("/en/dashboard", WITH_SESSION) as never);
     expect(response.status).toBe(200);
   });
 
   it("redirects authenticated users from /en/login to /en/dashboard", async () => {
-    const { middleware } = await import("./middleware");
-    const response = await middleware(makeRequest("/en/login", WITH_SESSION) as never);
+    const { proxy } = await import("./proxy");
+    const response = await proxy(makeRequest("/en/login", WITH_SESSION) as never);
     expect(response.status).toBe(307);
     expect(response.headers.get("Location")).toContain("/en/dashboard");
   });
 
   it("redirects authenticated users from /ig/register to /ig/dashboard", async () => {
-    const { middleware } = await import("./middleware");
-    const response = await middleware(makeRequest("/ig/register", WITH_SESSION) as never);
+    const { proxy } = await import("./proxy");
+    const response = await proxy(makeRequest("/ig/register", WITH_SESSION) as never);
     expect(response.status).toBe(307);
     expect(response.headers.get("Location")).toContain("/ig/dashboard");
   });
 
   it("redirects authenticated users from all auth routes to dashboard", async () => {
-    const { middleware } = await import("./middleware");
+    const { proxy } = await import("./proxy");
     for (const path of [
       "/en/forgot-password",
       "/en/reset-password",
       "/en/verify",
       "/en/2fa-setup",
     ]) {
-      const response = await middleware(makeRequest(path, WITH_SESSION) as never);
+      const response = await proxy(makeRequest(path, WITH_SESSION) as never);
       expect(response.status, `Expected 307 for ${path}`).toBe(307);
       expect(response.headers.get("Location")).toContain("/en/dashboard");
     }
   });
 
   it("does NOT redirect authenticated users from guest routes like /en/about", async () => {
-    const { middleware } = await import("./middleware");
+    const { proxy } = await import("./proxy");
     mockDecode.mockResolvedValue({ accountStatus: "APPROVED", profileCompleted: true });
-    const response = await middleware(makeRequest("/en/about", WITH_SESSION) as never);
+    const response = await proxy(makeRequest("/en/about", WITH_SESSION) as never);
     expect(response.status).toBe(200);
   });
 });
 
 // ─── Onboarding gate tests ────────────────────────────────────────────────────
 
-describe("middleware — onboarding gate", () => {
+describe("proxy — onboarding gate", () => {
   it("redirects APPROVED user without profileCompleted to onboarding", async () => {
-    const { middleware } = await import("./middleware");
+    const { proxy } = await import("./proxy");
     process.env.AUTH_SECRET = "test-secret";
 
     mockDecode.mockResolvedValue({ accountStatus: "APPROVED", profileCompleted: false });
-    const response = await middleware(makeRequest("/en/dashboard", WITH_SESSION) as never);
+    const response = await proxy(makeRequest("/en/dashboard", WITH_SESSION) as never);
 
     expect(response.status).toBe(307);
     expect(response.headers.get("Location")).toContain("/en/onboarding");
   });
 
   it("does NOT redirect when profileCompleted is true", async () => {
-    const { middleware } = await import("./middleware");
+    const { proxy } = await import("./proxy");
     process.env.AUTH_SECRET = "test-secret";
 
     mockDecode.mockResolvedValue({ accountStatus: "APPROVED", profileCompleted: true });
-    const response = await middleware(makeRequest("/en/dashboard", WITH_SESSION) as never);
+    const response = await proxy(makeRequest("/en/dashboard", WITH_SESSION) as never);
 
     expect(response.status).toBe(200);
     expect(response.headers.get("Location")).toBeNull();
   });
 
   it("does NOT redirect on onboarding path (no redirect loop)", async () => {
-    const { middleware } = await import("./middleware");
+    const { proxy } = await import("./proxy");
     process.env.AUTH_SECRET = "test-secret";
 
     mockDecode.mockResolvedValue({ accountStatus: "APPROVED", profileCompleted: false });
-    const response = await middleware(makeRequest("/en/onboarding", WITH_SESSION) as never);
+    const response = await proxy(makeRequest("/en/onboarding", WITH_SESSION) as never);
 
     expect(response.status).toBe(200);
   });
 
   it("does NOT redirect admin paths to onboarding", async () => {
-    const { middleware } = await import("./middleware");
+    const { proxy } = await import("./proxy");
     process.env.AUTH_SECRET = "test-secret";
 
     mockDecode.mockResolvedValue({ accountStatus: "APPROVED", profileCompleted: false });
-    const response = await middleware(makeRequest("/en/admin/approvals", WITH_SESSION) as never);
+    const response = await proxy(makeRequest("/en/admin/approvals", WITH_SESSION) as never);
 
     expect(response.status).not.toBe(307);
   });
 
   it("does NOT redirect non-APPROVED users to onboarding", async () => {
-    const { middleware } = await import("./middleware");
+    const { proxy } = await import("./proxy");
     process.env.AUTH_SECRET = "test-secret";
 
     mockDecode.mockResolvedValue({ accountStatus: "PENDING_APPROVAL", profileCompleted: false });
     // Unauthenticated (no session) — login redirect will fire first
-    const response = await middleware(makeRequest("/en/dashboard") as never);
+    const response = await proxy(makeRequest("/en/dashboard") as never);
 
     expect(response.headers.get("Location")).not.toContain("/onboarding");
   });
 
   it("does NOT redirect when AUTH_SECRET is missing (fail-open safely)", async () => {
-    const { middleware } = await import("./middleware");
+    const { proxy } = await import("./proxy");
     delete process.env.AUTH_SECRET;
 
     mockDecode.mockResolvedValue({ accountStatus: "APPROVED", profileCompleted: false });
-    const response = await middleware(makeRequest("/en/dashboard", WITH_SESSION) as never);
+    const response = await proxy(makeRequest("/en/dashboard", WITH_SESSION) as never);
 
     // Without AUTH_SECRET, decode is skipped — should not redirect to onboarding
     const location = response.headers.get("Location");
@@ -374,13 +374,13 @@ describe("middleware — onboarding gate", () => {
 
 // ─── JWT profileCompleted flag tests ─────────────────────────────────────────
 
-describe("middleware — JWT profileCompleted flag", () => {
+describe("proxy — JWT profileCompleted flag", () => {
   it("calls decode with the session cookie token", async () => {
-    const { middleware } = await import("./middleware");
+    const { proxy } = await import("./proxy");
     process.env.AUTH_SECRET = "test-secret";
 
     mockDecode.mockResolvedValue({ accountStatus: "APPROVED", profileCompleted: true });
-    await middleware(makeRequest("/en/dashboard", WITH_SESSION) as never);
+    await proxy(makeRequest("/en/dashboard", WITH_SESSION) as never);
 
     expect(mockDecode).toHaveBeenCalledWith(
       expect.objectContaining({ token: "fake-jwt-token", secret: "test-secret" }),
@@ -388,12 +388,12 @@ describe("middleware — JWT profileCompleted flag", () => {
   });
 
   it("treats null decoded token as no onboarding redirect needed", async () => {
-    const { middleware } = await import("./middleware");
+    const { proxy } = await import("./proxy");
     process.env.AUTH_SECRET = "test-secret";
 
     mockDecode.mockResolvedValue(null);
     // With session cookie but null decode result (e.g., invalid token)
-    const response = await middleware(makeRequest("/en/dashboard", WITH_SESSION) as never);
+    const response = await proxy(makeRequest("/en/dashboard", WITH_SESSION) as never);
 
     // No onboarding redirect — falls through to normal i18n routing
     const location = response.headers.get("Location");
@@ -403,10 +403,10 @@ describe("middleware — JWT profileCompleted flag", () => {
 
 // ─── X-Client-IP extraction tests ────────────────────────────────────────────
 
-describe("middleware — X-Client-IP extraction", () => {
+describe("proxy — X-Client-IP extraction", () => {
   it("sets X-Client-IP from CF-Connecting-IP (highest priority)", async () => {
-    const { middleware } = await import("./middleware");
-    await middleware(
+    const { proxy } = await import("./proxy");
+    await proxy(
       makeRequest(
         "/en/about",
         {},
@@ -422,8 +422,8 @@ describe("middleware — X-Client-IP extraction", () => {
   });
 
   it("falls back to X-Real-IP when CF-Connecting-IP is absent", async () => {
-    const { middleware } = await import("./middleware");
-    await middleware(
+    const { proxy } = await import("./proxy");
+    await proxy(
       makeRequest(
         "/en/about",
         {},
@@ -438,8 +438,8 @@ describe("middleware — X-Client-IP extraction", () => {
   });
 
   it("falls back to first entry of X-Forwarded-For when CF and X-Real-IP absent", async () => {
-    const { middleware } = await import("./middleware");
-    await middleware(
+    const { proxy } = await import("./proxy");
+    await proxy(
       makeRequest(
         "/en/about",
         {},
@@ -453,8 +453,8 @@ describe("middleware — X-Client-IP extraction", () => {
   });
 
   it("sets X-Client-IP to 'unknown' when no IP headers present", async () => {
-    const { middleware } = await import("./middleware");
-    await middleware(makeRequest("/en/about") as never);
+    const { proxy } = await import("./proxy");
+    await proxy(makeRequest("/en/about") as never);
     expect(lastEnrichedRequest).not.toBeNull();
     expect(lastEnrichedRequest!.headers.get("X-Client-IP")).toBe("unknown");
   });
@@ -462,9 +462,9 @@ describe("middleware — X-Client-IP extraction", () => {
 
 // ─── Suspension redirect tests ───────────────────────────────────────────────
 
-describe("middleware — suspension redirect", () => {
+describe("proxy — suspension redirect", () => {
   it("redirects SUSPENDED JWT to /suspended with ?until and ?reason from DB", async () => {
-    const { middleware } = await import("./middleware");
+    const { proxy } = await import("./proxy");
     process.env.AUTH_SECRET = "test-secret";
 
     const endsAt = new Date("2026-04-01T12:00:00Z");
@@ -478,7 +478,7 @@ describe("middleware — suspension redirect", () => {
       reason: "Test suspension",
     });
 
-    const response = await middleware(makeRequest("/en/dashboard", WITH_SESSION) as never);
+    const response = await proxy(makeRequest("/en/dashboard", WITH_SESSION) as never);
 
     expect(response.status).toBe(307);
     const location = response.headers.get("Location") ?? "";
@@ -488,7 +488,7 @@ describe("middleware — suspension redirect", () => {
   });
 
   it("redirects SUSPENDED JWT to /suspended without params if DB lookup fails", async () => {
-    const { middleware } = await import("./middleware");
+    const { proxy } = await import("./proxy");
     process.env.AUTH_SECRET = "test-secret";
 
     mockDecode.mockResolvedValue({
@@ -498,7 +498,7 @@ describe("middleware — suspension redirect", () => {
     });
     mockGetActiveSuspension.mockRejectedValue(new Error("DB error"));
 
-    const response = await middleware(makeRequest("/en/dashboard", WITH_SESSION) as never);
+    const response = await proxy(makeRequest("/en/dashboard", WITH_SESSION) as never);
 
     expect(response.status).toBe(307);
     const location = response.headers.get("Location") ?? "";
@@ -507,7 +507,7 @@ describe("middleware — suspension redirect", () => {
   });
 
   it("redirects APPROVED JWT to /suspended when DB shows user is SUSPENDED (stale JWT)", async () => {
-    const { middleware } = await import("./middleware");
+    const { proxy } = await import("./proxy");
     process.env.AUTH_SECRET = "test-secret";
 
     mockDecode.mockResolvedValue({
@@ -519,7 +519,7 @@ describe("middleware — suspension redirect", () => {
     const endsAt = new Date("2026-04-02T00:00:00Z");
     mockGetActiveSuspension.mockResolvedValue({ suspensionEndsAt: endsAt, reason: "Stale reason" });
 
-    const response = await middleware(makeRequest("/en/dashboard", WITH_SESSION) as never);
+    const response = await proxy(makeRequest("/en/dashboard", WITH_SESSION) as never);
 
     expect(response.status).toBe(307);
     const location = response.headers.get("Location") ?? "";
@@ -530,19 +530,19 @@ describe("middleware — suspension redirect", () => {
 
 // ─── Config tests ─────────────────────────────────────────────────────────────
 
-describe("middleware — config", () => {
+describe("proxy — config", () => {
   it("has matcher that excludes api routes", async () => {
-    const { config } = await import("./middleware");
+    const { config } = await import("./proxy");
     expect(config.matcher[0]).toContain("api");
   });
 
   it("has matcher that excludes _vercel paths", async () => {
-    const { config } = await import("./middleware");
+    const { config } = await import("./proxy");
     expect(config.matcher[0]).toContain("_vercel");
   });
 
   it("has matcher that excludes static file extensions", async () => {
-    const { config } = await import("./middleware");
+    const { config } = await import("./proxy");
     expect(config.matcher[0]).toContain(".");
   });
 });

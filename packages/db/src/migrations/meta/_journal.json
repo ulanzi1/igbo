@@ -365,6 +365,34 @@
       "when": 1708000051000,
       "tag": "0051_portal_schema",
       "breakpoints": true
+    },
+    {
+      "idx": 52,
+      "version": "7",
+      "when": 1708000052000,
+      "tag": "0052_job_posting_lifecycle",
+      "breakpoints": true
+    },
+    {
+      "idx": 53,
+      "version": "7",
+      "when": 1708000053000,
+      "tag": "0053_job_posting_expiry_archive",
+      "breakpoints": true
+    },
+    {
+      "idx": 54,
+      "version": "7",
+      "when": 1708000054000,
+      "tag": "0054_employer_onboarding",
+      "breakpoints": true
+    },
+    {
+      "idx": 55,
+      "version": "7",
+      "when": 1708000055000,
+      "tag": "0055_job_analytics",
+      "breakpoints": true
     }
   ]
 }
