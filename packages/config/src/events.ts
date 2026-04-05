@@ -28,30 +28,42 @@ export function createEventEnvelope(version = 1): BaseEvent {
 }
 
 // ---------------------------------------------------------------------------
-// Portal event payloads — STUB: IDs only.
-// Rich fields (title, status enums, etc.) added in Epic 1+ when schemas exist.
-// TypeScript interface extension makes future additions non-breaking.
+// Portal event payloads — enriched in P-1.1A (VD-2 resolved).
+// All interfaces extend BaseEvent for eventId, version, timestamp.
 // ---------------------------------------------------------------------------
 
 export interface JobPublishedEvent extends BaseEvent {
   jobId: string;
+  companyId: string;
+  title: string;
+  employmentType: string;
+  status: string;
 }
 
 export interface JobUpdatedEvent extends BaseEvent {
   jobId: string;
+  companyId: string;
+  changes: Record<string, unknown>;
 }
 
 export interface JobClosedEvent extends BaseEvent {
   jobId: string;
+  companyId: string;
+  reason?: string;
 }
 
 export interface ApplicationSubmittedEvent extends BaseEvent {
   applicationId: string;
   jobId: string;
+  seekerUserId: string;
 }
 
 export interface ApplicationStatusChangedEvent extends BaseEvent {
   applicationId: string;
+  seekerUserId: string;
+  companyId: string;
+  previousStatus: string;
+  newStatus: string;
 }
 
 export interface ApplicationWithdrawnEvent extends BaseEvent {

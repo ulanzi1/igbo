@@ -212,8 +212,8 @@ development_status:
   # Velocity-debt (acceptable, time-bound — trigger documented)
   #   VD-1: Copied shadcn/ui in portal (no @igbo/ui)
   #         Trigger: 3+ components duplicated across apps → create shared package
-  #   VD-2: Portal event types are stubs (IDs only)
-  #         Trigger: P-1.1A schema exists → enrich event payloads
+  #   VD-2: Portal event types are stubs (IDs only) — RESOLVED in P-1.1A
+  #         Trigger: P-1.1A schema exists → enrich event payloads (DONE)
   #   VD-3: Community eventbus-bridge portal handlers are placeholders
   #         Trigger: First portal event actually emitted in production
   #   VD-4: Community Redis keys not migrated to createRedisKey()
@@ -231,8 +231,8 @@ development_status:
   # ============================================
 
   # Portal Epic 1: Job Posting & Company Profiles
-  portal-epic-1: backlog
-  p-1-1a-portal-schema-foundation-role-model: backlog
+  portal-epic-1: in-progress
+  p-1-1a-portal-schema-foundation-role-model: done
   p-1-1b-role-switcher-portal-navigation: backlog
   p-1-2-company-profile-creation-management: backlog
   p-1-3a-job-posting-creation-with-rich-text: backlog

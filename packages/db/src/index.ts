@@ -37,6 +37,9 @@ import * as reportsSchema from "./schema/reports";
 import * as memberDisciplineSchema from "./schema/member-discipline";
 import * as analyticsSnapshotsSchema from "./schema/platform-analytics-snapshots";
 import * as governanceDocumentsSchema from "./schema/platform-governance-documents";
+import * as portalCompanyProfilesSchema from "./schema/portal-company-profiles";
+import * as portalJobPostingsSchema from "./schema/portal-job-postings";
+import * as portalApplicationsSchema from "./schema/portal-applications";
 
 const schemaMap = {
   ...platformSettingsSchema,
@@ -76,6 +79,9 @@ const schemaMap = {
   ...memberDisciplineSchema,
   ...analyticsSnapshotsSchema,
   ...governanceDocumentsSchema,
+  ...portalCompanyProfilesSchema,
+  ...portalJobPostingsSchema,
+  ...portalApplicationsSchema,
 };
 
 /** Factory — for tests and custom connection strings */
