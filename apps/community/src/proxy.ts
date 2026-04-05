@@ -12,8 +12,6 @@ import {
   type CachedAccountStatus,
 } from "@/lib/account-status-cache";
 
-export const runtime = "nodejs";
-
 const handleI18nRouting = createMiddleware(routing);
 
 /**
