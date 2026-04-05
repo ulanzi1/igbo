@@ -105,7 +105,6 @@ describe("ShareToCommunityButton", () => {
     const { container } = renderWithPortalProviders(
       <ShareToCommunityButton jobId="jp-1" isActive={true} isShared={false} />,
     );
-    // @ts-expect-error — jest-axe matcher not in vitest types
     expect(await axe(container)).toHaveNoViolations();
   });
 
@@ -113,7 +112,6 @@ describe("ShareToCommunityButton", () => {
     const { container } = renderWithPortalProviders(
       <ShareToCommunityButton jobId="jp-1" isActive={false} isShared={false} />,
     );
-    // @ts-expect-error — jest-axe matcher not in vitest types
     expect(await axe(container)).toHaveNoViolations();
   });
 });

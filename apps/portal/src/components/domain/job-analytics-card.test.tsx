@@ -52,7 +52,6 @@ describe("JobAnalyticsCard", () => {
 
   it("passes accessibility check", async () => {
     const { container } = renderWithPortalProviders(<JobAnalyticsCard analytics={mockAnalytics} />);
-    // @ts-expect-error — jest-axe matcher not in vitest types
     expect(await axe(container)).toHaveNoViolations();
   });
 });
