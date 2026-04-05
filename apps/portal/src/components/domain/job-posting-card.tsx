@@ -13,6 +13,8 @@ interface Posting {
   salaryMax: number | null | undefined;
   salaryCompetitiveOnly: boolean;
   createdAt: Date;
+  expiresAt?: Date | string | null;
+  archivedAt?: Date | string | null;
   culturalContextJson?: Record<string, boolean> | null;
   descriptionIgboHtml?: string | null;
   adminFeedbackComment?: string | null;
@@ -35,14 +37,29 @@ const STATUS_BADGE_CLASSES: Record<string, string> = {
 
 export function JobPostingCard({ posting, actions }: JobPostingCardProps) {
   const t = useTranslations("Portal.posting");
+  const et = useTranslations("Portal.expiry");
   const locale = useLocale();
 
   const badgeClass = STATUS_BADGE_CLASSES[posting.status] ?? "bg-gray-100 text-gray-700";
 
-  const createdDate = new Date(posting.createdAt).toLocaleDateString(
-    locale === "ig" ? "ig-NG" : "en-NG",
-    { year: "numeric", month: "short", day: "numeric" },
-  );
+  const formatDate = (d: Date | string) =>
+    new Date(d).toLocaleDateString(locale === "ig" ? "ig-NG" : "en-NG", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+
+  const createdDate = formatDate(posting.createdAt);
+
+  const isExpiringSoon =
+    posting.status === "active" &&
+    posting.expiresAt != null &&
+    (() => {
+      const d =
+        posting.expiresAt instanceof Date ? posting.expiresAt : new Date(posting.expiresAt!);
+      const msUntilExpiry = d.getTime() - Date.now();
+      return msUntilExpiry > 0 && msUntilExpiry <= 7 * 24 * 60 * 60 * 1000;
+    })();
 
   return (
     <div className="rounded-lg border border-border bg-card p-4">
@@ -74,6 +91,14 @@ export function JobPostingCard({ posting, actions }: JobPostingCardProps) {
             )}
           </div>
           <CulturalContextBadges culturalContext={posting.culturalContextJson ?? null} />
+          {isExpiringSoon && (
+            <span
+              className="inline-flex items-center rounded px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-800"
+              data-testid="expiring-soon-badge"
+            >
+              {et("expiringSoon")}
+            </span>
+          )}
           <div className="mt-1 flex items-center gap-3">
             <SalaryDisplay
               min={posting.salaryMin ?? null}
@@ -83,6 +108,21 @@ export function JobPostingCard({ posting, actions }: JobPostingCardProps) {
             <span className="text-xs text-muted-foreground">
               {t("createdAt", { date: createdDate })}
             </span>
+            {posting.expiresAt && posting.status === "active" && (
+              <span className="text-xs text-muted-foreground" data-testid="expires-on-text">
+                {et("expiresOn", { date: formatDate(posting.expiresAt) })}
+              </span>
+            )}
+            {posting.expiresAt && posting.status === "expired" && (
+              <span className="text-xs text-red-600" data-testid="expired-on-text">
+                {et("expiredOn", { date: formatDate(posting.expiresAt) })}
+              </span>
+            )}
+            {posting.archivedAt && (
+              <span className="text-xs text-muted-foreground" data-testid="archived-on-text">
+                {et("archivedOn", { date: formatDate(posting.archivedAt) })}
+              </span>
+            )}
           </div>
         </div>
       </div>

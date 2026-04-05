@@ -18,7 +18,7 @@ const VALID_TRANSITIONS: Record<PortalJobStatus, PortalJobStatus[]> = {
   active: ["paused", "pending_review", "filled"],
   paused: ["active", "filled"],
   filled: [], // terminal
-  expired: [], // terminal (P-1.5)
+  expired: ["active", "pending_review", "filled"], // P-1.5: renew, edit+renew, close
   rejected: ["pending_review"],
 };
 
@@ -30,10 +30,11 @@ const ACTIVE_POSTING_LIMIT = 5;
 
 /**
  * Returns whether a posting in this status can be edited.
- * Returns false for pending_review, filled, and expired statuses.
+ * Returns false for pending_review and filled statuses.
+ * Expired postings can be edited via the "Edit & Renew" path (Task 3.3 — P-1.5).
  */
 export function canEditPosting(status: PortalJobStatus): boolean {
-  return !["pending_review", "filled", "expired"].includes(status);
+  return !["pending_review", "filled"].includes(status);
 }
 
 /**
@@ -143,7 +144,7 @@ export async function closePosting(
     });
   }
 
-  if (!["active", "paused"].includes(posting.status)) {
+  if (!["active", "paused", "expired"].includes(posting.status)) {
     throw new ApiError({
       title: "Invalid status transition",
       status: 409,
@@ -156,6 +157,79 @@ export async function closePosting(
     closedOutcome: outcome,
     closedAt: new Date(),
   });
+}
+
+/**
+ * Renews an expired posting with a new expiry date.
+ * If contentChanged=false: transitions to active (subject to active limit).
+ * If contentChanged=true: transitions to pending_review (edit was made on the edit page separately).
+ * Clears archived_at if previously archived.
+ */
+export async function renewPosting(
+  postingId: string,
+  companyId: string,
+  newExpiresAt: string,
+  contentChanged: boolean,
+  _actorRole: string,
+): Promise<void> {
+  const posting = await getJobPostingById(postingId);
+
+  if (!posting) {
+    throw new ApiError({
+      title: "Posting not found",
+      status: 404,
+      extensions: { code: PORTAL_ERRORS.NOT_FOUND },
+    });
+  }
+
+  if (posting.companyId !== companyId) {
+    throw new ApiError({
+      title: "Forbidden",
+      status: 403,
+      extensions: { code: PORTAL_ERRORS.ROLE_MISMATCH },
+    });
+  }
+
+  if (posting.status !== "expired") {
+    throw new ApiError({
+      title: "Invalid status transition",
+      status: 409,
+      extensions: { code: PORTAL_ERRORS.INVALID_STATUS_TRANSITION },
+    });
+  }
+
+  // Validate new expiry date is in the future
+  const newExpiry = new Date(newExpiresAt);
+  if (isNaN(newExpiry.getTime()) || newExpiry <= new Date()) {
+    throw new ApiError({
+      title: "New expiry date must be in the future",
+      status: 400,
+    });
+  }
+
+  if (!contentChanged) {
+    // Direct re-activation — check active posting limit
+    const activeCount = await countActivePostingsByCompanyId(companyId);
+    if (activeCount >= ACTIVE_POSTING_LIMIT) {
+      throw new ApiError({
+        title: "Active posting limit reached",
+        status: 409,
+        extensions: { code: PORTAL_ERRORS.POSTING_LIMIT_EXCEEDED },
+      });
+    }
+    await updateJobPosting(postingId, {
+      status: "active",
+      expiresAt: newExpiry,
+      archivedAt: null,
+    });
+  } else {
+    // Edit & Renew — requires re-review
+    await updateJobPosting(postingId, {
+      status: "pending_review",
+      expiresAt: newExpiry,
+      archivedAt: null,
+    });
+  }
 }
 
 /**

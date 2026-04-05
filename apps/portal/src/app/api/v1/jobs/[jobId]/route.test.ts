@@ -16,12 +16,13 @@ vi.mock("@/lib/sanitize", () => ({
 vi.mock("@/services/job-posting-service", () => ({
   canEditPosting: vi.fn(),
   editActivePosting: vi.fn(),
+  renewPosting: vi.fn(),
 }));
 
 import { auth } from "@igbo/auth";
 import { getCompanyByOwnerId } from "@igbo/db/queries/portal-companies";
 import { getJobPostingWithCompany, updateJobPosting } from "@igbo/db/queries/portal-job-postings";
-import { canEditPosting, editActivePosting } from "@/services/job-posting-service";
+import { canEditPosting, editActivePosting, renewPosting } from "@/services/job-posting-service";
 import { GET, PATCH } from "./route";
 
 const employerSession = {
@@ -101,6 +102,7 @@ beforeEach(() => {
   vi.mocked(canEditPosting).mockReturnValue(true);
   vi.mocked(editActivePosting).mockResolvedValue(undefined);
   vi.mocked(updateJobPosting).mockResolvedValue(mockPosting as never);
+  vi.mocked(renewPosting).mockResolvedValue(undefined);
 });
 
 describe("GET /api/v1/jobs/[jobId]", () => {
@@ -219,5 +221,48 @@ describe("PATCH /api/v1/jobs/[jobId]", () => {
     );
     expect(sanitizeHtml).toHaveBeenCalledWith("<p>desc</p>");
     expect(sanitizeHtml).toHaveBeenCalledWith("<p>req</p>");
+  });
+
+  it("saves expiresAt when patching a draft posting", async () => {
+    const expiresAt = "2026-12-31T00:00:00.000Z";
+    const res = await PATCH(makePatchRequest("posting-uuid", { ...validPatchBody, expiresAt }));
+    expect(res.status).toBe(200);
+    expect(updateJobPosting).toHaveBeenCalledWith(
+      "posting-uuid",
+      expect.objectContaining({ expiresAt: new Date(expiresAt) }),
+    );
+    expect(renewPosting).not.toHaveBeenCalled();
+  });
+
+  it("calls updateJobPosting then renewPosting for expired posting with expiresAt (Edit & Renew)", async () => {
+    vi.mocked(getJobPostingWithCompany).mockResolvedValue({
+      ...mockResult,
+      posting: { ...mockPosting, status: "expired" },
+    } as never);
+    const expiresAt = "2026-12-31T00:00:00.000Z";
+    const res = await PATCH(makePatchRequest("posting-uuid", { ...validPatchBody, expiresAt }));
+    expect(res.status).toBe(200);
+    expect(updateJobPosting).toHaveBeenCalledWith(
+      "posting-uuid",
+      expect.objectContaining({ expiresAt: new Date(expiresAt) }),
+    );
+    expect(renewPosting).toHaveBeenCalledWith(
+      "posting-uuid",
+      "company-uuid",
+      expiresAt,
+      true,
+      "EMPLOYER",
+    );
+  });
+
+  it("returns 400 for expired posting PATCH without expiresAt", async () => {
+    vi.mocked(getJobPostingWithCompany).mockResolvedValue({
+      ...mockResult,
+      posting: { ...mockPosting, status: "expired" },
+    } as never);
+    const res = await PATCH(makePatchRequest("posting-uuid", validPatchBody));
+    expect(res.status).toBe(400);
+    expect(updateJobPosting).not.toHaveBeenCalled();
+    expect(renewPosting).not.toHaveBeenCalled();
   });
 });

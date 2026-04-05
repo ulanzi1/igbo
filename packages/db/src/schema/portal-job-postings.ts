@@ -57,6 +57,7 @@ export const portalJobPostings = pgTable("portal_job_postings", {
   adminFeedbackComment: text("admin_feedback_comment"),
   closedOutcome: portalClosedOutcomeEnum("closed_outcome"),
   closedAt: timestamp("closed_at", { withTimezone: true }),
+  archivedAt: timestamp("archived_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });

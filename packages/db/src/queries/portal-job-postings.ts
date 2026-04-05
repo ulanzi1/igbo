@@ -8,7 +8,7 @@ import type {
   PortalJobStatus,
 } from "../schema/portal-job-postings";
 import type { PortalCompanyProfile } from "../schema/portal-company-profiles";
-import { eq, desc, and, count } from "drizzle-orm";
+import { eq, desc, and, count, isNull, isNotNull, lte, gt, sql, inArray } from "drizzle-orm";
 
 export async function createJobPosting(data: NewPortalJobPosting): Promise<PortalJobPosting> {
   const [posting] = await db.insert(portalJobPostings).values(data).returning();
@@ -35,21 +35,36 @@ export async function getJobPostingsByCompanyId(companyId: string): Promise<Port
 
 export async function getJobPostingsByCompanyIdWithFilter(
   companyId: string,
-  statusFilter?: PortalJobStatus,
+  statusFilter?: PortalJobStatus | "archived",
 ): Promise<PortalJobPosting[]> {
+  if (statusFilter === "archived") {
+    // "archived" is not a DB status — it maps to WHERE archived_at IS NOT NULL
+    return db
+      .select()
+      .from(portalJobPostings)
+      .where(
+        and(eq(portalJobPostings.companyId, companyId), isNotNull(portalJobPostings.archivedAt)),
+      )
+      .orderBy(desc(portalJobPostings.createdAt));
+  }
   if (statusFilter !== undefined) {
     return db
       .select()
       .from(portalJobPostings)
       .where(
-        and(eq(portalJobPostings.companyId, companyId), eq(portalJobPostings.status, statusFilter)),
+        and(
+          eq(portalJobPostings.companyId, companyId),
+          eq(portalJobPostings.status, statusFilter),
+          isNull(portalJobPostings.archivedAt),
+        ),
       )
       .orderBy(desc(portalJobPostings.createdAt));
   }
+  // Default: exclude archived postings
   return db
     .select()
     .from(portalJobPostings)
-    .where(eq(portalJobPostings.companyId, companyId))
+    .where(and(eq(portalJobPostings.companyId, companyId), isNull(portalJobPostings.archivedAt)))
     .orderBy(desc(portalJobPostings.createdAt));
 }
 
@@ -86,6 +101,89 @@ export async function updateJobPosting(
     .where(eq(portalJobPostings.id, id))
     .returning();
   return updated ?? null;
+}
+
+/**
+ * Returns active postings whose expires_at is in the past (ready to expire).
+ */
+export async function getExpiredPostings(): Promise<PortalJobPosting[]> {
+  return db
+    .select()
+    .from(portalJobPostings)
+    .where(
+      and(
+        eq(portalJobPostings.status, "active"),
+        isNotNull(portalJobPostings.expiresAt),
+        lte(portalJobPostings.expiresAt, sql`NOW()`),
+      ),
+    );
+}
+
+/**
+ * Returns active postings expiring within the given number of days (for warning events).
+ */
+export async function getExpiringPostings(withinDays: number): Promise<PortalJobPosting[]> {
+  return db
+    .select()
+    .from(portalJobPostings)
+    .where(
+      and(
+        eq(portalJobPostings.status, "active"),
+        isNotNull(portalJobPostings.expiresAt),
+        gt(portalJobPostings.expiresAt, sql`NOW()`),
+        lte(portalJobPostings.expiresAt, sql`NOW() + (INTERVAL '1 day' * ${withinDays})`),
+      ),
+    );
+}
+
+/**
+ * Returns expired postings that have been in expired status beyond the grace period
+ * and have not yet been archived.
+ */
+export async function getArchivablePostings(gracePeriodDays: number): Promise<PortalJobPosting[]> {
+  return db
+    .select()
+    .from(portalJobPostings)
+    .where(
+      and(
+        eq(portalJobPostings.status, "expired"),
+        isNull(portalJobPostings.archivedAt),
+        isNotNull(portalJobPostings.expiresAt),
+        lte(portalJobPostings.expiresAt, sql`NOW() - (INTERVAL '1 day' * ${gracePeriodDays})`),
+      ),
+    );
+}
+
+/**
+ * Soft-archives a single expired posting by setting archived_at = NOW().
+ * Returns the number of rows updated (0 if already archived or not found).
+ */
+export async function archivePosting(id: string): Promise<number> {
+  const result = await db
+    .update(portalJobPostings)
+    .set({ archivedAt: new Date() })
+    .where(
+      and(
+        eq(portalJobPostings.id, id),
+        eq(portalJobPostings.status, "expired"),
+        isNull(portalJobPostings.archivedAt),
+      ),
+    )
+    .returning({ id: portalJobPostings.id });
+  return result.length;
+}
+
+/**
+ * Batch-expires active postings by ID. Returns the number of rows updated.
+ */
+export async function batchExpirePostings(ids: string[]): Promise<number> {
+  if (ids.length === 0) return 0;
+  const result = await db
+    .update(portalJobPostings)
+    .set({ status: "expired", updatedAt: new Date() })
+    .where(and(inArray(portalJobPostings.id, ids), eq(portalJobPostings.status, "active")))
+    .returning({ id: portalJobPostings.id });
+  return result.length;
 }
 
 export async function updateJobPostingStatus(

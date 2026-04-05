@@ -175,9 +175,12 @@ describe("MyJobsPage", () => {
     expect(screen.getByTestId("filter-tab-pending_review")).toBeTruthy();
   });
 
-  it("renders expired tab as disabled span", async () => {
+  it("renders expired tab as a functional link (not disabled)", async () => {
     await renderPage();
-    expect(screen.getByTestId("filter-tab-expired-disabled")).toBeTruthy();
+    const expiredTab = screen.getByTestId("filter-tab-expired");
+    expect(expiredTab.tagName).toBe("A");
+    expect(expiredTab.getAttribute("href")).toContain("status=expired");
+    expect(screen.queryByTestId("filter-tab-expired-disabled")).toBeNull();
   });
 
   it("filters postings by status from searchParams", async () => {
@@ -217,6 +220,53 @@ describe("MyJobsPage", () => {
     await renderPage();
     expect(screen.getByTestId("actions-posting-1").getAttribute("data-status")).toBe("draft");
     expect(screen.getByTestId("actions-posting-2").getAttribute("data-status")).toBe("active");
+  });
+
+  it("renders archived tab as a functional link", async () => {
+    await renderPage();
+    const archivedTab = screen.getByTestId("filter-tab-archived");
+    expect(archivedTab.tagName).toBe("A");
+    expect(archivedTab.getAttribute("href")).toContain("status=archived");
+  });
+
+  it("filters by archived shows archived postings (separate query)", async () => {
+    const archivedPosting = {
+      ...mockPostings[0]!,
+      id: "archived-1",
+      title: "Archived Role",
+      status: "expired",
+      archivedAt: new Date("2026-02-01"),
+    };
+    // First call (allPostings) → empty, second call (archived filteredPostings) → archived posting,
+    // third call (archivedCount) → archived posting
+    vi.mocked(getJobPostingsByCompanyIdWithFilter)
+      .mockResolvedValueOnce([]) // allPostings
+      .mockResolvedValueOnce([archivedPosting] as never) // filteredPostings (archived filter)
+      .mockResolvedValueOnce([archivedPosting] as never); // archivedCount
+    await renderPage("en", "archived");
+    expect(screen.getByText("Archived Role")).toBeTruthy();
+  });
+
+  it("treats 'archived' status param correctly (not treated as invalid)", async () => {
+    vi.mocked(getJobPostingsByCompanyIdWithFilter).mockResolvedValue([]);
+    await renderPage("en", "archived");
+    // Should show "noPostingsForFilter" (filter applied), not empty+create link
+    expect(screen.getByText("Portal.lifecycle.noPostingsForFilter")).toBeTruthy();
+    expect(screen.queryByText("Portal.myJobs.emptyDescription")).toBeNull();
+  });
+
+  it("shows expired postings when filtering by expired tab", async () => {
+    const expiredPosting = {
+      ...mockPostings[0]!,
+      id: "expired-1",
+      title: "Expired Role",
+      status: "expired",
+      expiresAt: new Date("2026-01-01"),
+      archivedAt: null,
+    };
+    vi.mocked(getJobPostingsByCompanyIdWithFilter).mockResolvedValue([expiredPosting] as never);
+    await renderPage("en", "expired");
+    expect(screen.getByText("Expired Role")).toBeTruthy();
   });
 
   it("passes axe-core accessibility assertion on empty state", async () => {

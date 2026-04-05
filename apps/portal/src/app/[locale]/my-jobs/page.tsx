@@ -8,18 +8,21 @@ import { PostingStatusActions } from "@/components/domain/posting-status-actions
 import { redirect } from "next/navigation";
 import type { PortalJobStatus } from "@igbo/db/schema/portal-job-postings";
 
+type MyJobsFilter = PortalJobStatus | "archived";
+
 interface PageProps {
   params: Promise<{ locale: string }>;
   searchParams: Promise<{ status?: string }>;
 }
 
-// Statuses shown as active filter tabs (expired is disabled — coming in a future update)
+// Statuses shown as active filter tabs
 const FILTER_TABS: PortalJobStatus[] = [
   "draft",
   "pending_review",
   "active",
   "paused",
   "filled",
+  "expired",
   "rejected",
 ];
 
@@ -35,16 +38,25 @@ export default async function MyJobsPage({ params, searchParams }: PageProps) {
     redirect(`/${locale}`);
   }
 
-  // Validate status param
-  const validStatus = portalJobStatusEnum.enumValues.includes(rawStatus as PortalJobStatus)
-    ? (rawStatus as PortalJobStatus)
-    : undefined;
+  // Validate status param — "archived" must be checked before enum check
+  const validFilter: MyJobsFilter | undefined =
+    rawStatus === "archived"
+      ? "archived"
+      : portalJobStatusEnum.enumValues.includes(rawStatus as PortalJobStatus)
+        ? (rawStatus as PortalJobStatus)
+        : undefined;
 
   // Fetch all postings for tab counts, filter in-memory for display
   const allPostings = await getJobPostingsByCompanyIdWithFilter(profile.id);
-  const filteredPostings = validStatus
-    ? allPostings.filter((p) => p.status === validStatus)
-    : allPostings;
+  const archivedPostings = await getJobPostingsByCompanyIdWithFilter(profile.id, "archived");
+  const archivedCount = archivedPostings.length;
+
+  const filteredPostings =
+    validFilter === "archived"
+      ? archivedPostings
+      : validFilter
+        ? allPostings.filter((p) => p.status === validFilter)
+        : allPostings;
 
   // Per-status counts for tab badges
   const statusCounts: Record<string, number> = {};
@@ -69,7 +81,7 @@ export default async function MyJobsPage({ params, searchParams }: PageProps) {
         <Link
           href={`/${locale}/my-jobs`}
           className={`inline-flex items-center gap-1 rounded-md px-3 py-1.5 text-sm transition-colors ${
-            !validStatus
+            !validFilter
               ? "bg-primary text-primary-foreground"
               : "border border-input hover:bg-accent"
           }`}
@@ -86,7 +98,7 @@ export default async function MyJobsPage({ params, searchParams }: PageProps) {
             key={s}
             href={`/${locale}/my-jobs?status=${s}`}
             className={`inline-flex items-center gap-1 rounded-md px-3 py-1.5 text-sm transition-colors ${
-              validStatus === s
+              validFilter === s
                 ? "bg-primary text-primary-foreground"
                 : "border border-input hover:bg-accent"
             }`}
@@ -101,19 +113,28 @@ export default async function MyJobsPage({ params, searchParams }: PageProps) {
           </Link>
         ))}
 
-        {/* Expired tab — disabled, coming soon */}
-        <span
-          title={lt("comingSoon")}
-          className="inline-flex cursor-not-allowed items-center rounded-md border border-input px-3 py-1.5 text-sm text-muted-foreground opacity-50"
-          data-testid="filter-tab-expired-disabled"
+        {/* Archived tab */}
+        <Link
+          href={`/${locale}/my-jobs?status=archived`}
+          className={`inline-flex items-center gap-1 rounded-md px-3 py-1.5 text-sm transition-colors ${
+            validFilter === "archived"
+              ? "bg-primary text-primary-foreground"
+              : "border border-input hover:bg-accent"
+          }`}
+          data-testid="filter-tab-archived"
         >
-          {pt("status.expired")}
-        </span>
+          {lt("filterArchived")}
+          {archivedCount > 0 && (
+            <span className="ml-1 rounded-full bg-muted px-1.5 text-xs text-muted-foreground">
+              {archivedCount}
+            </span>
+          )}
+        </Link>
       </nav>
 
       {filteredPostings.length === 0 ? (
         <div className="rounded-lg border border-border bg-card p-8 text-center">
-          {validStatus ? (
+          {validFilter ? (
             <p className="text-lg font-medium">{lt("noPostingsForFilter")}</p>
           ) : (
             <>
@@ -139,6 +160,7 @@ export default async function MyJobsPage({ params, searchParams }: PageProps) {
                     postingId={posting.id}
                     status={posting.status as PortalJobStatus}
                     locale={locale}
+                    expiresAt={posting.expiresAt}
                   />
                 }
               />

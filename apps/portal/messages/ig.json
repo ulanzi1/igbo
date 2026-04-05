@@ -247,7 +247,37 @@
       "staleEditError": "Emenye ntinye a mgbanwe. Biko zaghachi ma nwalee ọzọ.",
       "cannotEditPendingReview": "Enweghi ike idezie n'oge a na-enyocha",
       "cancel": "Kagbuo",
-      "closeSuccess": "Emechiela ntinye nke ọma"
+      "closeSuccess": "Emechiela ntinye nke ọma",
+      "archived": "Echekwara",
+      "filterArchived": "Echekwara"
+    },
+    "expiry": {
+      "expiresAt": "Ụbọchị Njedebe",
+      "expiresOn": "Ga-aga n'oge {date}",
+      "expiredOn": "Agafeela n'oge {date}",
+      "archivedOn": "Echekwara n'oge {date}",
+      "expiringSoon": "Ga-aga n'oge na-adịghị anya",
+      "expiringSoonDays": "Ga-aga n'ime ụbọchị {days}",
+      "setExpiryDate": "Tọọ Ụbọchị Njedebe",
+      "expiryDateHelp": "A ga-ewepụ ntinye a n'ndepụta na-arụ ọrụ n'ụbọchị a",
+      "extend": "Gọsaa",
+      "extendPosting": "Gọsaa Ntinye Ọrụ",
+      "extendDescription": "Tọọ ụbọchị njedebe ọhụrụ ka ịmalitegharị ntinye a",
+      "newExpiryDate": "Ụbọchị Njedebe Ọhụrụ",
+      "extendSuccess": "Agọsaara ntinye ma malitegharịa ya",
+      "mustBeFutureDate": "Ụbọchị njedebe ga-abụ n'ọdịnihu",
+      "editAndRenew": "Dezie & Malitegharị",
+      "renewRequiresReview": "Idezie ọdịnaya n'oge malitegharị achọrọ nkwado ọzọ n'aka onye nlekọta"
+    },
+    "templates": {
+      "useTemplate": "Jiri Ngbanwe",
+      "selectTemplate": "Họrọ Ngbanwe",
+      "selectDescription": "Họrọ ngbanwe ọrụ iji mejupụta fọọm a",
+      "softwareEngineer": "Injinia Sọftụwia",
+      "marketingManager": "Onye Njikwa Azụmahịa",
+      "salesRepresentative": "Onye Nnọchiteanya Nrere",
+      "customerSupport": "Enyemaka Ndị Ahịa",
+      "administrativeAssistant": "Onye Enyemaka Njikwa"
     }
   },
   "Shell": {

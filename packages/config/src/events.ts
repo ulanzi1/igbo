@@ -52,6 +52,23 @@ export interface JobClosedEvent extends BaseEvent {
   reason?: string;
 }
 
+export interface JobExpiredEvent extends BaseEvent {
+  jobId: string;
+  companyId: string;
+  title: string;
+  employerUserId: string;
+  // NOTE: no separate expiredAt — use BaseEvent.timestamp (consistent with JobClosedEvent pattern)
+}
+
+export interface JobExpiryWarningEvent extends BaseEvent {
+  jobId: string;
+  companyId: string;
+  title: string;
+  employerUserId: string;
+  expiresAt: string; // the posting's scheduled expiry date (future timestamp)
+  daysRemaining: number;
+}
+
 export interface ApplicationSubmittedEvent extends BaseEvent {
   applicationId: string;
   jobId: string;
@@ -75,6 +92,8 @@ export interface PortalEventMap {
   "job.published": JobPublishedEvent;
   "job.updated": JobUpdatedEvent;
   "job.closed": JobClosedEvent;
+  "job.expired": JobExpiredEvent;
+  "job.expiry_warning": JobExpiryWarningEvent;
   "application.submitted": ApplicationSubmittedEvent;
   "application.status_changed": ApplicationStatusChangedEvent;
   "application.withdrawn": ApplicationWithdrawnEvent;

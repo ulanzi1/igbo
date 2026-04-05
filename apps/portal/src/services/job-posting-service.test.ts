@@ -34,6 +34,7 @@ import {
   closePosting,
   submitForReview,
   editActivePosting,
+  renewPosting,
 } from "./job-posting-service";
 
 const BASE_POSTING = {
@@ -55,6 +56,7 @@ const BASE_POSTING = {
   adminFeedbackComment: null,
   closedOutcome: null,
   closedAt: null,
+  archivedAt: null,
   createdAt: new Date("2026-01-01"),
   updatedAt: new Date("2026-01-01T00:00:00.000Z"),
 };
@@ -75,7 +77,8 @@ describe("canEditPosting", () => {
   it("returns false for pending_review", () =>
     expect(canEditPosting("pending_review")).toBe(false));
   it("returns false for filled", () => expect(canEditPosting("filled")).toBe(false));
-  it("returns false for expired", () => expect(canEditPosting("expired")).toBe(false));
+  it("returns true for expired (Edit & Renew path — P-1.5)", () =>
+    expect(canEditPosting("expired")).toBe(true));
 });
 
 describe("transitionStatus", () => {
@@ -204,7 +207,18 @@ describe("closePosting", () => {
     );
   });
 
-  it("throws 409 when posting is not active or paused (draft cannot be closed)", async () => {
+  it("closes an expired posting with outcome (AC5 — P-1.5)", async () => {
+    vi.mocked(getJobPostingById).mockResolvedValue({ ...BASE_POSTING, status: "expired" } as never);
+    await expect(
+      closePosting("posting-1", "filled_via_portal", "company-1"),
+    ).resolves.toBeUndefined();
+    expect(updateJobPosting).toHaveBeenCalledWith(
+      "posting-1",
+      expect.objectContaining({ status: "filled", closedOutcome: "filled_via_portal" }),
+    );
+  });
+
+  it("throws 409 when posting is not active, paused, or expired (draft cannot be closed)", async () => {
     await expect(closePosting("posting-1", "cancelled", "company-1")).rejects.toMatchObject({
       status: 409,
     });
@@ -274,6 +288,106 @@ describe("submitForReview", () => {
     await expect(submitForReview("posting-1", "wrong-company")).rejects.toMatchObject({
       status: 403,
     });
+  });
+});
+
+describe("renewPosting", () => {
+  const EXPIRED_POSTING = {
+    ...BASE_POSTING,
+    status: "expired" as const,
+    expiresAt: new Date("2026-01-01"),
+  };
+  const FUTURE_DATE = new Date(Date.now() + 86400000 * 30).toISOString();
+
+  beforeEach(() => {
+    vi.mocked(getJobPostingById).mockResolvedValue(EXPIRED_POSTING as never);
+    vi.mocked(countActivePostingsByCompanyId).mockResolvedValue(0);
+    vi.mocked(updateJobPosting).mockResolvedValue(EXPIRED_POSTING as never);
+  });
+
+  it("renews without content change → transitions to active", async () => {
+    await expect(
+      renewPosting("posting-1", "company-1", FUTURE_DATE, false, "EMPLOYER"),
+    ).resolves.toBeUndefined();
+    expect(updateJobPosting).toHaveBeenCalledWith(
+      "posting-1",
+      expect.objectContaining({ status: "active", archivedAt: null }),
+    );
+  });
+
+  it("renews with content change → transitions to pending_review", async () => {
+    await expect(
+      renewPosting("posting-1", "company-1", FUTURE_DATE, true, "EMPLOYER"),
+    ).resolves.toBeUndefined();
+    expect(updateJobPosting).toHaveBeenCalledWith(
+      "posting-1",
+      expect.objectContaining({ status: "pending_review", archivedAt: null }),
+    );
+  });
+
+  it("sets new expiresAt on renewal", async () => {
+    await renewPosting("posting-1", "company-1", FUTURE_DATE, false, "EMPLOYER");
+    expect(updateJobPosting).toHaveBeenCalledWith(
+      "posting-1",
+      expect.objectContaining({ expiresAt: expect.any(Date) }),
+    );
+  });
+
+  it("clears archivedAt on renewal (un-archive)", async () => {
+    vi.mocked(getJobPostingById).mockResolvedValue({
+      ...EXPIRED_POSTING,
+      archivedAt: new Date("2026-02-01"),
+    } as never);
+    await renewPosting("posting-1", "company-1", FUTURE_DATE, false, "EMPLOYER");
+    expect(updateJobPosting).toHaveBeenCalledWith(
+      "posting-1",
+      expect.objectContaining({ archivedAt: null }),
+    );
+  });
+
+  it("throws 409 when active limit reached on renew without change", async () => {
+    vi.mocked(countActivePostingsByCompanyId).mockResolvedValue(5);
+    await expect(
+      renewPosting("posting-1", "company-1", FUTURE_DATE, false, "EMPLOYER"),
+    ).rejects.toMatchObject({
+      status: 409,
+      extensions: { code: "PORTAL_ERRORS.POSTING_LIMIT_EXCEEDED" },
+    });
+  });
+
+  it("throws 400 when newExpiresAt is in the past", async () => {
+    const pastDate = new Date(Date.now() - 86400000).toISOString();
+    await expect(
+      renewPosting("posting-1", "company-1", pastDate, false, "EMPLOYER"),
+    ).rejects.toMatchObject({ status: 400 });
+  });
+
+  it("throws 409 when posting is not expired", async () => {
+    vi.mocked(getJobPostingById).mockResolvedValue({ ...BASE_POSTING, status: "active" } as never);
+    await expect(
+      renewPosting("posting-1", "company-1", FUTURE_DATE, false, "EMPLOYER"),
+    ).rejects.toMatchObject({ status: 409 });
+  });
+
+  it("throws 404 when posting not found", async () => {
+    vi.mocked(getJobPostingById).mockResolvedValue(null);
+    await expect(
+      renewPosting("unknown", "company-1", FUTURE_DATE, false, "EMPLOYER"),
+    ).rejects.toMatchObject({ status: 404 });
+  });
+
+  it("throws 403 on ownership mismatch", async () => {
+    await expect(
+      renewPosting("posting-1", "wrong-company", FUTURE_DATE, false, "EMPLOYER"),
+    ).rejects.toMatchObject({ status: 403 });
+  });
+
+  it("does NOT check active limit when contentChanged=true (goes to pending_review)", async () => {
+    vi.mocked(countActivePostingsByCompanyId).mockResolvedValue(5);
+    await expect(
+      renewPosting("posting-1", "company-1", FUTURE_DATE, true, "EMPLOYER"),
+    ).resolves.toBeUndefined();
+    expect(countActivePostingsByCompanyId).not.toHaveBeenCalled();
   });
 });
 

@@ -41,6 +41,11 @@ describe("portalJobPostings schema", () => {
     expect(cols).toContain("closedAt");
   });
 
+  it("has archivedAt column for soft-archive support", () => {
+    const cols = Object.keys(portalJobPostings);
+    expect(cols).toContain("archivedAt");
+  });
+
   it("exports PortalJobPosting select type with all required columns", () => {
     const _check: PortalJobPosting = {
       id: "uuid-1",
@@ -61,6 +66,7 @@ describe("portalJobPostings schema", () => {
       adminFeedbackComment: null,
       closedOutcome: null,
       closedAt: null,
+      archivedAt: null,
       createdAt: new Date(),
       updatedAt: new Date(),
     };

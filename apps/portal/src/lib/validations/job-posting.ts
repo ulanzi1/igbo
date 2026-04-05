@@ -39,6 +39,7 @@ export const jobPostingSchema = z
     location: z.string().max(200).optional().or(z.literal("")),
     employmentType: z.enum(EMPLOYMENT_TYPE_OPTIONS),
     applicationDeadline: z.string().datetime().optional().nullable(),
+    expiresAt: z.string().datetime().optional().nullable(),
     descriptionIgboHtml: z.string().max(50000).optional().or(z.literal("")),
     culturalContextJson: culturalContextSchema.optional().nullable(),
   })
@@ -67,6 +68,8 @@ export const statusTransitionSchema = z.object({
   targetStatus: z.enum(JOB_STATUS_VALUES),
   closedOutcome: z.enum(CLOSED_OUTCOME_VALUES).optional(),
   expectedUpdatedAt: z.string().datetime().optional(),
+  newExpiresAt: z.string().datetime().optional(), // for renew (expired → active)
+  contentChanged: z.boolean().optional(), // for renew: true = goes to pending_review
 });
 
 export type StatusTransitionInput = z.infer<typeof statusTransitionSchema>;

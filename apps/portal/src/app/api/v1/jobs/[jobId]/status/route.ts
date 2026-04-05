@@ -6,7 +6,12 @@ import { getCompanyByOwnerId } from "@igbo/db/queries/portal-companies";
 import { ApiError } from "@/lib/api-error";
 import { successResponse } from "@/lib/api-response";
 import { PORTAL_ERRORS } from "@/lib/portal-errors";
-import { transitionStatus, closePosting, submitForReview } from "@/services/job-posting-service";
+import {
+  transitionStatus,
+  closePosting,
+  submitForReview,
+  renewPosting,
+} from "@/services/job-posting-service";
 
 export const PATCH = withApiHandler(async (req) => {
   // Employer-only route — admin approval route added in Epic 3
@@ -38,7 +43,8 @@ export const PATCH = withApiHandler(async (req) => {
     });
   }
 
-  const { targetStatus, closedOutcome, expectedUpdatedAt } = parsed.data;
+  const { targetStatus, closedOutcome, expectedUpdatedAt, newExpiresAt, contentChanged } =
+    parsed.data;
 
   // Branch: "filled" must use closePosting to record closedOutcome/closedAt
   if (targetStatus === "filled") {
@@ -56,6 +62,22 @@ export const PATCH = withApiHandler(async (req) => {
   if (targetStatus === "pending_review") {
     await submitForReview(jobId, company.id);
     return successResponse({ status: "pending_review" });
+  }
+
+  // Renew expired posting (expired → active, contentChanged=false)
+  if (targetStatus === "active") {
+    const { getJobPostingById } = await import("@igbo/db/queries/portal-job-postings");
+    const posting = await getJobPostingById(jobId);
+    if (posting?.status === "expired") {
+      if (!newExpiresAt) {
+        throw new ApiError({
+          title: "newExpiresAt is required when renewing an expired posting",
+          status: 400,
+        });
+      }
+      await renewPosting(jobId, company.id, newExpiresAt, contentChanged ?? false, "EMPLOYER");
+      return successResponse({ status: "active" });
+    }
   }
 
   // All other employer transitions (pause, unpause)
