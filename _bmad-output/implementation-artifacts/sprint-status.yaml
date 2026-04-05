@@ -201,7 +201,7 @@ development_status:
   portal-epic-0-ai-3-ci-enforcement-top3: done           # composable CI scanners (stale imports, process.env, server-only)
   portal-epic-0-ai-4-debt-labeling: done               # labeled below + Playbook §6.2
   portal-epic-0-ai-5-resolve-skipped-tests: done        # Redis in CI verified; 11 tests now execute
-  portal-epic-0-ai-6-tiptap-audit: backlog             # gate for P-1.3A, not urgent yet
+  portal-epic-0-ai-6-tiptap-audit: done                 # resolved inline during P-1.3A; community TiptapEditor.tsx link import bug fixed
   portal-epic-0-cp-1-docker-build: done                # pnpm workspace fix
   portal-epic-0-prep-1-migration-runbook: done         # docs/migration-runbook.md
   portal-epic-0-prep-2-density-context: done           # docs/decisions/density-context.md
@@ -218,6 +218,8 @@ development_status:
   #         Trigger: First portal event actually emitted in production
   #   VD-4: Community Redis keys not migrated to createRedisKey()
   #         Trigger: Second app (portal) reads community Redis keys directly
+  #   VD-5: Duplicated sanitize.ts (community + portal)
+  #         Trigger: Third app needs sanitization → extract to @igbo/packages/sanitize
   #
   # Structural-debt (must fix before scale)
   #   SD-1: Inconsistent injection patterns (3 variations) — RESOLVED via Playbook §1 frozen API
@@ -234,13 +236,15 @@ development_status:
   portal-epic-1: in-progress
   p-1-1a-portal-schema-foundation-role-model: done
   p-1-1b-role-switcher-portal-navigation: done
-  p-1-2-company-profile-creation-management: backlog
-  p-1-3a-job-posting-creation-with-rich-text: backlog
-  p-1-3b-igbo-cultural-context-bilingual-descriptions: backlog
-  p-1-4-job-posting-lifecycle-management: backlog
-  p-1-5-job-posting-expiry-auto-archive-templates: backlog
-  p-1-6-employer-onboarding-densitycontext: backlog
-  p-1-7-application-analytics-community-feed-sharing: backlog
+  p-1-2-company-profile-creation-management: done
+  p-1-3a-job-posting-creation-with-rich-text: done
+  # VD-5: portal/src/lib/sanitize.ts duplicates community sanitize.ts — trigger: 3rd app needs sanitization → extract to @igbo/packages/sanitize
+  # R7-backlog: community TiptapEditor.tsx missing @tiptap/extension-link import — RESOLVED (import + extension added)
+  p-1-3b-igbo-cultural-context-bilingual-descriptions: done
+  p-1-4-job-posting-lifecycle-management: done
+  p-1-5-job-posting-expiry-auto-archive-templates: done
+  p-1-6-employer-onboarding-densitycontext: done
+  p-1-7-application-analytics-community-feed-sharing: done
   portal-epic-1-retrospective: optional
 
   # Portal Epic 2: Seeker Profiles & Job Applications

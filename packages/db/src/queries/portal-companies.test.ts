@@ -10,6 +10,7 @@ import {
   getCompanyByOwnerId,
   getCompanyById,
   updateCompanyProfile,
+  markOnboardingComplete,
 } from "./portal-companies";
 import type { PortalCompanyProfile } from "../schema/portal-company-profiles";
 
@@ -23,6 +24,7 @@ const PROFILE: PortalCompanyProfile = {
   companySize: "50-200",
   cultureInfo: null,
   trustBadge: false,
+  onboardingCompletedAt: null,
   createdAt: new Date("2026-01-01"),
   updatedAt: new Date("2026-01-01"),
 };
@@ -108,6 +110,28 @@ describe("updateCompanyProfile", () => {
   it("returns null when not found", async () => {
     makeUpdateMock(undefined);
     const result = await updateCompanyProfile("cp-999", { name: "X" });
+    expect(result).toBeNull();
+  });
+});
+
+describe("markOnboardingComplete", () => {
+  it("sets onboardingCompletedAt and returns updated profile", async () => {
+    const updated = { ...PROFILE, onboardingCompletedAt: new Date("2026-04-05") };
+    makeUpdateMock(updated);
+    const result = await markOnboardingComplete("cp-1");
+    expect(result?.onboardingCompletedAt).toBeInstanceOf(Date);
+    expect(db.update).toHaveBeenCalledTimes(1);
+  });
+
+  it("is idempotent — returns null when already completed (WHERE onboarding_completed_at IS NULL no-ops)", async () => {
+    makeUpdateMock(undefined);
+    const result = await markOnboardingComplete("cp-1");
+    expect(result).toBeNull();
+  });
+
+  it("returns null for non-existent company id", async () => {
+    makeUpdateMock(undefined);
+    const result = await markOnboardingComplete("cp-nonexistent");
     expect(result).toBeNull();
   });
 });

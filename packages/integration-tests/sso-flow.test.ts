@@ -148,7 +148,7 @@ describe("Safari ITP Workaround — verify-session endpoint contract", () => {
   it("portal middleware file has _itp_refresh logic", async () => {
     const { readFileSync } = await import("fs");
     const { resolve } = await import("path");
-    const middlewarePath = resolve(__dirname, "../../apps/portal/src/middleware.ts");
+    const middlewarePath = resolve(__dirname, "../../apps/portal/src/proxy.ts");
     const content = readFileSync(middlewarePath, "utf-8");
     expect(content).toContain("_itp_refresh");
     expect(content).toContain("verify-session");

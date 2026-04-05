@@ -17,9 +17,13 @@ import type {
   JobPublishedEvent,
   JobUpdatedEvent,
   JobClosedEvent,
+  JobExpiredEvent,
+  JobExpiryWarningEvent,
   ApplicationSubmittedEvent,
   ApplicationStatusChangedEvent,
   ApplicationWithdrawnEvent,
+  JobViewedEvent,
+  JobSharedToCommunityEvent,
 } from "./events";
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -64,22 +68,29 @@ describe("createEventEnvelope", () => {
 });
 
 describe("PortalEventMap keys", () => {
-  it("includes all required portal events", () => {
+  it("includes all required portal events (including P-1.7 analytics events)", () => {
     // TypeScript compile-time check — verified via type assertions below
     const requiredKeys: PortalEventName[] = [
       "job.published",
       "job.updated",
       "job.closed",
+      "job.expired",
+      "job.expiry_warning",
       "application.submitted",
       "application.status_changed",
       "application.withdrawn",
+      "job.viewed",
+      "job.shared_to_community",
     ];
-    // Runtime check: ensure PORTAL_CROSS_APP_EVENTS doesn't include non-existent keys
     for (const key of requiredKeys) {
-      // Type narrowing: PortalEventName is the union of these strings
       expect(typeof key).toBe("string");
     }
-    expect(requiredKeys).toHaveLength(6);
+    expect(requiredKeys).toHaveLength(10);
+  });
+
+  it("job.expired and job.expiry_warning are NOT in PORTAL_CROSS_APP_EVENTS (employer-only events)", () => {
+    expect(PORTAL_CROSS_APP_EVENTS).not.toContain("job.expired");
+    expect(PORTAL_CROSS_APP_EVENTS).not.toContain("job.expiry_warning");
   });
 });
 
@@ -213,6 +224,37 @@ describe("Serialization contract", () => {
     const roundTripped = JSON.parse(JSON.stringify(event)) as ApplicationWithdrawnEvent;
     expect(roundTripped.applicationId).toBe("app-3");
   });
+
+  it("JobExpiredEvent round-trips through JSON", () => {
+    const event: JobExpiredEvent = {
+      ...createEventEnvelope(),
+      jobId: "job-exp-1",
+      companyId: "cp-5",
+      title: "Expired Role",
+      employerUserId: "user-emp-1",
+    };
+    const roundTripped = JSON.parse(JSON.stringify(event)) as JobExpiredEvent;
+    expect(roundTripped.jobId).toBe("job-exp-1");
+    expect(roundTripped.companyId).toBe("cp-5");
+    expect(roundTripped.title).toBe("Expired Role");
+    expect(roundTripped.employerUserId).toBe("user-emp-1");
+  });
+
+  it("JobExpiryWarningEvent round-trips through JSON", () => {
+    const event: JobExpiryWarningEvent = {
+      ...createEventEnvelope(),
+      jobId: "job-warn-1",
+      companyId: "cp-6",
+      title: "Expiring Role",
+      employerUserId: "user-emp-2",
+      expiresAt: "2026-05-01T00:00:00.000Z",
+      daysRemaining: 3,
+    };
+    const roundTripped = JSON.parse(JSON.stringify(event)) as JobExpiryWarningEvent;
+    expect(roundTripped.jobId).toBe("job-warn-1");
+    expect(roundTripped.expiresAt).toBe("2026-05-01T00:00:00.000Z");
+    expect(roundTripped.daysRemaining).toBe(3);
+  });
 });
 
 describe("EVENT_DEDUP_KEY", () => {
@@ -292,3 +334,47 @@ const _appSubmitted: PortalEventMap["application.submitted"] = {
 // Suppress "unused variable" lint errors
 void _jobPublished;
 void _appSubmitted;
+
+describe("JobViewedEvent", () => {
+  it("satisfies BaseEvent contract", () => {
+    const event: JobViewedEvent = {
+      ...createEventEnvelope(),
+      jobId: "jp-1",
+      userId: "user-1",
+      isNewView: true,
+    };
+    const _base: BaseEvent = event; // type-level assertion
+    expect(event.eventId).toBeDefined();
+    expect(event.version).toBe(1);
+    expect(event.jobId).toBe("jp-1");
+    expect(event.isNewView).toBe(true);
+    void _base;
+  });
+
+  it("PortalEventMap includes job.viewed key", () => {
+    const key: PortalEventName = "job.viewed";
+    expect(key).toBe("job.viewed");
+  });
+});
+
+describe("JobSharedToCommunityEvent", () => {
+  it("satisfies BaseEvent contract", () => {
+    const event: JobSharedToCommunityEvent = {
+      ...createEventEnvelope(),
+      jobId: "jp-1",
+      companyId: "cp-1",
+      communityPostId: "comm-post-1",
+      employerUserId: "user-emp-1",
+    };
+    const _base: BaseEvent = event; // type-level assertion
+    expect(event.eventId).toBeDefined();
+    expect(event.communityPostId).toBe("comm-post-1");
+    expect(event.employerUserId).toBe("user-emp-1");
+    void _base;
+  });
+
+  it("PortalEventMap includes job.shared_to_community key", () => {
+    const key: PortalEventName = "job.shared_to_community";
+    expect(key).toBe("job.shared_to_community");
+  });
+});

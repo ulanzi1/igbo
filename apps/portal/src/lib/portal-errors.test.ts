@@ -33,8 +33,16 @@ describe("PORTAL_ERRORS", () => {
     }
   });
 
-  it("has exactly 6 error codes", () => {
-    expect(Object.keys(PORTAL_ERRORS)).toHaveLength(6);
+  it("has exactly 8 error codes", () => {
+    expect(Object.keys(PORTAL_ERRORS)).toHaveLength(8);
+  });
+
+  it("has ALREADY_SHARED key", () => {
+    expect(PORTAL_ERRORS.ALREADY_SHARED).toBe("PORTAL_ERRORS.ALREADY_SHARED");
+  });
+
+  it("has DUPLICATE_COMPANY_PROFILE key", () => {
+    expect(PORTAL_ERRORS.DUPLICATE_COMPANY_PROFILE).toBe("PORTAL_ERRORS.DUPLICATE_COMPANY_PROFILE");
   });
 
   it("PortalErrorCode type-level check", () => {

@@ -311,6 +311,9 @@ importers:
 
   apps/portal:
     dependencies:
+      "@aws-sdk/client-s3":
+        specifier: ^3.1021.0
+        version: 3.1021.0
       "@igbo/auth":
         specifier: workspace:*
         version: link:../../packages/auth
@@ -323,6 +326,18 @@ importers:
       "@radix-ui/react-tooltip":
         specifier: ^1.2.8
         version: 1.2.8(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      "@tiptap/core":
+        specifier: ^3.22.0
+        version: 3.22.0(@tiptap/pm@3.22.0)
+      "@tiptap/extension-link":
+        specifier: ^3.22.0
+        version: 3.22.0(@tiptap/core@3.22.0(@tiptap/pm@3.22.0))(@tiptap/pm@3.22.0)
+      "@tiptap/react":
+        specifier: ^3.22.0
+        version: 3.22.0(@floating-ui/dom@1.7.6)(@tiptap/core@3.22.0(@tiptap/pm@3.22.0))(@tiptap/pm@3.22.0)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      "@tiptap/starter-kit":
+        specifier: ^3.22.0
+        version: 3.22.0
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
@@ -356,6 +371,9 @@ importers:
       react-dom:
         specifier: 19.2.3
         version: 19.2.3(react@19.2.3)
+      sanitize-html:
+        specifier: ^2.17.2
+        version: 2.17.2
       shadcn:
         specifier: ^3.8.5
         version: 3.8.5(@types/node@20.19.37)(typescript@5.9.3)
@@ -365,6 +383,9 @@ importers:
       tailwind-merge:
         specifier: ^3.5.0
         version: 3.5.0
+      zod:
+        specifier: ^4.3.6
+        version: 4.3.6
     devDependencies:
       "@tailwindcss/postcss":
         specifier: ^4
@@ -393,6 +414,9 @@ importers:
       "@types/react-dom":
         specifier: ^19
         version: 19.2.3(@types/react@19.2.14)
+      "@types/sanitize-html":
+        specifier: ^2.16.1
+        version: 2.16.1
       eslint:
         specifier: ^9
         version: 9.39.4(jiti@2.6.1)
