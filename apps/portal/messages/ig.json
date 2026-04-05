@@ -278,6 +278,32 @@
       "salesRepresentative": "Onye Nnọchiteanya Nrere",
       "customerSupport": "Enyemaka Ndị Ahịa",
       "administrativeAssistant": "Onye Enyemaka Njikwa"
+    },
+    "onboarding": {
+      "title": "Nnọọ na Ụlọ Ọrụ Igbo Jobs",
+      "subtitle": "Ka anyị tọọ ntọala onye ọrụ na-enye gị",
+      "step1Title": "Profaịlụ Ụlọ Ọrụ",
+      "step1Description": "Kọọ anyị maka ụlọ ọrụ gị",
+      "step2Title": "Ntinye Ọrụ Mbụ",
+      "step2Description": "Mepụta ntinye ọrụ gị nke mbụ — ị nwere ike ichekwa ya dị ka ihe edebara ma dezie ya mgbe ọzọ",
+      "step3Title": "Mmadụ Niile Kwere!",
+      "step3Description": "Ị dị njikere ịmalite ịchọ ndị ọrụ",
+      "skipForNow": "Wụfee Ugbu A",
+      "createJobPosting": "Mepụta Ntinye Ọrụ",
+      "complete": "Gaa na Dashibọọdụ",
+      "summaryTitle": "Ntọala Emechara",
+      "summaryProfile": "Emepụtara profaịlụ ụlọ ọrụ: {name}",
+      "summaryNoPosting": "Ị nwere ike imepụta ntinye ọrụ n'oge ọ bụla site na dashibọọdụ gị",
+      "editProfile": "Dezie Profaịlụ Ụlọ Ọrụ",
+      "createPosting": "Mepụta Ntinye Ọrụ",
+      "goToDashboard": "Gaa na Dashibọọdụ",
+      "stepOf": "Nzọụkwụ {current} nke {total}",
+      "returnBanner": "Laghachi na ntọala onboarding"
+    },
+    "density": {
+      "comfortable": "Mmekọ",
+      "compact": "Nkpụmkpụ",
+      "dense": "Ọkpụkpọ"
     }
   },
   "Shell": {

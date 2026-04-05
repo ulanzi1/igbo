@@ -14,6 +14,7 @@ export const portalCompanyProfiles = pgTable("portal_company_profiles", {
   companySize: varchar("company_size", { length: 50 }),
   cultureInfo: text("culture_info"),
   trustBadge: boolean("trust_badge").notNull().default(false),
+  onboardingCompletedAt: timestamp("onboarding_completed_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });

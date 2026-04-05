@@ -18,6 +18,7 @@ describe("portalCompanyProfiles schema", () => {
     expect(cols).toContain("companySize");
     expect(cols).toContain("cultureInfo");
     expect(cols).toContain("trustBadge");
+    expect(cols).toContain("onboardingCompletedAt");
     expect(cols).toContain("createdAt");
     expect(cols).toContain("updatedAt");
   });
@@ -34,11 +35,17 @@ describe("portalCompanyProfiles schema", () => {
       companySize: null,
       cultureInfo: null,
       trustBadge: false,
+      onboardingCompletedAt: null,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
     expect(_check.id).toBe("uuid-1");
     expect(_check.trustBadge).toBe(false);
+    expect(_check.onboardingCompletedAt).toBeNull();
+  });
+
+  it("has onboardingCompletedAt column (nullable)", () => {
+    expect(portalCompanyProfiles.onboardingCompletedAt).toBeDefined();
   });
 
   it("exports NewPortalCompanyProfile insert type with required fields", () => {

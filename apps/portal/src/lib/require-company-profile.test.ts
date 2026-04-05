@@ -26,6 +26,7 @@ const mockProfile = {
   companySize: null,
   cultureInfo: null,
   trustBadge: false,
+  onboardingCompletedAt: null,
   createdAt: new Date(),
   updatedAt: new Date(),
 };
@@ -45,15 +46,13 @@ describe("requireCompanyProfile", () => {
     expect(result).toEqual(mockProfile);
   });
 
-  it("redirects when employer has no company profile", async () => {
+  it("redirects to /onboarding when employer has no company profile", async () => {
     vi.mocked(auth).mockResolvedValue({
       user: { id: "user-123", activePortalRole: "EMPLOYER" },
     } as ReturnType<typeof auth> extends Promise<infer T> ? T : never);
     vi.mocked(getCompanyByOwnerId).mockResolvedValue(null);
 
-    await expect(requireCompanyProfile("en")).rejects.toThrow(
-      "REDIRECT:/en/company-profile?onboarding=true",
-    );
+    await expect(requireCompanyProfile("en")).rejects.toThrow("REDIRECT:/en/onboarding");
   });
 
   it("returns null for non-employer role", async () => {

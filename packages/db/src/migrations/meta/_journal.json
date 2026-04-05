@@ -379,6 +379,13 @@
       "when": 1708000053000,
       "tag": "0053_job_posting_expiry_archive",
       "breakpoints": true
+    },
+    {
+      "idx": 54,
+      "version": "7",
+      "when": 1708000054000,
+      "tag": "0054_employer_onboarding",
+      "breakpoints": true
     }
   ]
 }

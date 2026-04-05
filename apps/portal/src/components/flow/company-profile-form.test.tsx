@@ -43,6 +43,7 @@ const mockProfile = {
   companySize: "11-50",
   cultureInfo: "Innovation first",
   trustBadge: false,
+  onboardingCompletedAt: null,
   createdAt: new Date(),
   updatedAt: new Date(),
 };
@@ -183,6 +184,26 @@ describe("CompanyProfileForm", () => {
     });
 
     resolveSubmit({ ok: true, json: () => Promise.resolve({ data: {} }) });
+  });
+
+  it("passes created profile to onSuccess callback on create", async () => {
+    const createdProfile = { ...mockProfile, id: "new-company-id", name: "New Corp" };
+    mockFetch.mockResolvedValue({
+      ok: true,
+      status: 201,
+      json: () => Promise.resolve({ data: createdProfile }),
+    });
+
+    const onSuccess = vi.fn();
+    render(<CompanyProfileForm mode="create" onSuccess={onSuccess} />);
+    const nameInput = screen.getByRole("textbox", { name: /name/i });
+    await userEvent.type(nameInput, "New Corp");
+
+    fireEvent.click(screen.getByRole("button", { name: /save/i }));
+
+    await waitFor(() => {
+      expect(onSuccess).toHaveBeenCalledWith(createdProfile);
+    });
   });
 
   it("shows onboarding toast when showOnboardingToast is true", async () => {

@@ -8,7 +8,7 @@ export async function requireCompanyProfile(locale: string) {
   if (!session?.user || session.user.activePortalRole !== "EMPLOYER") return null;
   const profile = await getCompanyByOwnerId(session.user.id);
   if (!profile) {
-    redirect(`/${locale}/company-profile?onboarding=true`);
+    redirect(`/${locale}/onboarding`);
   }
   return profile;
 }

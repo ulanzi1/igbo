@@ -278,6 +278,32 @@
       "salesRepresentative": "Sales Representative",
       "customerSupport": "Customer Support",
       "administrativeAssistant": "Administrative Assistant"
+    },
+    "onboarding": {
+      "title": "Welcome to Igbo Jobs Portal",
+      "subtitle": "Let's set up your employer account",
+      "step1Title": "Company Profile",
+      "step1Description": "Tell us about your company",
+      "step2Title": "First Job Posting",
+      "step2Description": "Create your first job posting — you can save as draft and edit later",
+      "step3Title": "All Set!",
+      "step3Description": "You're ready to start hiring",
+      "skipForNow": "Skip for Now",
+      "createJobPosting": "Create Job Posting",
+      "complete": "Go to Dashboard",
+      "summaryTitle": "Setup Complete",
+      "summaryProfile": "Company profile created: {name}",
+      "summaryNoPosting": "You can create job postings anytime from your dashboard",
+      "editProfile": "Edit Company Profile",
+      "createPosting": "Create a Job Posting",
+      "goToDashboard": "Go to Dashboard",
+      "stepOf": "Step {current} of {total}",
+      "returnBanner": "Back to onboarding setup"
+    },
+    "density": {
+      "comfortable": "Comfortable",
+      "compact": "Compact",
+      "dense": "Dense"
     }
   },
   "Shell": {

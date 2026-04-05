@@ -25,7 +25,7 @@ import type { PortalCompanyProfile } from "@igbo/db/schema/portal-company-profil
 interface CompanyProfileFormProps {
   mode: "create" | "edit";
   initialData?: PortalCompanyProfile;
-  onSuccess?: () => void;
+  onSuccess?: (profile: PortalCompanyProfile) => void;
   showOnboardingToast?: boolean;
 }
 
@@ -116,8 +116,9 @@ export function CompanyProfileForm({
         return;
       }
 
+      const responseBody: { data: PortalCompanyProfile } = await res.json();
       toast.success(mode === "create" ? t("created") : t("updated"));
-      onSuccess?.();
+      onSuccess?.(responseBody.data);
     } catch {
       toast.error(t("errorUnexpected"));
     } finally {

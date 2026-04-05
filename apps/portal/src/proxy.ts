@@ -55,7 +55,7 @@ function itpRefreshOrLogin(request: NextRequest): NextResponse {
   return NextResponse.redirect(verifyUrl);
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Fail-closed: AUTH_SECRET must be set for JWT decoding

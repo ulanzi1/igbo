@@ -60,7 +60,7 @@ function makeRequest(
   return req as unknown as Request;
 }
 
-import { middleware } from "./middleware";
+import { proxy } from "./proxy";
 import type { NextRequest } from "next/server";
 
 beforeEach(() => {
@@ -71,18 +71,18 @@ beforeEach(() => {
   delete process.env.COMMUNITY_URL;
 });
 
-describe("Portal middleware", () => {
+describe("Portal proxy", () => {
   describe("public routes", () => {
     it("passes through root path without auth check", async () => {
       const req = makeRequest("http://localhost:3001/");
-      const result = await middleware(req as unknown as NextRequest);
+      const result = await proxy(req as unknown as NextRequest);
       expect(result.status).not.toBe(307);
       expect(mockDecode).not.toHaveBeenCalled();
     });
 
     it("passes through /api/auth/* routes without auth check", async () => {
       const req = makeRequest("http://localhost:3001/api/auth/session");
-      const result = await middleware(req as unknown as NextRequest);
+      const result = await proxy(req as unknown as NextRequest);
       expect(result.status).not.toBe(307);
       expect(mockDecode).not.toHaveBeenCalled();
     });
@@ -91,7 +91,7 @@ describe("Portal middleware", () => {
   describe("unauthenticated requests — Safari ITP silent refresh", () => {
     it("redirects to verify-session (not login) when no session cookie and no _itp_refresh param", async () => {
       const req = makeRequest("http://localhost:3001/dashboard");
-      const result = await middleware(req as unknown as NextRequest);
+      const result = await proxy(req as unknown as NextRequest);
       expect(result.status).toBe(307);
       const location = result.headers.get("Location") ?? "";
       expect(location).toContain("/api/auth/verify-session");
@@ -100,7 +100,7 @@ describe("Portal middleware", () => {
 
     it("verify-session returnTo includes _itp_refresh=1 for loop prevention", async () => {
       const req = makeRequest("http://localhost:3001/dashboard");
-      const result = await middleware(req as unknown as NextRequest);
+      const result = await proxy(req as unknown as NextRequest);
       const location = result.headers.get("Location") ?? "";
       const verifyUrl = new URL(location);
       const returnTo = verifyUrl.searchParams.get("returnTo") ?? "";
@@ -109,7 +109,7 @@ describe("Portal middleware", () => {
 
     it("falls back to community login when no session cookie AND _itp_refresh=1 is present", async () => {
       const req = makeRequest("http://localhost:3001/dashboard?_itp_refresh=1");
-      const result = await middleware(req as unknown as NextRequest);
+      const result = await proxy(req as unknown as NextRequest);
       expect(result.status).toBe(307);
       const location = result.headers.get("Location") ?? "";
       expect(location).toContain("http://localhost:3000/login");
@@ -128,7 +128,7 @@ describe("Portal middleware", () => {
       const req = makeRequest("http://localhost:3001/dashboard", {
         cookies: { "authjs.session-token": "valid-token" },
       });
-      const result = await middleware(req as unknown as NextRequest);
+      const result = await proxy(req as unknown as NextRequest);
       expect(result.status).not.toBe(307);
     });
   });
@@ -143,7 +143,7 @@ describe("Portal middleware", () => {
       const req = makeRequest("http://localhost:3001/dashboard", {
         cookies: { "authjs.session-token": "banned-token" },
       });
-      const result = await middleware(req as unknown as NextRequest);
+      const result = await proxy(req as unknown as NextRequest);
       expect(result.status).toBe(307);
       const location = result.headers.get("Location") ?? "";
       expect(location).toContain("banned=true");
@@ -158,7 +158,7 @@ describe("Portal middleware", () => {
       const req = makeRequest("http://localhost:3001/dashboard", {
         cookies: { "authjs.session-token": "suspended-token" },
       });
-      const result = await middleware(req as unknown as NextRequest);
+      const result = await proxy(req as unknown as NextRequest);
       expect(result.status).toBe(307);
       const location = result.headers.get("Location") ?? "";
       expect(location).toContain("/suspended");
@@ -173,7 +173,7 @@ describe("Portal middleware", () => {
       const req = makeRequest("http://localhost:3001/dashboard", {
         cookies: { "authjs.session-token": "pending-token" },
       });
-      const result = await middleware(req as unknown as NextRequest);
+      const result = await proxy(req as unknown as NextRequest);
       expect(result.status).toBe(307);
       const location = result.headers.get("Location") ?? "";
       expect(location).toContain("/login");
@@ -188,7 +188,7 @@ describe("Portal middleware", () => {
       const req = makeRequest("http://localhost:3001/dashboard", {
         cookies: { "authjs.session-token": "anon-token" },
       });
-      const result = await middleware(req as unknown as NextRequest);
+      const result = await proxy(req as unknown as NextRequest);
       expect(result.status).toBe(307);
       const location = result.headers.get("Location") ?? "";
       expect(location).toContain("/login");
@@ -201,7 +201,7 @@ describe("Portal middleware", () => {
       const req = makeRequest("http://localhost:3001/dashboard", {
         cookies: { "authjs.session-token": "malformed-token" },
       });
-      const result = await middleware(req as unknown as NextRequest);
+      const result = await proxy(req as unknown as NextRequest);
       expect(result.status).toBe(307);
       const location = result.headers.get("Location") ?? "";
       expect(location).toContain("/api/auth/verify-session");
@@ -213,7 +213,7 @@ describe("Portal middleware", () => {
       const req = makeRequest("http://localhost:3001/dashboard?_itp_refresh=1", {
         cookies: { "authjs.session-token": "malformed-token" },
       });
-      const result = await middleware(req as unknown as NextRequest);
+      const result = await proxy(req as unknown as NextRequest);
       expect(result.status).toBe(307);
       const location = result.headers.get("Location") ?? "";
       expect(location).toContain("/login");
@@ -225,7 +225,7 @@ describe("Portal middleware", () => {
       const req = makeRequest("http://localhost:3001/dashboard", {
         cookies: { "authjs.session-token": "expired-token" },
       });
-      const result = await middleware(req as unknown as NextRequest);
+      const result = await proxy(req as unknown as NextRequest);
       expect(result.status).toBe(307);
       const location = result.headers.get("Location") ?? "";
       expect(location).toContain("/api/auth/verify-session");
@@ -237,7 +237,7 @@ describe("Portal middleware", () => {
       const req = makeRequest("http://localhost:3001/dashboard?_itp_refresh=1", {
         cookies: { "authjs.session-token": "expired-token" },
       });
-      const result = await middleware(req as unknown as NextRequest);
+      const result = await proxy(req as unknown as NextRequest);
       expect(result.status).toBe(307);
       const location = result.headers.get("Location") ?? "";
       expect(location).toContain("/login");
@@ -251,7 +251,7 @@ describe("Portal middleware", () => {
       const req = makeRequest("http://localhost:3001/dashboard?_itp_refresh=1", {
         cookies: { "authjs.session-token": "valid-token" },
       });
-      const result = await middleware(req as unknown as NextRequest);
+      const result = await proxy(req as unknown as NextRequest);
       expect(result.status).toBe(307);
       const location = result.headers.get("Location") ?? "";
       expect(location).toContain("http://localhost:3001/dashboard");
@@ -263,7 +263,7 @@ describe("Portal middleware", () => {
       const req = makeRequest("http://localhost:3001/dashboard", {
         cookies: { "authjs.session-token": "valid-token" },
       });
-      const result = await middleware(req as unknown as NextRequest);
+      const result = await proxy(req as unknown as NextRequest);
       // Should proceed (not redirect to strip _itp_refresh since it's not present)
       expect(result.status).not.toBe(307);
     });
@@ -273,7 +273,7 @@ describe("Portal middleware", () => {
     it("returns 500 when AUTH_SECRET is not set", async () => {
       delete process.env.AUTH_SECRET;
       const req = makeRequest("http://localhost:3001/dashboard");
-      const result = await middleware(req as unknown as NextRequest);
+      const result = await proxy(req as unknown as NextRequest);
       expect(result.status).toBe(500);
     });
   });
@@ -281,7 +281,7 @@ describe("Portal middleware", () => {
   describe("response headers", () => {
     it("adds X-Request-Id header to responses", async () => {
       const req = makeRequest("http://localhost:3001/");
-      const result = await middleware(req as unknown as NextRequest);
+      const result = await proxy(req as unknown as NextRequest);
       expect(result.headers.get("X-Request-Id")).toBeTruthy();
     });
   });
@@ -294,7 +294,7 @@ describe("Portal middleware", () => {
         cookies: { "authjs.session-token": "valid-token" },
         headers: { Origin: "http://localhost:3000" },
       });
-      const result = await middleware(req as unknown as NextRequest);
+      const result = await proxy(req as unknown as NextRequest);
       expect(result.headers.get("Access-Control-Allow-Origin")).toBe("http://localhost:3000");
     });
 
@@ -305,7 +305,7 @@ describe("Portal middleware", () => {
         cookies: { "authjs.session-token": "valid-token" },
         headers: { Origin: "http://evil.com" },
       });
-      const result = await middleware(req as unknown as NextRequest);
+      const result = await proxy(req as unknown as NextRequest);
       expect(result.headers.get("Access-Control-Allow-Origin")).toBeNull();
     });
 
@@ -315,7 +315,7 @@ describe("Portal middleware", () => {
         method: "OPTIONS",
         headers: { Origin: "http://localhost:3000" },
       });
-      const result = await middleware(req as unknown as NextRequest);
+      const result = await proxy(req as unknown as NextRequest);
       expect(result.status).toBe(204);
       expect(result.headers.get("Access-Control-Allow-Origin")).toBe("http://localhost:3000");
     });
@@ -324,41 +324,41 @@ describe("Portal middleware", () => {
   describe("locale-prefixed public route bypass", () => {
     it("passes through /en without auth check", async () => {
       const req = makeRequest("http://localhost:3001/en");
-      const result = await middleware(req as unknown as NextRequest);
+      const result = await proxy(req as unknown as NextRequest);
       expect(result.status).not.toBe(307);
       expect(mockDecode).not.toHaveBeenCalled();
     });
 
     it("passes through /ig without auth check", async () => {
       const req = makeRequest("http://localhost:3001/ig");
-      const result = await middleware(req as unknown as NextRequest);
+      const result = await proxy(req as unknown as NextRequest);
       expect(result.status).not.toBe(307);
       expect(mockDecode).not.toHaveBeenCalled();
     });
 
     it("passes through /en/jobs without auth check", async () => {
       const req = makeRequest("http://localhost:3001/en/jobs");
-      const result = await middleware(req as unknown as NextRequest);
+      const result = await proxy(req as unknown as NextRequest);
       expect(result.status).not.toBe(307);
       expect(mockDecode).not.toHaveBeenCalled();
     });
 
     it("passes through /en/apprenticeships without auth check", async () => {
       const req = makeRequest("http://localhost:3001/en/apprenticeships");
-      const result = await middleware(req as unknown as NextRequest);
+      const result = await proxy(req as unknown as NextRequest);
       expect(result.status).not.toBe(307);
       expect(mockDecode).not.toHaveBeenCalled();
     });
 
     it("requires auth for /en/applications (protected path)", async () => {
       const req = makeRequest("http://localhost:3001/en/applications");
-      const result = await middleware(req as unknown as NextRequest);
+      const result = await proxy(req as unknown as NextRequest);
       expect(result.status).toBe(307); // redirected (no session)
     });
 
     it("requires auth for /en/dashboard (protected path)", async () => {
       const req = makeRequest("http://localhost:3001/en/dashboard");
-      const result = await middleware(req as unknown as NextRequest);
+      const result = await proxy(req as unknown as NextRequest);
       expect(result.status).toBe(307); // redirected (no session)
     });
   });
@@ -366,7 +366,7 @@ describe("Portal middleware", () => {
   describe("returnTo includes full portal URL", () => {
     it("returnTo includes the full portal URL (not just path)", async () => {
       const req = makeRequest("http://localhost:3001/en/dashboard");
-      const result = await middleware(req as unknown as NextRequest);
+      const result = await proxy(req as unknown as NextRequest);
       const location = result.headers.get("Location") ?? "";
       // returnTo should include the full URL with host
       const verifyUrl = new URL(location);

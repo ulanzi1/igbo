@@ -37,6 +37,7 @@ const mockProfile = {
   companySize: null,
   cultureInfo: null,
   trustBadge: false,
+  onboardingCompletedAt: null,
   createdAt: new Date(),
   updatedAt: new Date(),
 };
@@ -45,8 +46,11 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
-async function renderPage() {
-  const node = await Page({ params: Promise.resolve({ locale: "en" }) });
+async function renderPage(searchParams?: Record<string, string>) {
+  const node = await Page({
+    params: Promise.resolve({ locale: "en" }),
+    searchParams: Promise.resolve(searchParams ?? {}),
+  });
   return render(node as React.ReactElement);
 }
 
@@ -68,6 +72,18 @@ describe("NewJobPage", () => {
   it("redirects to portal home when requireCompanyProfile returns null (non-employer)", async () => {
     vi.mocked(requireCompanyProfile).mockResolvedValue(null as never);
     await expect(renderPage()).rejects.toThrow("REDIRECT:/en");
+  });
+
+  it("shows return-to-onboarding banner when from=onboarding", async () => {
+    vi.mocked(requireCompanyProfile).mockResolvedValue(mockProfile as never);
+    await renderPage({ from: "onboarding" });
+    expect(screen.getByText("returnBanner")).toBeInTheDocument();
+  });
+
+  it("does not show return-to-onboarding banner when from param is absent", async () => {
+    vi.mocked(requireCompanyProfile).mockResolvedValue(mockProfile as never);
+    await renderPage();
+    expect(screen.queryByText("returnBanner")).not.toBeInTheDocument();
   });
 
   it("passes axe-core accessibility assertion", async () => {

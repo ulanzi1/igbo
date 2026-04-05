@@ -64,7 +64,7 @@ function hasSessionCookie(request: NextRequest): boolean {
   );
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const requestHeaders = new Headers(request.headers);
   const { pathname: checkPathname } = request.nextUrl;
 
