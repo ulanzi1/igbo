@@ -29,12 +29,6 @@ export function useActivePortalRole(): ActivePortalRole {
     };
   }
 
-  // activePortalRole is set by @igbo/auth JWT callback.
-  // Defaults to JOB_SEEKER if user has both roles (as per AC2) or if not set.
-  const rawRole = (session as { user?: { activePortalRole?: string } }).user?.activePortalRole;
-  const role: PortalRole =
-    rawRole === "EMPLOYER" ? "EMPLOYER" : rawRole === "JOB_ADMIN" ? "JOB_ADMIN" : "JOB_SEEKER";
-
   // portalRoles array: populated by JWT callback on sign-in and refreshed on role switch.
   // The JWT array never contains null — Exclude<PortalRole, null> is the correct type.
   const rawPortalRoles = (session as { user?: { portalRoles?: string[] } }).user?.portalRoles;
@@ -42,6 +36,20 @@ export function useActivePortalRole(): ActivePortalRole {
     (r): r is Exclude<PortalRole, null> =>
       r === "JOB_SEEKER" || r === "EMPLOYER" || r === "JOB_ADMIN",
   );
+
+  // activePortalRole is set by @igbo/auth JWT callback.
+  // Returns null when user has no portal roles (not yet selected).
+  const rawRole = (session as { user?: { activePortalRole?: string } }).user?.activePortalRole;
+  const role: PortalRole =
+    allRoles.length === 0
+      ? null
+      : rawRole === "EMPLOYER"
+        ? "EMPLOYER"
+        : rawRole === "JOB_ADMIN"
+          ? "JOB_ADMIN"
+          : rawRole === "JOB_SEEKER"
+            ? "JOB_SEEKER"
+            : allRoles[0]!; // stale JWT: activePortalRole missing, fall back to first assigned role (allRoles.length > 0 guaranteed by outer guard)
 
   return {
     role,

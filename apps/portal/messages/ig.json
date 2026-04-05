@@ -331,6 +331,23 @@
       "salaryRange": "${min} – ${max}",
       "jobDescription": "Nkọwa Ọrụ",
       "requirements": "Ihe A Chọrọ"
+    },
+    "chooseRole": {
+      "title": "Họrọ Ụzọ Gị",
+      "subtitle": "Kedu ka ị ga-esi jiri OBIGBO Job Portal?",
+      "employer": {
+        "title": "Onye Oru",
+        "description": "Tinye ọrụ ma chọta ndị nka n'obodo Igbo.",
+        "cta": "Malite dịka Onye Oru"
+      },
+      "seeker": {
+        "title": "Onye Na-achọ Ọrụ",
+        "description": "Chọpụta ohere ma jikọọ na ụlọ ọrụ Igbo.",
+        "cta": "Malite dịka Onye Na-achọ Ọrụ"
+      },
+      "addMoreLater": "Ị nwere ike ịtụkwasị ọrụ ndị ọzọ n'oge na-adịgide.",
+      "error": "Ihe adịghị mma. Biko nwaa ọzọ.",
+      "selecting": "Na-edozi akaụntụ gị..."
     }
   },
   "Shell": {

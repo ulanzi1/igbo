@@ -51,7 +51,7 @@ beforeEach(() => {
 describe("PortalTopNav", () => {
   describe("seeker role", () => {
     it("renders seeker nav items", () => {
-      setSession({ user: { activePortalRole: "JOB_SEEKER" } });
+      setSession({ user: { activePortalRole: "JOB_SEEKER", portalRoles: ["JOB_SEEKER"] } });
       render(<PortalTopNav />);
       expect(screen.getAllByText("jobs").length).toBeGreaterThan(0);
       expect(screen.getAllByText("browseAll").length).toBeGreaterThan(0);
@@ -71,7 +71,7 @@ describe("PortalTopNav", () => {
 
   describe("employer role", () => {
     it("renders employer nav items", () => {
-      setSession({ user: { activePortalRole: "EMPLOYER" } });
+      setSession({ user: { activePortalRole: "EMPLOYER", portalRoles: ["EMPLOYER"] } });
       render(<PortalTopNav />);
       expect(screen.getAllByText("dashboard").length).toBeGreaterThan(0);
       expect(screen.getAllByText("myJobs").length).toBeGreaterThan(0);
@@ -91,7 +91,7 @@ describe("PortalTopNav", () => {
 
   describe("admin role", () => {
     it("renders admin nav items", () => {
-      setSession({ user: { activePortalRole: "JOB_ADMIN" } });
+      setSession({ user: { activePortalRole: "JOB_ADMIN", portalRoles: ["JOB_ADMIN"] } });
       render(<PortalTopNav />);
       expect(screen.getAllByText("reviewQueue").length).toBeGreaterThan(0);
       expect(screen.getAllByText("reports").length).toBeGreaterThan(0);
@@ -99,7 +99,7 @@ describe("PortalTopNav", () => {
     });
 
     it("does not show seeker items for admin role", () => {
-      setSession({ user: { activePortalRole: "JOB_ADMIN" } });
+      setSession({ user: { activePortalRole: "JOB_ADMIN", portalRoles: ["JOB_ADMIN"] } });
       render(<PortalTopNav />);
       // Admin nav should not have seeker-specific items
       expect(screen.queryByText("myApplications")).not.toBeInTheDocument();
@@ -124,14 +124,14 @@ describe("PortalTopNav", () => {
 
   describe("Back to Community link", () => {
     it("is always visible (for seeker)", () => {
-      setSession({ user: { activePortalRole: "JOB_SEEKER" } });
+      setSession({ user: { activePortalRole: "JOB_SEEKER", portalRoles: ["JOB_SEEKER"] } });
       render(<PortalTopNav />);
       const links = screen.getAllByTestId("back-to-community");
       expect(links.length).toBeGreaterThan(0);
     });
 
     it("href equals NEXT_PUBLIC_COMMUNITY_URL", () => {
-      setSession({ user: { activePortalRole: "JOB_SEEKER" } });
+      setSession({ user: { activePortalRole: "JOB_SEEKER", portalRoles: ["JOB_SEEKER"] } });
       render(<PortalTopNav />);
       const link = screen.getByTestId("back-to-community");
       expect(link).toHaveAttribute("href", "http://localhost:3000");
