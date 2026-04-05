@@ -35,6 +35,9 @@ export function RoleSwitcher() {
   // Unauthenticated — render nothing
   if (!isAuthenticated) return null;
 
+  // No portal roles assigned yet — render nothing (user will be redirected to choose-role)
+  if (allRoles.length === 0) return null;
+
   function getRoleLabel(r: Exclude<PortalRole, null>): string {
     if (r === "EMPLOYER") return t("employer");
     if (r === "JOB_ADMIN") return t("jobAdmin");

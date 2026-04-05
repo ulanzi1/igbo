@@ -331,6 +331,23 @@
       "salaryRange": "${min} – ${max}",
       "jobDescription": "Job Description",
       "requirements": "Requirements"
+    },
+    "chooseRole": {
+      "title": "Choose Your Path",
+      "subtitle": "How would you like to use the OBIGBO Job Portal?",
+      "employer": {
+        "title": "Employer",
+        "description": "Post jobs and find talent from the Igbo community.",
+        "cta": "Get Started as Employer"
+      },
+      "seeker": {
+        "title": "Job Seeker",
+        "description": "Discover opportunities and connect with Igbo businesses.",
+        "cta": "Get Started as Seeker"
+      },
+      "addMoreLater": "You can add more roles later from your portal settings.",
+      "error": "Something went wrong. Please try again.",
+      "selecting": "Setting up your account..."
     }
   },
   "Shell": {

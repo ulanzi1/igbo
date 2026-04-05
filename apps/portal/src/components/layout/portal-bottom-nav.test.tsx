@@ -43,7 +43,7 @@ function setGuest() {
 
 describe("PortalBottomNav", () => {
   it("renders seeker tabs for JOB_SEEKER role", () => {
-    setSession({ user: { activePortalRole: "JOB_SEEKER" } });
+    setSession({ user: { activePortalRole: "JOB_SEEKER", portalRoles: ["JOB_SEEKER"] } });
     render(<PortalBottomNav />);
     expect(screen.getByText("home")).toBeInTheDocument();
     expect(screen.getByText("jobs")).toBeInTheDocument();
@@ -53,7 +53,7 @@ describe("PortalBottomNav", () => {
   });
 
   it("renders employer tabs for EMPLOYER role", () => {
-    setSession({ user: { activePortalRole: "EMPLOYER" } });
+    setSession({ user: { activePortalRole: "EMPLOYER", portalRoles: ["EMPLOYER"] } });
     render(<PortalBottomNav />);
     expect(screen.getByText("home")).toBeInTheDocument();
     expect(screen.getByText("dashboard")).toBeInTheDocument();
@@ -81,7 +81,7 @@ describe("PortalBottomNav", () => {
   });
 
   it("marks active tab based on current pathname", () => {
-    setSession({ user: { activePortalRole: "JOB_SEEKER" } });
+    setSession({ user: { activePortalRole: "JOB_SEEKER", portalRoles: ["JOB_SEEKER"] } });
     vi.mocked(usePathname).mockReturnValue("/en/jobs");
     render(<PortalBottomNav />);
     const jobsLink = screen.getByText("jobs").closest("a");
@@ -89,7 +89,7 @@ describe("PortalBottomNav", () => {
   });
 
   it("uses locale-aware hrefs (not hardcoded /en)", () => {
-    setSession({ user: { activePortalRole: "JOB_SEEKER" } });
+    setSession({ user: { activePortalRole: "JOB_SEEKER", portalRoles: ["JOB_SEEKER"] } });
     render(<PortalBottomNav />);
     const jobsLink = screen.getByText("jobs").closest("a");
     // With mocked useLocale returning "en", href should be /en/jobs
@@ -97,7 +97,7 @@ describe("PortalBottomNav", () => {
   });
 
   it("renders admin tabs for JOB_ADMIN role", () => {
-    setSession({ user: { activePortalRole: "JOB_ADMIN" } });
+    setSession({ user: { activePortalRole: "JOB_ADMIN", portalRoles: ["JOB_ADMIN"] } });
     render(<PortalBottomNav />);
     expect(screen.getByText("home")).toBeInTheDocument();
     expect(screen.getByText("reviewQueue")).toBeInTheDocument();
@@ -108,21 +108,21 @@ describe("PortalBottomNav", () => {
   });
 
   it("admin Review Queue link points to /en/admin", () => {
-    setSession({ user: { activePortalRole: "JOB_ADMIN" } });
+    setSession({ user: { activePortalRole: "JOB_ADMIN", portalRoles: ["JOB_ADMIN"] } });
     render(<PortalBottomNav />);
     const queueLink = screen.getByText("reviewQueue").closest("a");
     expect(queueLink).toHaveAttribute("href", "/en/admin");
   });
 
   it("admin Reports link points to /en/admin/reports", () => {
-    setSession({ user: { activePortalRole: "JOB_ADMIN" } });
+    setSession({ user: { activePortalRole: "JOB_ADMIN", portalRoles: ["JOB_ADMIN"] } });
     render(<PortalBottomNav />);
     const reportsLink = screen.getByText("reports").closest("a");
     expect(reportsLink).toHaveAttribute("href", "/en/admin/reports");
   });
 
   it("admin Settings link points to /en/admin/settings", () => {
-    setSession({ user: { activePortalRole: "JOB_ADMIN" } });
+    setSession({ user: { activePortalRole: "JOB_ADMIN", portalRoles: ["JOB_ADMIN"] } });
     render(<PortalBottomNav />);
     const settingsLink = screen.getByText("settings").closest("a");
     expect(settingsLink).toHaveAttribute("href", "/en/admin/settings");
