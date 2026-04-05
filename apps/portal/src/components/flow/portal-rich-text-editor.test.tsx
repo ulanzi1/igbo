@@ -11,7 +11,7 @@ vi.mock("@tiptap/react", () => ({
     editor ? <div data-testid="editor-content" /> : null,
 }));
 
-vi.mock("@tiptap/starter-kit", () => ({ default: {} }));
+vi.mock("@tiptap/starter-kit", () => ({ default: { configure: vi.fn(() => ({})) } }));
 vi.mock("@tiptap/extension-link", () => ({
   default: { configure: vi.fn(() => ({})) },
 }));
