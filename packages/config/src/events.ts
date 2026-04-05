@@ -87,6 +87,19 @@ export interface ApplicationWithdrawnEvent extends BaseEvent {
   applicationId: string;
 }
 
+export interface JobViewedEvent extends BaseEvent {
+  jobId: string;
+  userId: string;
+  isNewView: boolean;
+}
+
+export interface JobSharedToCommunityEvent extends BaseEvent {
+  jobId: string;
+  companyId: string;
+  communityPostId: string;
+  employerUserId: string;
+}
+
 // Portal event map — used by portal EventBus
 export interface PortalEventMap {
   "job.published": JobPublishedEvent;
@@ -97,6 +110,8 @@ export interface PortalEventMap {
   "application.submitted": ApplicationSubmittedEvent;
   "application.status_changed": ApplicationStatusChangedEvent;
   "application.withdrawn": ApplicationWithdrawnEvent;
+  "job.viewed": JobViewedEvent;
+  "job.shared_to_community": JobSharedToCommunityEvent;
 }
 
 export type PortalEventName = keyof PortalEventMap;

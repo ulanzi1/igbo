@@ -58,6 +58,8 @@ export const portalJobPostings = pgTable("portal_job_postings", {
   closedOutcome: portalClosedOutcomeEnum("closed_outcome"),
   closedAt: timestamp("closed_at", { withTimezone: true }),
   archivedAt: timestamp("archived_at", { withTimezone: true }),
+  viewCount: integer("view_count").notNull().default(0),
+  communityPostId: uuid("community_post_id"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });

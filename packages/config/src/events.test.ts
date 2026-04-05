@@ -22,6 +22,8 @@ import type {
   ApplicationSubmittedEvent,
   ApplicationStatusChangedEvent,
   ApplicationWithdrawnEvent,
+  JobViewedEvent,
+  JobSharedToCommunityEvent,
 } from "./events";
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -66,7 +68,7 @@ describe("createEventEnvelope", () => {
 });
 
 describe("PortalEventMap keys", () => {
-  it("includes all required portal events (including P-1.5 expiry events)", () => {
+  it("includes all required portal events (including P-1.7 analytics events)", () => {
     // TypeScript compile-time check — verified via type assertions below
     const requiredKeys: PortalEventName[] = [
       "job.published",
@@ -77,11 +79,13 @@ describe("PortalEventMap keys", () => {
       "application.submitted",
       "application.status_changed",
       "application.withdrawn",
+      "job.viewed",
+      "job.shared_to_community",
     ];
     for (const key of requiredKeys) {
       expect(typeof key).toBe("string");
     }
-    expect(requiredKeys).toHaveLength(8);
+    expect(requiredKeys).toHaveLength(10);
   });
 
   it("job.expired and job.expiry_warning are NOT in PORTAL_CROSS_APP_EVENTS (employer-only events)", () => {
@@ -330,3 +334,47 @@ const _appSubmitted: PortalEventMap["application.submitted"] = {
 // Suppress "unused variable" lint errors
 void _jobPublished;
 void _appSubmitted;
+
+describe("JobViewedEvent", () => {
+  it("satisfies BaseEvent contract", () => {
+    const event: JobViewedEvent = {
+      ...createEventEnvelope(),
+      jobId: "jp-1",
+      userId: "user-1",
+      isNewView: true,
+    };
+    const _base: BaseEvent = event; // type-level assertion
+    expect(event.eventId).toBeDefined();
+    expect(event.version).toBe(1);
+    expect(event.jobId).toBe("jp-1");
+    expect(event.isNewView).toBe(true);
+    void _base;
+  });
+
+  it("PortalEventMap includes job.viewed key", () => {
+    const key: PortalEventName = "job.viewed";
+    expect(key).toBe("job.viewed");
+  });
+});
+
+describe("JobSharedToCommunityEvent", () => {
+  it("satisfies BaseEvent contract", () => {
+    const event: JobSharedToCommunityEvent = {
+      ...createEventEnvelope(),
+      jobId: "jp-1",
+      companyId: "cp-1",
+      communityPostId: "comm-post-1",
+      employerUserId: "user-emp-1",
+    };
+    const _base: BaseEvent = event; // type-level assertion
+    expect(event.eventId).toBeDefined();
+    expect(event.communityPostId).toBe("comm-post-1");
+    expect(event.employerUserId).toBe("user-emp-1");
+    void _base;
+  });
+
+  it("PortalEventMap includes job.shared_to_community key", () => {
+    const key: PortalEventName = "job.shared_to_community";
+    expect(key).toBe("job.shared_to_community");
+  });
+});

@@ -386,6 +386,13 @@
       "when": 1708000054000,
       "tag": "0054_employer_onboarding",
       "breakpoints": true
+    },
+    {
+      "idx": 55,
+      "version": "7",
+      "when": 1708000055000,
+      "tag": "0055_job_analytics",
+      "breakpoints": true
     }
   ]
 }

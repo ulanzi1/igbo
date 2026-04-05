@@ -304,6 +304,33 @@
       "comfortable": "Comfortable",
       "compact": "Compact",
       "dense": "Dense"
+    },
+    "analytics": {
+      "views": "Views",
+      "applications": "Applications",
+      "conversionRate": "Conversion Rate",
+      "noViews": "No views yet",
+      "shareButton": "Share to Community",
+      "sharedButton": "Shared to Community",
+      "shareDisabledTooltip": "Only active postings can be shared",
+      "shareSuccess": "Job posting shared to community feed",
+      "shareError": "Failed to share job posting",
+      "alreadyShared": "Already shared to community",
+      "conversionNotAvailable": "N/A",
+      "sectionHeading": "Analytics",
+      "ariaLabel": "Job analytics",
+      "shareDescription": "Share this job posting to the community feed to increase visibility."
+    },
+    "jobDetail": {
+      "myJobs": "My Jobs",
+      "edit": "Edit",
+      "remote": "Remote",
+      "competitiveSalary": "Competitive Salary",
+      "salaryFrom": "From ${amount}",
+      "salaryUpTo": "Up to ${amount}",
+      "salaryRange": "${min} – ${max}",
+      "jobDescription": "Job Description",
+      "requirements": "Requirements"
     }
   },
   "Shell": {

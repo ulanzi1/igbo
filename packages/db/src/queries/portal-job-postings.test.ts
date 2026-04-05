@@ -21,6 +21,10 @@ import {
   getArchivablePostings,
   archivePosting,
   batchExpirePostings,
+  incrementViewCount,
+  getJobAnalytics,
+  markSharedToCommunity,
+  getJobPostingShareStatus,
 } from "./portal-job-postings";
 import type { PortalJobPosting } from "../schema/portal-job-postings";
 
@@ -44,6 +48,8 @@ const POSTING: PortalJobPosting = {
   closedOutcome: null,
   closedAt: null,
   archivedAt: null,
+  viewCount: 0,
+  communityPostId: null,
   createdAt: new Date("2026-01-01"),
   updatedAt: new Date("2026-01-01"),
 };
@@ -372,5 +378,172 @@ describe("batchExpirePostings", () => {
     const result = await batchExpirePostings(["jp-1", "jp-2"]);
     expect(result).toBe(2);
     expect(db.update).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("incrementViewCount", () => {
+  it("increments view count and returns updated value", async () => {
+    const returning = vi.fn().mockResolvedValue([{ viewCount: 5 }]);
+    const where = vi.fn().mockReturnValue({ returning });
+    const set = vi.fn().mockReturnValue({ where });
+    vi.mocked(db.update).mockReturnValue({ set } as unknown as ReturnType<typeof db.update>);
+
+    const result = await incrementViewCount("jp-1");
+    expect(result).toBe(5);
+    expect(db.update).toHaveBeenCalledTimes(1);
+  });
+
+  it("increments from existing non-zero count", async () => {
+    const returning = vi.fn().mockResolvedValue([{ viewCount: 11 }]);
+    const where = vi.fn().mockReturnValue({ returning });
+    const set = vi.fn().mockReturnValue({ where });
+    vi.mocked(db.update).mockReturnValue({ set } as unknown as ReturnType<typeof db.update>);
+
+    const result = await incrementViewCount("jp-1");
+    expect(result).toBe(11);
+  });
+
+  it("returns null when posting not found", async () => {
+    const returning = vi.fn().mockResolvedValue([]);
+    const where = vi.fn().mockReturnValue({ returning });
+    const set = vi.fn().mockReturnValue({ where });
+    vi.mocked(db.update).mockReturnValue({ set } as unknown as ReturnType<typeof db.update>);
+
+    const result = await incrementViewCount("non-existent");
+    expect(result).toBeNull();
+  });
+});
+
+describe("getJobAnalytics", () => {
+  function makeAnalyticsMock(viewCount: number, communityPostId: string | null, appCount: number) {
+    let callCount = 0;
+    vi.mocked(db.select).mockImplementation(() => {
+      callCount++;
+      if (callCount === 1) {
+        // First call: getPosting with viewCount
+        const limit = vi.fn().mockResolvedValue([{ viewCount, communityPostId }]);
+        const where = vi.fn().mockReturnValue({ limit });
+        const from = vi.fn().mockReturnValue({ where });
+        return { from } as unknown as ReturnType<typeof db.select>;
+      } else {
+        // Second call: COUNT applications
+        const where = vi.fn().mockResolvedValue([{ count: appCount }]);
+        const from = vi.fn().mockReturnValue({ where });
+        return { from } as unknown as ReturnType<typeof db.select>;
+      }
+    });
+  }
+
+  it("returns zeros for a new posting with no views or applications", async () => {
+    makeAnalyticsMock(0, null, 0);
+    const result = await getJobAnalytics("jp-1");
+    expect(result).toEqual({
+      viewCount: 0,
+      applicationCount: 0,
+      conversionRate: 0,
+      communityPostId: null,
+    });
+  });
+
+  it("returns correct counts for posting with views and applications", async () => {
+    makeAnalyticsMock(10, null, 2);
+    const result = await getJobAnalytics("jp-1");
+    expect(result?.viewCount).toBe(10);
+    expect(result?.applicationCount).toBe(2);
+    expect(result?.conversionRate).toBe(20); // 2/10 * 100 = 20%
+  });
+
+  it("conversionRate is 0 when views is 0 (no division by zero)", async () => {
+    makeAnalyticsMock(0, null, 3);
+    const result = await getJobAnalytics("jp-1");
+    expect(result?.conversionRate).toBe(0);
+  });
+
+  it("returns communityPostId when posting has been shared", async () => {
+    makeAnalyticsMock(5, "comm-post-1", 1);
+    const result = await getJobAnalytics("jp-1");
+    expect(result?.communityPostId).toBe("comm-post-1");
+  });
+
+  it("returns null when posting not found", async () => {
+    const limit = vi.fn().mockResolvedValue([]);
+    const where = vi.fn().mockReturnValue({ limit });
+    const from = vi.fn().mockReturnValue({ where });
+    vi.mocked(db.select).mockReturnValue({ from } as unknown as ReturnType<typeof db.select>);
+
+    const result = await getJobAnalytics("non-existent");
+    expect(result).toBeNull();
+  });
+
+  it("rounds conversion rate to 1 decimal place", async () => {
+    makeAnalyticsMock(3, null, 1);
+    const result = await getJobAnalytics("jp-1");
+    expect(result?.conversionRate).toBe(33.3); // 1/3 * 100 = 33.333... → 33.3
+  });
+});
+
+describe("markSharedToCommunity", () => {
+  it("sets communityPostId and returns updated posting", async () => {
+    const updated = { ...POSTING, communityPostId: "comm-post-1" };
+    const returning = vi.fn().mockResolvedValue([updated]);
+    const where = vi.fn().mockReturnValue({ returning });
+    const set = vi.fn().mockReturnValue({ where });
+    vi.mocked(db.update).mockReturnValue({ set } as unknown as ReturnType<typeof db.update>);
+
+    const result = await markSharedToCommunity("jp-1", "comm-post-1");
+    expect(result?.communityPostId).toBe("comm-post-1");
+    expect(db.update).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns null on second call (idempotent — already shared)", async () => {
+    const returning = vi.fn().mockResolvedValue([]);
+    const where = vi.fn().mockReturnValue({ returning });
+    const set = vi.fn().mockReturnValue({ where });
+    vi.mocked(db.update).mockReturnValue({ set } as unknown as ReturnType<typeof db.update>);
+
+    const result = await markSharedToCommunity("jp-1", "comm-post-2");
+    expect(result).toBeNull();
+  });
+
+  it("returns null when posting not found", async () => {
+    const returning = vi.fn().mockResolvedValue([]);
+    const where = vi.fn().mockReturnValue({ returning });
+    const set = vi.fn().mockReturnValue({ where });
+    vi.mocked(db.update).mockReturnValue({ set } as unknown as ReturnType<typeof db.update>);
+
+    const result = await markSharedToCommunity("non-existent", "comm-post-1");
+    expect(result).toBeNull();
+  });
+});
+
+describe("getJobPostingShareStatus", () => {
+  it("returns null when posting exists but not shared", async () => {
+    const limit = vi.fn().mockResolvedValue([{ communityPostId: null }]);
+    const where = vi.fn().mockReturnValue({ limit });
+    const from = vi.fn().mockReturnValue({ where });
+    vi.mocked(db.select).mockReturnValue({ from } as unknown as ReturnType<typeof db.select>);
+
+    const result = await getJobPostingShareStatus("jp-1");
+    expect(result).toBeNull();
+  });
+
+  it("returns communityPostId when sharing has occurred", async () => {
+    const limit = vi.fn().mockResolvedValue([{ communityPostId: "comm-post-1" }]);
+    const where = vi.fn().mockReturnValue({ limit });
+    const from = vi.fn().mockReturnValue({ where });
+    vi.mocked(db.select).mockReturnValue({ from } as unknown as ReturnType<typeof db.select>);
+
+    const result = await getJobPostingShareStatus("jp-1");
+    expect(result).toBe("comm-post-1");
+  });
+
+  it("returns undefined when posting does not exist", async () => {
+    const limit = vi.fn().mockResolvedValue([]);
+    const where = vi.fn().mockReturnValue({ limit });
+    const from = vi.fn().mockReturnValue({ where });
+    vi.mocked(db.select).mockReturnValue({ from } as unknown as ReturnType<typeof db.select>);
+
+    const result = await getJobPostingShareStatus("non-existent");
+    expect(result).toBeUndefined();
   });
 });

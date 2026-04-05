@@ -2,6 +2,7 @@ import "server-only";
 import { db } from "../index";
 import { portalJobPostings } from "../schema/portal-job-postings";
 import { portalCompanyProfiles } from "../schema/portal-company-profiles";
+import { portalApplications } from "../schema/portal-applications";
 import type {
   NewPortalJobPosting,
   PortalJobPosting,
@@ -196,4 +197,88 @@ export async function updateJobPostingStatus(
     .where(eq(portalJobPostings.id, id))
     .returning();
   return updated ?? null;
+}
+
+/**
+ * Atomically increments view_count for a posting.
+ * Returns the updated viewCount, or null if not found.
+ */
+export async function incrementViewCount(jobId: string): Promise<number | null> {
+  const [updated] = await db
+    .update(portalJobPostings)
+    .set({ viewCount: sql`${portalJobPostings.viewCount} + 1` })
+    .where(eq(portalJobPostings.id, jobId))
+    .returning({ viewCount: portalJobPostings.viewCount });
+  return updated?.viewCount ?? null;
+}
+
+export interface JobAnalyticsData {
+  viewCount: number;
+  applicationCount: number;
+  conversionRate: number;
+  communityPostId: string | null;
+}
+
+/**
+ * Returns analytics for a job posting: view count, application count, conversion rate.
+ * Returns null if the posting is not found.
+ */
+export async function getJobAnalytics(jobId: string): Promise<JobAnalyticsData | null> {
+  const [posting] = await db
+    .select({
+      viewCount: portalJobPostings.viewCount,
+      communityPostId: portalJobPostings.communityPostId,
+    })
+    .from(portalJobPostings)
+    .where(eq(portalJobPostings.id, jobId))
+    .limit(1);
+
+  if (!posting) return null;
+
+  const [appRow] = await db
+    .select({ count: count() })
+    .from(portalApplications)
+    .where(eq(portalApplications.jobId, jobId));
+
+  const applicationCount = appRow?.count ?? 0;
+  const conversionRate =
+    posting.viewCount === 0 ? 0 : Math.round((applicationCount / posting.viewCount) * 1000) / 10; // 1 decimal place
+
+  return {
+    viewCount: posting.viewCount,
+    applicationCount,
+    conversionRate,
+    communityPostId: posting.communityPostId ?? null,
+  };
+}
+
+/**
+ * Sets community_post_id on a posting — idempotent.
+ * Uses WHERE community_post_id IS NULL so a second call returns null (already shared).
+ * Returns updated posting, or null if already shared or not found.
+ */
+export async function markSharedToCommunity(
+  jobId: string,
+  communityPostId: string,
+): Promise<PortalJobPosting | null> {
+  const [updated] = await db
+    .update(portalJobPostings)
+    .set({ communityPostId, updatedAt: new Date() })
+    .where(and(eq(portalJobPostings.id, jobId), isNull(portalJobPostings.communityPostId)))
+    .returning();
+  return updated ?? null;
+}
+
+/**
+ * Returns the communityPostId for a posting (null if not yet shared).
+ * Returns undefined if the posting does not exist.
+ */
+export async function getJobPostingShareStatus(jobId: string): Promise<string | null | undefined> {
+  const [row] = await db
+    .select({ communityPostId: portalJobPostings.communityPostId })
+    .from(portalJobPostings)
+    .where(eq(portalJobPostings.id, jobId))
+    .limit(1);
+  if (!row) return undefined;
+  return row.communityPostId ?? null;
 }

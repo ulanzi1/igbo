@@ -46,6 +46,12 @@ describe("portalJobPostings schema", () => {
     expect(cols).toContain("archivedAt");
   });
 
+  it("has viewCount and communityPostId columns for analytics and share tracking", () => {
+    const cols = Object.keys(portalJobPostings);
+    expect(cols).toContain("viewCount");
+    expect(cols).toContain("communityPostId");
+  });
+
   it("exports PortalJobPosting select type with all required columns", () => {
     const _check: PortalJobPosting = {
       id: "uuid-1",
@@ -67,6 +73,8 @@ describe("portalJobPostings schema", () => {
       closedOutcome: null,
       closedAt: null,
       archivedAt: null,
+      viewCount: 0,
+      communityPostId: null,
       createdAt: new Date(),
       updatedAt: new Date(),
     };

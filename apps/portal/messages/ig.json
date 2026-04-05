@@ -304,6 +304,33 @@
       "comfortable": "Mmekọ",
       "compact": "Nkpụmkpụ",
       "dense": "Ọkpụkpọ"
+    },
+    "analytics": {
+      "views": "Ọnụọgụ Nlele",
+      "applications": "Ngwa",
+      "conversionRate": "Ọnụego Ntụgharị",
+      "noViews": "Enwebeghị nlele",
+      "shareButton": "Kekọrịta na Ọha",
+      "sharedButton": "Ekekọtara na Ọha",
+      "shareDisabledTooltip": "Naanị ozi ọrụ ndị ọrụ nwere ike ịkekọrịta",
+      "shareSuccess": "Ekesara ozi ọrụ na ọha",
+      "shareError": "Ọ dịghị mma ịkekọrịta ozi ọrụ",
+      "alreadyShared": "Ekesala na ọha",
+      "conversionNotAvailable": "Adịghị",
+      "sectionHeading": "Nyocha",
+      "ariaLabel": "Nyocha ọrụ",
+      "shareDescription": "Kekọrịta ozi ọrụ a na ọha iji mee ka ndị mmadụ hụ ya."
+    },
+    "jobDetail": {
+      "myJobs": "Ọrụ M",
+      "edit": "Dezie",
+      "remote": "N'ụzọ ịntanetị",
+      "competitiveSalary": "Ego ọrụ asọmpi",
+      "salaryFrom": "Site na ${amount}",
+      "salaryUpTo": "Ruo ${amount}",
+      "salaryRange": "${min} – ${max}",
+      "jobDescription": "Nkọwa Ọrụ",
+      "requirements": "Ihe A Chọrọ"
     }
   },
   "Shell": {
