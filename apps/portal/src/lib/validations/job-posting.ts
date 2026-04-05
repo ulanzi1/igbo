@@ -1,5 +1,18 @@
 import { z } from "zod/v4";
-import { portalJobStatusEnum, portalClosedOutcomeEnum } from "@igbo/db/schema/portal-job-postings";
+
+// Inline enum values to avoid importing from @igbo/db/schema (has "server-only")
+// which breaks client component imports. Must stay in sync with DB schema enums.
+const JOB_STATUS_VALUES = [
+  "draft",
+  "pending_review",
+  "active",
+  "paused",
+  "filled",
+  "expired",
+  "rejected",
+] as const;
+
+const CLOSED_OUTCOME_VALUES = ["filled_via_portal", "filled_internally", "cancelled"] as const;
 
 export const EMPLOYMENT_TYPE_OPTIONS = [
   "full_time",
@@ -51,8 +64,8 @@ export type EditJobPostingInput = z.infer<typeof editJobPostingSchema>;
 
 // Schema for status transitions
 export const statusTransitionSchema = z.object({
-  targetStatus: z.enum(portalJobStatusEnum.enumValues),
-  closedOutcome: z.enum(portalClosedOutcomeEnum.enumValues).optional(),
+  targetStatus: z.enum(JOB_STATUS_VALUES),
+  closedOutcome: z.enum(CLOSED_OUTCOME_VALUES).optional(),
   expectedUpdatedAt: z.string().datetime().optional(),
 });
 
