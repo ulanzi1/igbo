@@ -68,6 +68,7 @@ const MOCK_COMPANY = {
   companySize: "1-10",
   cultureInfo: null,
   trustBadge: false,
+  onboardingCompletedAt: null,
   createdAt: new Date(),
   updatedAt: new Date(),
 };

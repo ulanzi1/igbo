@@ -26,6 +26,7 @@ const mockProfile = {
   companySize: "11-50",
   cultureInfo: null,
   trustBadge: false,
+  onboardingCompletedAt: null,
   createdAt: new Date(),
   updatedAt: new Date(),
 };

@@ -1,6 +1,8 @@
 import { setRequestLocale } from "next-intl/server";
 import { getTranslations } from "next-intl/server";
+import { redirect } from "next/navigation";
 import { auth } from "@igbo/auth";
+import { getCompanyByOwnerId } from "@igbo/db/queries/portal-companies";
 import type { Session } from "next-auth";
 
 interface PageProps {
@@ -21,6 +23,14 @@ export default async function PortalHomePage({ params }: PageProps) {
 
   const communityUrl = process.env.COMMUNITY_URL ?? "http://localhost:3000"; // ci-allow-process-env — portal env.ts not yet created (VD-6)
   const portalUrl = process.env.NEXTAUTH_URL ?? "http://localhost:3001"; // ci-allow-process-env — portal env.ts not yet created (VD-6)
+
+  // Employer onboarding redirect logic
+  if (session?.user && activePortalRole === "EMPLOYER") {
+    const profile = await getCompanyByOwnerId(session.user.id);
+    if (!profile || !profile.onboardingCompletedAt) {
+      redirect(`/${locale}/onboarding`);
+    }
+  }
 
   if (!session) {
     return (
