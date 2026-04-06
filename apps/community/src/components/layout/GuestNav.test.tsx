@@ -60,14 +60,14 @@ describe("GuestNav", () => {
 
   it("renders About link in desktop nav", () => {
     render(<GuestNav />);
-    const nav = screen.getByRole("navigation", { name: "Guest navigation" });
+    const nav = screen.getByRole("navigation", { name: "Navigation.guestNavLabel" });
     expect(nav).toBeInTheDocument();
     expect(nav).toHaveTextContent("Navigation.about");
   });
 
   it("renders Articles, Events, and Blog links in desktop nav", () => {
     render(<GuestNav />);
-    const nav = screen.getByRole("navigation", { name: "Guest navigation" });
+    const nav = screen.getByRole("navigation", { name: "Navigation.guestNavLabel" });
     expect(nav).toHaveTextContent("Navigation.articles");
     expect(nav).toHaveTextContent("Navigation.events");
     expect(nav).toHaveTextContent("Navigation.blog");

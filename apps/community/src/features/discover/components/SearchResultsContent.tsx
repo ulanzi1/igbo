@@ -16,6 +16,7 @@ function HighlightedText({ html }: { html: string | null | undefined }) {
   return (
     <span
       className="text-xs text-muted-foreground [&_mark]:bg-yellow-200 [&_mark]:dark:bg-yellow-800 [&_mark]:rounded [&_mark]:px-0.5"
+      // ci-allow-unsanitized-html — search highlight emits only <mark> tags (server-generated)
       dangerouslySetInnerHTML={{ __html: html }}
     />
   );
@@ -323,7 +324,10 @@ function ActiveChips({ filters, type, onRemove, onClearAll }: ActiveChipsProps) 
   if (chips.length === 0) return null;
 
   return (
-    <div className="mb-4 flex flex-wrap items-center gap-2" aria-label="Active filters">
+    <div
+      className="mb-4 flex flex-wrap items-center gap-2"
+      aria-label={t("activeFiltersAriaLabel")}
+    >
       {chips.map((chip) => (
         <span
           key={chip.key}

@@ -65,7 +65,7 @@ describe("BottomNav", () => {
 
   it("renders as a navigation element with correct aria-label", () => {
     render(<BottomNav />);
-    expect(screen.getByRole("navigation", { name: "Main navigation" })).toBeInTheDocument();
+    expect(screen.getByRole("navigation", { name: "Navigation.mainNavLabel" })).toBeInTheDocument();
   });
 
   it("renders 5 tab items", () => {

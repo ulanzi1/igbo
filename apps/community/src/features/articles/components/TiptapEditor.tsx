@@ -129,7 +129,7 @@ export function TiptapEditor({ content, onChange, placeholder, disabled }: Tipta
               type="button"
               onClick={() => editor.chain().focus().toggleBulletList().run()}
               aria-pressed={editor.isActive("bulletList")}
-              aria-label="Bullet list"
+              aria-label={t("editor.bulletListAriaLabel")}
               className={btnClass(editor.isActive("bulletList"))}
             >
               •—
@@ -138,7 +138,7 @@ export function TiptapEditor({ content, onChange, placeholder, disabled }: Tipta
               type="button"
               onClick={() => editor.chain().focus().toggleOrderedList().run()}
               aria-pressed={editor.isActive("orderedList")}
-              aria-label="Ordered list"
+              aria-label={t("editor.orderedListAriaLabel")}
               className={btnClass(editor.isActive("orderedList"))}
             >
               1.

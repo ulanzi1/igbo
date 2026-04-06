@@ -110,7 +110,9 @@ describe("AppShell", () => {
     );
     // BottomNav has role="navigation" with aria-label="Main navigation"
     const navs = screen.getAllByRole("navigation");
-    const bottomNav = navs.find((el) => el.getAttribute("aria-label") === "Main navigation");
+    const bottomNav = navs.find(
+      (el) => el.getAttribute("aria-label") === "Navigation.mainNavLabel",
+    );
     expect(bottomNav).toBeInTheDocument();
   });
 

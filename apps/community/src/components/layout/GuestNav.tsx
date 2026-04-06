@@ -61,7 +61,7 @@ function GuestNav({ className }: { className?: string }) {
       </Link>
 
       {/* Desktop nav links */}
-      <nav aria-label="Guest navigation" className="hidden md:flex items-center gap-1 ml-6">
+      <nav aria-label={t("guestNavLabel")} className="hidden md:flex items-center gap-1 ml-6">
         <Link
           href="/about"
           className="flex items-center min-h-[44px] px-3 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
@@ -179,7 +179,7 @@ function GuestNav({ className }: { className?: string }) {
           <SheetHeader>
             <SheetTitle className="text-left">{tShell("appName")}</SheetTitle>
           </SheetHeader>
-          <nav aria-label="Mobile guest navigation" className="mt-6 flex flex-col gap-2">
+          <nav aria-label={t("mobileGuestNavLabel")} className="mt-6 flex flex-col gap-2">
             <Link
               href="/about"
               onClick={() => setMenuOpen(false)}

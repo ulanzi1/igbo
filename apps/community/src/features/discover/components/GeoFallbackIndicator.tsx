@@ -70,7 +70,7 @@ export function GeoFallbackIndicator({
       )}
 
       {/* Ring buttons — horizontal scope selector */}
-      <div className="flex flex-wrap gap-2" role="group" aria-label="Geographic scope">
+      <div className="flex flex-wrap gap-2" role="group" aria-label={t("geographicScopeAriaLabel")}>
         {rings.map((ring, index) => {
           const isSelected = ring.level === selectedLevel;
           const ariaLabel =

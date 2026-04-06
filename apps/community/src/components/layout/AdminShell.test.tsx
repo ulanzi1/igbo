@@ -42,7 +42,7 @@ describe("AdminShell", () => {
       </AdminShell>,
     );
 
-    expect(screen.getByText("OBIGBO Admin")).toBeInTheDocument();
+    expect(screen.getByText("Admin.siteTitle")).toBeInTheDocument();
   });
 
   it("renders navigation links", () => {
@@ -117,7 +117,7 @@ describe("AdminShell", () => {
       </AdminShell>,
     );
 
-    expect(screen.getByRole("navigation", { name: "Admin navigation" })).toBeInTheDocument();
+    expect(screen.getByRole("navigation", { name: "Admin.navAriaLabel" })).toBeInTheDocument();
   });
 
   it("renders sign-out button in sidebar", () => {
@@ -143,8 +143,8 @@ describe("AdminShell", () => {
 describe("AdminSidebar", () => {
   it("is exported and renders independently", () => {
     render(<AdminSidebar />);
-    expect(screen.getByText("OBIGBO Admin")).toBeInTheDocument();
-    expect(screen.getByRole("navigation", { name: "Admin navigation" })).toBeInTheDocument();
+    expect(screen.getByText("Admin.siteTitle")).toBeInTheDocument();
+    expect(screen.getByRole("navigation", { name: "Admin.navAriaLabel" })).toBeInTheDocument();
   });
 });
 

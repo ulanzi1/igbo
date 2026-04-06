@@ -1,16 +1,235 @@
+import { readFileSync, writeFileSync, renameSync, existsSync, readdirSync } from "fs";
+import { join, relative } from "path";
 import { scanForStaleImports } from "./check-stale-imports";
 import { scanDirectProcessEnv } from "./check-process-env";
 import { scanMissingServerOnly } from "./check-server-only";
+import { scanHardcodedJsxStrings } from "./check-hardcoded-jsx-strings";
+import { scanUnsanitizedHtml } from "./check-unsanitized-html";
 import type { CheckResult } from "./types";
+
+// All known ci-allow-<reason> tags (existing + new)
+const ALL_ALLOW_REASONS = [
+  "process-env",
+  "no-server-only",
+  "literal-jsx",
+  "unsanitized-html",
+] as const;
+
+const ALLOWLIST_MARKER_REGEX = /\/\/\s*ci-allow-([\w-]+)/;
+const ALLOWLIST_FILE = "docs/ci-check-allowlist.md";
+
+/** Represents a single allowlist entry row (no line numbers — merge-conflict-resistant). */
+export interface AllowlistEntry {
+  filePath: string; // relative to rootDir
+  reason: string; // e.g. "process-env"
+  justification: string; // line above the ci-allow comment, or suffix of the marker line
+}
+
+/**
+ * Strip block comments (including JSDoc / JSX expression comments) from source,
+ * replacing non-newline characters with spaces to preserve line numbers.
+ * This prevents // ci-allow-* text inside block comments (e.g. JSDoc examples)
+ * from being collected as real allowlist entries.
+ */
+function stripBlockComments(source: string): string {
+  return source.replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, " "));
+}
+
+/**
+ * Walk .ts and .tsx files under apps/ and packages/ and collect every
+ * // ci-allow-<reason> comment. Scoped to apps/ and packages/ only —
+ * scripts/ are excluded because they document the format (not use it).
+ * Returns sorted entries keyed by (filePath, reason) — no line numbers.
+ * Exported for unit testing (Sub 7.7).
+ */
+export function collectAllowlistEntries(rootDir: string): AllowlistEntry[] {
+  const entries: AllowlistEntry[] = [];
+
+  function walk(dir: string): void {
+    if (!existsSync(dir)) return;
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      if (["node_modules", ".next", ".git", "dist", "build", ".turbo"].includes(entry.name))
+        continue;
+      const fullPath = join(dir, entry.name);
+      if (entry.isDirectory()) {
+        walk(fullPath);
+      } else if (
+        entry.isFile() &&
+        (entry.name.endsWith(".ts") || entry.name.endsWith(".tsx"))
+      ) {
+        let rawSource: string;
+        try {
+          rawSource = readFileSync(fullPath, "utf-8");
+        } catch {
+          continue;
+        }
+        const relPath = relative(rootDir, fullPath).replace(/\\/g, "/");
+        // Only scan apps/ and packages/ — scripts/ document the format rather than use it
+        if (!relPath.startsWith("apps/") && !relPath.startsWith("packages/")) continue;
+
+        // Strip block comments to avoid collecting markers from JSDoc examples
+        const stripped = stripBlockComments(rawSource);
+        // Use original lines for justification (line above), stripped for detection
+        const rawLines = rawSource.split("\n");
+        const strippedLines = stripped.split("\n");
+
+        for (let i = 0; i < strippedLines.length; i++) {
+          const strippedLine = strippedLines[i] ?? "";
+          const m = ALLOWLIST_MARKER_REGEX.exec(strippedLine);
+          if (!m) continue;
+          const reason = m[1] ?? "";
+
+          // Justification: trimmed content of the line immediately above,
+          // or the suffix of the marker line after the comment.
+          let justification = "";
+          if (i > 0) {
+            const above = (rawLines[i - 1] ?? "").trim();
+            if (above) {
+              justification = above.replace(/^\/\/\s*/, ""); // strip leading //
+              // If it looks like it came from a block comment (starts with *), strip that too
+              justification = justification.replace(/^\*\s*/, "");
+            }
+          }
+          if (!justification) {
+            // Fall back to suffix of the marker line (text after the ci-allow-<reason>)
+            const rawLine = rawLines[i] ?? "";
+            const rawM = ALLOWLIST_MARKER_REGEX.exec(rawLine);
+            if (rawM) {
+              const suffix = rawLine.slice((rawM.index ?? 0) + rawM[0].length).trim();
+              justification = suffix.replace(/^[—–-]\s*/, ""); // strip leading dash/em-dash
+            }
+          }
+
+          entries.push({ filePath: relPath, reason, justification });
+        }
+      }
+    }
+  }
+
+  walk(rootDir);
+
+  // Sort by (filePath, reason) for deterministic output — merge-conflict-resistant
+  entries.sort((a, b) => {
+    const fp = a.filePath.localeCompare(b.filePath);
+    if (fp !== 0) return fp;
+    return a.reason.localeCompare(b.reason);
+  });
+
+  return entries;
+}
+
+/** Render the allowlist entries as a markdown table. */
+function renderAllowlistMarkdown(entries: AllowlistEntry[]): string {
+  const header = `# CI Check Allowlist Registry
+
+Auto-generated by \`pnpm ci-checks\`. Do not edit manually — run \`pnpm ci-checks\` locally to regenerate.
+
+Add \`// ci-allow-<reason>\` above the relevant line, with a justification comment on the line above it.
+
+| File | Reason | Justification |
+| ---- | ------ | ------------- |
+`;
+  if (entries.length === 0) {
+    return header + "| _(no allowlist entries)_ | | |\n";
+  }
+  const rows = entries
+    .map((e) => `| \`${e.filePath}\` | \`${e.reason}\` | ${e.justification || "—"} |`)
+    .join("\n");
+  return header + rows + "\n";
+}
+
+/**
+ * Generate the allowlist registry and check for drift against the on-disk file.
+ * Returns { content: generated markdown, violations: CheckResult[] }.
+ * Exported for unit testing (Sub 7.7).
+ */
+export function generateAllowlistRegistry(rootDir: string): {
+  content: string;
+  violations: CheckResult[];
+} {
+  const entries = collectAllowlistEntries(rootDir);
+  const content = renderAllowlistMarkdown(entries);
+  const violations: CheckResult[] = [];
+
+  const registryPath = join(rootDir, ALLOWLIST_FILE);
+  let onDisk = "";
+  try {
+    onDisk = readFileSync(registryPath, "utf-8");
+  } catch {
+    // File doesn't exist — will be created
+  }
+
+  // Normalize trailing newline for comparison
+  const normalize = (s: string) => s.replace(/\r\n/g, "\n").trimEnd() + "\n";
+  if (normalize(onDisk) !== normalize(content)) {
+    violations.push({
+      file: ALLOWLIST_FILE,
+      line: 1,
+      match: "allowlist registry is out of sync — run `pnpm ci-checks` locally to regenerate",
+      check: "allowlist-registry-drift",
+    });
+  }
+
+  return { content, violations };
+}
 
 function run(): void {
   const rootDir = process.cwd();
 
-  const staleImports = scanForStaleImports(rootDir);
-  const processEnv = scanDirectProcessEnv(rootDir);
-  const serverOnly = scanMissingServerOnly(rootDir);
+  // Kill-switch: CI_CHECKS_DISABLE is ignored when CI=true (fail-closed in CI — F5 fix)
+  const disabledChecks = new Set<string>();
+  if (process.env.CI === "true") {
+    if (process.env.CI_CHECKS_DISABLE) {
+      console.warn("⚠ ci-checks: CI_CHECKS_DISABLE ignored in CI environment");
+    }
+  } else if (process.env.CI_CHECKS_DISABLE) {
+    const skipped = process.env.CI_CHECKS_DISABLE.split(",").map((s) => s.trim());
+    for (const s of skipped) {
+      disabledChecks.add(s);
+    }
+    console.warn(`⚠ ci-checks: disabled via env: ${skipped.join(", ")}`);
+  }
 
-  const allResults: CheckResult[] = [...staleImports, ...processEnv, ...serverOnly];
+  const staleImports = disabledChecks.has("stale-import") ? [] : scanForStaleImports(rootDir);
+  const processEnv = disabledChecks.has("process-env") ? [] : scanDirectProcessEnv(rootDir);
+  const serverOnly = disabledChecks.has("server-only") ? [] : scanMissingServerOnly(rootDir);
+  const hardcodedJsx = disabledChecks.has("hardcoded-jsx-string")
+    ? []
+    : scanHardcodedJsxStrings(rootDir);
+  const unsanitizedHtml = disabledChecks.has("unsanitized-html")
+    ? []
+    : scanUnsanitizedHtml(rootDir);
+
+  // Generate and sync the allowlist registry
+  const { content: registryContent, violations: registryViolations } =
+    generateAllowlistRegistry(rootDir);
+
+  // Write registry to disk (atomic write via tmp file — F4/Winston #2 fix)
+  const registryPath = join(rootDir, ALLOWLIST_FILE);
+  const tmpPath = registryPath + ".tmp";
+  try {
+    writeFileSync(tmpPath, registryContent, "utf-8");
+    renameSync(tmpPath, registryPath);
+  } catch {
+    // Registry write failure is non-fatal for the scan itself
+  }
+
+  const allResults: CheckResult[] = [
+    ...staleImports,
+    ...processEnv,
+    ...serverOnly,
+    ...hardcodedJsx,
+    ...unsanitizedHtml,
+    ...registryViolations,
+  ];
+
+  // Sort results deterministically by (file, line, check) for stable CI output (Sub 7.8)
+  allResults.sort((a, b) => {
+    const f = a.file.localeCompare(b.file);
+    if (f !== 0) return f;
+    if (a.line !== b.line) return a.line - b.line;
+    return a.check.localeCompare(b.check);
+  });
 
   if (allResults.length === 0) {
     console.log("✅ All CI checks passed.");
@@ -25,6 +244,26 @@ function run(): void {
     grouped.set(r.check, list);
   }
 
+  // Ordered output — extraction failures get their own header (Sub 7.11)
+  const checkOrder = [
+    "stale-import",
+    "process-env",
+    "server-only",
+    "hardcoded-jsx-string",
+    "unsanitized-html",
+    "unsanitized-html-extraction-failed",
+    "allowlist-registry-drift",
+  ];
+  for (const check of checkOrder) {
+    const results = grouped.get(check);
+    if (!results?.length) continue;
+    console.error(`\n❌ ${check} violations:`);
+    for (const r of results) {
+      console.error(`  ${r.file}:${r.line}: ${r.match}`);
+    }
+    grouped.delete(check);
+  }
+  // Emit any remaining checks not in the ordered list
   for (const [check, results] of grouped) {
     console.error(`\n❌ ${check} violations:`);
     for (const r of results) {
@@ -33,9 +272,17 @@ function run(): void {
   }
 
   const parts: string[] = [];
-  for (const check of ["stale-import", "process-env", "server-only"]) {
-    const count = grouped.get(check)?.length ?? 0;
-    parts.push(`${count} ${check}`);
+  for (const check of [
+    "stale-import",
+    "process-env",
+    "server-only",
+    "hardcoded-jsx-string",
+    "unsanitized-html",
+    "unsanitized-html-extraction-failed",
+    "allowlist-registry-drift",
+  ]) {
+    const count = allResults.filter((r) => r.check === check).length;
+    if (count > 0) parts.push(`${count} ${check}`);
   }
   console.error(`\n${allResults.length} violation(s): ${parts.join(", ")}`);
   process.exit(1);
