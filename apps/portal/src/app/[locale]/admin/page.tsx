@@ -27,8 +27,15 @@ export default async function AdminPage({ params }: PageProps) {
     getDashboardSummary(),
   ]);
 
+  // CI VALIDATION DELIBERATE VIOLATIONS — do not merge
+  const rawHtml = "<p>test content</p>";
+
   return (
     <main className="container mx-auto max-w-7xl px-4 py-8">
+      {/* Deliberate violation 1: hardcoded JSX string */}
+      <p>Validation test violation</p>
+      {/* Deliberate violation 2: unsanitized HTML */}
+      <div dangerouslySetInnerHTML={{ __html: rawHtml }} />
       <h1 className="mb-6 text-2xl font-bold">{t("reviewQueue")}</h1>
 
       <section aria-label={t("decisionBreakdown")} className="mb-8">
