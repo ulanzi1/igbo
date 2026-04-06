@@ -108,11 +108,15 @@ export function collectAllowlistEntries(rootDir: string): AllowlistEntry[] {
 
   walk(rootDir);
 
-  // Sort by (filePath, reason) for deterministic output — merge-conflict-resistant
+  // Sort by (filePath, reason) for deterministic output — merge-conflict-resistant.
+  // Use ordinal (Unicode code point) comparison, NOT localeCompare, to avoid
+  // platform-specific collation differences between macOS and Linux CI.
   entries.sort((a, b) => {
-    const fp = a.filePath.localeCompare(b.filePath);
-    if (fp !== 0) return fp;
-    return a.reason.localeCompare(b.reason);
+    if (a.filePath < b.filePath) return -1;
+    if (a.filePath > b.filePath) return 1;
+    if (a.reason < b.reason) return -1;
+    if (a.reason > b.reason) return 1;
+    return 0;
   });
 
   return entries;
