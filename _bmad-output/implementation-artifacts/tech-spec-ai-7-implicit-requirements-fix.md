@@ -2,8 +2,8 @@
 title: 'AI-7 Bundled Implicit Requirements Fix'
 slug: 'ai-7-implicit-requirements-fix'
 created: '2026-04-05'
-status: 'ready-for-dev'
-stepsCompleted: [1, 2, 3, 4]
+status: 'review'
+stepsCompleted: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
 blocks:
   - P-2.1 (Epic 2 start — per retro Critical Path table row 1)
 tech_stack:
@@ -453,3 +453,40 @@ Ship the bundled fix defined as AI-7 in `_bmad-output/implementation-artifacts/p
 - **Why no ESLint plugin.** Retro wording, team velocity, and the existing ci-checks pipeline all point regex-first. Revisit only if the AST revisit trigger fires.
 - **No grandfathering (party-mode decision).** `EXISTING_VIOLATIONS` allowlist rejected — Murat's argument: partial enforcement from day one is phantom enforcement. Fix in-scope via Task 10 instead.
 - **This spec blocks P-2.1 start.** Per retro Critical Path table (row 1). Prioritize accordingly.
+
+---
+
+## Validation Evidence (Sub 11.5–11.6)
+
+**Captured:** 2026-04-06
+
+### Live CI Validation — AC10 ✅
+
+- **Spec branch HEAD:** `d1a8343` (`feat/prep-d-portal-role-selection`)
+- **Validation branch HEAD:** `e72f1f6` (`ci-validation/ai-7`)
+- **GitHub Actions run:** https://github.com/ulanzi1/igbo/actions/runs/24019900150
+- **Validation PR:** https://github.com/ulanzi1/igbo/pull/18 (draft, closed without merge)
+
+**Lint job output (job 70046643957) — ci-checks step exit code 1:**
+
+```
+❌ hardcoded-jsx-string violations:
+  apps/portal/src/app/[locale]/admin/page.tsx:31: test content
+  apps/portal/src/app/[locale]/admin/page.tsx:36: Validation test violation
+
+❌ unsanitized-html violations:
+  apps/portal/src/app/[locale]/admin/page.tsx:38: dangerouslySetInnerHTML={{ __html: rawHtml }}
+
+❌ allowlist-registry-drift violations:
+  docs/ci-check-allowlist.md:1: allowlist registry is out of sync — run `pnpm ci-checks` locally to regenerate
+
+4 violation(s): 2 hardcoded-jsx-string, 1 unsanitized-html, 1 allowlist-registry-drift
+##[error]Process completed with exit code 1.
+```
+
+**Conclusion:** Both new scanner types (`hardcoded-jsx-string` + `unsanitized-html`) block CI in GitHub Actions. Lint job fails, Quality Gate skips, downstream jobs (test, build, e2e) all skip. AC10 satisfied.
+
+*Note: Screenshot of the failing CI run must be attached to the PR #17 description by the reviewer before merge.*
+
+### Winston Sign-off (Playbook §7)
+[ ] Pending — Winston (Architect) must add sign-off line to `docs/monorepo-playbook.md` §7 footer.

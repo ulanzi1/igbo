@@ -248,7 +248,7 @@ development_status:
   portal-epic-1-retrospective: done
 
   # Portal Epic 1 — Retro Action Items
-  portal-epic-1-ai-7-bundled-implicit-requirements-fix: backlog    # Story template + Playbook + CI enforcement (blocks P-2.1)
+  portal-epic-1-ai-7-bundled-implicit-requirements-fix: review     # Story template + Playbook + CI enforcement (blocks P-2.1) — live CI validation confirmed 2026-04-06
   portal-epic-1-ai-8-typescript-gotchas-playbook: backlog          # Zod v4, JSONB, Tiptap mock, useSession patterns
   portal-epic-1-prep-a-state-interaction-matrix: backlog           # Terminal state policy + cross-state invariants (blocks P-2.4)
   portal-epic-1-prep-b-async-safety-requirements: backlog          # Idempotency as requirement, dedup keys (blocks P-2.5A)
