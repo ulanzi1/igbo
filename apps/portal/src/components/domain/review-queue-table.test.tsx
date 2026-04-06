@@ -200,7 +200,6 @@ describe("ReviewQueueTable", () => {
       <ReviewQueueTable initialItems={[makeItem()]} initialTotal={1} />,
     );
     const results = await axe(container);
-    // @ts-expect-error jest-axe types not merged with vitest
     expect(results).toHaveNoViolations();
   });
 });

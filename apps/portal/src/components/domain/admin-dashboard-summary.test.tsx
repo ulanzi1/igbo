@@ -75,7 +75,6 @@ describe("AdminDashboardSummary", () => {
       <AdminDashboardSummary summary={baseSummary} />,
     );
     const results = await axe(container);
-    // @ts-expect-error jest-axe types not merged with vitest
     expect(results).toHaveNoViolations();
   });
 });
