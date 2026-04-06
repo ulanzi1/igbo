@@ -53,10 +53,7 @@ export function collectAllowlistEntries(rootDir: string): AllowlistEntry[] {
       const fullPath = join(dir, entry.name);
       if (entry.isDirectory()) {
         walk(fullPath);
-      } else if (
-        entry.isFile() &&
-        (entry.name.endsWith(".ts") || entry.name.endsWith(".tsx"))
-      ) {
+      } else if (entry.isFile() && (entry.name.endsWith(".ts") || entry.name.endsWith(".tsx"))) {
         let rawSource: string;
         try {
           rawSource = readFileSync(fullPath, "utf-8");
