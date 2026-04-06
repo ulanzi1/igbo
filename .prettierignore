@@ -8,3 +8,4 @@ package-lock.json
 _bmad-output
 _bmad-backup*
 public/sw.js
+docs/ci-check-allowlist.md
