@@ -48,7 +48,6 @@ export default async function AboutPage({ params }: { params: Promise<{ locale: 
   }
 
   const rawContent = locale === "ig" && doc.contentIgbo ? doc.contentIgbo : doc.content;
-  const content = sanitizeHtml(rawContent);
 
   return (
     <article className="mx-auto max-w-3xl px-4 py-12 md:py-16">
@@ -56,7 +55,7 @@ export default async function AboutPage({ params }: { params: Promise<{ locale: 
 
       <div
         className="prose prose-lg max-w-none text-muted-foreground"
-        dangerouslySetInnerHTML={{ __html: content }}
+        dangerouslySetInnerHTML={{ __html: sanitizeHtml(rawContent) }}
       />
 
       <section className="rounded-xl bg-muted p-8 text-center mt-12">

@@ -135,7 +135,7 @@ export function TwoFactorSetup({ challengeToken, callbackUrl }: Props) {
         qrCodeDataUrl && (
           <div className="flex flex-col items-center gap-3">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={qrCodeDataUrl} alt="QR code for 2FA" className="h-48 w-48" />
+            <img src={qrCodeDataUrl} alt={t("qrCodeAlt")} className="h-48 w-48" />
             <p className="text-xs text-muted-foreground">{t("manualEntry")}</p>
             <code className="rounded bg-muted px-2 py-1 text-xs">{secret}</code>
           </div>

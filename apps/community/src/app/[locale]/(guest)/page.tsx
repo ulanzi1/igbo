@@ -58,7 +58,7 @@ export default async function SplashPage({ params }: { params: Promise<{ locale:
 
   return (
     <div className="flex flex-col">
-      {/* JSON-LD structured data */}
+      {/* ci-allow-unsanitized-html — JSON.stringify + XSS-escape of static schema.org object (no user HTML) */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{

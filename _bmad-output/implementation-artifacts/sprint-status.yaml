@@ -275,7 +275,7 @@ development_status:
 
   # Portal Epic 3: Job Admin Review & Quality Assurance
   portal-epic-3: in-progress
-  p-3-1-admin-review-queue-dashboard: ready-for-dev
+  p-3-1-admin-review-queue-dashboard: review
   p-3-2-approve-reject-request-changes-workflow: backlog
   p-3-3-rule-based-content-screening-mvp: backlog
   p-3-4a-admin-policy-violation-flagging: backlog

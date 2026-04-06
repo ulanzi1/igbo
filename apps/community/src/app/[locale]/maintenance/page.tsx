@@ -60,7 +60,7 @@ export default async function MaintenancePage({ params }: MaintenancePageProps) 
             viewBox="0 0 80 80"
             width={64}
             height={64}
-            aria-label="OBIGBO logo"
+            aria-label="OBIGBO logo" // ci-allow-literal-jsx — brand name in SVG logo, no i18n context
             role="img"
           >
             <circle cx="40" cy="40" r="38" fill="#22c55e" />

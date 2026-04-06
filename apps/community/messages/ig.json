@@ -35,7 +35,11 @@
     "viewProfile": "Hụ profaịlụ gị",
     "logout": "Pụọ",
     "points": "Ọnụọgụ",
-    "jobPortal": "Ụlọ Ọrụ"
+    "jobPortal": "Ụlọ Ọrụ",
+    "mainNavLabel": "Ụzọ nchọcha dị mkpa",
+    "footerNavLabel": "Ụzọ n'ala ibe",
+    "guestNavLabel": "Ụzọ ọbịa",
+    "mobileGuestNavLabel": "Ụzọ ọbịa n'ekwentị"
   },
   "Shell": {
     "appName": "Ụlọ Ọha Igbo",
@@ -103,7 +107,9 @@
       "removeLink": "Wepụ njikọ",
       "linkUrl": "URL:",
       "linkApply": "Tinye",
-      "linkCancel": "Kagbuo"
+      "linkCancel": "Kagbuo",
+      "bulletListAriaLabel": "Ndepụta ntụpọ",
+      "orderedListAriaLabel": "Ndepụta n'usoro"
     },
     "meta": {
       "category": "Udi",
@@ -197,7 +203,8 @@
     "related": {
       "title": "Akụkọ Ndị Yitụ",
       "readMin": "Ọgụgụ nke {n} nkeji"
-    }
+    },
+    "bilingualBadge": "EN + IG"
   },
   "Blog": {
     "title": "Blọgụ",
@@ -282,7 +289,8 @@
       "title": "Njikọ nkwenye ezighi ezi",
       "description": "Njikọ nkwenye a ezighi ezi. Biko rịọọ ọhụrụ.",
       "emailPlaceholder": "your@email.com"
-    }
+    },
+    "progressAriaLabel": "Ọganihu nnọchite anya"
   },
   "Terms": {
     "title": "Iwu Ọrụ",
@@ -736,7 +744,9 @@
       "likeReceived": "Nnatara Mmasị",
       "eventAttended": "Mmemme Gara",
       "articlePublished": "Akụkọ Ebipụtara"
-    }
+    },
+    "siteTitle": "Admin OBIGBO",
+    "navAriaLabel": "Ụzọ Admin"
   },
   "Events": {
     "list": {
@@ -988,7 +998,9 @@
       "copyRecoveryCodes": "Detuo koodu nile",
       "recoveryCodesCopied": "Edetuo!",
       "recoveryContinue": "Echekwala m koodu nweghachi m",
-      "invalidCode": "Koodu ezighi ezi. Biko nwaa ọzọ."
+      "invalidCode": "Koodu ezighi ezi. Biko nwaa ọzọ.",
+      "invalidSetupLink": "Njikọ nhazi ezighi ezi. Biko malitegharị usoro ịbanye.",
+      "qrCodeAlt": "Koodu QR maka 2FA"
     },
     "forgotPassword": {
       "title": "Chefuo Okwuntughe",
@@ -1530,7 +1542,8 @@
       "deletedMessage": "Ehichapụrụ ozi a",
       "editedLabel": "(editeere)",
       "sharedPost": "Ekesara post",
-      "read": "Agụọla"
+      "read": "Agụọla",
+      "viewOriginalPost": "Lee post izizi"
     },
     "input": {
       "placeholder": "Pịnye ozi...",
@@ -1715,7 +1728,8 @@
       "levelCity": "obodo",
       "levelState": "steeti",
       "levelCountry": "mba",
-      "levelGlobal": "obodo anyị"
+      "levelGlobal": "obodo anyị",
+      "geographicScopeAriaLabel": "Oke mpaghara"
     }
   },
   "notifications": {
@@ -2056,7 +2070,8 @@
       "nameTaken": "Otu nwere aha a dị adị",
       "permissionDenied": "Enweghị gị ikike iji mepụta otu",
       "fetchFailed": "Enweghị ike ịnweta otu. Biko nwaa ọzọ."
-    }
+    },
+    "bannerPreviewAlt": "Nlele ihere"
   },
   "Points": {
     "nav": "Ọnụọgụ",
@@ -2083,7 +2098,8 @@
       "all": "Niile",
       "like_received": "Mmesi Nwetara",
       "event_attended": "Ihe Omume Gara",
-      "article_published": "Akwụkwọ Edepụtara"
+      "article_published": "Akwụkwọ Edepụtara",
+      "activityTypeAriaLabel": "Nyochaa site n'ụdị ọrụ"
     },
     "pagination": {
       "previous": "Azụ",
@@ -2200,7 +2216,8 @@
     "loadingMore": "Na-ebu ihe ndị ọzọ…",
     "endOfResults": "Enweghị ihe ndị ọzọ",
     "allTypes": "Ụdị niile",
-    "typeSelector": "Họrọ ụdị"
+    "typeSelector": "Họrọ ụdị",
+    "activeFiltersAriaLabel": "Nyochaa ndị na-arụ ọrụ"
   },
   "Reports": {
     "dialog": {

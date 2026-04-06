@@ -28,7 +28,9 @@ export default function GlobalError({
           textAlign: "center",
         }}
       >
+        {/* ci-allow-literal-jsx — global-error renders outside all providers including next-intl */}
         <h1 style={{ fontSize: "1.5rem", marginBottom: "0.5rem" }}>Something went wrong</h1>
+        {/* ci-allow-literal-jsx — global-error renders outside all providers including next-intl */}
         <p style={{ color: "#666", marginBottom: "1.5rem" }}>
           An unexpected error occurred. Please try again.
         </p>
@@ -44,6 +46,7 @@ export default function GlobalError({
             fontSize: "0.875rem",
           }}
         >
+          {/* ci-allow-literal-jsx — global-error renders outside all providers including next-intl */}
           Try again
         </button>
       </body>

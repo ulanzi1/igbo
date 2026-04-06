@@ -24,7 +24,6 @@ export default async function GovernancePage({ params }: { params: Promise<{ loc
           {documents.map((doc) => {
             const hasIgbo = Boolean(doc.contentIgbo);
             const rawContent = locale === "ig" && hasIgbo ? doc.contentIgbo! : doc.content;
-            const content = sanitizeHtml(rawContent);
             const lastUpdated = doc.publishedAt ?? doc.updatedAt;
             return (
               <li key={doc.id} className="rounded-xl border bg-card p-6 flex flex-col gap-3">
@@ -51,7 +50,7 @@ export default async function GovernancePage({ params }: { params: Promise<{ loc
                 </div>
                 <div
                   className="prose prose-sm max-w-none text-muted-foreground"
-                  dangerouslySetInnerHTML={{ __html: content }}
+                  dangerouslySetInnerHTML={{ __html: sanitizeHtml(rawContent) }}
                 />
               </li>
             );

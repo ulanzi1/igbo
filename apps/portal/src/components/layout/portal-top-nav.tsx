@@ -75,14 +75,17 @@ export function PortalTopNav({ className }: { className?: string }) {
         <a
           href={`/${locale}`}
           className="flex items-center gap-2 min-h-[44px] min-w-[44px] font-semibold text-foreground"
-          aria-label="OBIGBO Job Portal"
+          aria-label={t("logoAriaLabel")}
         >
           <BriefcaseIcon className="size-6 text-primary" aria-hidden="true" />
           <span className="text-primary font-bold hidden sm:inline">OBIGBO</span>
         </a>
 
         {/* Desktop nav links */}
-        <nav aria-label="Portal navigation" className="hidden lg:flex items-center gap-1 ml-6">
+        <nav
+          aria-label={t("portalNavAriaLabel")}
+          className="hidden lg:flex items-center gap-1 ml-6"
+        >
           {navLinks.map(({ key, href, label }) => (
             <a
               key={key}
@@ -167,7 +170,7 @@ export function PortalTopNav({ className }: { className?: string }) {
                     {isAuthenticated ? <RoleSwitcher /> : "OBIGBO Job Portal"}
                   </SheetTitle>
                 </SheetHeader>
-                <nav aria-label="Mobile portal navigation" className="flex flex-col py-4 gap-1">
+                <nav aria-label={t("mobileNavAriaLabel")} className="flex flex-col py-4 gap-1">
                   {navLinks.map(({ key, href, label }) => (
                     <a
                       key={key}
@@ -210,7 +213,7 @@ export function PortalTopNav({ className }: { className?: string }) {
           ) : (
             <button
               type="button"
-              aria-label="Open menu"
+              aria-label={t("openMenuAriaLabel")}
               className="flex lg:hidden items-center justify-center h-11 w-11 rounded-md text-muted-foreground hover:bg-accent transition-colors"
             >
               <MenuIcon className="size-5" aria-hidden="true" />

@@ -8,6 +8,7 @@ import {
   getRelatedArticles,
 } from "@igbo/db/queries/articles";
 import { tiptapJsonToHtml } from "@/features/articles/utils/tiptap-to-html";
+import { sanitizeHtml } from "@/lib/sanitize";
 import { ArticleLanguageToggle } from "@/features/articles/components/ArticleLanguageToggle";
 import { ArticleViewTracker } from "@/features/articles/components/ArticleViewTracker";
 import { ArticleComments } from "@/features/articles/components/ArticleComments";
@@ -67,8 +68,10 @@ export default async function ArticlePage({
   const t = await getTranslations("Articles");
   const isBilingual = article.language === "both";
 
-  const enContent = tiptapJsonToHtml(article.content);
-  const igContent = article.contentIgbo ? tiptapJsonToHtml(article.contentIgbo) : null;
+  const enContent = sanitizeHtml(tiptapJsonToHtml(article.content));
+  const igContent = article.contentIgbo
+    ? sanitizeHtml(tiptapJsonToHtml(article.contentIgbo))
+    : null;
 
   // Fetch related articles for the sidebar
   const relatedTags = await getArticleTagsById(article.id);
@@ -95,7 +98,7 @@ export default async function ArticlePage({
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10 md:py-14">
-      {/* JSON-LD structured data */}
+      {/* ci-allow-unsanitized-html — JSON.stringify of static schema.org object (no user HTML) */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
