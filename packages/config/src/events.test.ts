@@ -24,6 +24,7 @@ import type {
   ApplicationWithdrawnEvent,
   JobViewedEvent,
   JobSharedToCommunityEvent,
+  JobReviewedEvent,
 } from "./events";
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -81,11 +82,12 @@ describe("PortalEventMap keys", () => {
       "application.withdrawn",
       "job.viewed",
       "job.shared_to_community",
+      "job.reviewed",
     ];
     for (const key of requiredKeys) {
       expect(typeof key).toBe("string");
     }
-    expect(requiredKeys).toHaveLength(10);
+    expect(requiredKeys).toHaveLength(11);
   });
 
   it("job.expired and job.expiry_warning are NOT in PORTAL_CROSS_APP_EVENTS (employer-only events)", () => {
@@ -376,5 +378,29 @@ describe("JobSharedToCommunityEvent", () => {
   it("PortalEventMap includes job.shared_to_community key", () => {
     const key: PortalEventName = "job.shared_to_community";
     expect(key).toBe("job.shared_to_community");
+  });
+});
+
+describe("JobReviewedEvent", () => {
+  it("satisfies BaseEvent contract", () => {
+    const event: JobReviewedEvent = {
+      ...createEventEnvelope(),
+      jobId: "jp-1",
+      reviewerUserId: "admin-1",
+      decision: "approved",
+      companyId: "cp-1",
+    };
+    const _base: BaseEvent = event; // type-level assertion
+    expect(event.eventId).toBeDefined();
+    expect(event.version).toBe(1);
+    expect(event.timestamp).toBeDefined();
+    expect(event.jobId).toBe("jp-1");
+    expect(event.decision).toBe("approved");
+    void _base;
+  });
+
+  it("PortalEventMap includes job.reviewed key", () => {
+    const key: PortalEventName = "job.reviewed";
+    expect(key).toBe("job.reviewed");
   });
 });
