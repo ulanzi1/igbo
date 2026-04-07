@@ -11,10 +11,12 @@ import { portalJobPostings } from "@igbo/db/schema/portal-job-postings";
 import type { PortalJobStatus, PortalClosedOutcome } from "@igbo/db/schema/portal-job-postings";
 import { db } from "@igbo/db";
 import { and, eq } from "drizzle-orm";
+import { assertApprovalIntegrity } from "@/lib/approval-integrity";
+import { checkFastLaneEligibility } from "@/services/admin-review-service";
 
 const VALID_TRANSITIONS: Record<PortalJobStatus, PortalJobStatus[]> = {
   draft: ["pending_review"],
-  pending_review: ["active", "rejected"], // ADMIN-ONLY — enforced below
+  pending_review: ["active", "rejected", "draft"], // ADMIN-ONLY — enforced below
   active: ["paused", "pending_review", "filled"],
   paused: ["active", "filled"],
   filled: [], // terminal
@@ -23,7 +25,11 @@ const VALID_TRANSITIONS: Record<PortalJobStatus, PortalJobStatus[]> = {
 };
 
 // Transitions that MUST require JOB_ADMIN role — Approval Integrity Rule
-const ADMIN_ONLY_TRANSITIONS = new Set(["pending_review:active", "pending_review:rejected"]);
+const ADMIN_ONLY_TRANSITIONS = new Set([
+  "pending_review:active",
+  "pending_review:rejected",
+  "pending_review:draft", // P-3.2: request changes — admin returns to draft
+]);
 
 // Active posting limit (configurable via platform settings; hardcoded for P-1.4)
 const ACTIVE_POSTING_LIMIT = 5;
@@ -111,6 +117,15 @@ export async function transitionStatus(
         extensions: { code: PORTAL_ERRORS.INVALID_STATUS_TRANSITION },
       });
     }
+  }
+
+  // AC-6 Approval Integrity Rule: any non-canonical path that flips a posting
+  // from `pending_review` to `active` MUST have a backing approval row OR
+  // satisfy fast-lane eligibility. The canonical `approvePosting()` route
+  // inserts the row inside its own transaction; this guard catches every
+  // other caller (e.g. direct status PATCH).
+  if (posting.status === "pending_review" && targetStatus === "active") {
+    await assertApprovalIntegrity(postingId);
   }
 
   await updateJobPostingStatus(postingId, targetStatus);
@@ -275,6 +290,19 @@ export async function submitForReview(postingId: string, companyId: string): Pro
       title: "Missing required fields",
       status: 422,
       detail: `Required fields missing: ${fieldErrors.join(", ")}`,
+    });
+  }
+
+  // AC-7 Fast-Lane Auto-Approval — wired but currently always ineligible
+  // (screening pipeline lands in P-3.3). When eligible, P-3.3 will replace
+  // this 503 with a direct call to `approvePosting(postingId, SYSTEM_USER_ID)`.
+  const fastLane = await checkFastLaneEligibility(postingId);
+  if (fastLane.eligible) {
+    throw new ApiError({
+      title: "Fast-lane auto-approval is not yet enabled",
+      status: 503,
+      detail:
+        "Fast-lane criteria met but the screening pipeline (P-3.3) has not shipped. Posting will be queued for manual review.",
     });
   }
 
