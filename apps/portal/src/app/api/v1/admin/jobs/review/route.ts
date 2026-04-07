@@ -14,7 +14,8 @@ export const GET = withApiHandler(async (req: Request) => {
     100,
     Math.max(1, parseInt(url.searchParams.get("pageSize") ?? "20", 10)),
   );
-  const verifiedOnly = url.searchParams.get("verifiedOnly") === "true";
+  const verifiedOnlyParam = url.searchParams.get("verifiedOnly");
+  const verifiedOnly = verifiedOnlyParam === null ? undefined : verifiedOnlyParam === "true";
   const dateFromStr = url.searchParams.get("dateFrom");
   const dateToStr = url.searchParams.get("dateTo");
   const minRevisionCountStr = url.searchParams.get("minRevisionCount");
@@ -33,7 +34,7 @@ export const GET = withApiHandler(async (req: Request) => {
   const { items, total } = await getReviewQueue({
     page,
     pageSize,
-    verifiedOnly: verifiedOnly || undefined,
+    verifiedOnly,
     dateFrom,
     dateTo,
     minRevisionCount,
