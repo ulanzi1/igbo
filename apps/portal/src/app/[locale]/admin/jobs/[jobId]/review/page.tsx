@@ -6,6 +6,7 @@ import { getTranslations, getFormatter } from "next-intl/server";
 import { getReviewDetail } from "@/services/admin-review-service";
 import { sanitizeHtml } from "@/lib/sanitize";
 import { SalaryDisplay } from "@/components/semantic/salary-display";
+import { ReviewActionPanel } from "@/components/domain/review-action-panel";
 
 interface PageProps {
   params: Promise<{ locale: string; jobId: string }>;
@@ -43,6 +44,7 @@ export default async function ReviewDetailPage({ params }: PageProps) {
     approvedCount,
     rejectedCount,
     confidenceIndicator,
+    reviewHistory,
   } = detail;
 
   const formatDate = (d: Date) => format.dateTime(new Date(d), { dateStyle: "medium" });
@@ -180,6 +182,36 @@ export default async function ReviewDetailPage({ params }: PageProps) {
             <h2 className="mb-2 text-lg font-semibold">{t("reports")}</h2>
             <p className="text-sm text-muted-foreground">{t("reportsPlaceholder")}</p>
           </section>
+
+          {/* Review Action Panel — only shown when pending */}
+          <ReviewActionPanel
+            postingId={posting.id}
+            postingStatus={posting.status}
+            revisionCount={posting.revisionCount}
+            locale={locale}
+            previousFeedback={posting.adminFeedbackComment}
+          />
+
+          {/* Revision History — shown when there have been previous review decisions */}
+          {reviewHistory.length > 0 && (
+            <section
+              aria-label={t("revisionHistory")}
+              className="rounded-lg border border-border bg-card p-6"
+              data-testid="revision-history"
+            >
+              <h2 className="mb-4 text-lg font-semibold">{t("revisionHistory")}</h2>
+              <ol className="space-y-3">
+                {reviewHistory.map((item) => (
+                  <li key={item.id} className="border-l-2 border-muted pl-3">
+                    <p className="text-xs text-muted-foreground">
+                      {formatDate(item.reviewedAt)} — {item.decision}
+                    </p>
+                    {item.feedbackComment && <p className="mt-1 text-sm">{item.feedbackComment}</p>}
+                  </li>
+                ))}
+              </ol>
+            </section>
+          )}
         </div>
 
         {/* Right column: Employer Profile + Posting History */}

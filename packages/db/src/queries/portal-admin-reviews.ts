@@ -6,7 +6,10 @@ import { portalCompanyProfiles } from "../schema/portal-company-profiles";
 import { authUsers } from "../schema/auth-users";
 import type { PortalJobPosting } from "../schema/portal-job-postings";
 import type { PortalCompanyProfile } from "../schema/portal-company-profiles";
-import { eq, and, gte, lte, count, sql } from "drizzle-orm";
+import type { NewPortalAdminReview, PortalAdminReview } from "../schema/portal-admin-reviews";
+import { eq, and, gte, lte, count, desc, sql } from "drizzle-orm";
+
+export type { NewPortalAdminReview, PortalAdminReview };
 
 export interface PendingReviewItem {
   posting: PortalJobPosting & { employerTotalPostings: number };
@@ -391,4 +394,24 @@ export async function countPendingReviewPostings(): Promise<number> {
     .from(portalJobPostings)
     .where(eq(portalJobPostings.status, "pending_review"));
   return row?.total ?? 0;
+}
+
+// ---------------------------------------------------------------------------
+// P-3.2: Insert / mutate queries for review decisions
+// ---------------------------------------------------------------------------
+
+/** Insert a new admin review record and return the inserted row. */
+export async function insertAdminReview(data: NewPortalAdminReview): Promise<PortalAdminReview> {
+  const [inserted] = await db.insert(portalAdminReviews).values(data).returning();
+  if (!inserted) throw new Error("insertAdminReview: no row returned");
+  return inserted;
+}
+
+/** Return all reviews for a posting ordered by reviewedAt DESC (most recent first). */
+export async function getReviewHistoryForPosting(postingId: string): Promise<PortalAdminReview[]> {
+  return db
+    .select()
+    .from(portalAdminReviews)
+    .where(eq(portalAdminReviews.postingId, postingId))
+    .orderBy(desc(portalAdminReviews.reviewedAt));
 }

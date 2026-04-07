@@ -21,6 +21,21 @@ vi.mock("drizzle-orm", () => ({
   eq: vi.fn((col: unknown, val: unknown) => ({ eq: [col, val] })),
 }));
 
+// Mock the approval-integrity guard so JOB_ADMIN approve tests don't reach
+// the real DB. Individual tests can override the mock to assert that the
+// guard fires on non-canonical paths.
+vi.mock("@/lib/approval-integrity", () => ({
+  assertApprovalIntegrity: vi.fn().mockResolvedValue(undefined),
+}));
+
+// Mock fast-lane eligibility — submitForReview wires this in (AC-7).
+// Default: ineligible, so submitForReview proceeds to pending_review.
+vi.mock("@/services/admin-review-service", () => ({
+  checkFastLaneEligibility: vi
+    .fn()
+    .mockResolvedValue({ eligible: false, reasons: ["test default"] }),
+}));
+
 import { db } from "@igbo/db";
 import {
   getJobPostingById,
@@ -28,6 +43,8 @@ import {
   updateJobPostingStatus,
   updateJobPosting,
 } from "@igbo/db/queries/portal-job-postings";
+import { assertApprovalIntegrity } from "@/lib/approval-integrity";
+import { checkFastLaneEligibility } from "@/services/admin-review-service";
 import {
   canEditPosting,
   transitionStatus,
@@ -134,6 +151,36 @@ describe("transitionStatus", () => {
     await expect(
       transitionStatus("posting-1", "active", "company-1", "JOB_ADMIN"),
     ).resolves.toBeUndefined();
+
+    // AC-6: integrity guard MUST run for pending_review → active.
+    expect(assertApprovalIntegrity).toHaveBeenCalledWith("posting-1");
+  });
+
+  it("propagates approval-integrity violations as 403 (AC-6)", async () => {
+    vi.mocked(getJobPostingById).mockResolvedValue({
+      ...BASE_POSTING,
+      status: "pending_review",
+    } as never);
+    vi.mocked(countActivePostingsByCompanyId).mockResolvedValue(0);
+    vi.mocked(assertApprovalIntegrity).mockRejectedValueOnce(
+      Object.assign(new Error("integrity"), { status: 403 }),
+    );
+
+    await expect(
+      transitionStatus("posting-1", "active", "company-1", "JOB_ADMIN"),
+    ).rejects.toMatchObject({ status: 403 });
+
+    // updateJobPostingStatus must NOT run when the guard rejects.
+    expect(updateJobPostingStatus).not.toHaveBeenCalled();
+  });
+
+  it("does NOT call approval-integrity guard for non-active transitions", async () => {
+    vi.mocked(getJobPostingById).mockResolvedValue({
+      ...BASE_POSTING,
+      status: "pending_review",
+    } as never);
+    await transitionStatus("posting-1", "draft", "company-1", "JOB_ADMIN");
+    expect(assertApprovalIntegrity).not.toHaveBeenCalled();
   });
 
   it("throws 403 when employer tries to reject (pending_review → rejected) — Approval Integrity Rule", async () => {
@@ -144,6 +191,26 @@ describe("transitionStatus", () => {
     await expect(
       transitionStatus("posting-1", "rejected", "company-1", "EMPLOYER"),
     ).rejects.toMatchObject({ status: 403 });
+  });
+
+  it("throws 403 when employer tries pending_review → draft — ADMIN_ONLY transition", async () => {
+    vi.mocked(getJobPostingById).mockResolvedValue({
+      ...BASE_POSTING,
+      status: "pending_review",
+    } as never);
+    await expect(
+      transitionStatus("posting-1", "draft", "company-1", "EMPLOYER"),
+    ).rejects.toMatchObject({ status: 403 });
+  });
+
+  it("allows JOB_ADMIN to transition pending_review → draft (request changes path)", async () => {
+    vi.mocked(getJobPostingById).mockResolvedValue({
+      ...BASE_POSTING,
+      status: "pending_review",
+    } as never);
+    await expect(
+      transitionStatus("posting-1", "draft", "company-1", "JOB_ADMIN"),
+    ).resolves.toBeUndefined();
   });
 
   it("throws 409 for active posting limit when unpausing (paused → active)", async () => {
@@ -269,6 +336,19 @@ describe("submitForReview", () => {
     } as never);
     await expect(submitForReview("posting-1", "company-1")).resolves.toBeUndefined();
     expect(updateJobPostingStatus).toHaveBeenCalledWith("posting-1", "pending_review");
+  });
+
+  it("AC-7: consults checkFastLaneEligibility on every submit", async () => {
+    await submitForReview("posting-1", "company-1");
+    expect(checkFastLaneEligibility).toHaveBeenCalledWith("posting-1");
+  });
+
+  it("AC-7: throws 503 when fast-lane criteria are met (P-3.3 not yet shipped)", async () => {
+    vi.mocked(checkFastLaneEligibility).mockResolvedValueOnce({ eligible: true, reasons: [] });
+
+    await expect(submitForReview("posting-1", "company-1")).rejects.toMatchObject({ status: 503 });
+    // Should not have transitioned to pending_review on the eligible path.
+    expect(updateJobPostingStatus).not.toHaveBeenCalled();
   });
 
   it("throws 409 when not a draft or rejected", async () => {

@@ -21,6 +21,10 @@ vi.mock("@/services/admin-review-service", () => ({
 vi.mock("@/lib/sanitize", () => ({
   sanitizeHtml: vi.fn((html: string) => html),
 }));
+vi.mock("@/components/domain/review-action-panel", () => ({
+  ReviewActionPanel: () => null,
+  ReviewActionPanelSkeleton: () => null,
+}));
 
 import { auth } from "@igbo/auth";
 import { redirect } from "next/navigation";
@@ -81,6 +85,7 @@ const mockDetail = {
   },
   screeningResult: null,
   reportCount: 0,
+  reviewHistory: [],
 };
 
 function makeParams(locale = "en", jobId = "posting-1") {

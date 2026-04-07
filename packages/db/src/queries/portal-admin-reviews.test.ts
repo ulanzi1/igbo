@@ -113,6 +113,7 @@ vi.mock("drizzle-orm", () => ({
   gte: vi.fn((col: unknown, val: unknown) => ({ gte: [col, val] })),
   lte: vi.fn((col: unknown, val: unknown) => ({ lte: [col, val] })),
   count: vi.fn(() => ({ count: true })),
+  desc: vi.fn((col: unknown) => ({ desc: col })),
   sql: Object.assign(
     vi.fn((_strings: TemplateStringsArray, ..._values: unknown[]) => makeSqlExpr()),
     { as: vi.fn() },
@@ -125,6 +126,8 @@ import {
   getPostingWithReviewContext,
   getAdminActivitySummary,
   countPendingReviewPostings,
+  insertAdminReview,
+  getReviewHistoryForPosting,
 } from "./portal-admin-reviews";
 
 const BASE_POSTING_ROW = {
@@ -387,5 +390,100 @@ describe("countPendingReviewPostings", () => {
     const count = await countPendingReviewPostings();
 
     expect(count).toBe(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// P-3.2: New mutation queries
+// ---------------------------------------------------------------------------
+
+describe("insertAdminReview", () => {
+  it("returns the inserted review row", async () => {
+    const fakeRow = {
+      id: "review-1",
+      postingId: "posting-1",
+      reviewerUserId: "admin-1",
+      decision: "approved",
+      feedbackComment: null,
+      reviewedAt: new Date("2026-04-07"),
+      createdAt: new Date("2026-04-07"),
+    };
+
+    const chain = {
+      values: vi.fn().mockReturnThis(),
+      returning: vi.fn().mockResolvedValue([fakeRow]),
+    };
+    (db.insert as ReturnType<typeof vi.fn>).mockReturnValue(chain);
+
+    const result = await insertAdminReview({
+      postingId: "posting-1",
+      reviewerUserId: "admin-1",
+      decision: "approved",
+    });
+
+    expect(db.insert).toHaveBeenCalledTimes(1);
+    expect(result.id).toBe("review-1");
+    expect(result.decision).toBe("approved");
+  });
+
+  it("throws if no row is returned", async () => {
+    const chain = {
+      values: vi.fn().mockReturnThis(),
+      returning: vi.fn().mockResolvedValue([]),
+    };
+    (db.insert as ReturnType<typeof vi.fn>).mockReturnValue(chain);
+
+    await expect(
+      insertAdminReview({ postingId: "p1", reviewerUserId: "a1", decision: "rejected" }),
+    ).rejects.toThrow("insertAdminReview: no row returned");
+  });
+});
+
+describe("getReviewHistoryForPosting", () => {
+  it("returns reviews ordered by reviewedAt DESC", async () => {
+    const rows = [
+      {
+        id: "r-2",
+        postingId: "p1",
+        reviewerUserId: "a1",
+        decision: "rejected",
+        feedbackComment: "too vague",
+        reviewedAt: new Date("2026-04-07"),
+        createdAt: new Date("2026-04-07"),
+      },
+      {
+        id: "r-1",
+        postingId: "p1",
+        reviewerUserId: "a1",
+        decision: "changes_requested",
+        feedbackComment: "needs work",
+        reviewedAt: new Date("2026-04-06"),
+        createdAt: new Date("2026-04-06"),
+      },
+    ];
+
+    (db.select as ReturnType<typeof vi.fn>).mockImplementation(() => ({
+      from: vi.fn().mockReturnThis(),
+      where: vi.fn().mockReturnThis(),
+      orderBy: vi.fn().mockResolvedValue(rows),
+    }));
+
+    const result = await getReviewHistoryForPosting("p1");
+
+    expect(result).toHaveLength(2);
+    expect(result[0]?.id).toBe("r-2");
+    expect(result[1]?.id).toBe("r-1");
+  });
+
+  it("returns empty array when no reviews exist", async () => {
+    (db.select as ReturnType<typeof vi.fn>).mockImplementation(() => ({
+      from: vi.fn().mockReturnThis(),
+      where: vi.fn().mockReturnThis(),
+      orderBy: vi.fn().mockResolvedValue([]),
+    }));
+
+    const result = await getReviewHistoryForPosting("p-none");
+
+    expect(result).toHaveLength(0);
   });
 });

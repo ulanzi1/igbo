@@ -7,6 +7,25 @@ export const PORTAL_ERRORS = {
   DUPLICATE_APPLICATION: "PORTAL_ERRORS.DUPLICATE_APPLICATION",
   INVALID_STATUS_TRANSITION: "PORTAL_ERRORS.INVALID_STATUS_TRANSITION",
   ALREADY_SHARED: "PORTAL_ERRORS.ALREADY_SHARED",
+  APPROVAL_INTEGRITY_VIOLATION: "PORTAL_ERRORS.APPROVAL_INTEGRITY_VIOLATION",
+  MAX_REVISIONS_REACHED: "PORTAL_ERRORS.MAX_REVISIONS_REACHED",
 } as const;
 
 export type PortalErrorCode = (typeof PORTAL_ERRORS)[keyof typeof PORTAL_ERRORS];
+
+/**
+ * Maximum number of "request changes" cycles allowed per posting before it
+ * must be approved or rejected. Single source of truth — imported by both the
+ * service layer (revision-count guard) and the UI (disabled-button state).
+ */
+export const MAX_REVISION_COUNT = 3;
+
+/** Rejection categories — also used in Zod schema (admin-review.ts) */
+export const REJECTION_CATEGORIES = [
+  "policy_violation",
+  "inappropriate_content",
+  "insufficient_detail",
+  "other",
+] as const;
+
+export type RejectionCategory = (typeof REJECTION_CATEGORIES)[number];
