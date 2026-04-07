@@ -49,6 +49,9 @@ const makeItem = (overrides: Partial<ReviewQueueItem> = {}): ReviewQueueItem => 
     revisionCount: 0,
     viewCount: 0,
     communityPostId: null,
+    screeningStatus: null,
+    screeningResultJson: null,
+    screeningCheckedAt: null,
     createdAt: new Date("2026-01-01"),
     updatedAt: new Date("2026-01-01"),
     employerTotalPostings: 3,
@@ -146,10 +149,37 @@ describe("ReviewQueueTable", () => {
     expect(screen.queryByText(/First-time employer/i)).not.toBeInTheDocument();
   });
 
-  it("renders screening placeholder badge", () => {
+  it("renders not-screened badge when screeningResult is null", () => {
     renderWithPortalProviders(<ReviewQueueTable initialItems={[makeItem()]} initialTotal={1} />);
+    expect(screen.getByTestId("screening-badge-not-screened")).toBeInTheDocument();
+  });
 
-    expect(screen.getByText("Not screened")).toBeInTheDocument();
+  it("renders pass badge when screening passed", () => {
+    const item = makeItem({
+      screeningResult: {
+        status: "pass",
+        flags: [],
+        checked_at: "2026-04-01T10:00:00Z",
+        rule_version: 5,
+      },
+    });
+    renderWithPortalProviders(<ReviewQueueTable initialItems={[item]} initialTotal={1} />);
+    expect(screen.getByTestId("screening-badge-pass")).toBeInTheDocument();
+  });
+
+  it("renders fail badge when screening failed", () => {
+    const item = makeItem({
+      screeningResult: {
+        status: "fail",
+        flags: [
+          { rule_id: "required_fields", message: "Missing title", severity: "high" as const },
+        ],
+        checked_at: "2026-04-01T10:00:00Z",
+        rule_version: 5,
+      },
+    });
+    renderWithPortalProviders(<ReviewQueueTable initialItems={[item]} initialTotal={1} />);
+    expect(screen.getByTestId("screening-badge-fail")).toBeInTheDocument();
   });
 
   it("click on row navigates to detail page", async () => {

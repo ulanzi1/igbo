@@ -12,6 +12,27 @@ import {
 } from "drizzle-orm/pg-core";
 import { portalCompanyProfiles } from "./portal-company-profiles";
 
+export type ScreeningFlag = {
+  rule_id: string;
+  message: string;
+  severity: "low" | "medium" | "high";
+  field?: string;
+  match?: string;
+};
+
+export type ScreeningResult = {
+  status: "pass" | "warning" | "fail";
+  flags: ScreeningFlag[];
+  checked_at: string;
+  rule_version: number;
+};
+
+export const portalScreeningStatusEnum = pgEnum("portal_screening_status", [
+  "pass",
+  "warning",
+  "fail",
+]);
+
 export const portalEmploymentTypeEnum = pgEnum("portal_employment_type", [
   "full_time",
   "part_time",
@@ -61,6 +82,9 @@ export const portalJobPostings = pgTable("portal_job_postings", {
   revisionCount: integer("revision_count").notNull().default(0),
   viewCount: integer("view_count").notNull().default(0),
   communityPostId: uuid("community_post_id"),
+  screeningStatus: portalScreeningStatusEnum("screening_status"),
+  screeningResultJson: jsonb("screening_result_json").$type<ScreeningResult | null>(),
+  screeningCheckedAt: timestamp("screening_checked_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
@@ -70,3 +94,4 @@ export type NewPortalJobPosting = typeof portalJobPostings.$inferInsert;
 export type PortalEmploymentType = (typeof portalEmploymentTypeEnum.enumValues)[number];
 export type PortalJobStatus = (typeof portalJobStatusEnum.enumValues)[number];
 export type PortalClosedOutcome = (typeof portalClosedOutcomeEnum.enumValues)[number];
+export type PortalScreeningStatus = (typeof portalScreeningStatusEnum.enumValues)[number];

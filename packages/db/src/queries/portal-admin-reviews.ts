@@ -4,7 +4,7 @@ import { portalAdminReviews } from "../schema/portal-admin-reviews";
 import { portalJobPostings } from "../schema/portal-job-postings";
 import { portalCompanyProfiles } from "../schema/portal-company-profiles";
 import { authUsers } from "../schema/auth-users";
-import type { PortalJobPosting } from "../schema/portal-job-postings";
+import type { PortalJobPosting, ScreeningResult } from "../schema/portal-job-postings";
 import type { PortalCompanyProfile } from "../schema/portal-company-profiles";
 import type { NewPortalAdminReview, PortalAdminReview } from "../schema/portal-admin-reviews";
 import { eq, and, gte, lte, count, desc, sql } from "drizzle-orm";
@@ -84,6 +84,9 @@ export async function listPendingReviewPostings(
       revisionCount: portalJobPostings.revisionCount,
       viewCount: portalJobPostings.viewCount,
       communityPostId: portalJobPostings.communityPostId,
+      screeningStatus: portalJobPostings.screeningStatus,
+      screeningResultJson: portalJobPostings.screeningResultJson,
+      screeningCheckedAt: portalJobPostings.screeningCheckedAt,
       postingCreatedAt: portalJobPostings.createdAt,
       postingUpdatedAt: portalJobPostings.updatedAt,
       // Company fields
@@ -145,6 +148,9 @@ export async function listPendingReviewPostings(
       revisionCount: row.revisionCount,
       viewCount: row.viewCount,
       communityPostId: row.communityPostId,
+      screeningStatus: row.screeningStatus ?? null,
+      screeningResultJson: (row.screeningResultJson as ScreeningResult | null) ?? null,
+      screeningCheckedAt: row.screeningCheckedAt ?? null,
       createdAt: row.postingCreatedAt,
       updatedAt: row.postingUpdatedAt,
       employerTotalPostings: row.employerTotalPostings,
@@ -212,6 +218,9 @@ export async function getPostingWithReviewContext(
       revisionCount: portalJobPostings.revisionCount,
       viewCount: portalJobPostings.viewCount,
       communityPostId: portalJobPostings.communityPostId,
+      screeningStatus: portalJobPostings.screeningStatus,
+      screeningResultJson: portalJobPostings.screeningResultJson,
+      screeningCheckedAt: portalJobPostings.screeningCheckedAt,
       postingCreatedAt: portalJobPostings.createdAt,
       postingUpdatedAt: portalJobPostings.updatedAt,
       // Company fields
@@ -290,6 +299,9 @@ export async function getPostingWithReviewContext(
     revisionCount: row.revisionCount,
     viewCount: row.viewCount,
     communityPostId: row.communityPostId,
+    screeningStatus: row.screeningStatus ?? null,
+    screeningResultJson: (row.screeningResultJson as ScreeningResult | null) ?? null,
+    screeningCheckedAt: row.screeningCheckedAt ?? null,
     createdAt: row.postingCreatedAt,
     updatedAt: row.postingUpdatedAt,
   };
