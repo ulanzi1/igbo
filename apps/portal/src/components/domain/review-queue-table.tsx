@@ -19,6 +19,7 @@ import { useDensity, DENSITY_STYLES } from "@/providers/density-context";
 import { cn } from "@/lib/utils";
 import { useLocale } from "next-intl";
 import type { ReviewQueueItem, ConfidenceIndicatorData } from "@/services/admin-review-service";
+import { FailedScreeningBadge } from "./failed-screening-badge";
 
 interface ConfidenceIndicatorProps {
   indicator: ConfidenceIndicatorData;
@@ -266,9 +267,7 @@ export function ReviewQueueTable({ initialItems, initialTotal }: ReviewQueueTabl
                     <ConfidenceIndicator indicator={item.confidenceIndicator} />
                   </TableCell>
                   <TableCell>
-                    <Badge variant="secondary" className="text-xs text-muted-foreground">
-                      {t("notScreened")}
-                    </Badge>
+                    <FailedScreeningBadge screeningResult={item.screeningResult} />
                   </TableCell>
                 </TableRow>
               ))}

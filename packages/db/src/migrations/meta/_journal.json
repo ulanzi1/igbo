@@ -407,6 +407,20 @@
       "when": 1708000057000,
       "tag": "0057_admin_review_decision_constraint",
       "breakpoints": true
+    },
+    {
+      "idx": 58,
+      "version": "7",
+      "when": 1708000058000,
+      "tag": "0058_portal_screening",
+      "breakpoints": true
+    },
+    {
+      "idx": 59,
+      "version": "7",
+      "when": 1708000059000,
+      "tag": "0059_portal_seeker_profiles",
+      "breakpoints": true
     }
   ]
 }
