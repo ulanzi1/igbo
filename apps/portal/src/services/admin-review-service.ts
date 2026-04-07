@@ -3,7 +3,6 @@ import {
   listPendingReviewPostings,
   getPostingWithReviewContext,
   getAdminActivitySummary,
-  countPendingReviewPostings,
   type QueueFilterOptions,
   type PendingReviewItem,
   type PostingReviewContext,
@@ -15,6 +14,16 @@ import type { PortalCompanyProfile } from "@igbo/db/schema/portal-company-profil
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
+
+/**
+ * Placeholder for screening results — populated by P-3.3.
+ * Defined now (instead of literal `null`) so consumers can type-narrow
+ * non-breakingly when P-3.3 lands. Empty until then.
+ */
+export type ScreeningResult = {
+  // Reserved for P-3.3: pass/warning/fail status, structured flags, etc.
+  readonly _placeholder?: never;
+};
 
 export interface ConfidenceIndicatorData {
   level: "high" | "medium" | "low";
@@ -30,7 +39,7 @@ export interface ReviewQueueItem {
   employerName: string | null;
   confidenceIndicator: ConfidenceIndicatorData;
   isFirstTimeEmployer: boolean;
-  screeningResult: null;
+  screeningResult: ScreeningResult | null;
 }
 
 export interface ReviewQueueResult {
@@ -46,7 +55,7 @@ export interface ReviewDetailResult {
   approvedCount: number;
   rejectedCount: number;
   confidenceIndicator: ConfidenceIndicatorData;
-  screeningResult: null;
+  screeningResult: ScreeningResult | null;
   reportCount: number;
 }
 
@@ -165,6 +174,6 @@ export async function getReviewDetail(postingId: string): Promise<ReviewDetailRe
 }
 
 export async function getDashboardSummary(): Promise<DashboardSummary> {
-  const [summary] = await Promise.all([getAdminActivitySummary(), countPendingReviewPostings()]);
-  return summary;
+  // pendingCount is already returned by getAdminActivitySummary; no extra round trip needed.
+  return getAdminActivitySummary();
 }

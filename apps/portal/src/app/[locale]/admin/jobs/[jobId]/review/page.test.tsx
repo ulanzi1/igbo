@@ -7,6 +7,13 @@ vi.mock("next/navigation", () => ({ redirect: vi.fn() }));
 vi.mock("next-intl/server", () => ({
   setRequestLocale: vi.fn(),
   getTranslations: vi.fn().mockResolvedValue((key: string) => key),
+  getFormatter: vi.fn().mockResolvedValue({
+    dateTime: (d: Date) => d.toISOString(),
+  }),
+}));
+vi.mock("@/components/semantic/salary-display", () => ({
+  SalaryDisplay: ({ min, max }: { min?: number | null; max?: number | null }) =>
+    `${min ?? ""}-${max ?? ""}`,
 }));
 vi.mock("@/services/admin-review-service", () => ({
   getReviewDetail: vi.fn(),

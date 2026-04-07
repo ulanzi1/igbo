@@ -390,7 +390,8 @@
       "requirementsLabel": "Requirements",
       "viewIgboDescription": "View Igbo description",
       "previousPage": "Previous page",
-      "nextPage": "Next page"
+      "nextPage": "Next page",
+      "title": "Title"
     },
     "chooseRole": {
       "title": "Choose Your Path",

@@ -329,63 +329,56 @@ export async function getAdminActivitySummary(): Promise<AdminActivitySummary> {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  // Count pending postings
-  const [pendingRow] = await db
-    .select({ total: count() })
-    .from(portalJobPostings)
-    .where(eq(portalJobPostings.status, "pending_review"));
+  // Run independent aggregates in parallel:
+  //  1. pending postings count
+  //  2. reviews-today count
+  //  3. decision breakdown (single GROUP BY rather than 4 separate queries)
+  //  4. avg review time
+  const [pendingResult, todayResult, decisionRows, avgRow] = await Promise.all([
+    db
+      .select({ total: count() })
+      .from(portalJobPostings)
+      .where(eq(portalJobPostings.status, "pending_review")),
+    db
+      .select({ total: count() })
+      .from(portalAdminReviews)
+      .where(gte(portalAdminReviews.reviewedAt, today)),
+    db
+      .select({ decision: portalAdminReviews.decision, total: count() })
+      .from(portalAdminReviews)
+      .groupBy(portalAdminReviews.decision),
+    db
+      .select({
+        avgMs: sql<string | null>`AVG(
+          EXTRACT(EPOCH FROM (${portalAdminReviews.reviewedAt} - ${portalJobPostings.updatedAt})) * 1000
+        )`,
+      })
+      .from(portalAdminReviews)
+      .leftJoin(portalJobPostings, eq(portalAdminReviews.postingId, portalJobPostings.id))
+      .then((rows) => rows[0]),
+  ]);
 
-  // Count reviews today
-  const [todayRow] = await db
-    .select({ total: count() })
-    .from(portalAdminReviews)
-    .where(gte(portalAdminReviews.reviewedAt, today));
-
-  // Count decisions by type
-  const [allReviewsRow] = await db.select({ total: count() }).from(portalAdminReviews);
-
-  const [approvedRow] = await db
-    .select({ total: count() })
-    .from(portalAdminReviews)
-    .where(eq(portalAdminReviews.decision, "approved"));
-
-  const [rejectedRow] = await db
-    .select({ total: count() })
-    .from(portalAdminReviews)
-    .where(eq(portalAdminReviews.decision, "rejected"));
-
-  const [changesRow] = await db
-    .select({ total: count() })
-    .from(portalAdminReviews)
-    .where(eq(portalAdminReviews.decision, "changes_requested"));
-
-  const totalReviews = allReviewsRow?.total ?? 0;
-  const approvedCount = approvedRow?.total ?? 0;
-  const rejectedCount = rejectedRow?.total ?? 0;
-  const changesCount = changesRow?.total ?? 0;
+  let approvedCount = 0;
+  let rejectedCount = 0;
+  let changesCount = 0;
+  for (const row of decisionRows) {
+    if (row.decision === "approved") approvedCount = row.total;
+    else if (row.decision === "rejected") rejectedCount = row.total;
+    else if (row.decision === "changes_requested") changesCount = row.total;
+  }
+  const totalReviews = approvedCount + rejectedCount + changesCount;
 
   const approvalRate = totalReviews > 0 ? approvedCount / totalReviews : 0;
   const rejectionRate = totalReviews > 0 ? rejectedCount / totalReviews : 0;
   const changesRequestedRate = totalReviews > 0 ? changesCount / totalReviews : 0;
 
-  // Avg review time: approximate using updatedAt vs reviewedAt
-  // (updatedAt changes on any edit — see Dev Notes for accuracy limitation)
-  const [avgRow] = await db
-    .select({
-      avgMs: sql<string | null>`AVG(
-        EXTRACT(EPOCH FROM (${portalAdminReviews.reviewedAt} - ${portalJobPostings.updatedAt})) * 1000
-      )`,
-    })
-    .from(portalAdminReviews)
-    .leftJoin(portalJobPostings, eq(portalAdminReviews.postingId, portalJobPostings.id));
-
   const avgReviewTimeMs =
     avgRow?.avgMs != null && avgRow.avgMs !== "null" ? parseFloat(avgRow.avgMs) : null;
 
   return {
-    pendingCount: pendingRow?.total ?? 0,
-    reviewsToday: todayRow?.total ?? 0,
-    avgReviewTimeMs: avgReviewTimeMs,
+    pendingCount: pendingResult[0]?.total ?? 0,
+    reviewsToday: todayResult[0]?.total ?? 0,
+    avgReviewTimeMs,
     approvalRate,
     rejectionRate,
     changesRequestedRate,

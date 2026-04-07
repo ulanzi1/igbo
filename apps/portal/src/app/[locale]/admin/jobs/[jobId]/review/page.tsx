@@ -2,9 +2,10 @@ import Link from "next/link";
 import { setRequestLocale } from "next-intl/server";
 import { redirect } from "next/navigation";
 import { auth } from "@igbo/auth";
-import { getTranslations } from "next-intl/server";
+import { getTranslations, getFormatter } from "next-intl/server";
 import { getReviewDetail } from "@/services/admin-review-service";
 import { sanitizeHtml } from "@/lib/sanitize";
+import { SalaryDisplay } from "@/components/semantic/salary-display";
 
 interface PageProps {
   params: Promise<{ locale: string; jobId: string }>;
@@ -21,10 +22,15 @@ export default async function ReviewDetailPage({ params }: PageProps) {
   }
 
   const t = await getTranslations("Portal.admin");
+  const tLanguage = await getTranslations("Portal.languageToggle");
+  const format = await getFormatter();
 
   const detail = await getReviewDetail(jobId);
 
   if (!detail) {
+    // redirect() throws NEXT_REDIRECT in prod (typed `never`), but we keep an
+    // explicit return so unit tests that mock redirect() as a no-op don't
+    // continue into the destructure below.
     redirect(`/${locale}/admin`);
     return null;
   }
@@ -39,12 +45,7 @@ export default async function ReviewDetailPage({ params }: PageProps) {
     confidenceIndicator,
   } = detail;
 
-  const formatDate = (d: Date) =>
-    new Date(d).toLocaleDateString(locale === "ig" ? "ig-NG" : "en-NG", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
+  const formatDate = (d: Date) => format.dateTime(new Date(d), { dateStyle: "medium" });
 
   const approvalRate = totalPostings > 0 ? Math.round((approvedCount / totalPostings) * 100) : 0;
 
@@ -103,7 +104,7 @@ export default async function ReviewDetailPage({ params }: PageProps) {
                 )}
                 {posting.descriptionIgboHtml && (
                   <span className="inline-flex items-center rounded bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700">
-                    Bilingual
+                    {tLanguage("bilingual")}
                   </span>
                 )}
               </div>
@@ -117,18 +118,15 @@ export default async function ReviewDetailPage({ params }: PageProps) {
                 )}
               </p>
 
-              {(posting.salaryMin != null || posting.salaryMax != null) && (
+              {(posting.salaryMin != null ||
+                posting.salaryMax != null ||
+                posting.salaryCompetitiveOnly) && (
                 <p className="text-sm" data-testid="salary">
-                  {posting.salaryMin != null && posting.salaryMax != null
-                    ? `₦${posting.salaryMin.toLocaleString()} – ₦${posting.salaryMax.toLocaleString()}`
-                    : posting.salaryMin != null
-                      ? `From ₦${posting.salaryMin.toLocaleString()}`
-                      : `Up to ₦${posting.salaryMax!.toLocaleString()}`}
-                </p>
-              )}
-              {posting.salaryCompetitiveOnly && (
-                <p className="text-sm text-muted-foreground" data-testid="competitive-salary">
-                  {t("competitiveSalary")}
+                  <SalaryDisplay
+                    min={posting.salaryMin}
+                    max={posting.salaryMax}
+                    competitiveOnly={posting.salaryCompetitiveOnly}
+                  />
                 </p>
               )}
 

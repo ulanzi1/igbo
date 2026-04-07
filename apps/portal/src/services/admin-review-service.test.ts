@@ -7,7 +7,6 @@ vi.mock("@igbo/db/queries/portal-admin-reviews", () => ({
   listPendingReviewPostings: vi.fn(),
   getPostingWithReviewContext: vi.fn(),
   getAdminActivitySummary: vi.fn(),
-  countPendingReviewPostings: vi.fn(),
 }));
 
 vi.mock("@igbo/db/queries/cross-app", () => ({
@@ -18,7 +17,6 @@ import {
   listPendingReviewPostings,
   getPostingWithReviewContext,
   getAdminActivitySummary,
-  countPendingReviewPostings,
 } from "@igbo/db/queries/portal-admin-reviews";
 import { getCommunityTrustSignals } from "@igbo/db/queries/cross-app";
 import { getReviewQueue, getReviewDetail, getDashboardSummary } from "./admin-review-service";
@@ -91,7 +89,6 @@ beforeEach(() => {
     rejectionRate: 0.2,
     changesRequestedRate: 0.1,
   });
-  vi.mocked(countPendingReviewPostings).mockResolvedValue(5);
 });
 
 describe("getReviewQueue", () => {
@@ -371,5 +368,10 @@ describe("getDashboardSummary", () => {
     expect(result).toHaveProperty("rejectionRate");
     expect(result).toHaveProperty("changesRequestedRate");
     expect(result.avgReviewTimeMs).toBeNull();
+  });
+
+  it("calls getAdminActivitySummary exactly once and does not issue a redundant pending count query", async () => {
+    await getDashboardSummary();
+    expect(getAdminActivitySummary).toHaveBeenCalledTimes(1);
   });
 });
