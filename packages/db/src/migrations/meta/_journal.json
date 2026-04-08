@@ -442,6 +442,13 @@
       "when": 1708000062000,
       "tag": "0062_application_state_machine",
       "breakpoints": true
+    },
+    {
+      "idx": 63,
+      "version": "7",
+      "when": 1708000063000,
+      "tag": "0063_job_application_submission",
+      "breakpoints": true
     }
   ]
 }

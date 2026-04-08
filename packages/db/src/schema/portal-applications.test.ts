@@ -18,7 +18,7 @@ import {
 import { portalJobStatusEnum } from "./portal-job-postings";
 
 describe("portalApplications schema", () => {
-  it("has all required columns including new audit fields", () => {
+  it("has all required columns including new audit fields and P-2.5A payload columns", () => {
     const cols = Object.keys(portalApplications);
     expect(cols).toContain("id");
     expect(cols).toContain("jobId");
@@ -28,6 +28,10 @@ describe("portalApplications schema", () => {
     expect(cols).toContain("transitionedAt");
     expect(cols).toContain("transitionedByUserId");
     expect(cols).toContain("transitionReason");
+    // P-2.5A columns (migration 0063)
+    expect(cols).toContain("selectedCvId");
+    expect(cols).toContain("coverLetterText");
+    expect(cols).toContain("portfolioLinksJson");
     expect(cols).toContain("createdAt");
     expect(cols).toContain("updatedAt");
   });
@@ -42,6 +46,10 @@ describe("portalApplications schema", () => {
       transitionedAt: null,
       transitionedByUserId: null,
       transitionReason: null,
+      // P-2.5A columns
+      selectedCvId: null,
+      coverLetterText: null,
+      portfolioLinksJson: [],
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -51,6 +59,9 @@ describe("portalApplications schema", () => {
     expect(_check.transitionedAt).toBeNull();
     expect(_check.transitionedByUserId).toBeNull();
     expect(_check.transitionReason).toBeNull();
+    expect(_check.selectedCvId).toBeNull();
+    expect(_check.coverLetterText).toBeNull();
+    expect(_check.portfolioLinksJson).toEqual([]);
   });
 
   it("exports NewPortalApplication insert type", () => {
@@ -240,5 +251,29 @@ describe("Drift-guard: APPLICATION_TERMINAL_STATES alignment", () => {
     expect(APPLICATION_TERMINAL_STATES).toContain("hired");
     expect(APPLICATION_TERMINAL_STATES).toContain("rejected");
     expect(APPLICATION_TERMINAL_STATES).toContain("withdrawn");
+  });
+});
+
+describe("Drift-guard: partial unique index predicate (P-2.5A)", () => {
+  // Migration 0063 adds: CREATE UNIQUE INDEX ... WHERE status <> 'withdrawn'
+  // This test documents which statuses are covered by the index (non-withdrawn).
+  // If new statuses are added, this test will fail, prompting a review of the
+  // index predicate and duplicate-detection logic.
+  it("'withdrawn' is the only status excluded from the partial unique index", () => {
+    const excluded = ["withdrawn"];
+    const covered = portalApplicationStatusEnum.enumValues.filter((s) => !excluded.includes(s));
+    // Covered statuses: submitted, under_review, shortlisted, interview, offered, hired, rejected
+    expect(covered).toHaveLength(7);
+    expect(covered).toContain("submitted");
+    expect(covered).toContain("under_review");
+    expect(covered).toContain("shortlisted");
+    expect(covered).toContain("interview");
+    expect(covered).toContain("offered");
+    expect(covered).toContain("hired");
+    expect(covered).toContain("rejected");
+  });
+
+  it("the excluded status ('withdrawn') is a terminal state", () => {
+    expect(isTerminalApplicationStatus("withdrawn")).toBe(true);
   });
 });

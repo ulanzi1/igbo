@@ -270,6 +270,43 @@ export async function markSharedToCommunity(
 }
 
 /**
+ * Lightweight projection for the job application submission service.
+ * Returns only the fields needed to validate preconditions and build event payloads.
+ * Returns null if the posting does not exist or has no associated company profile.
+ */
+export async function getJobPostingForApply(jobId: string): Promise<{
+  id: string;
+  status: PortalJobStatus;
+  applicationDeadline: Date | null;
+  enableCoverLetter: boolean;
+  companyId: string;
+  employerUserId: string;
+} | null> {
+  const [row] = await db
+    .select({
+      id: portalJobPostings.id,
+      status: portalJobPostings.status,
+      applicationDeadline: portalJobPostings.applicationDeadline,
+      enableCoverLetter: portalJobPostings.enableCoverLetter,
+      companyId: portalJobPostings.companyId,
+      employerUserId: portalCompanyProfiles.ownerUserId,
+    })
+    .from(portalJobPostings)
+    .innerJoin(portalCompanyProfiles, eq(portalJobPostings.companyId, portalCompanyProfiles.id))
+    .where(eq(portalJobPostings.id, jobId))
+    .limit(1);
+  if (!row) return null;
+  return {
+    id: row.id,
+    status: row.status,
+    applicationDeadline: row.applicationDeadline ?? null,
+    enableCoverLetter: row.enableCoverLetter,
+    companyId: row.companyId,
+    employerUserId: row.employerUserId,
+  };
+}
+
+/**
  * Returns the communityPostId for a posting (null if not yet shared).
  * Returns undefined if the posting does not exist.
  */

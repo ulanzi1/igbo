@@ -9,7 +9,7 @@ import type {
   PortalApplicationTransition,
 } from "../schema/portal-applications";
 import { portalJobPostings } from "../schema/portal-job-postings";
-import { eq, desc, asc } from "drizzle-orm";
+import { eq, desc, asc, and, ne } from "drizzle-orm";
 
 export async function createApplication(data: NewPortalApplication): Promise<PortalApplication> {
   const [application] = await db.insert(portalApplications).values(data).returning();
@@ -123,4 +123,54 @@ export async function getTransitionHistory(
     .from(portalApplicationTransitions)
     .where(eq(portalApplicationTransitions.applicationId, applicationId))
     .orderBy(asc(portalApplicationTransitions.createdAt));
+}
+
+/**
+ * Inserts a new application row with the full P-2.5A submission payload.
+ * Explicit typed parameters prevent callers from accidentally omitting
+ * `portfolioLinksJson` or passing unsanitised data.
+ * Does NOT handle idempotency — that is the service's responsibility.
+ */
+export async function insertApplicationWithPayload(data: {
+  jobId: string;
+  seekerUserId: string;
+  selectedCvId: string | null;
+  coverLetterText: string | null;
+  portfolioLinks: string[];
+}): Promise<PortalApplication> {
+  const [application] = await db
+    .insert(portalApplications)
+    .values({
+      jobId: data.jobId,
+      seekerUserId: data.seekerUserId,
+      selectedCvId: data.selectedCvId,
+      coverLetterText: data.coverLetterText,
+      portfolioLinksJson: data.portfolioLinks,
+    })
+    .returning();
+  if (!application) throw new Error("Failed to insert application");
+  return application;
+}
+
+/**
+ * Returns the single non-withdrawn application for (jobId, seekerUserId), or null.
+ * Used by the idempotent-replay lookup path: when an Idempotency-Key hits a
+ * cached Redis key, look up the existing row rather than creating a new one.
+ */
+export async function getExistingActiveApplication(
+  jobId: string,
+  seekerUserId: string,
+): Promise<PortalApplication | null> {
+  const [application] = await db
+    .select()
+    .from(portalApplications)
+    .where(
+      and(
+        eq(portalApplications.jobId, jobId),
+        eq(portalApplications.seekerUserId, seekerUserId),
+        ne(portalApplications.status, "withdrawn"),
+      ),
+    )
+    .limit(1);
+  return application ?? null;
 }

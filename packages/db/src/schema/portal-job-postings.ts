@@ -85,6 +85,8 @@ export const portalJobPostings = pgTable("portal_job_postings", {
   screeningStatus: portalScreeningStatusEnum("screening_status"),
   screeningResultJson: jsonb("screening_result_json").$type<ScreeningResult | null>(),
   screeningCheckedAt: timestamp("screening_checked_at", { withTimezone: true }),
+  // Added in P-2.5A migration 0063 — employer opts in to require cover letter
+  enableCoverLetter: boolean("enable_cover_letter").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
