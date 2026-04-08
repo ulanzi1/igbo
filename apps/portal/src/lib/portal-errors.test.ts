@@ -33,8 +33,18 @@ describe("PORTAL_ERRORS", () => {
     }
   });
 
-  it("has exactly 8 error codes", () => {
-    expect(Object.keys(PORTAL_ERRORS)).toHaveLength(8);
+  it("has exactly 10 error codes", () => {
+    expect(Object.keys(PORTAL_ERRORS)).toHaveLength(10);
+  });
+
+  it("has APPROVAL_INTEGRITY_VIOLATION key", () => {
+    expect(PORTAL_ERRORS.APPROVAL_INTEGRITY_VIOLATION).toBe(
+      "PORTAL_ERRORS.APPROVAL_INTEGRITY_VIOLATION",
+    );
+  });
+
+  it("has MAX_REVISIONS_REACHED key", () => {
+    expect(PORTAL_ERRORS.MAX_REVISIONS_REACHED).toBe("PORTAL_ERRORS.MAX_REVISIONS_REACHED");
   });
 
   it("has ALREADY_SHARED key", () => {
