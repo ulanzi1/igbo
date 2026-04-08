@@ -1,7 +1,7 @@
 import "server-only";
 import { pgTable, uuid, timestamp, pgEnum, text } from "drizzle-orm/pg-core";
 import { authUsers } from "./auth-users";
-import { portalJobPostings } from "./portal-job-postings";
+import { portalJobPostings, type PortalJobStatus } from "./portal-job-postings";
 
 export const portalApplicationStatusEnum = pgEnum("portal_application_status", [
   "submitted",
@@ -60,3 +60,28 @@ export type PortalApplicationStatus = (typeof portalApplicationStatusEnum.enumVa
 export type PortalActorRole = (typeof portalActorRoleEnum.enumValues)[number];
 export type PortalApplicationTransition = typeof portalApplicationTransitions.$inferSelect;
 export type NewPortalApplicationTransition = typeof portalApplicationTransitions.$inferInsert;
+
+// State Interaction Matrix (see docs/decisions/state-interaction-matrix.md)
+// Names frozen in docs/decisions/state-interaction-matrix.md §1 Terminology.
+// All three are hard terminals — no external event may touch them.
+// `offered` is intentionally NON-terminal (offered → hired | rejected).
+export const APPLICATION_TERMINAL_STATES = [
+  "hired",
+  "rejected",
+  "withdrawn",
+] as const satisfies readonly PortalApplicationStatus[];
+
+export function isTerminalApplicationStatus(
+  status: PortalApplicationStatus,
+): status is (typeof APPLICATION_TERMINAL_STATES)[number] {
+  return (APPLICATION_TERMINAL_STATES as readonly PortalApplicationStatus[]).includes(status);
+}
+
+/**
+ * Application-creation precondition (State Interaction Matrix §6).
+ * New applications are accepted ONLY when the parent job is `active`.
+ * `paused`, `pending_review`, `draft`, and any terminal status reject creation.
+ */
+export function canAcceptApplications(jobStatus: PortalJobStatus): boolean {
+  return jobStatus === "active";
+}
