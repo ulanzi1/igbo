@@ -33,7 +33,8 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
   };
 }
 
-function ArticleCard({ article }: { article: PublicArticleListItem }) {
+async function ArticleCard({ article }: { article: PublicArticleListItem }) {
+  const t = await getTranslations("Articles");
   const categoryColors: Record<string, string> = {
     discussion: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
     announcement: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300",
@@ -70,7 +71,7 @@ function ArticleCard({ article }: { article: PublicArticleListItem }) {
             </span>
           )}
           {article.language === "both" && (
-            <span className="text-xs text-muted-foreground">EN + IG</span>
+            <span className="text-xs text-muted-foreground">{t("bilingualBadge")}</span>
           )}
         </div>
 

@@ -44,6 +44,8 @@ describe("Footer", () => {
 
   it("has footer navigation landmark", () => {
     render(<Footer />);
-    expect(screen.getByRole("navigation", { name: "Footer navigation" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("navigation", { name: "Navigation.footerNavLabel" }),
+    ).toBeInTheDocument();
   });
 });

@@ -5,7 +5,6 @@ import { notFound } from "next/navigation";
 import { SessionProvider } from "next-auth/react";
 import { routing } from "@/i18n/routing";
 import { auth } from "@igbo/auth";
-import { PortalLayout } from "@/components/layout/portal-layout";
 import { SkipLink } from "@/components/layout/skip-link";
 import { Toaster } from "@/components/ui/sonner";
 import { DensityProvider, ROLE_DENSITY_DEFAULTS } from "@/providers/density-context";
@@ -39,7 +38,7 @@ export default async function LocaleLayout({
       <DensityProvider defaultDensity={defaultDensity}>
         <NextIntlClientProvider>
           <SkipLink href="#main-content" />
-          <PortalLayout>{children}</PortalLayout>
+          {children}
           <Toaster />
         </NextIntlClientProvider>
       </DensityProvider>

@@ -17,7 +17,7 @@ describe("ApplicationStepper", () => {
 
   it("renders an ordered list with aria-label='Application progress'", () => {
     render(<ApplicationStepper currentStep={1} />);
-    const list = screen.getByRole("list", { name: "Application progress" });
+    const list = screen.getByRole("list", { name: "Apply.progressAriaLabel" });
     expect(list).toBeInTheDocument();
   });
 

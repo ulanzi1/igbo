@@ -100,6 +100,13 @@ export interface JobSharedToCommunityEvent extends BaseEvent {
   employerUserId: string;
 }
 
+export interface JobReviewedEvent extends BaseEvent {
+  jobId: string;
+  reviewerUserId: string;
+  decision: "approved" | "rejected" | "changes_requested";
+  companyId: string;
+}
+
 // Portal event map — used by portal EventBus
 export interface PortalEventMap {
   "job.published": JobPublishedEvent;
@@ -112,6 +119,7 @@ export interface PortalEventMap {
   "application.withdrawn": ApplicationWithdrawnEvent;
   "job.viewed": JobViewedEvent;
   "job.shared_to_community": JobSharedToCommunityEvent;
+  "job.reviewed": JobReviewedEvent;
 }
 
 export type PortalEventName = keyof PortalEventMap;

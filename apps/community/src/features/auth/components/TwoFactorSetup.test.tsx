@@ -40,7 +40,7 @@ describe("TwoFactorSetup", () => {
     render(<TwoFactorSetup challengeToken="token-123" />);
 
     expect(screen.getByText("Auth.twoFactorSetup.heading")).toBeInTheDocument();
-    expect(screen.getByAltText("QR code for 2FA")).toBeInTheDocument();
+    expect(screen.getByAltText("Auth.twoFactorSetup.qrCodeAlt")).toBeInTheDocument();
     expect(screen.getByLabelText("Auth.twoFactorSetup.codeLabel")).toBeInTheDocument();
     expect(screen.getByText("Auth.twoFactorSetup.submitButton")).toBeInTheDocument();
   });

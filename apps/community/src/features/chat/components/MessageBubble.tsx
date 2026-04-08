@@ -487,6 +487,7 @@ export function MessageBubble({
  * with author info, text content, images, video, and audio.
  */
 function SharedPostCard({ content, isOwnMessage }: { content: string; isOwnMessage: boolean }) {
+  const t = useTranslations("Chat");
   let payload: SharedPostPayload | null = null;
   try {
     payload = JSON.parse(content) as SharedPostPayload;
@@ -501,7 +502,7 @@ function SharedPostCard({ content, isOwnMessage }: { content: string; isOwnMessa
 
   return (
     <div className="space-y-2 min-w-[200px]">
-      <span className="text-xs opacity-70">Shared a post</span>
+      <span className="text-xs opacity-70">{t("messages.sharedPost")}</span>
       <div
         className={cn(
           "rounded-md border p-2.5 space-y-2",
@@ -582,7 +583,7 @@ function SharedPostCard({ content, isOwnMessage }: { content: string; isOwnMessa
           href={payload.postUrl}
           className="block text-xs underline opacity-70 hover:opacity-100 transition-opacity"
         >
-          View original post
+          {t("messages.viewOriginalPost")}
         </a>
       </div>
     </div>

@@ -95,7 +95,7 @@ function TopNav({ className }: { className?: string }) {
         </button>
 
         {/* Desktop nav links — hidden on mobile */}
-        <nav aria-label="Main navigation" className="hidden md:flex items-center gap-1 ml-6">
+        <nav aria-label={t("mainNavLabel")} className="hidden md:flex items-center gap-1 ml-6">
           {navLinks.map(({ key, href }) => (
             <Link
               key={key}
@@ -230,7 +230,7 @@ function TopNav({ className }: { className?: string }) {
       {mobileMenuOpen && (
         <nav
           id="mobile-nav"
-          aria-label="Main navigation"
+          aria-label={t("mainNavLabel")}
           className="md:hidden fixed inset-x-0 top-16 z-30 border-b border-border bg-background shadow-md"
         >
           <ul className="flex flex-col py-2">

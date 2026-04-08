@@ -28,6 +28,7 @@ export function JobDescriptionDisplay({
         onLanguageChange={setActiveLanguage}
         hasIgbo={!!descriptionIgboHtml}
       />
+      {/* ci-allow-unsanitized-html — descriptionHtml/descriptionIgboHtml are sanitized by server page before passing as props */}
       <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: activeHtml }} />
     </div>
   );

@@ -93,6 +93,7 @@ export function JobPostingPreview({ posting, company, isDraft }: JobPostingPrevi
           <h2 className="mb-2 text-lg font-semibold">{t("posting.requirements")}</h2>
           <div
             className="prose prose-sm max-w-none"
+            // ci-allow-unsanitized-html — preview only; requirements sanitized on the public job page
             dangerouslySetInnerHTML={{ __html: posting.requirements }}
           />
         </section>

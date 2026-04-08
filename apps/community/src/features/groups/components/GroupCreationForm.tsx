@@ -82,7 +82,7 @@ export function GroupCreationForm({ canCreate }: GroupCreationFormProps) {
           <div className="relative">
             <img
               src={bannerUrl}
-              alt="Banner preview"
+              alt={t("bannerPreviewAlt")}
               className="h-32 w-full rounded-md object-cover"
             />
             <button

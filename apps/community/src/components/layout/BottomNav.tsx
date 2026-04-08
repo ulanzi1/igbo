@@ -25,7 +25,7 @@ function BottomNav() {
   return (
     <nav
       role="navigation"
-      aria-label="Main navigation"
+      aria-label={t("mainNavLabel")}
       className="fixed bottom-0 left-0 right-0 z-50 flex h-14 items-stretch border-t border-border bg-background pb-[env(safe-area-inset-bottom)] md:hidden"
     >
       {tabs.map(({ key, icon: Icon, href }) => {

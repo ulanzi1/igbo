@@ -20,7 +20,12 @@
       "reviewQueue": "Usoro Nyocha",
       "reports": "Akụkọ",
       "settings": "Ntọala",
-      "myJobsEmpty": "Ọrụ ndị ị tinyere ga-apụta ebe a."
+      "myJobsEmpty": "Ọrụ ndị ị tinyere ga-apụta ebe a.",
+      "bottomNavAriaLabel": "Ụzọ n'ala",
+      "logoAriaLabel": "Ọdụ Ọrụ OBIGBO",
+      "portalNavAriaLabel": "Ụzọ ọdụ ọrụ",
+      "mobileNavAriaLabel": "Ụzọ ọdụ ọrụ n'ekwentị",
+      "openMenuAriaLabel": "Meghee ndepụta"
     },
     "role": {
       "seeker": "Onye Na-achọ Ọrụ",
@@ -221,7 +226,8 @@
       "emptyDescription": "Mepụta ntinye ọrụ gị nke mbụ ka ị malite igwu ndị na-achọ ọrụ.",
       "createFirst": "Mepụta Ọrụ Gị Nke Mbụ",
       "createdAt": "Emepụtara {date}",
-      "edit": "Dezie"
+      "edit": "Dezie",
+      "filterStatusAriaLabel": "Nyochaa site n'ọnọdụ"
     },
     "lifecycle": {
       "preview": "Lelee",
@@ -331,6 +337,77 @@
       "salaryRange": "${min} – ${max}",
       "jobDescription": "Nkọwa Ọrụ",
       "requirements": "Ihe A Chọrọ"
+    },
+    "admin": {
+      "reviewQueue": "Usoro Nyocha",
+      "pendingReviews": "Nyocha Na-atọ",
+      "reviewedToday": "Anyochara Taa",
+      "avgReviewTime": "Oge Nyocha Nkezi",
+      "decisionBreakdown": "Nkewa Mkpebi",
+      "approved": "Kwadoro",
+      "rejected": "Jụrụ",
+      "changesRequested": "Ajụrọ Mgbanwe",
+      "noAvgTime": "Adịghị",
+      "noPendingPostings": "Ọ dịghị ntinye na-atọ",
+      "emptyQueue": "Usoro dị ọcha",
+      "emptyQueueDescription": "Ọ dịghị ntinye ọrụ na-atọ nyocha.",
+      "company": "Ụlọ Ọrụ",
+      "employer": "Onye Ọrụ Na-enye",
+      "submitted": "Ezigara",
+      "revisionCount": "Nkwugharia",
+      "confidence": "Ntụkwasị Obi",
+      "screening": "Nlele",
+      "notScreened": "Enwebeghị nlele",
+      "firstTimeEmployer": "Onye Ọrụ Na-enye Nke Mbụ",
+      "highConfidence": "Ntụkwasị obi dị elu",
+      "mediumConfidence": "Ntụkwasị obi dị n'etiti",
+      "lowConfidence": "Ntụkwasị obi dị ala",
+      "verified": "Nyochara",
+      "unverified": "Anyochaghị",
+      "violations": "Mmegbu",
+      "reports": "Akụkọ",
+      "engagement": "Mmekọ",
+      "postingHistory": "Akụkọ Ntinye",
+      "totalPostings": "Ntinye Niile",
+      "approvalRate": "Ọnụego Nkwado",
+      "rejections": "Njụ",
+      "screeningPlaceholder": "Nlele ejikọtabeghị",
+      "reportsPlaceholder": "Ọ dịghị akụkọ e nyefere",
+      "noReports": "Ọ dịghị akụkọ",
+      "backToQueue": "Laghachi na Usoro",
+      "reviewDetail": "Nkọwa Nyocha",
+      "postingContent": "Ọdịnaya Ntinye",
+      "employerProfile": "Profaịlụ Onye Ọrụ Na-enye",
+      "filterByVerification": "Lọọ site na nyocha",
+      "filterByDate": "Lọọ site na ụbọchị",
+      "filterByRevisions": "Nkwugharia kacha",
+      "clearFilters": "Hichapụ nzacha",
+      "page": "Peeji",
+      "of": "nke",
+      "showing": "Na-egosi",
+      "results": "nsonaazụ",
+      "competitiveSalary": "Ụgwọ ọrụ asọmpi",
+      "requirementsLabel": "Ihe achọrọ",
+      "viewIgboDescription": "Lee nkọwa Igbo",
+      "previousPage": "Ibe gara aga",
+      "nextPage": "Ibe na-esote"
+    },
+    "chooseRole": {
+      "title": "Họrọ Ụzọ Gị",
+      "subtitle": "Kedu ka ị ga-esi jiri OBIGBO Job Portal?",
+      "employer": {
+        "title": "Onye Oru",
+        "description": "Tinye ọrụ ma chọta ndị nka n'obodo Igbo.",
+        "cta": "Malite dịka Onye Oru"
+      },
+      "seeker": {
+        "title": "Onye Na-achọ Ọrụ",
+        "description": "Chọpụta ohere ma jikọọ na ụlọ ọrụ Igbo.",
+        "cta": "Malite dịka Onye Na-achọ Ọrụ"
+      },
+      "addMoreLater": "Ị nwere ike ịtụkwasị ọrụ ndị ọzọ n'oge na-adịgide.",
+      "error": "Ihe adịghị mma. Biko nwaa ọzọ.",
+      "selecting": "Na-edozi akaụntụ gị..."
     }
   },
   "Shell": {

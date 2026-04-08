@@ -69,6 +69,7 @@ const mockPosting = {
   closedOutcome: null,
   closedAt: null,
   archivedAt: null,
+  revisionCount: 0,
   viewCount: 10,
   communityPostId: null,
   createdAt: new Date(),

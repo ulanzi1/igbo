@@ -77,7 +77,7 @@ export default async function MyJobsPage({ params, searchParams }: PageProps) {
       </div>
 
       {/* Status filter tabs */}
-      <nav aria-label="Filter by status" className="mb-6 flex flex-wrap gap-2">
+      <nav aria-label={t("filterStatusAriaLabel")} className="mb-6 flex flex-wrap gap-2">
         <Link
           href={`/${locale}/my-jobs`}
           className={`inline-flex items-center gap-1 rounded-md px-3 py-1.5 text-sm transition-colors ${
