@@ -524,7 +524,11 @@
       "trustSection": "Community trust",
       "notFound": "Seeker profile not found",
       "ariaLabelExperienceGroup": "Experience entry {index}",
-      "ariaLabelEducationGroup": "Education entry {index}"
+      "ariaLabelEducationGroup": "Education entry {index}",
+      "educationInField": "{degree} in {field}",
+      "skillsCapReached": "You can add up to 30 skills.",
+      "skillTooLong": "Skill must be 50 characters or fewer.",
+      "skillDuplicate": "That skill is already added."
     },
     "chooseRole": {
       "title": "Choose Your Path",

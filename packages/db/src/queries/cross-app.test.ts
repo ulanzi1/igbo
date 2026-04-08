@@ -3,6 +3,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("server-only", () => ({}));
 vi.mock("../index", () => ({ db: { select: vi.fn() } }));
+// cross-app.ts imports getCommunityVerificationStatus and getUserEngagementLevel from itself
+// (no external mocking needed — they call db.select which is already mocked)
 
 import { db } from "../index";
 import {
@@ -11,6 +13,8 @@ import {
   getUserEngagementLevel,
   getReferralChain,
   getCommunityTrustSignals,
+  getCommunityProfileForPrefill,
+  getSeekerTrustSignals,
 } from "./cross-app";
 
 beforeEach(() => {
@@ -263,5 +267,220 @@ describe("getCommunityTrustSignals", () => {
     });
     const result = await getCommunityTrustSignals("u-4");
     expect(result!.engagementLevel).toBe("high");
+  });
+});
+
+describe("getCommunityProfileForPrefill", () => {
+  it("returns displayName and bio when community profile exists", async () => {
+    const limit = vi.fn().mockResolvedValue([{ displayName: "Ngozi", bio: "I build things" }]);
+    const where = vi.fn().mockReturnValue({ limit });
+    const from = vi.fn().mockReturnValue({ where });
+    vi.mocked(db.select).mockReturnValue({ from } as unknown as ReturnType<typeof db.select>);
+
+    const result = await getCommunityProfileForPrefill("u-1");
+    expect(result.displayName).toBe("Ngozi");
+    expect(result.bio).toBe("I build things");
+  });
+
+  it("returns { null, null } when no community profile exists", async () => {
+    const limit = vi.fn().mockResolvedValue([]);
+    const where = vi.fn().mockReturnValue({ limit });
+    const from = vi.fn().mockReturnValue({ where });
+    vi.mocked(db.select).mockReturnValue({ from } as unknown as ReturnType<typeof db.select>);
+
+    const result = await getCommunityProfileForPrefill("u-missing");
+    expect(result.displayName).toBeNull();
+    expect(result.bio).toBeNull();
+  });
+
+  it("returns bio as null when profile has no bio", async () => {
+    const limit = vi.fn().mockResolvedValue([{ displayName: "Emeka", bio: null }]);
+    const where = vi.fn().mockReturnValue({ limit });
+    const from = vi.fn().mockReturnValue({ where });
+    vi.mocked(db.select).mockReturnValue({ from } as unknown as ReturnType<typeof db.select>);
+
+    const result = await getCommunityProfileForPrefill("u-2");
+    expect(result.displayName).toBe("Emeka");
+    expect(result.bio).toBeNull();
+  });
+});
+
+describe("getSeekerTrustSignals", () => {
+  it("returns null when user is missing", async () => {
+    const limit = vi.fn().mockResolvedValue([]);
+    const where = vi.fn().mockReturnValue({ limit });
+    const from = vi.fn().mockReturnValue({ where });
+    vi.mocked(db.select).mockReturnValue({ from } as unknown as ReturnType<typeof db.select>);
+
+    const result = await getSeekerTrustSignals("u-missing");
+    expect(result).toBeNull();
+  });
+
+  it("returns full shape when user + badge + points exist", async () => {
+    const createdAt = new Date("2024-01-01");
+    let callCount = 0;
+    vi.mocked(db.select).mockImplementation(() => {
+      callCount++;
+      if (callCount === 1) {
+        // authUsers query
+        const limit = vi.fn().mockResolvedValue([{ createdAt }]);
+        const where = vi.fn().mockReturnValue({ limit });
+        const from = vi.fn().mockReturnValue({ where });
+        return { from } as unknown as ReturnType<typeof db.select>;
+      } else if (callCount === 2) {
+        // communityProfiles displayName (getSeekerTrustSignals inner select)
+        const then = vi
+          .fn()
+          .mockImplementation((cb) => Promise.resolve([{ displayName: "Chidi" }]).then(cb));
+        const limit = vi.fn().mockReturnValue({ then });
+        const where = vi.fn().mockReturnValue({ limit });
+        const from = vi.fn().mockReturnValue({ where });
+        return { from } as unknown as ReturnType<typeof db.select>;
+      } else if (callCount === 3) {
+        // communityUserBadges (getCommunityVerificationStatus)
+        const limit = vi.fn().mockResolvedValue([{ badgeType: "blue", assignedAt: new Date() }]);
+        const where = vi.fn().mockReturnValue({ limit });
+        const from = vi.fn().mockReturnValue({ where });
+        return { from } as unknown as ReturnType<typeof db.select>;
+      } else if (callCount === 4) {
+        // platformPointsLedger (getUserEngagementLevel points aggregate)
+        const where = vi.fn().mockResolvedValue([{ total: "600" }]);
+        const from = vi.fn().mockReturnValue({ where });
+        return { from } as unknown as ReturnType<typeof db.select>;
+      } else {
+        // communityProfiles updatedAt (getUserEngagementLevel lastActive)
+        const limit = vi.fn().mockResolvedValue([{ updatedAt: new Date() }]);
+        const where = vi.fn().mockReturnValue({ limit });
+        const from = vi.fn().mockReturnValue({ where });
+        return { from } as unknown as ReturnType<typeof db.select>;
+      }
+    });
+
+    const result = await getSeekerTrustSignals("u-1");
+    expect(result).not.toBeNull();
+    expect(result!.isVerified).toBe(true);
+    expect(result!.badgeType).toBe("blue");
+    expect(result!.memberSince).toEqual(createdAt);
+    expect(result!.communityPoints).toBe(600);
+    expect(result!.engagementLevel).toBe("high");
+    expect(result!.displayName).toBe("Chidi");
+  });
+
+  it("memberDurationDays is non-negative and approximately correct", async () => {
+    const tenDaysAgo = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000);
+    let callCount = 0;
+    vi.mocked(db.select).mockImplementation(() => {
+      callCount++;
+      if (callCount === 1) {
+        const limit = vi.fn().mockResolvedValue([{ createdAt: tenDaysAgo }]);
+        const where = vi.fn().mockReturnValue({ limit });
+        const from = vi.fn().mockReturnValue({ where });
+        return { from } as unknown as ReturnType<typeof db.select>;
+      } else if (callCount === 2) {
+        const then = vi.fn().mockImplementation((cb) => Promise.resolve([]).then(cb));
+        const limit = vi.fn().mockReturnValue({ then });
+        const where = vi.fn().mockReturnValue({ limit });
+        const from = vi.fn().mockReturnValue({ where });
+        return { from } as unknown as ReturnType<typeof db.select>;
+      } else if (callCount === 3) {
+        const limit = vi.fn().mockResolvedValue([]);
+        const where = vi.fn().mockReturnValue({ limit });
+        const from = vi.fn().mockReturnValue({ where });
+        return { from } as unknown as ReturnType<typeof db.select>;
+      } else if (callCount === 4) {
+        const where = vi.fn().mockResolvedValue([{ total: "50" }]);
+        const from = vi.fn().mockReturnValue({ where });
+        return { from } as unknown as ReturnType<typeof db.select>;
+      } else {
+        const limit = vi.fn().mockResolvedValue([]);
+        const where = vi.fn().mockReturnValue({ limit });
+        const from = vi.fn().mockReturnValue({ where });
+        return { from } as unknown as ReturnType<typeof db.select>;
+      }
+    });
+
+    const result = await getSeekerTrustSignals("u-days");
+    expect(result).not.toBeNull();
+    expect(result!.memberDurationDays).toBeGreaterThanOrEqual(9);
+    expect(result!.memberDurationDays).toBeLessThanOrEqual(11);
+  });
+
+  it("communityPoints reflects getUserEngagementLevel.score", async () => {
+    const createdAt = new Date("2023-06-01");
+    let callCount = 0;
+    vi.mocked(db.select).mockImplementation(() => {
+      callCount++;
+      if (callCount === 1) {
+        const limit = vi.fn().mockResolvedValue([{ createdAt }]);
+        const where = vi.fn().mockReturnValue({ limit });
+        const from = vi.fn().mockReturnValue({ where });
+        return { from } as unknown as ReturnType<typeof db.select>;
+      } else if (callCount === 2) {
+        const then = vi.fn().mockImplementation((cb) => Promise.resolve([]).then(cb));
+        const limit = vi.fn().mockReturnValue({ then });
+        const where = vi.fn().mockReturnValue({ limit });
+        const from = vi.fn().mockReturnValue({ where });
+        return { from } as unknown as ReturnType<typeof db.select>;
+      } else if (callCount === 3) {
+        const limit = vi.fn().mockResolvedValue([]);
+        const where = vi.fn().mockReturnValue({ limit });
+        const from = vi.fn().mockReturnValue({ where });
+        return { from } as unknown as ReturnType<typeof db.select>;
+      } else if (callCount === 4) {
+        // 250 points → medium
+        const where = vi.fn().mockResolvedValue([{ total: "250" }]);
+        const from = vi.fn().mockReturnValue({ where });
+        return { from } as unknown as ReturnType<typeof db.select>;
+      } else {
+        const limit = vi.fn().mockResolvedValue([]);
+        const where = vi.fn().mockReturnValue({ limit });
+        const from = vi.fn().mockReturnValue({ where });
+        return { from } as unknown as ReturnType<typeof db.select>;
+      }
+    });
+
+    const result = await getSeekerTrustSignals("u-points");
+    expect(result!.communityPoints).toBe(250);
+    expect(result!.engagementLevel).toBe("medium");
+  });
+
+  it("badgeType is 'blue' when user has blue badge, null when no badge", async () => {
+    const createdAt = new Date("2023-01-01");
+    // Test null badge case
+    let callCount = 0;
+    vi.mocked(db.select).mockImplementation(() => {
+      callCount++;
+      if (callCount === 1) {
+        const limit = vi.fn().mockResolvedValue([{ createdAt }]);
+        const where = vi.fn().mockReturnValue({ limit });
+        const from = vi.fn().mockReturnValue({ where });
+        return { from } as unknown as ReturnType<typeof db.select>;
+      } else if (callCount === 2) {
+        const then = vi.fn().mockImplementation((cb) => Promise.resolve([]).then(cb));
+        const limit = vi.fn().mockReturnValue({ then });
+        const where = vi.fn().mockReturnValue({ limit });
+        const from = vi.fn().mockReturnValue({ where });
+        return { from } as unknown as ReturnType<typeof db.select>;
+      } else if (callCount === 3) {
+        // no badge
+        const limit = vi.fn().mockResolvedValue([]);
+        const where = vi.fn().mockReturnValue({ limit });
+        const from = vi.fn().mockReturnValue({ where });
+        return { from } as unknown as ReturnType<typeof db.select>;
+      } else if (callCount === 4) {
+        const where = vi.fn().mockResolvedValue([{ total: "0" }]);
+        const from = vi.fn().mockReturnValue({ where });
+        return { from } as unknown as ReturnType<typeof db.select>;
+      } else {
+        const limit = vi.fn().mockResolvedValue([]);
+        const where = vi.fn().mockReturnValue({ limit });
+        const from = vi.fn().mockReturnValue({ where });
+        return { from } as unknown as ReturnType<typeof db.select>;
+      }
+    });
+
+    const result = await getSeekerTrustSignals("u-no-badge");
+    expect(result!.badgeType).toBeNull();
+    expect(result!.isVerified).toBe(false);
   });
 });
