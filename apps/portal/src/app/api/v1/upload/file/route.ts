@@ -1,34 +1,16 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { auth } from "@igbo/auth";
 import { createFileUpload } from "@igbo/db/queries/file-uploads";
 import { ApiError } from "@/lib/api-error";
 import { withApiHandler } from "@/lib/api-middleware";
 import { successResponse } from "@/lib/api-response";
+import { getPortalS3Client } from "@/lib/s3-client";
 
 const ALLOWED_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
 
 const MAX_SIZE_BYTES = 5 * 1024 * 1024; // 5MB
-
-let _s3Client: S3Client | null = null;
-function getS3Client(): S3Client {
-  if (!_s3Client) {
-    // portal has no @/env module; follows @igbo/auth pattern of direct process.env reads
-    _s3Client = new S3Client({
-      endpoint: process.env.HETZNER_S3_ENDPOINT, // ci-allow-process-env
-      region: process.env.HETZNER_S3_REGION ?? "us-east-1", // ci-allow-process-env
-      credentials: {
-        accessKeyId: process.env.HETZNER_S3_ACCESS_KEY_ID ?? "", // ci-allow-process-env
-        secretAccessKey: process.env.HETZNER_S3_SECRET_ACCESS_KEY ?? "", // ci-allow-process-env
-      },
-      forcePathStyle: true,
-      requestChecksumCalculation: "WHEN_REQUIRED",
-      responseChecksumValidation: "WHEN_REQUIRED",
-    });
-  }
-  return _s3Client;
-}
 
 export const POST = withApiHandler(async (req: Request): Promise<Response> => {
   const session = await auth();
@@ -66,7 +48,7 @@ export const POST = withApiHandler(async (req: Request): Promise<Response> => {
 
   const buffer = Buffer.from(await file.arrayBuffer());
 
-  const s3Client = getS3Client();
+  const s3Client = getPortalS3Client();
   await s3Client.send(
     new PutObjectCommand({
       Bucket: process.env.HETZNER_S3_BUCKET, // ci-allow-process-env
