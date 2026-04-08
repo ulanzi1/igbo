@@ -178,10 +178,16 @@ No new structural debt added in Epic 1. Clean epic.
 
 ### Epic 2 Preparation Tasks
 
-**PREP-A: State Interaction Matrix + Terminal State Policy**
+**PREP-A: State Interaction Matrix + Terminal State Policy** ✅ **COMPLETED** (2026-04-08)
 - Owner: Winston (Architect), stress-tested by Charlie
 - Scope: Cross-state invariant table (job posting status × application status), `TERMINAL_STATES` formal set (`hired`, `rejected`, `withdrawn`), "no external event touches terminal applications" invariant, ownership boundaries between machines
 - Gate: Must exist before P-2.4 story spec
+- Deliverables:
+  - `docs/decisions/state-interaction-matrix.md` — authoritative decision doc (10 sections, Charlie stress-test walk recorded in §9)
+  - `packages/db/src/schema/portal-job-postings.ts` — `JOB_HARD_TERMINAL_STATES`, `JOB_SOFT_TERMINAL_STATES`, `isHardTerminalJobStatus`, `isSoftTerminalJobStatus`
+  - `packages/db/src/schema/portal-applications.ts` — `APPLICATION_TERMINAL_STATES`, `isTerminalApplicationStatus`, `canAcceptApplications`
+  - Drift-guard tests in both schema test files (retro Lesson 2: real enforcement)
+  - TD-1 documented: `rejected` is NOT terminal for job postings (revision loop)
 
 **PREP-B: Async Safety Requirements in Playbook**
 - Owner: Charlie (Senior Dev), validated by Dana
@@ -217,7 +223,7 @@ No new structural debt added in Epic 1. Clean epic.
 |----------|------|-------|----------|
 | 1 | **AI-7: Bundled implicit requirements fix** | Bob/Alice/Charlie/Dana | Blocks P-2.1 |
 | 2 | **PREP-D: Portal Role Selection** | Charlie | Blocks P-2.1 |
-| 3 | **PREP-A: State interaction matrix** | Winston + Charlie | Blocks P-2.4 |
+| 3 | **PREP-A: State interaction matrix** ✅ | Winston + Charlie | Blocks P-2.4 — **DONE 2026-04-08** |
 | 4 | **PREP-B: Async safety requirements** | Charlie + Dana | Blocks P-2.5A |
 | 5 | **PREP-C: Epic 3 stories created** | Bob + Alice | Blocks P-2.5A |
 | 6 | **SPIKE-1: CV upload** | Elena | Recommended before P-2.2 |
