@@ -250,9 +250,9 @@ development_status:
   # Portal Epic 1 — Retro Action Items
   portal-epic-1-ai-7-bundled-implicit-requirements-fix: done       # Story template + Playbook + CI enforcement — live CI validation confirmed 2026-04-06
   portal-epic-1-ai-8-typescript-gotchas-playbook: backlog          # Zod v4, JSONB, Tiptap mock, useSession patterns
-  portal-epic-1-prep-a-state-interaction-matrix: backlog           # Terminal state policy + cross-state invariants (blocks P-2.4)
-  portal-epic-1-prep-b-async-safety-requirements: backlog          # Idempotency as requirement, dedup keys (blocks P-2.5A)
-  portal-epic-1-prep-c-epic-3-stories-created: backlog             # P-3.1, P-3.2, P-3.3 created for parallel track (blocks P-2.5A)
+  portal-epic-1-prep-a-state-interaction-matrix: done           # Terminal state policy + cross-state invariants (blocks P-2.4)
+  portal-epic-1-prep-b-async-safety-requirements: done             # Playbook §8: idempotency requirement, dedup keys, 3 mandatory tests, email degradation, upload states, observability (2026-04-08)
+  portal-epic-1-prep-c-epic-3-stories-created: done             # P-3.1, P-3.2, P-3.3 created for parallel track (blocks P-2.5A)
   portal-epic-1-prep-d-portal-role-selection: done                  # "Choose Your Path" — self-service role selection (blocks P-2.1)
   portal-epic-1-spike-1-cv-upload: backlog                          # PDF/DOCX through pipeline (recommended before P-2.2)
   portal-epic-1-spike-2-ats-dnd: backlog                            # Drag-and-drop kanban testability (recommended before P-2.9)
