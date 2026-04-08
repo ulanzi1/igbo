@@ -524,7 +524,11 @@
       "trustSection": "Ntụkwasị obi obodo",
       "notFound": "Ahụghị profaịlụ onye na-achọ ọrụ",
       "ariaLabelExperienceGroup": "Ntinye ahụmịhe {index}",
-      "ariaLabelEducationGroup": "Ntinye agụmakwụkwọ {index}"
+      "ariaLabelEducationGroup": "Ntinye agụmakwụkwọ {index}",
+      "educationInField": "{degree} na {field}",
+      "skillsCapReached": "Ị nwere ike itinye ruo nkà 30.",
+      "skillTooLong": "Nkà ga-abụ mkpụrụedemede 50 ma ọ bụ ihe dị ala.",
+      "skillDuplicate": "Etinyela nkà ahụ."
     },
     "chooseRole": {
       "title": "Họrọ Ụzọ Gị",
