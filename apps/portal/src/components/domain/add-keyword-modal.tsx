@@ -1,0 +1,161 @@
+"use client";
+
+import { useState } from "react";
+import { useTranslations } from "next-intl";
+import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import type { ScreeningKeywordCategory } from "@igbo/db/schema/portal-screening-keywords";
+
+interface AddKeywordModalProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSuccess: () => void;
+}
+
+const CATEGORIES: ScreeningKeywordCategory[] = ["discriminatory", "illegal", "scam", "other"];
+
+export function AddKeywordModal({ open, onOpenChange, onSuccess }: AddKeywordModalProps) {
+  const t = useTranslations("Portal.admin");
+  const [phrase, setPhrase] = useState("");
+  const [category, setCategory] = useState<ScreeningKeywordCategory | "">("");
+  const [notes, setNotes] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  function categoryLabel(cat: ScreeningKeywordCategory): string {
+    const map: Record<ScreeningKeywordCategory, string> = {
+      discriminatory: t("blocklistCategoryDiscriminatory"),
+      illegal: t("blocklistCategoryIllegal"),
+      scam: t("blocklistCategoryScam"),
+      other: t("blocklistCategoryOther"),
+    };
+    return map[cat];
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!phrase.trim() || !category) return;
+
+    setLoading(true);
+    try {
+      const res = await fetch("/api/v1/admin/screening/keywords", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phrase: phrase.trim(), category, notes: notes.trim() || undefined }),
+      });
+
+      if (res.status === 409) {
+        toast.error(t("blocklistDuplicate"));
+        return;
+      }
+      if (!res.ok) {
+        toast.error(t("blocklistError"));
+        return;
+      }
+
+      toast.success(t("blocklistAddSuccess"));
+      setPhrase("");
+      setCategory("");
+      setNotes("");
+      onSuccess();
+      onOpenChange(false);
+    } catch {
+      toast.error(t("blocklistError"));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const isValid = phrase.trim().length >= 2 && category !== "";
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent aria-describedby="add-keyword-retroactive-warning">
+        <DialogHeader>
+          <DialogTitle>{t("blocklistAddTitle")}</DialogTitle>
+          <DialogDescription id="add-keyword-retroactive-warning">
+            {t("blocklistRetroactiveWarning")}
+          </DialogDescription>
+        </DialogHeader>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="add-phrase">{t("blocklistPhrase")}</Label>
+            <Input
+              id="add-phrase"
+              value={phrase}
+              onChange={(e) => setPhrase(e.target.value)}
+              placeholder={t("blocklistPhrasePlaceholder")}
+              data-testid="add-phrase-input"
+              autoFocus
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="add-category">{t("blocklistCategory")}</Label>
+            <Select
+              value={category}
+              onValueChange={(v) => setCategory(v as ScreeningKeywordCategory)}
+            >
+              <SelectTrigger id="add-category" data-testid="add-category-select">
+                <SelectValue placeholder={t("blocklistCategory")} />
+              </SelectTrigger>
+              <SelectContent>
+                {CATEGORIES.map((cat) => (
+                  <SelectItem key={cat} value={cat}>
+                    {categoryLabel(cat)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="add-notes">{t("blocklistNotes")}</Label>
+            <Textarea
+              id="add-notes"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder={t("blocklistNotesPlaceholder")}
+              rows={3}
+              data-testid="add-notes-textarea"
+            />
+          </div>
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              disabled={loading}
+            >
+              {t("cancel")}
+            </Button>
+            <Button type="submit" disabled={!isValid || loading} data-testid="add-keyword-submit">
+              {loading ? t("submitting") : t("blocklistAdd")}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export function AddKeywordModalSkeleton() {}

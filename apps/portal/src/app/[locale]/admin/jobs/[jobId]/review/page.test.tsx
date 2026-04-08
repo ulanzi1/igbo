@@ -25,6 +25,9 @@ vi.mock("@/components/domain/review-action-panel", () => ({
   ReviewActionPanel: () => null,
   ReviewActionPanelSkeleton: () => null,
 }));
+vi.mock("@/components/domain/screening-results-panel", () => ({
+  ScreeningResultsPanel: () => null,
+}));
 
 import { auth } from "@igbo/auth";
 import { redirect } from "next/navigation";
@@ -55,6 +58,9 @@ const mockDetail = {
     revisionCount: 0,
     viewCount: 0,
     communityPostId: null,
+    screeningStatus: null,
+    screeningResultJson: null,
+    screeningCheckedAt: null,
     createdAt: new Date("2026-01-15"),
     updatedAt: new Date("2026-01-15"),
   },

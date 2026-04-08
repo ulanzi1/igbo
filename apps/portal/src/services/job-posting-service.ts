@@ -12,7 +12,9 @@ import type { PortalJobStatus, PortalClosedOutcome } from "@igbo/db/schema/porta
 import { db } from "@igbo/db";
 import { and, eq } from "drizzle-orm";
 import { assertApprovalIntegrity } from "@/lib/approval-integrity";
-import { checkFastLaneEligibility } from "@/services/admin-review-service";
+import { checkFastLaneEligibility, approvePosting } from "@/services/admin-review-service";
+import { runScreening } from "@/services/screening";
+import { SYSTEM_USER_ID } from "@/lib/portal-constants";
 
 const VALID_TRANSITIONS: Record<PortalJobStatus, PortalJobStatus[]> = {
   draft: ["pending_review"],
@@ -293,20 +295,46 @@ export async function submitForReview(postingId: string, companyId: string): Pro
     });
   }
 
-  // AC-7 Fast-Lane Auto-Approval — wired but currently always ineligible
-  // (screening pipeline lands in P-3.3). When eligible, P-3.3 will replace
-  // this 503 with a direct call to `approvePosting(postingId, SYSTEM_USER_ID)`.
-  const fastLane = await checkFastLaneEligibility(postingId);
-  if (fastLane.eligible) {
+  // Run the screening pipeline — returns a structured result with flags
+  const screeningResult = await runScreening({
+    title: posting.title,
+    descriptionHtml: posting.descriptionHtml,
+    descriptionIgboHtml: posting.descriptionIgboHtml,
+    employmentType: posting.employmentType,
+    salaryMin: posting.salaryMin,
+    salaryMax: posting.salaryMax,
+    salaryCompetitiveOnly: posting.salaryCompetitiveOnly,
+  });
+
+  // Persist screening result + status flip with a race-safe guard.
+  // The WHERE clause verifies the row is still in its pre-read state; .returning()
+  // tells us whether we actually won the race. If not, another request already
+  // transitioned this posting — throw 409 instead of silently proceeding to fast-lane.
+  const updated = await db
+    .update(portalJobPostings)
+    .set({
+      status: "pending_review",
+      screeningStatus: screeningResult.status,
+      screeningResultJson: screeningResult,
+      screeningCheckedAt: new Date(screeningResult.checked_at),
+      updatedAt: new Date(),
+    })
+    .where(and(eq(portalJobPostings.id, postingId), eq(portalJobPostings.status, posting.status)))
+    .returning({ id: portalJobPostings.id });
+
+  if (updated.length === 0) {
     throw new ApiError({
-      title: "Fast-lane auto-approval is not yet enabled",
-      status: 503,
-      detail:
-        "Fast-lane criteria met but the screening pipeline (P-3.3) has not shipped. Posting will be queued for manual review.",
+      title: "Posting was modified by another request",
+      status: 409,
+      extensions: { code: PORTAL_ERRORS.INVALID_STATUS_TRANSITION },
     });
   }
 
-  await updateJobPostingStatus(postingId, "pending_review");
+  // Fast-Lane Auto-Approval: check after screening persisted (reads new screeningStatus)
+  const fastLane = await checkFastLaneEligibility(postingId);
+  if (fastLane.eligible) {
+    await approvePosting(postingId, SYSTEM_USER_ID, { fastLane: true });
+  }
 }
 
 /**

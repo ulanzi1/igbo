@@ -28,12 +28,23 @@ vi.mock("@/lib/approval-integrity", () => ({
   assertApprovalIntegrity: vi.fn().mockResolvedValue(undefined),
 }));
 
-// Mock fast-lane eligibility — submitForReview wires this in (AC-7).
-// Default: ineligible, so submitForReview proceeds to pending_review.
+// Mock fast-lane eligibility + approvePosting — submitForReview wires these in.
+// Default: ineligible so submitForReview stays pending_review (no auto-approve).
 vi.mock("@/services/admin-review-service", () => ({
   checkFastLaneEligibility: vi
     .fn()
     .mockResolvedValue({ eligible: false, reasons: ["test default"] }),
+  approvePosting: vi.fn().mockResolvedValue(undefined),
+}));
+
+// Mock screening pipeline — default: pass (no flags)
+vi.mock("@/services/screening", () => ({
+  runScreening: vi.fn().mockResolvedValue({
+    status: "pass",
+    flags: [],
+    checked_at: "2026-04-01T10:00:00Z",
+    rule_version: 5,
+  }),
 }));
 
 import { db } from "@igbo/db";
@@ -44,7 +55,8 @@ import {
   updateJobPosting,
 } from "@igbo/db/queries/portal-job-postings";
 import { assertApprovalIntegrity } from "@/lib/approval-integrity";
-import { checkFastLaneEligibility } from "@/services/admin-review-service";
+import { checkFastLaneEligibility, approvePosting } from "@/services/admin-review-service";
+import { runScreening } from "@/services/screening";
 import {
   canEditPosting,
   transitionStatus,
@@ -307,9 +319,54 @@ describe("closePosting", () => {
 });
 
 describe("submitForReview", () => {
-  it("submits a complete draft for review", async () => {
+  let capturedSet: Record<string, unknown> | null = null;
+
+  beforeEach(() => {
+    capturedSet = null;
+    const returning = vi.fn().mockResolvedValue([{ id: "posting-1" }]);
+    const where = vi.fn().mockReturnValue({ returning });
+    const set = vi.fn((payload: Record<string, unknown>) => {
+      capturedSet = payload;
+      return { where };
+    });
+    vi.mocked(db.update).mockReturnValue({ set } as unknown as ReturnType<typeof db.update>);
+  });
+
+  it("submits a complete draft for review — runs screening pipeline", async () => {
     await expect(submitForReview("posting-1", "company-1")).resolves.toBeUndefined();
-    expect(updateJobPostingStatus).toHaveBeenCalledWith("posting-1", "pending_review");
+    expect(runScreening).toHaveBeenCalledWith(
+      expect.objectContaining({ title: "Software Engineer" }),
+    );
+  });
+
+  it("persists screening status, result JSON, and checked_at via race-safe .returning() update", async () => {
+    await submitForReview("posting-1", "company-1");
+    expect(db.update).toHaveBeenCalled();
+    expect(capturedSet).toMatchObject({
+      status: "pending_review",
+      screeningStatus: "pass",
+      screeningResultJson: expect.objectContaining({
+        status: "pass",
+        flags: [],
+        rule_version: 5,
+      }),
+      screeningCheckedAt: expect.any(Date),
+      updatedAt: expect.any(Date),
+    });
+  });
+
+  it("throws 409 when race is lost (row already transitioned — .returning() empty)", async () => {
+    const returning = vi.fn().mockResolvedValue([]); // empty = another request already updated
+    const where = vi.fn().mockReturnValue({ returning });
+    const set = vi.fn().mockReturnValue({ where });
+    vi.mocked(db.update).mockReturnValue({ set } as unknown as ReturnType<typeof db.update>);
+
+    await expect(submitForReview("posting-1", "company-1")).rejects.toMatchObject({
+      status: 409,
+    });
+    // Fast-lane must NOT run when race was lost
+    expect(checkFastLaneEligibility).not.toHaveBeenCalled();
+    expect(approvePosting).not.toHaveBeenCalled();
   });
 
   it("throws 422 when required fields missing (no description)", async () => {
@@ -335,20 +392,34 @@ describe("submitForReview", () => {
       adminFeedbackComment: "Please fix the description",
     } as never);
     await expect(submitForReview("posting-1", "company-1")).resolves.toBeUndefined();
-    expect(updateJobPostingStatus).toHaveBeenCalledWith("posting-1", "pending_review");
+    // screening pipeline runs
+    expect(runScreening).toHaveBeenCalled();
   });
 
-  it("AC-7: consults checkFastLaneEligibility on every submit", async () => {
+  it("AC-7: consults checkFastLaneEligibility after screening persisted", async () => {
     await submitForReview("posting-1", "company-1");
     expect(checkFastLaneEligibility).toHaveBeenCalledWith("posting-1");
   });
 
-  it("AC-7: throws 503 when fast-lane criteria are met (P-3.3 not yet shipped)", async () => {
+  it("AC-7: fast-lane eligible → calls approvePosting with SYSTEM_USER_ID", async () => {
     vi.mocked(checkFastLaneEligibility).mockResolvedValueOnce({ eligible: true, reasons: [] });
 
-    await expect(submitForReview("posting-1", "company-1")).rejects.toMatchObject({ status: 503 });
-    // Should not have transitioned to pending_review on the eligible path.
-    expect(updateJobPostingStatus).not.toHaveBeenCalled();
+    await expect(submitForReview("posting-1", "company-1")).resolves.toBeUndefined();
+    expect(approvePosting).toHaveBeenCalledWith(
+      "posting-1",
+      "00000000-0000-0000-0000-000000000001",
+      { fastLane: true },
+    );
+  });
+
+  it("AC-7: fast-lane ineligible → approvePosting NOT called", async () => {
+    vi.mocked(checkFastLaneEligibility).mockResolvedValueOnce({
+      eligible: false,
+      reasons: ["Screening not passed"],
+    });
+
+    await submitForReview("posting-1", "company-1");
+    expect(approvePosting).not.toHaveBeenCalled();
   });
 
   it("throws 409 when not a draft or rejected", async () => {
