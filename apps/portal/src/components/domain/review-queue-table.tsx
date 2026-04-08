@@ -224,7 +224,7 @@ export function ReviewQueueTable({ initialItems, initialTotal }: ReviewQueueTabl
           <Table aria-label={t("reviewQueue")}>
             <TableHeader>
               <TableRow>
-                <TableHead>Title</TableHead>
+                <TableHead>{t("title")}</TableHead>
                 <TableHead>{t("company")}</TableHead>
                 <TableHead>{t("employer")}</TableHead>
                 <TableHead>{t("submitted")}</TableHead>
