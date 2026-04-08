@@ -428,6 +428,13 @@
       "when": 1708000060000,
       "tag": "0060_portal_seeker_preferences_cv_visibility",
       "breakpoints": true
+    },
+    {
+      "idx": 61,
+      "version": "7",
+      "when": 1708000061000,
+      "tag": "0061_seeker_onboarding",
+      "breakpoints": true
     }
   ]
 }

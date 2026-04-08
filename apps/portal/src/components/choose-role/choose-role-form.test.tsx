@@ -187,6 +187,24 @@ describe("ChooseRoleForm", () => {
     });
   });
 
+  // P-2.3: JOB_SEEKER redirects to /onboarding/seeker (was /jobs)
+  it("redirects JOB_SEEKER to /onboarding/seeker after role selection", async () => {
+    const user = userEvent.setup();
+    vi.mocked(global.fetch).mockResolvedValue({
+      ok: true,
+      json: async () => ({ data: { role: "JOB_SEEKER", activePortalRole: "JOB_SEEKER" } }),
+    } as Response);
+    mockUpdate.mockResolvedValue(undefined);
+
+    render(<ChooseRoleForm locale="en" />);
+    await user.click(screen.getByRole("button", { name: /Get Started as Seeker/ }));
+
+    await waitFor(() => {
+      expect(mockUpdate).toHaveBeenCalledWith({ activePortalRole: "JOB_SEEKER" });
+      expect(mockPush).toHaveBeenCalledWith("/en/onboarding/seeker");
+    });
+  });
+
   it("axe-core accessibility", async () => {
     const { container } = render(<ChooseRoleForm locale="en" />);
     const results = await axe(container);
