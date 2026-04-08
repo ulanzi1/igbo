@@ -35,6 +35,7 @@ const mockProfile = {
   consentEmployerView: false,
   consentMatchingChangedAt: null,
   consentEmployerViewChangedAt: null,
+  onboardingCompletedAt: null,
   createdAt: new Date(),
   updatedAt: new Date(),
 };

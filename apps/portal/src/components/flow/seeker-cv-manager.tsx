@@ -18,9 +18,10 @@ const MAX_SIZE_BYTES = 10 * 1024 * 1024;
 
 interface SeekerCvManagerProps {
   initialCvs?: CvWithFile[];
+  onUploadSuccess?: () => void;
 }
 
-export function SeekerCvManager({ initialCvs = [] }: SeekerCvManagerProps) {
+export function SeekerCvManager({ initialCvs = [], onUploadSuccess }: SeekerCvManagerProps) {
   const t = useTranslations("Portal.seeker");
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -68,6 +69,7 @@ export function SeekerCvManager({ initialCvs = [] }: SeekerCvManagerProps) {
       setCvs((prev) => [...prev, body.data]);
       setUploadLabel("");
       toast.success(t("cvUploadSuccess"));
+      onUploadSuccess?.();
     } catch {
       toast.error(t("cvUploadError"));
     } finally {

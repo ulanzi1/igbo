@@ -167,4 +167,35 @@ describe("SeekerCvManager", () => {
     const results = await axe(container);
     expect(results).toHaveNoViolations();
   });
+
+  // P-2.3: onUploadSuccess callback
+  it("calls onUploadSuccess after successful upload", async () => {
+    const newCv = { ...mockCv, id: "cv-new", isDefault: false };
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({ data: newCv }),
+    });
+    const onUploadSuccess = vi.fn();
+
+    render(<SeekerCvManager onUploadSuccess={onUploadSuccess} />);
+
+    // Set the label (required before uploading)
+    const labelInput = screen.getByLabelText(/cvLabelLabel/i);
+    await userEvent.type(labelInput, "My CV");
+
+    // Simulate file input change (the actual file input is sr-only/aria-hidden)
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+    const file = new File(["resume content"], "resume.pdf", { type: "application/pdf" });
+    Object.defineProperty(fileInput, "files", { value: [file], configurable: true });
+    const { fireEvent: fe } = await import("@testing-library/react");
+    fe.change(fileInput);
+
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalledWith(
+        "/api/v1/seekers/me/cvs",
+        expect.objectContaining({ method: "POST" }),
+      );
+      expect(onUploadSuccess).toHaveBeenCalledTimes(1);
+    });
+  });
 });

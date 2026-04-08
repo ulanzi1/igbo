@@ -3,6 +3,7 @@ import { getTranslations } from "next-intl/server";
 import { redirect } from "next/navigation";
 import { auth } from "@igbo/auth";
 import { getCompanyByOwnerId } from "@igbo/db/queries/portal-companies";
+import { getSeekerProfileByUserId } from "@igbo/db/queries/portal-seeker-profiles";
 import type { Session } from "next-auth";
 
 interface PageProps {
@@ -29,6 +30,14 @@ export default async function PortalHomePage({ params }: PageProps) {
     const profile = await getCompanyByOwnerId(session.user.id);
     if (!profile || !profile.onboardingCompletedAt) {
       redirect(`/${locale}/onboarding`);
+    }
+  }
+
+  // Seeker onboarding redirect logic
+  if (session?.user && activePortalRole === "JOB_SEEKER") {
+    const seekerProfile = await getSeekerProfileByUserId(session.user.id);
+    if (!seekerProfile || !seekerProfile.onboardingCompletedAt) {
+      redirect(`/${locale}/onboarding/seeker`);
     }
   }
 

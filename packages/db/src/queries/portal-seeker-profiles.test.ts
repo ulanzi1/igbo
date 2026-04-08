@@ -15,6 +15,7 @@ import {
   updateSeekerVisibility,
   updateSeekerConsent,
   isSeekerEligibleForMatching,
+  markSeekerOnboardingComplete,
 } from "./portal-seeker-profiles";
 
 const mockProfile = {
@@ -40,6 +41,7 @@ const mockProfile = {
       graduationYear: 2020,
     },
   ],
+  onboardingCompletedAt: null,
   createdAt: new Date("2024-01-01"),
   updatedAt: new Date("2024-01-01"),
 };
@@ -351,6 +353,43 @@ describe("updateSeekerConsent", () => {
       return cb(txStub);
     });
     const result = await updateSeekerConsent("non-existent", { consentMatching: true }, []);
+    expect(result).toBeNull();
+  });
+});
+
+// ─── P-2.3 additions ──────────────────────────────────────────────────────────
+
+describe("markSeekerOnboardingComplete", () => {
+  it("sets onboardingCompletedAt and returns updated row", async () => {
+    const completed = { ...mockProfile, onboardingCompletedAt: new Date(), updatedAt: new Date() };
+    makeUpdateMock(completed);
+    const result = await markSeekerOnboardingComplete("seeker-uuid");
+    expect(result).not.toBeNull();
+    expect(result!.onboardingCompletedAt).toBeInstanceOf(Date);
+  });
+
+  it("is idempotent — returns null when already marked (WHERE IS NULL guard)", async () => {
+    // When onboarding already completed, WHERE IS NULL guard means no rows matched → null
+    makeUpdateMock(undefined);
+    const result = await markSeekerOnboardingComplete("seeker-uuid");
+    expect(result).toBeNull();
+  });
+
+  it("returns null for non-existent profileId", async () => {
+    makeUpdateMock(undefined);
+    const result = await markSeekerOnboardingComplete("non-existent-id");
+    expect(result).toBeNull();
+  });
+
+  it("does not overwrite existing onboardingCompletedAt — update targets IS NULL rows only", async () => {
+    // The WHERE clause filters to IS NULL; already-stamped profiles return no rows
+    const alreadyDone = {
+      ...mockProfile,
+      onboardingCompletedAt: new Date("2024-01-01"),
+    };
+    // Simulate DB returning nothing because the WHERE filter matched nothing
+    makeUpdateMock(undefined);
+    const result = await markSeekerOnboardingComplete(alreadyDone.id);
     expect(result).toBeNull();
   });
 });

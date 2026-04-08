@@ -52,3 +52,24 @@ describe("OnboardingStepIndicatorSkeleton", () => {
     expect(container.firstChild).toBeTruthy();
   });
 });
+
+// ─── P-2.3: stepTitles prop ───────────────────────────────────────────────────
+describe("OnboardingStepIndicator — stepTitles prop", () => {
+  it("renders with custom stepTitles (seeker use case)", () => {
+    const stepTitles = ["Create your profile", "Preferences & CV", "You're ready!"];
+    renderWithPortalProviders(
+      <OnboardingStepIndicator currentStep={1} completedSteps={[]} stepTitles={stepTitles} />,
+    );
+    expect(screen.getByText("Create your profile")).toBeTruthy();
+    expect(screen.getByText("Preferences & CV")).toBeTruthy();
+    expect(screen.getByText("You're ready!")).toBeTruthy();
+  });
+
+  it("renders with default i18n keys when stepTitles not provided (employer use case)", () => {
+    renderWithPortalProviders(<OnboardingStepIndicator currentStep={1} completedSteps={[]} />);
+    // When no stepTitles provided, falls back to t(labelKey) — which in tests renders the key via i18n mock
+    // The test just confirms it renders without crash (employer flow unchanged)
+    const items = screen.getAllByRole("listitem");
+    expect(items).toHaveLength(3);
+  });
+});
