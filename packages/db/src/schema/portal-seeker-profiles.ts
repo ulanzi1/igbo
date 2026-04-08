@@ -1,5 +1,14 @@
 import "server-only";
-import { pgTable, uuid, varchar, text, jsonb, uniqueIndex, timestamp } from "drizzle-orm/pg-core";
+import {
+  pgTable,
+  uuid,
+  varchar,
+  text,
+  jsonb,
+  boolean,
+  uniqueIndex,
+  timestamp,
+} from "drizzle-orm/pg-core";
 import { authUsers } from "./auth-users";
 
 export const portalSeekerProfiles = pgTable(
@@ -14,6 +23,14 @@ export const portalSeekerProfiles = pgTable(
     skills: text("skills").array().notNull().default([]),
     experienceJson: jsonb("experience_json").notNull().default([]),
     educationJson: jsonb("education_json").notNull().default([]),
+    // Added in P-2.2 migration 0060
+    visibility: varchar("visibility", { length: 16 }).notNull().default("passive"),
+    consentMatching: boolean("consent_matching").notNull().default(false),
+    consentEmployerView: boolean("consent_employer_view").notNull().default(false),
+    consentMatchingChangedAt: timestamp("consent_matching_changed_at", { withTimezone: true }),
+    consentEmployerViewChangedAt: timestamp("consent_employer_view_changed_at", {
+      withTimezone: true,
+    }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },

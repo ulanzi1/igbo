@@ -2,7 +2,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("server-only", () => ({}));
-vi.mock("../index", () => ({ db: { select: vi.fn(), insert: vi.fn(), update: vi.fn() } }));
+vi.mock("../index", () => ({
+  db: { select: vi.fn(), insert: vi.fn(), update: vi.fn(), transaction: vi.fn() },
+}));
 
 import { db } from "../index";
 import {
@@ -10,6 +12,9 @@ import {
   getSeekerProfileByUserId,
   getSeekerProfileById,
   updateSeekerProfile,
+  updateSeekerVisibility,
+  updateSeekerConsent,
+  isSeekerEligibleForMatching,
 } from "./portal-seeker-profiles";
 
 const mockProfile = {
@@ -182,5 +187,199 @@ describe("updateSeekerProfile", () => {
     makeUpdateMock(updated);
     const result = await updateSeekerProfile("seeker-uuid", { skills });
     expect(result!.skills).toEqual(skills);
+  });
+});
+
+// ─── P-2.2 additions ──────────────────────────────────────────────────────────
+
+const mockProfileV2 = {
+  ...mockProfile,
+  visibility: "passive" as const,
+  consentMatching: false,
+  consentEmployerView: false,
+  consentMatchingChangedAt: null,
+  consentEmployerViewChangedAt: null,
+};
+
+describe("updateSeekerVisibility", () => {
+  it("updates visibility and returns updated row", async () => {
+    const updated = { ...mockProfileV2, visibility: "active" as const };
+    makeUpdateMock(updated);
+    const result = await updateSeekerVisibility("user-123", "active");
+    expect(result).not.toBeNull();
+    expect(result!.visibility).toBe("active");
+  });
+
+  it("cycles active → passive → hidden", async () => {
+    const hidden = { ...mockProfileV2, visibility: "hidden" as const };
+    makeUpdateMock(hidden);
+    const result = await updateSeekerVisibility("user-123", "hidden");
+    expect(result!.visibility).toBe("hidden");
+  });
+
+  it("returns null for missing userId", async () => {
+    makeUpdateMock(undefined);
+    const result = await updateSeekerVisibility("non-existent", "active");
+    expect(result).toBeNull();
+  });
+});
+
+describe("updateSeekerConsent", () => {
+  it("updates consentMatching only and sets consentMatchingChangedAt", async () => {
+    const changedAt = new Date();
+    const updated = {
+      ...mockProfileV2,
+      consentMatching: true,
+      consentMatchingChangedAt: changedAt,
+    };
+    vi.mocked(db.transaction).mockImplementation(async (cb: any) => {
+      const txStub = {
+        select: vi.fn().mockReturnValue({
+          from: vi.fn().mockReturnValue({
+            where: vi.fn().mockReturnValue({
+              limit: vi.fn().mockResolvedValue([mockProfileV2]),
+            }),
+          }),
+        }),
+        update: vi.fn().mockReturnValue({
+          set: vi.fn().mockReturnValue({
+            where: vi.fn().mockReturnValue({
+              returning: vi.fn().mockResolvedValue([updated]),
+            }),
+          }),
+        }),
+        insert: vi.fn().mockReturnValue({
+          values: vi.fn().mockResolvedValue(undefined),
+        }),
+      };
+      return cb(txStub);
+    });
+    const result = await updateSeekerConsent("user-123", { consentMatching: true }, []);
+    expect(result).not.toBeNull();
+    expect(result!.consentMatching).toBe(true);
+    expect(result!.consentMatchingChangedAt).toBeDefined();
+  });
+
+  it("updates both consents in one call", async () => {
+    const updated = {
+      ...mockProfileV2,
+      consentMatching: true,
+      consentEmployerView: true,
+      consentMatchingChangedAt: new Date(),
+      consentEmployerViewChangedAt: new Date(),
+    };
+    vi.mocked(db.transaction).mockImplementation(async (cb: any) => {
+      const txStub = {
+        select: vi.fn().mockReturnValue({
+          from: vi.fn().mockReturnValue({
+            where: vi.fn().mockReturnValue({
+              limit: vi.fn().mockResolvedValue([mockProfileV2]),
+            }),
+          }),
+        }),
+        update: vi.fn().mockReturnValue({
+          set: vi.fn().mockReturnValue({
+            where: vi.fn().mockReturnValue({
+              returning: vi.fn().mockResolvedValue([updated]),
+            }),
+          }),
+        }),
+        insert: vi.fn().mockReturnValue({
+          values: vi.fn().mockResolvedValue(undefined),
+        }),
+      };
+      return cb(txStub);
+    });
+    const result = await updateSeekerConsent(
+      "user-123",
+      { consentMatching: true, consentEmployerView: true },
+      [],
+    );
+    expect(result!.consentMatching).toBe(true);
+    expect(result!.consentEmployerView).toBe(true);
+  });
+
+  it("inserts audit entry in the same transaction", async () => {
+    let insertCalledWith: unknown[] = [];
+    vi.mocked(db.transaction).mockImplementation(async (cb: any) => {
+      const txStub = {
+        select: vi.fn().mockReturnValue({
+          from: vi.fn().mockReturnValue({
+            where: vi.fn().mockReturnValue({
+              limit: vi.fn().mockResolvedValue([mockProfileV2]),
+            }),
+          }),
+        }),
+        update: vi.fn().mockReturnValue({
+          set: vi.fn().mockReturnValue({
+            where: vi.fn().mockReturnValue({
+              returning: vi.fn().mockResolvedValue([{ ...mockProfileV2, consentMatching: true }]),
+            }),
+          }),
+        }),
+        insert: vi.fn().mockImplementation(() => ({
+          values: vi.fn().mockImplementation((entries: unknown[]) => {
+            insertCalledWith = entries;
+            return Promise.resolve(undefined);
+          }),
+        })),
+      };
+      return cb(txStub);
+    });
+    const auditEntry = {
+      actorId: "user-123",
+      targetUserId: "user-123",
+      targetType: "portal_seeker_profile",
+      action: "portal.seeker.consent.matching.changed",
+      details: { from: false, to: true, seekerProfileId: "seeker-uuid" },
+    };
+    await updateSeekerConsent("user-123", { consentMatching: true }, [auditEntry]);
+    expect(insertCalledWith).toEqual([auditEntry]);
+  });
+
+  it("returns null when no profile exists", async () => {
+    vi.mocked(db.transaction).mockImplementation(async (cb: any) => {
+      const txStub = {
+        select: vi.fn().mockReturnValue({
+          from: vi.fn().mockReturnValue({
+            where: vi.fn().mockReturnValue({
+              limit: vi.fn().mockResolvedValue([]), // not found
+            }),
+          }),
+        }),
+      };
+      return cb(txStub);
+    });
+    const result = await updateSeekerConsent("non-existent", { consentMatching: true }, []);
+    expect(result).toBeNull();
+  });
+});
+
+describe("isSeekerEligibleForMatching", () => {
+  it("returns false when no profile exists", async () => {
+    const limit = vi.fn().mockResolvedValue([]);
+    const where = vi.fn().mockReturnValue({ limit });
+    const from = vi.fn().mockReturnValue({ where });
+    vi.mocked(db.select).mockReturnValue({ from } as unknown as ReturnType<typeof db.select>);
+    const result = await isSeekerEligibleForMatching("non-existent");
+    expect(result).toBe(false);
+  });
+
+  it("returns false when consentMatching is false", async () => {
+    const limit = vi.fn().mockResolvedValue([{ consentMatching: false }]);
+    const where = vi.fn().mockReturnValue({ limit });
+    const from = vi.fn().mockReturnValue({ where });
+    vi.mocked(db.select).mockReturnValue({ from } as unknown as ReturnType<typeof db.select>);
+    const result = await isSeekerEligibleForMatching("user-123");
+    expect(result).toBe(false);
+  });
+
+  it("returns true when consentMatching is true", async () => {
+    const limit = vi.fn().mockResolvedValue([{ consentMatching: true }]);
+    const where = vi.fn().mockReturnValue({ limit });
+    const from = vi.fn().mockReturnValue({ where });
+    vi.mocked(db.select).mockReturnValue({ from } as unknown as ReturnType<typeof db.select>);
+    const result = await isSeekerEligibleForMatching("user-123");
+    expect(result).toBe(true);
   });
 });
