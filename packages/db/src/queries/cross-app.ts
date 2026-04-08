@@ -134,6 +134,70 @@ export async function getCommunityTrustSignals(
   };
 }
 
+export async function getCommunityProfileForPrefill(userId: string): Promise<{
+  displayName: string | null;
+  bio: string | null;
+}> {
+  const [profile] = await db
+    .select({
+      displayName: communityProfiles.displayName,
+      bio: communityProfiles.bio,
+    })
+    .from(communityProfiles)
+    .where(eq(communityProfiles.userId, userId))
+    .limit(1);
+  return {
+    displayName: profile?.displayName ?? null,
+    bio: profile?.bio ?? null,
+  };
+}
+
+export interface SeekerTrustSignals {
+  isVerified: boolean;
+  badgeType: string | null;
+  memberSince: Date | null;
+  memberDurationDays: number;
+  communityPoints: number;
+  engagementLevel: "low" | "medium" | "high";
+  displayName: string | null;
+}
+
+export async function getSeekerTrustSignals(userId: string): Promise<SeekerTrustSignals | null> {
+  const [user] = await db
+    .select({ createdAt: authUsers.createdAt })
+    .from(authUsers)
+    .where(eq(authUsers.id, userId))
+    .limit(1);
+  if (!user) return null;
+
+  const [profile, verification, engagement] = await Promise.all([
+    db
+      .select({ displayName: communityProfiles.displayName })
+      .from(communityProfiles)
+      .where(eq(communityProfiles.userId, userId))
+      .limit(1)
+      .then(([p]) => p ?? null),
+    getCommunityVerificationStatus(userId),
+    getUserEngagementLevel(userId),
+  ]);
+
+  const durationMs = Date.now() - user.createdAt.getTime();
+  const memberDurationDays = Math.floor(durationMs / (1000 * 60 * 60 * 24));
+
+  // getCommunityVerificationStatus may return null for users with no verification record
+  const safeVerif = verification ?? { isVerified: false, badgeType: null, verifiedAt: null };
+
+  return {
+    isVerified: safeVerif.isVerified,
+    badgeType: safeVerif.badgeType,
+    memberSince: user.createdAt,
+    memberDurationDays,
+    communityPoints: engagement.score,
+    engagementLevel: engagement.level as "low" | "medium" | "high",
+    displayName: profile?.displayName ?? null,
+  };
+}
+
 /**
  * Returns the **upstream** referral ancestry for a user — i.e. who referred
  * this user, who referred *them*, etc., up to MAX_DEPTH levels.
