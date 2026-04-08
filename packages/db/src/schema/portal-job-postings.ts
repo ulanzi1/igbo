@@ -95,3 +95,25 @@ export type PortalEmploymentType = (typeof portalEmploymentTypeEnum.enumValues)[
 export type PortalJobStatus = (typeof portalJobStatusEnum.enumValues)[number];
 export type PortalClosedOutcome = (typeof portalClosedOutcomeEnum.enumValues)[number];
 export type PortalScreeningStatus = (typeof portalScreeningStatusEnum.enumValues)[number];
+
+// State Interaction Matrix (see docs/decisions/state-interaction-matrix.md)
+// Names frozen in docs/decisions/state-interaction-matrix.md §1 Terminology.
+// Hard terminal: no outgoing transitions, cannot be touched by any event.
+// Soft terminal: renewable via owner-initiated events only (P-1.5 renew flow).
+// TD-1: `rejected` is NOT terminal — it loops back to `pending_review` via
+//        edit+resubmit per the VALID_TRANSITIONS table in
+//        apps/portal/src/services/job-posting-service.ts.
+export const JOB_HARD_TERMINAL_STATES = ["filled"] as const satisfies readonly PortalJobStatus[];
+export const JOB_SOFT_TERMINAL_STATES = ["expired"] as const satisfies readonly PortalJobStatus[];
+
+export function isHardTerminalJobStatus(
+  status: PortalJobStatus,
+): status is (typeof JOB_HARD_TERMINAL_STATES)[number] {
+  return (JOB_HARD_TERMINAL_STATES as readonly PortalJobStatus[]).includes(status);
+}
+
+export function isSoftTerminalJobStatus(
+  status: PortalJobStatus,
+): status is (typeof JOB_SOFT_TERMINAL_STATES)[number] {
+  return (JOB_SOFT_TERMINAL_STATES as readonly PortalJobStatus[]).includes(status);
+}
