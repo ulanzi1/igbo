@@ -56,6 +56,11 @@ describe("portalJobPostings schema", () => {
     expect(cols).toContain("communityPostId");
   });
 
+  it("has enableCoverLetter column for P-2.5A application submission", () => {
+    const cols = Object.keys(portalJobPostings);
+    expect(cols).toContain("enableCoverLetter");
+  });
+
   it("has revisionCount column for admin review cycle tracking", () => {
     const cols = Object.keys(portalJobPostings);
     expect(cols).toContain("revisionCount");
@@ -85,6 +90,10 @@ describe("portalJobPostings schema", () => {
       revisionCount: 0,
       viewCount: 0,
       communityPostId: null,
+      screeningStatus: null,
+      screeningResultJson: null,
+      screeningCheckedAt: null,
+      enableCoverLetter: false,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -93,6 +102,7 @@ describe("portalJobPostings schema", () => {
     expect(_check.adminFeedbackComment).toBeNull();
     expect(_check.closedOutcome).toBeNull();
     expect(_check.closedAt).toBeNull();
+    expect(_check.enableCoverLetter).toBe(false);
   });
 
   it("exports NewPortalJobPosting insert type", () => {

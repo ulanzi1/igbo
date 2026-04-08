@@ -87,6 +87,7 @@ export async function listPendingReviewPostings(
       screeningStatus: portalJobPostings.screeningStatus,
       screeningResultJson: portalJobPostings.screeningResultJson,
       screeningCheckedAt: portalJobPostings.screeningCheckedAt,
+      enableCoverLetter: portalJobPostings.enableCoverLetter,
       postingCreatedAt: portalJobPostings.createdAt,
       postingUpdatedAt: portalJobPostings.updatedAt,
       // Company fields
@@ -151,6 +152,7 @@ export async function listPendingReviewPostings(
       screeningStatus: row.screeningStatus ?? null,
       screeningResultJson: (row.screeningResultJson as ScreeningResult | null) ?? null,
       screeningCheckedAt: row.screeningCheckedAt ?? null,
+      enableCoverLetter: row.enableCoverLetter,
       createdAt: row.postingCreatedAt,
       updatedAt: row.postingUpdatedAt,
       employerTotalPostings: row.employerTotalPostings,
@@ -221,6 +223,7 @@ export async function getPostingWithReviewContext(
       screeningStatus: portalJobPostings.screeningStatus,
       screeningResultJson: portalJobPostings.screeningResultJson,
       screeningCheckedAt: portalJobPostings.screeningCheckedAt,
+      enableCoverLetter: portalJobPostings.enableCoverLetter,
       postingCreatedAt: portalJobPostings.createdAt,
       postingUpdatedAt: portalJobPostings.updatedAt,
       // Company fields
@@ -302,6 +305,7 @@ export async function getPostingWithReviewContext(
     screeningStatus: row.screeningStatus ?? null,
     screeningResultJson: (row.screeningResultJson as ScreeningResult | null) ?? null,
     screeningCheckedAt: row.screeningCheckedAt ?? null,
+    enableCoverLetter: row.enableCoverLetter,
     createdAt: row.postingCreatedAt,
     updatedAt: row.postingUpdatedAt,
   };

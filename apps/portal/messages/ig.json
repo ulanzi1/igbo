@@ -614,6 +614,51 @@
       "consentNote": "Ị nwere ike ịgbanwe ntọala ndị a n'oge ọ bụla. A na-edekọ mgbanwe maka nkwekọrịta.",
       "consentLastChanged": "Agbanwere ikpeazụ {date}"
     },
+    "apply": {
+      "button": {
+        "apply": "Bido Arịọ",
+        "applying": "Na-eziga...",
+        "submitted": "Arịọ Ezigara",
+        "completeProfile": "Mezuo Profaịlụ Gị Ka I Wee Arịọ",
+        "deadlinePassed": "Oge arịọ gachala"
+      },
+      "drawer": {
+        "title": "Arịọ {jobTitle} na {companyName}",
+        "description": "Zipu profaịlụ gị, CV, na akwụkwọ mkpuchite (ọ bụrụ na ịchọrọ) maka ọrụ a.",
+        "profilePreviewHeading": "Profaịlụ Gị",
+        "cvLabel": "Họrọ CV",
+        "cvDefaultBadge": "Ndabara",
+        "cvEmptyTitle": "Ọ dịghị CV a bulitewo",
+        "cvEmptyDescription": "Bulite CV na profaịlụ gị ka i wee arịọ ọrụ.",
+        "cvEmptyCta": "Gaa na Profaịlụ",
+        "coverLetterLabel": "Akwụkwọ Mkpuchite (ọ dị mma ọ bụrụ na ị dịghị ede)",
+        "coverLetterPlaceholder": "Gwa onye ọrụ ihe kpatara ị ga-adi mma...",
+        "coverLetterCharCount": "{count}/2000",
+        "portfolioLinksLabel": "Njikọ Portfolio (ọ dị mma, ọbụna na-erughị 3)",
+        "portfolioLinkPlaceholder": "https://...",
+        "portfolioAddLink": "Tinye njikọ",
+        "portfolioRemoveLink": "Wepụ njikọ",
+        "submitButton": "Ziga Arịọ",
+        "cancelButton": "Kagbuo"
+      },
+      "toast": {
+        "success": "Arịọ ezigara"
+      },
+      "errors": {
+        "validation": "Biko dozie ngalaba ndị pụtara ìhè",
+        "invalidCvId": "Biko họrọ CV ziri ezi",
+        "coverLetterTooLong": "Akwụkwọ mkpuchite kwesịrị ịdị obere karịa ma ọ bụ 2000 mkpụrụedemede",
+        "invalidPortfolioUrl": "Tinye URL ziri ezi (ọmụmaatụ, https://example.com)",
+        "tooManyPortfolioLinks": "Ị nwere ike itinye ma ọ bụ njikọ 3 ma ọ bụrụ o nweghị ya",
+        "duplicate": "Ị arịọla ọrụ a",
+        "deadlinePassed": "Oge arịọ maka ọrụ a agachala",
+        "postingExpired": "Mbipụta ọrụ a agwụla",
+        "postingFilled": "Ọrụ a ọ dịghị ọhanaeze",
+        "postingPaused": "A kwụsiri mbipụta ọrụ a oge a — lọghachite oge na-esote",
+        "profileRequired": "Mezuo profaịlụ gị ka i wee arịọ",
+        "unexpected": "Ihe adịghị mma — biko nwaa ọzọ"
+      }
+    },
     "chooseRole": {
       "title": "Họrọ Ụzọ Gị",
       "subtitle": "Kedu ka ị ga-esi jiri OBIGBO Job Portal?",
