@@ -73,6 +73,11 @@ const mockProfile = {
   skills: [],
   experienceJson: [],
   educationJson: [],
+  visibility: "active",
+  consentMatching: false,
+  consentEmployerView: false,
+  consentMatchingChangedAt: null,
+  consentEmployerViewChangedAt: null,
   createdAt: new Date(),
   updatedAt: new Date(),
 };

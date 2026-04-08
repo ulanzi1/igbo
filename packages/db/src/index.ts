@@ -43,6 +43,8 @@ import * as portalApplicationsSchema from "./schema/portal-applications";
 import * as portalAdminReviewsSchema from "./schema/portal-admin-reviews";
 import * as portalScreeningKeywordsSchema from "./schema/portal-screening-keywords";
 import * as portalSeekerProfilesSchema from "./schema/portal-seeker-profiles";
+import * as portalSeekerPreferencesSchema from "./schema/portal-seeker-preferences";
+import * as portalSeekerCvsSchema from "./schema/portal-seeker-cvs";
 
 const schemaMap = {
   ...platformSettingsSchema,
@@ -88,6 +90,8 @@ const schemaMap = {
   ...portalAdminReviewsSchema,
   ...portalScreeningKeywordsSchema,
   ...portalSeekerProfilesSchema,
+  ...portalSeekerPreferencesSchema,
+  ...portalSeekerCvsSchema,
 };
 
 /** Factory — for tests and custom connection strings */
