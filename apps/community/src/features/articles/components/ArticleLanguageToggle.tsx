@@ -21,6 +21,7 @@ export function ArticleLanguageToggle({
     return (
       <div
         className="prose prose-neutral dark:prose-invert max-w-none"
+        // ci-allow-unsanitized-html — enContent is sanitized by server page before passing as prop
         dangerouslySetInnerHTML={{ __html: enContent }}
       />
     );
@@ -59,6 +60,7 @@ export function ArticleLanguageToggle({
       {/* Active content pane */}
       <div
         className="prose prose-neutral dark:prose-invert max-w-none"
+        // ci-allow-unsanitized-html — activeContent is sanitized by server page before passing as prop
         dangerouslySetInnerHTML={{ __html: activeContent }}
       />
     </div>

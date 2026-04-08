@@ -52,6 +52,11 @@ describe("portalJobPostings schema", () => {
     expect(cols).toContain("communityPostId");
   });
 
+  it("has revisionCount column for admin review cycle tracking", () => {
+    const cols = Object.keys(portalJobPostings);
+    expect(cols).toContain("revisionCount");
+  });
+
   it("exports PortalJobPosting select type with all required columns", () => {
     const _check: PortalJobPosting = {
       id: "uuid-1",
@@ -73,6 +78,7 @@ describe("portalJobPostings schema", () => {
       closedOutcome: null,
       closedAt: null,
       archivedAt: null,
+      revisionCount: 0,
       viewCount: 0,
       communityPostId: null,
       createdAt: new Date(),

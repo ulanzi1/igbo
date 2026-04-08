@@ -28,7 +28,10 @@ export function ApplicationStepper({ currentStep }: ApplicationStepperProps) {
 
   return (
     <nav aria-label={t("stepProgress", { step: currentStep, total })}>
-      <ol className="flex items-center justify-center gap-1 mb-8" aria-label="Application progress">
+      <ol
+        className="flex items-center justify-center gap-1 mb-8"
+        aria-label={t("progressAriaLabel")}
+      >
         {STEP_KEYS.map((key, idx) => {
           const stepNum = idx + 1;
           const isCurrent = stepNum === currentStep;

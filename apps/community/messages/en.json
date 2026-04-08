@@ -35,7 +35,11 @@
     "viewProfile": "View Profile",
     "logout": "Log out",
     "points": "Points",
-    "jobPortal": "Job Portal"
+    "jobPortal": "Job Portal",
+    "mainNavLabel": "Main navigation",
+    "footerNavLabel": "Footer navigation",
+    "guestNavLabel": "Guest navigation",
+    "mobileGuestNavLabel": "Mobile guest navigation"
   },
   "Shell": {
     "appName": "Igbo Community Platform",
@@ -103,7 +107,9 @@
       "removeLink": "Remove link",
       "linkUrl": "URL:",
       "linkApply": "Apply",
-      "linkCancel": "Cancel"
+      "linkCancel": "Cancel",
+      "bulletListAriaLabel": "Bullet list",
+      "orderedListAriaLabel": "Ordered list"
     },
     "meta": {
       "category": "Category",
@@ -197,7 +203,8 @@
     "related": {
       "title": "Related Articles",
       "readMin": "{n} min read"
-    }
+    },
+    "bilingualBadge": "EN + IG"
   },
   "Blog": {
     "title": "Blog",
@@ -282,7 +289,8 @@
       "title": "Invalid verification link",
       "description": "This verification link is not valid. Please request a new one.",
       "emailPlaceholder": "your@email.com"
-    }
+    },
+    "progressAriaLabel": "Application progress"
   },
   "Terms": {
     "title": "Terms of Service",
@@ -736,7 +744,9 @@
       "likeReceived": "Like Received",
       "eventAttended": "Event Attended",
       "articlePublished": "Article Published"
-    }
+    },
+    "siteTitle": "OBIGBO Admin",
+    "navAriaLabel": "Admin navigation"
   },
   "Events": {
     "list": {
@@ -988,7 +998,9 @@
       "copyRecoveryCodes": "Copy all codes",
       "recoveryCodesCopied": "Copied!",
       "recoveryContinue": "I have saved my recovery codes",
-      "invalidCode": "Invalid code. Please try again."
+      "invalidCode": "Invalid code. Please try again.",
+      "invalidSetupLink": "Invalid setup link. Please start the login process again.",
+      "qrCodeAlt": "QR code for 2FA"
     },
     "forgotPassword": {
       "title": "Forgot Password",
@@ -1530,7 +1542,8 @@
       "deletedMessage": "This message was deleted",
       "editedLabel": "(edited)",
       "sharedPost": "Shared a post",
-      "read": "Read"
+      "read": "Read",
+      "viewOriginalPost": "View original post"
     },
     "input": {
       "placeholder": "Type a message...",
@@ -1715,7 +1728,8 @@
       "levelCity": "city",
       "levelState": "state",
       "levelCountry": "country",
-      "levelGlobal": "community"
+      "levelGlobal": "community",
+      "geographicScopeAriaLabel": "Geographic scope"
     }
   },
   "notifications": {
@@ -2056,7 +2070,8 @@
       "nameTaken": "A group with this name already exists",
       "permissionDenied": "You do not have permission to create groups",
       "fetchFailed": "Failed to load groups. Please try again."
-    }
+    },
+    "bannerPreviewAlt": "Banner preview"
   },
   "Points": {
     "nav": "Points",
@@ -2083,7 +2098,8 @@
       "all": "All",
       "like_received": "Like Received",
       "event_attended": "Event Attended",
-      "article_published": "Article Published"
+      "article_published": "Article Published",
+      "activityTypeAriaLabel": "Filter by activity type"
     },
     "pagination": {
       "previous": "Previous",
@@ -2200,7 +2216,8 @@
     "loadingMore": "Loading more results…",
     "endOfResults": "No more results",
     "allTypes": "All types",
-    "typeSelector": "Filter by type"
+    "typeSelector": "Filter by type",
+    "activeFiltersAriaLabel": "Active filters"
   },
   "Reports": {
     "dialog": {

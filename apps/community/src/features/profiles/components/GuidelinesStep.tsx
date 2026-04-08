@@ -45,7 +45,7 @@ export function GuidelinesStep({ guidelinesHtml, onComplete }: Props) {
     <form onSubmit={(e) => void handleSubmit(e)} className="flex flex-col gap-5">
       <div
         className="prose prose-sm max-h-96 overflow-y-auto rounded-md border border-gray-200 bg-gray-50 p-4"
-        // guidelinesHtml is sanitized server-side before being passed as a prop
+        // ci-allow-unsanitized-html — guidelinesHtml is sanitized server-side before being passed as prop
         dangerouslySetInnerHTML={{ __html: guidelinesHtml }}
       />
 

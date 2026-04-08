@@ -18,7 +18,11 @@ export function PointsHistoryFilter({ activeType, onFilterChange }: PointsHistor
   const t = useTranslations("Points");
 
   return (
-    <div className="flex flex-wrap gap-2" role="group" aria-label="Filter by activity type">
+    <div
+      className="flex flex-wrap gap-2"
+      role="group"
+      aria-label={t("filter.activityTypeAriaLabel")}
+    >
       {FILTER_OPTIONS.map(({ value, labelKey }) => (
         <button
           key={value}

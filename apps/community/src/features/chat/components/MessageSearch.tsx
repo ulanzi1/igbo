@@ -105,7 +105,7 @@ export function MessageSearch({ isOpen, onNavigate, onClose }: MessageSearchProp
                         {formatDate(result.createdAt)}
                       </span>
                     </div>
-                    {/* Snippet with <mark> tags — safe: ts_headline only emits <mark>/<\/mark> */}
+                    {/* ci-allow-unsanitized-html — ts_headline emits only <mark>/<\/mark> (server-generated) */}
                     <p
                       className="mt-0.5 text-xs text-muted-foreground line-clamp-2"
                       dangerouslySetInnerHTML={{ __html: result.snippet }}

@@ -78,6 +78,12 @@ describe("RoleSwitcher", () => {
     expect(container.firstChild).toBeNull();
   });
 
+  it("renders nothing when authenticated but allRoles is empty (no role assigned)", () => {
+    setSession({ activePortalRole: null, portalRoles: [] } as unknown as Partial<Session["user"]>);
+    const { container } = render(<RoleSwitcher />);
+    expect(container.firstChild).toBeNull();
+  });
+
   it("renders static badge for single-role user (no dropdown trigger)", () => {
     setSession({ activePortalRole: "JOB_SEEKER", portalRoles: ["JOB_SEEKER"] });
     render(<RoleSwitcher />);

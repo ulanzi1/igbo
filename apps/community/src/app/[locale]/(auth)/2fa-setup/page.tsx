@@ -21,13 +21,12 @@ export default async function TwoFactorSetupPage({ params, searchParams }: Props
   const { locale } = await params;
   const { challenge, callbackUrl } = await searchParams;
   setRequestLocale(locale);
+  const t = await getTranslations({ locale, namespace: "Auth.twoFactorSetup" });
 
   if (!challenge) {
     return (
       <div className="flex min-h-screen items-center justify-center px-4">
-        <p className="text-sm text-destructive">
-          Invalid setup link. Please start the login process again.
-        </p>
+        <p className="text-sm text-destructive">{t("invalidSetupLink")}</p>
       </div>
     );
   }

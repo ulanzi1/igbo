@@ -30,9 +30,9 @@ export function AdminSidebar() {
   return (
     <aside className="w-64 flex-shrink-0 bg-zinc-900 border-r border-zinc-700 min-h-screen flex flex-col">
       <div className="px-6 py-5 border-b border-zinc-700">
-        <span className="text-lg font-bold text-white">OBIGBO Admin</span>
+        <span className="text-lg font-bold text-white">{t("siteTitle")}</span>
       </div>
-      <nav className="flex-1 px-3 py-4" aria-label="Admin navigation">
+      <nav className="flex-1 px-3 py-4" aria-label={t("navAriaLabel")}>
         <ul className="space-y-1">
           {NAV_LINKS.map(({ key, href }) => {
             const isActive =

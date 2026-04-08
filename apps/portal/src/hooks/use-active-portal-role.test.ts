@@ -33,7 +33,7 @@ function mockSession(userOverrides: Record<string, unknown> = {}) {
 
 describe("useActivePortalRole", () => {
   it("returns JOB_SEEKER with isSeeker=true for seeker session", () => {
-    mockSession({ activePortalRole: "JOB_SEEKER" });
+    mockSession({ activePortalRole: "JOB_SEEKER", portalRoles: ["JOB_SEEKER"] });
     const { result } = renderHook(() => useActivePortalRole());
     expect(result.current.role).toBe("JOB_SEEKER");
     expect(result.current.isSeeker).toBe(true);
@@ -43,7 +43,7 @@ describe("useActivePortalRole", () => {
   });
 
   it("returns EMPLOYER with isEmployer=true for employer session", () => {
-    mockSession({ activePortalRole: "EMPLOYER" });
+    mockSession({ activePortalRole: "EMPLOYER", portalRoles: ["EMPLOYER"] });
     const { result } = renderHook(() => useActivePortalRole());
     expect(result.current.role).toBe("EMPLOYER");
     expect(result.current.isEmployer).toBe(true);
@@ -52,7 +52,7 @@ describe("useActivePortalRole", () => {
   });
 
   it("returns JOB_ADMIN with isAdmin=true for admin session", () => {
-    mockSession({ activePortalRole: "JOB_ADMIN" });
+    mockSession({ activePortalRole: "JOB_ADMIN", portalRoles: ["JOB_ADMIN"] });
     const { result } = renderHook(() => useActivePortalRole());
     expect(result.current.role).toBe("JOB_ADMIN");
     expect(result.current.isAdmin).toBe(true);
@@ -74,12 +74,24 @@ describe("useActivePortalRole", () => {
     expect(result.current.isAuthenticated).toBe(false);
   });
 
-  it("defaults to JOB_SEEKER when activePortalRole is not set but user is authenticated", () => {
-    mockSession(); // no activePortalRole
+  it("returns null role when authenticated but allRoles is empty (no role assigned)", () => {
+    mockSession(); // no activePortalRole, no portalRoles
     const { result } = renderHook(() => useActivePortalRole());
-    expect(result.current.role).toBe("JOB_SEEKER");
-    expect(result.current.isSeeker).toBe(true);
+    expect(result.current.role).toBeNull();
+    expect(result.current.isSeeker).toBe(false);
     expect(result.current.isAuthenticated).toBe(true);
+  });
+
+  it("returns null role with isAuthenticated=true when authenticated but allRoles is empty", () => {
+    mockSession({ portalRoles: [] });
+    const { result } = renderHook(() => useActivePortalRole());
+    expect(result.current.role).toBeNull();
+    expect(result.current.isSeeker).toBe(false);
+    expect(result.current.isEmployer).toBe(false);
+    expect(result.current.isAdmin).toBe(false);
+    expect(result.current.isAuthenticated).toBe(true);
+    expect(result.current.allRoles).toEqual([]);
+    expect(result.current.hasMultipleRoles).toBe(false);
   });
 
   it("returns allRoles and hasMultipleRoles=true for multi-role user", () => {
@@ -123,10 +135,20 @@ describe("useActivePortalRole", () => {
     expect(result.current.hasMultipleRoles).toBe(false);
   });
 
-  it("defaults allRoles to [] when portalRoles is not in session", () => {
+  it("falls back to first allRole when activePortalRole is stale/missing but allRoles non-empty", () => {
+    // Stale JWT: activePortalRole field absent but portalRoles populated
+    mockSession({ portalRoles: ["EMPLOYER"] }); // no activePortalRole
+    const { result } = renderHook(() => useActivePortalRole());
+    expect(result.current.role).toBe("EMPLOYER");
+    expect(result.current.isEmployer).toBe(true);
+    expect(result.current.isSeeker).toBe(false);
+  });
+
+  it("returns null role when activePortalRole set but portalRoles array missing (JWT edge case)", () => {
     mockSession({ activePortalRole: "EMPLOYER" }); // no portalRoles field
     const { result } = renderHook(() => useActivePortalRole());
     expect(result.current.allRoles).toEqual([]);
     expect(result.current.hasMultipleRoles).toBe(false);
+    expect(result.current.role).toBeNull();
   });
 });

@@ -127,7 +127,7 @@ describe("TopNav", () => {
   it("renders desktop nav links including Feed and Articles", () => {
     render(<TopNav />);
     // Mobile nav is closed by default — only desktop nav visible
-    const navs = screen.getAllByRole("navigation", { name: "Main navigation" });
+    const navs = screen.getAllByRole("navigation", { name: "Navigation.mainNavLabel" });
     const desktopNav = navs[0]!;
     expect(desktopNav.querySelector('a[href="/feed"]')).toBeInTheDocument();
     expect(desktopNav.querySelector('a[href="/articles"]')).toBeInTheDocument();
@@ -143,7 +143,7 @@ describe("TopNav", () => {
     const hamburger = screen.getByLabelText("Shell.menuOpen");
     fireEvent.click(hamburger);
     // Two navs now: desktop hidden + mobile visible
-    const navs = screen.getAllByRole("navigation", { name: "Main navigation" });
+    const navs = screen.getAllByRole("navigation", { name: "Navigation.mainNavLabel" });
     expect(navs.length).toBe(2);
     // Mobile nav has the feed link
     expect(screen.getAllByRole("link", { name: "Navigation.feed" }).length).toBeGreaterThan(0);
@@ -155,7 +155,7 @@ describe("TopNav", () => {
     fireEvent.click(hamburger);
     fireEvent.click(screen.getByLabelText("Shell.menuClose"));
     // Back to one nav
-    const navs = screen.getAllByRole("navigation", { name: "Main navigation" });
+    const navs = screen.getAllByRole("navigation", { name: "Navigation.mainNavLabel" });
     expect(navs.length).toBe(1);
   });
 

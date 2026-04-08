@@ -17,9 +17,6 @@ vi.mock("next/navigation", () => ({
 vi.mock("@/i18n/routing", () => ({
   routing: { locales: ["en", "ig"] },
 }));
-vi.mock("@/components/layout/portal-layout", () => ({
-  PortalLayout: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-}));
 vi.mock("@/components/layout/skip-link", () => ({
   SkipLink: () => null,
 }));

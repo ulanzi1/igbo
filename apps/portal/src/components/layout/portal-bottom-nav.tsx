@@ -89,7 +89,7 @@ export function PortalBottomNav() {
 
   return (
     <nav
-      aria-label="Bottom navigation"
+      aria-label={t("bottomNavAriaLabel")}
       className="md:hidden fixed bottom-0 inset-x-0 z-40 border-t border-border bg-background"
     >
       <ul className="flex items-center justify-around h-16">
