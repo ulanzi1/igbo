@@ -105,6 +105,7 @@ export interface JobReviewedEvent extends BaseEvent {
   reviewerUserId: string;
   decision: "approved" | "rejected" | "changes_requested";
   companyId: string;
+  fastLane?: boolean;
 }
 
 // Portal event map — used by portal EventBus

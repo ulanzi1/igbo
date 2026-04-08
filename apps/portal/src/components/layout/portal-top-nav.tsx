@@ -46,6 +46,11 @@ export function PortalTopNav({ className }: { className?: string }) {
 
   const adminLinks: NavLink[] = [
     { key: "reviewQueue", href: `/${locale}/admin`, label: t("reviewQueue") },
+    {
+      key: "screeningKeywords",
+      href: `/${locale}/admin/screening/keywords`,
+      label: t("screeningKeywords"),
+    },
     { key: "reports", href: `/${locale}/admin/reports`, label: t("reports") },
     { key: "settings", href: `/${locale}/admin/settings`, label: t("settings") },
   ];

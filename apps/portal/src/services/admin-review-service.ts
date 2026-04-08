@@ -14,7 +14,7 @@ import { portalAdminReviews as adminReviewsTable } from "@igbo/db/schema/portal-
 import { db } from "@igbo/db";
 import { eq, and, gte, count, sql } from "drizzle-orm";
 import { getCommunityTrustSignals } from "@igbo/db/queries/cross-app";
-import type { PortalJobPosting } from "@igbo/db/schema/portal-job-postings";
+import type { PortalJobPosting, ScreeningResult } from "@igbo/db/schema/portal-job-postings";
 import type { PortalCompanyProfile } from "@igbo/db/schema/portal-company-profiles";
 import { ApiError } from "@/lib/api-error";
 import {
@@ -29,15 +29,7 @@ import { portalEventBus } from "@/services/event-bus";
 // Types
 // ---------------------------------------------------------------------------
 
-/**
- * Placeholder for screening results — populated by P-3.3.
- * Defined now (instead of literal `null`) so consumers can type-narrow
- * non-breakingly when P-3.3 lands. Empty until then.
- */
-export type ScreeningResult = {
-  // Reserved for P-3.3: pass/warning/fail status, structured flags, etc.
-  readonly _placeholder?: never;
-};
+export type { ScreeningResult } from "@igbo/db/schema/portal-job-postings";
 
 export interface ConfidenceIndicatorData {
   level: "high" | "medium" | "low";
@@ -156,7 +148,7 @@ export async function getReviewQueue(options: QueueFilterOptions): Promise<Revie
         employerName: item.employerName,
         confidenceIndicator,
         isFirstTimeEmployer,
-        screeningResult: null,
+        screeningResult: (item.posting.screeningResultJson as ScreeningResult | null) ?? null,
       };
     }),
   );
@@ -200,7 +192,7 @@ export async function getReviewDetail(postingId: string): Promise<ReviewDetailRe
     approvedCount: context.approvedCount,
     rejectedCount: context.rejectedCount,
     confidenceIndicator,
-    screeningResult: null,
+    screeningResult: (context.posting.screeningResultJson as ScreeningResult | null) ?? null,
     reportCount: 0,
     reviewHistory,
   };
@@ -216,7 +208,11 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
 // ---------------------------------------------------------------------------
 
 /** Approve a pending posting — transitions to active, logs review, emits event. */
-export async function approvePosting(postingId: string, reviewerUserId: string): Promise<void> {
+export async function approvePosting(
+  postingId: string,
+  reviewerUserId: string,
+  metadata?: { fastLane?: boolean },
+): Promise<void> {
   const posting = await getJobPostingById(postingId);
   if (!posting) {
     throw new ApiError({
@@ -267,6 +263,7 @@ export async function approvePosting(postingId: string, reviewerUserId: string):
     reviewerUserId,
     decision: "approved",
     companyId: posting.companyId,
+    ...(metadata?.fastLane ? { fastLane: true } : {}),
   });
 }
 
@@ -414,7 +411,7 @@ export interface FastLaneEligibility {
  * All three conditions must be true:
  *  1. employer is verified (trustBadge=true)
  *  2. no rejections in last 60 days
- *  3. screening status is "pass" (always null until P-3.3 — so always ineligible currently)
+ *  3. screening status is "pass" (set by runScreening() in submitForReview — P-3.3)
  */
 export async function checkFastLaneEligibility(postingId: string): Promise<FastLaneEligibility> {
   const posting = await getJobPostingById(postingId);
@@ -455,9 +452,11 @@ export async function checkFastLaneEligibility(postingId: string): Promise<FastL
     reasons.push("Violations (rejections) found in last 60 days");
   }
 
-  // 3. Screening status must be "pass" — always null until P-3.3
-  // posting.screeningStatus doesn't exist yet; effectively always null
-  reasons.push("Screening not yet implemented (P-3.3)");
+  // 3. Screening status must be "pass" (fail and warning both disqualify)
+  if (posting.screeningStatus !== "pass") {
+    const status = posting.screeningStatus ?? "not screened";
+    reasons.push(`Screening status is not pass (current: ${status})`);
+  }
 
   return { eligible: reasons.length === 0, reasons };
 }

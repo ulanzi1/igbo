@@ -41,6 +41,7 @@ import * as portalCompanyProfilesSchema from "./schema/portal-company-profiles";
 import * as portalJobPostingsSchema from "./schema/portal-job-postings";
 import * as portalApplicationsSchema from "./schema/portal-applications";
 import * as portalAdminReviewsSchema from "./schema/portal-admin-reviews";
+import * as portalScreeningKeywordsSchema from "./schema/portal-screening-keywords";
 
 const schemaMap = {
   ...platformSettingsSchema,
@@ -84,6 +85,7 @@ const schemaMap = {
   ...portalJobPostingsSchema,
   ...portalApplicationsSchema,
   ...portalAdminReviewsSchema,
+  ...portalScreeningKeywordsSchema,
 };
 
 /** Factory — for tests and custom connection strings */

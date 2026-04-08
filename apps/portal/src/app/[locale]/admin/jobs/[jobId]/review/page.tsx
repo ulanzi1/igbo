@@ -7,6 +7,7 @@ import { getReviewDetail } from "@/services/admin-review-service";
 import { sanitizeHtml } from "@/lib/sanitize";
 import { SalaryDisplay } from "@/components/semantic/salary-display";
 import { ReviewActionPanel } from "@/components/domain/review-action-panel";
+import { ScreeningResultsPanel } from "@/components/domain/screening-results-panel";
 
 interface PageProps {
   params: Promise<{ locale: string; jobId: string }>;
@@ -44,6 +45,7 @@ export default async function ReviewDetailPage({ params }: PageProps) {
     approvedCount,
     rejectedCount,
     confidenceIndicator,
+    screeningResult,
     reviewHistory,
   } = detail;
 
@@ -163,14 +165,14 @@ export default async function ReviewDetailPage({ params }: PageProps) {
             </div>
           </section>
 
-          {/* Screening Results Placeholder */}
+          {/* Screening Results */}
           <section
             aria-label={t("screening")}
             className="rounded-lg border border-border bg-card p-6"
             data-testid="screening-section"
           >
-            <h2 className="mb-2 text-lg font-semibold">{t("screening")}</h2>
-            <p className="text-sm text-muted-foreground">{t("screeningPlaceholder")}</p>
+            <h2 className="mb-4 text-lg font-semibold">{t("screening")}</h2>
+            <ScreeningResultsPanel screeningResult={screeningResult} />
           </section>
 
           {/* User Reports Placeholder */}

@@ -72,6 +72,9 @@ const mockPosting = {
   revisionCount: 0,
   viewCount: 10,
   communityPostId: null,
+  screeningStatus: null,
+  screeningResultJson: null,
+  screeningCheckedAt: null,
   createdAt: new Date(),
   updatedAt: new Date(),
 };
