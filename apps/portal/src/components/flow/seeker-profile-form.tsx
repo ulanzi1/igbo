@@ -22,6 +22,7 @@ interface SeekerProfileFormProps {
   initialData?: PortalSeekerProfile;
   prefill?: { displayName: string | null; bio: string | null };
   onSuccess?: (profile: unknown) => void;
+  onCancel?: () => void;
 }
 
 interface FieldErrors {
@@ -37,6 +38,7 @@ export function SeekerProfileForm({
   initialData,
   prefill,
   onSuccess,
+  onCancel,
 }: SeekerProfileFormProps) {
   const t = useTranslations("Portal.seeker");
   const router = useRouter();
@@ -235,8 +237,11 @@ export function SeekerProfileForm({
 
       const json = (await res.json()) as { data: unknown };
       toast.success(mode === "create" ? t("successCreated") : t("successUpdated"));
-      onSuccess?.(json.data);
-      router.replace("/profile");
+      if (onSuccess) {
+        onSuccess(json.data);
+      } else {
+        router.replace("/profile");
+      }
     } catch {
       toast.error(t("errorGeneric"));
     } finally {
@@ -545,7 +550,13 @@ export function SeekerProfileForm({
         <Button
           type="button"
           variant="outline"
-          onClick={() => router.replace(mode === "create" ? "/" : "/profile")}
+          onClick={() => {
+            if (onCancel) {
+              onCancel();
+            } else {
+              router.replace(mode === "create" ? "/" : "/profile");
+            }
+          }}
         >
           {t("cancel")}
         </Button>

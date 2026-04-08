@@ -71,6 +71,7 @@ const mockProfile = {
   consentEmployerView: false,
   consentMatchingChangedAt: null,
   consentEmployerViewChangedAt: null,
+  onboardingCompletedAt: null,
   createdAt: new Date(),
   updatedAt: new Date(),
 };
@@ -283,5 +284,32 @@ describe("SeekerProfileForm", () => {
     const { container } = render(<SeekerProfileForm mode="create" />);
     const results = await axe(container);
     expect(results).toHaveNoViolations();
+  });
+
+  // P-2.3: navigation suppression when onSuccess/onCancel props are provided
+  it("create mode with onSuccess does not call router.replace", async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ data: mockProfile }),
+    });
+    const onSuccess = vi.fn();
+
+    render(<SeekerProfileForm mode="create" onSuccess={onSuccess} />);
+    const headlineInput = screen.getByLabelText(/headlineLabel/i);
+    fireEvent.change(headlineInput, { target: { value: "Senior Dev" } });
+    fireEvent.click(screen.getByRole("button", { name: /saveCreate/ }));
+
+    await waitFor(() => {
+      expect(onSuccess).toHaveBeenCalledWith(mockProfile);
+    });
+    expect(mockReplace).not.toHaveBeenCalled();
+  });
+
+  it("create mode with onCancel calls onCancel instead of router.replace", async () => {
+    const onCancel = vi.fn();
+    render(<SeekerProfileForm mode="create" onCancel={onCancel} />);
+    fireEvent.click(screen.getByRole("button", { name: /cancel/ }));
+    expect(onCancel).toHaveBeenCalled();
+    expect(mockReplace).not.toHaveBeenCalled();
   });
 });

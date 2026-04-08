@@ -260,8 +260,8 @@ development_status:
   # Portal Epic 2: Seeker Profiles & Job Applications
   portal-epic-2: in-progress
   p-2-1-seeker-profile-creation-community-trust-data: done
-  p-2-2-seeker-preferences-cv-upload-visibility: review
-  p-2-3-seeker-onboarding-flow: backlog
+  p-2-2-seeker-preferences-cv-upload-visibility: done
+  p-2-3-seeker-onboarding-flow: done
   p-2-4-application-state-machine-event-model: backlog
   p-2-5a-job-application-submission: backlog
   p-2-5b-application-confirmation-next-steps-email: backlog

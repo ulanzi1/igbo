@@ -14,7 +14,7 @@ interface ChooseRoleFormProps {
 
 const REDIRECT_MAP: Record<string, string> = {
   EMPLOYER: "/onboarding",
-  JOB_SEEKER: "/jobs",
+  JOB_SEEKER: "/onboarding/seeker",
 };
 
 export function ChooseRoleForm({ locale }: ChooseRoleFormProps) {

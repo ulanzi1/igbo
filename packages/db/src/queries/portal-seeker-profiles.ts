@@ -3,7 +3,7 @@ import { db } from "../index";
 import { portalSeekerProfiles } from "../schema/portal-seeker-profiles";
 import type { NewPortalSeekerProfile, PortalSeekerProfile } from "../schema/portal-seeker-profiles";
 import { auditLogs } from "../schema/audit-logs";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 
 export async function createSeekerProfile(
   data: NewPortalSeekerProfile,
@@ -92,6 +92,23 @@ export async function updateSeekerConsent(
 
     return updated ?? null;
   });
+}
+
+// Origin: P-2.3. Idempotent — WHERE IS NULL guard prevents overwriting an existing timestamp.
+export async function markSeekerOnboardingComplete(
+  profileId: string,
+): Promise<PortalSeekerProfile | null> {
+  const [updated] = await db
+    .update(portalSeekerProfiles)
+    .set({ onboardingCompletedAt: new Date(), updatedAt: new Date() })
+    .where(
+      and(
+        eq(portalSeekerProfiles.id, profileId),
+        isNull(portalSeekerProfiles.onboardingCompletedAt),
+      ),
+    )
+    .returning();
+  return updated ?? null;
 }
 
 // Origin: P-2.2. Consumer: P-2.x matching engine. Do not bypass this helper in any matching code path.

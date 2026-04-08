@@ -6,11 +6,14 @@ import { useTranslations } from "next-intl";
 interface OnboardingStepIndicatorProps {
   currentStep: 1 | 2 | 3;
   completedSteps: number[];
+  /** Pre-translated step titles. When provided, used instead of the default i18n keys. */
+  stepTitles?: string[];
 }
 
 export function OnboardingStepIndicator({
   currentStep,
   completedSteps,
+  stepTitles,
 }: OnboardingStepIndicatorProps) {
   const t = useTranslations("Portal.onboarding");
 
@@ -52,7 +55,7 @@ export function OnboardingStepIndicator({
                   {isCompleted ? "✓" : step.key}
                 </span>
                 <span className="hidden sm:inline">
-                  {t(step.labelKey as Parameters<typeof t>[0])}
+                  {stepTitles?.[index] ?? t(step.labelKey as Parameters<typeof t>[0])}
                 </span>
               </div>
               {index < steps.length - 1 && (

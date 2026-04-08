@@ -31,6 +31,8 @@ export const portalSeekerProfiles = pgTable(
     consentEmployerViewChangedAt: timestamp("consent_employer_view_changed_at", {
       withTimezone: true,
     }),
+    // Added in P-2.3 migration 0061
+    onboardingCompletedAt: timestamp("onboarding_completed_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },
