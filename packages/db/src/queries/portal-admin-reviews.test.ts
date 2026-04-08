@@ -178,6 +178,7 @@ function setupDbChain(responses: unknown[]) {
       leftJoin: vi.fn().mockReturnThis(),
       where: vi.fn().mockReturnThis(),
       orderBy: vi.fn().mockReturnThis(),
+      groupBy: vi.fn().mockReturnThis(),
       limit: vi.fn().mockReturnThis(),
       offset: vi.fn().mockResolvedValue(resp),
       then: (resolve: (v: unknown) => unknown) => Promise.resolve(resp).then(resolve),
@@ -323,13 +324,10 @@ describe("getPostingWithReviewContext", () => {
 describe("getAdminActivitySummary", () => {
   it("returns zeros for empty system", async () => {
     setupDbChain([
-      [{ total: 0 }], // pending count
-      [{ total: 0 }], // reviews today
-      [{ total: 0 }], // all reviews
-      [{ total: 0 }], // approved
-      [{ total: 0 }], // rejected
-      [{ total: 0 }], // changes_requested
-      [{ avgMs: null }], // avg review time
+      [{ total: 0 }], // 1: pending count
+      [{ total: 0 }], // 2: reviews today
+      [], // 3: decision groupBy (empty)
+      [{ avgMs: null }], // 4: avg review time
     ]);
 
     const result = await getAdminActivitySummary();
@@ -344,13 +342,15 @@ describe("getAdminActivitySummary", () => {
 
   it("calculates correct approval/rejection rates", async () => {
     setupDbChain([
-      [{ total: 5 }], // pending count
-      [{ total: 3 }], // reviews today
-      [{ total: 10 }], // all reviews
-      [{ total: 7 }], // approved
-      [{ total: 2 }], // rejected
-      [{ total: 1 }], // changes_requested
-      [{ avgMs: "300000" }], // avg review time 5 min
+      [{ total: 5 }], // 1: pending count
+      [{ total: 3 }], // 2: reviews today
+      [
+        // 3: decision groupBy
+        { decision: "approved", total: 7 },
+        { decision: "rejected", total: 2 },
+        { decision: "changes_requested", total: 1 },
+      ],
+      [{ avgMs: "300000" }], // 4: avg review time 5 min
     ]);
 
     const result = await getAdminActivitySummary();
@@ -361,6 +361,14 @@ describe("getAdminActivitySummary", () => {
     expect(result.rejectionRate).toBeCloseTo(0.2);
     expect(result.changesRequestedRate).toBeCloseTo(0.1);
     expect(result.avgReviewTimeMs).toBe(300000);
+  });
+
+  it("issues exactly 4 db.select calls (pending, today, decisions groupBy, avg)", async () => {
+    setupDbChain([[{ total: 0 }], [{ total: 0 }], [], [{ avgMs: null }]]);
+
+    await getAdminActivitySummary();
+
+    expect((db.select as ReturnType<typeof vi.fn>).mock.calls.length).toBe(4);
   });
 });
 
