@@ -5,6 +5,10 @@ import {
   portalEmploymentTypeEnum,
   portalJobStatusEnum,
   portalClosedOutcomeEnum,
+  JOB_HARD_TERMINAL_STATES,
+  JOB_SOFT_TERMINAL_STATES,
+  isHardTerminalJobStatus,
+  isSoftTerminalJobStatus,
   type PortalJobPosting,
   type NewPortalJobPosting,
   type PortalEmploymentType,
@@ -147,5 +151,75 @@ describe("portalJobPostings schema", () => {
     expect(_et).toBe("full_time");
     expect(_js).toBe("active");
     expect(_co).toBe("filled_via_portal");
+  });
+
+  // F13: split — set equality guards classification exhaustiveness (order-free);
+  // sequence equality guards Postgres enum compatibility (order matters to pg).
+  it("portalJobStatusEnum set equals the 7 expected values (classification)", () => {
+    expect([...portalJobStatusEnum.enumValues].sort()).toEqual(
+      ["draft", "pending_review", "active", "paused", "filled", "expired", "rejected"].sort(),
+    );
+  });
+
+  it("portalJobStatusEnum sequence is stable (Postgres enum order)", () => {
+    expect(portalJobStatusEnum.enumValues).toEqual([
+      "draft",
+      "pending_review",
+      "active",
+      "paused",
+      "filled",
+      "expired",
+      "rejected",
+    ]);
+  });
+});
+
+describe("portal-job-postings terminal classification (PREP-A)", () => {
+  it("JOB_HARD_TERMINAL_STATES contains exactly ['filled']", () => {
+    expect(JOB_HARD_TERMINAL_STATES).toEqual(["filled"]);
+  });
+
+  it("JOB_SOFT_TERMINAL_STATES contains exactly ['expired']", () => {
+    expect(JOB_SOFT_TERMINAL_STATES).toEqual(["expired"]);
+  });
+
+  it("hard and soft terminal sets are disjoint", () => {
+    const intersection = JOB_HARD_TERMINAL_STATES.filter((s) =>
+      (JOB_SOFT_TERMINAL_STATES as readonly string[]).includes(s),
+    );
+    expect(intersection).toEqual([]);
+  });
+
+  // Drift guard — explicit expected non-terminal list. When a future dev adds
+  // a new value to portalJobStatusEnum without updating the constants above,
+  // this test fails with a clear diff. Retro Lesson 2 real enforcement.
+  it("exhaustiveness: every enum value is classified terminal or non-terminal", () => {
+    const classified = new Set<string>([...JOB_HARD_TERMINAL_STATES, ...JOB_SOFT_TERMINAL_STATES]);
+    // Sanity: all classified values actually exist in the enum.
+    for (const s of classified) {
+      expect(portalJobStatusEnum.enumValues as readonly string[]).toContain(s);
+    }
+    const expectedNonTerminal: PortalJobStatus[] = [
+      "draft",
+      "pending_review",
+      "active",
+      "paused",
+      "rejected",
+    ];
+    const actualNonTerminal = portalJobStatusEnum.enumValues.filter((s) => !classified.has(s));
+    expect([...actualNonTerminal].sort()).toEqual([...expectedNonTerminal].sort());
+  });
+
+  it("rejected is NOT terminal (TD-1: edit+resubmit loop)", () => {
+    expect(isHardTerminalJobStatus("rejected")).toBe(false);
+    expect(isSoftTerminalJobStatus("rejected")).toBe(false);
+  });
+
+  it("filled is hard terminal", () => {
+    expect(isHardTerminalJobStatus("filled")).toBe(true);
+  });
+
+  it("expired is soft terminal", () => {
+    expect(isSoftTerminalJobStatus("expired")).toBe(true);
   });
 });
