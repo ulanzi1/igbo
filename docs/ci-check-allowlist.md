@@ -33,10 +33,7 @@ Add `// ci-allow-<reason>` above the relevant line, with a justification comment
 | `apps/portal/src/app/[locale]/(gated)/page.tsx` | `process-env` | const communityUrl = process.env.COMMUNITY_URL ?? "http://localhost:3000"; // ci-allow-process-env — portal env.ts not yet created (VD-6) |
 | `apps/portal/src/app/[locale]/(ungated)/choose-role/page.tsx` | `process-env` | if (!session) { |
 | `apps/portal/src/app/[locale]/(ungated)/choose-role/page.tsx` | `process-env` | const communityUrl = process.env.COMMUNITY_URL ?? "http://localhost:3000"; // ci-allow-process-env |
-| `apps/portal/src/app/api/v1/upload/file/route.ts` | `process-env` | _s3Client = new S3Client({ |
-| `apps/portal/src/app/api/v1/upload/file/route.ts` | `process-env` | endpoint: process.env.HETZNER_S3_ENDPOINT, // ci-allow-process-env |
-| `apps/portal/src/app/api/v1/upload/file/route.ts` | `process-env` | credentials: { |
-| `apps/portal/src/app/api/v1/upload/file/route.ts` | `process-env` | accessKeyId: process.env.HETZNER_S3_ACCESS_KEY_ID ?? "", // ci-allow-process-env |
+| `apps/portal/src/app/api/v1/seekers/me/cvs/route.ts` | `process-env` | new PutObjectCommand({ |
 | `apps/portal/src/app/api/v1/upload/file/route.ts` | `process-env` | new PutObjectCommand({ |
 | `apps/portal/src/app/api/v1/upload/file/route.ts` | `process-env` | — |
 | `apps/portal/src/app/api/v1/upload/file/route.ts` | `process-env` | const s3PublicUrl = process.env.HETZNER_S3_PUBLIC_URL; // ci-allow-process-env |
@@ -45,6 +42,10 @@ Add `// ci-allow-<reason>` above the relevant line, with a justification comment
 | `apps/portal/src/lib/api-middleware.ts` | `process-env` | portal has no @/env module; follows @igbo/auth pattern of direct process.env reads |
 | `apps/portal/src/lib/internal-auth.ts` | `process-env` | export function requireInternalAuth(req: Request): void { |
 | `apps/portal/src/lib/redis.ts` | `process-env` | function createClient(name: string): Redis { |
+| `apps/portal/src/lib/s3-client.ts` | `process-env` | _s3Client = new S3Client({ |
+| `apps/portal/src/lib/s3-client.ts` | `process-env` | endpoint: process.env.HETZNER_S3_ENDPOINT, // ci-allow-process-env |
+| `apps/portal/src/lib/s3-client.ts` | `process-env` | credentials: { |
+| `apps/portal/src/lib/s3-client.ts` | `process-env` | accessKeyId: process.env.HETZNER_S3_ACCESS_KEY_ID ?? "", // ci-allow-process-env |
 | `apps/portal/src/services/event-bridge.ts` | `no-server-only` | shared with standalone server |
 | `apps/portal/src/services/event-bus.ts` | `no-server-only` | shared with standalone server |
 | `apps/portal/src/services/job-analytics-service.ts` | `process-env` | Build community post content |
