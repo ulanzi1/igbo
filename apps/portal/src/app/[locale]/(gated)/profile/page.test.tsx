@@ -8,6 +8,12 @@ vi.mock("@igbo/db/queries/portal-seeker-profiles", () => ({
 vi.mock("@igbo/db/queries/cross-app", () => ({
   getCommunityProfileForPrefill: vi.fn(),
 }));
+vi.mock("@igbo/db/queries/portal-seeker-preferences", () => ({
+  getSeekerPreferencesByProfileId: vi.fn().mockResolvedValue(null),
+}));
+vi.mock("@igbo/db/queries/portal-seeker-cvs", () => ({
+  listSeekerCvs: vi.fn().mockResolvedValue([]),
+}));
 vi.mock("next/navigation", () => ({
   redirect: vi.fn((url: string) => {
     throw new Error(`REDIRECT:${url}`);
@@ -38,6 +44,18 @@ vi.mock("@/components/flow/seeker-profile-form", () => ({
   ),
   SeekerProfileFormSkeleton: () => <div>Skeleton</div>,
 }));
+vi.mock("@/components/flow/seeker-preferences-section", () => ({
+  SeekerPreferencesSection: () => <div data-testid="seeker-preferences-section" />,
+}));
+vi.mock("@/components/flow/seeker-cv-manager", () => ({
+  SeekerCvManager: () => <div data-testid="seeker-cv-manager" />,
+}));
+vi.mock("@/components/flow/seeker-visibility-section", () => ({
+  SeekerVisibilitySection: () => <div data-testid="seeker-visibility-section" />,
+}));
+vi.mock("@/components/flow/seeker-consent-section", () => ({
+  SeekerConsentSection: () => <div data-testid="seeker-consent-section" />,
+}));
 vi.mock("@/components/domain/seeker-profile-view", () => ({
   SeekerProfileView: ({
     profile,
@@ -65,6 +83,8 @@ import { render, screen } from "@testing-library/react";
 import { auth } from "@igbo/auth";
 import { getSeekerProfileByUserId } from "@igbo/db/queries/portal-seeker-profiles";
 import { getCommunityProfileForPrefill } from "@igbo/db/queries/cross-app";
+import { getSeekerPreferencesByProfileId } from "@igbo/db/queries/portal-seeker-preferences";
+import { listSeekerCvs } from "@igbo/db/queries/portal-seeker-cvs";
 import Page from "./page";
 
 const seekerSession = {
@@ -79,6 +99,11 @@ const mockProfile = {
   skills: [],
   experienceJson: [],
   educationJson: [],
+  visibility: "passive",
+  consentMatching: false,
+  consentEmployerView: false,
+  consentMatchingChangedAt: null,
+  consentEmployerViewChangedAt: null,
   createdAt: new Date(),
   updatedAt: new Date(),
 };
@@ -161,5 +186,61 @@ describe("ProfilePage", () => {
     vi.mocked(getSeekerProfileByUserId).mockResolvedValue(mockProfile);
     await renderPage();
     expect(getSeekerProfileByUserId).toHaveBeenCalledWith("user-123");
+  });
+
+  it("renders preferences section in view mode", async () => {
+    vi.mocked(getSeekerProfileByUserId).mockResolvedValue(mockProfile);
+    await renderPage();
+    expect(screen.getByTestId("seeker-preferences-section")).toBeTruthy();
+  });
+
+  it("renders CV manager in view mode", async () => {
+    vi.mocked(getSeekerProfileByUserId).mockResolvedValue(mockProfile);
+    await renderPage();
+    expect(screen.getByTestId("seeker-cv-manager")).toBeTruthy();
+  });
+
+  it("renders visibility section in view mode", async () => {
+    vi.mocked(getSeekerProfileByUserId).mockResolvedValue(mockProfile);
+    await renderPage();
+    expect(screen.getByTestId("seeker-visibility-section")).toBeTruthy();
+  });
+
+  it("renders consent section in view mode", async () => {
+    vi.mocked(getSeekerProfileByUserId).mockResolvedValue(mockProfile);
+    await renderPage();
+    expect(screen.getByTestId("seeker-consent-section")).toBeTruthy();
+  });
+
+  it("fetches preferences and CVs for view mode", async () => {
+    vi.mocked(getSeekerProfileByUserId).mockResolvedValue(mockProfile);
+    await renderPage();
+    expect(getSeekerPreferencesByProfileId).toHaveBeenCalledWith("seeker-uuid");
+    expect(listSeekerCvs).toHaveBeenCalledWith("seeker-uuid");
+  });
+
+  it("renders supplementary sections in edit mode", async () => {
+    vi.mocked(getSeekerProfileByUserId).mockResolvedValue(mockProfile);
+    await renderPage({ edit: "true" });
+    expect(screen.getByTestId("seeker-profile-form")).toBeTruthy();
+    expect(screen.getByTestId("seeker-preferences-section")).toBeTruthy();
+    expect(screen.getByTestId("seeker-cv-manager")).toBeTruthy();
+    expect(screen.getByTestId("seeker-visibility-section")).toBeTruthy();
+    expect(screen.getByTestId("seeker-consent-section")).toBeTruthy();
+  });
+
+  it("fetches preferences and CVs for edit mode", async () => {
+    vi.mocked(getSeekerProfileByUserId).mockResolvedValue(mockProfile);
+    await renderPage({ edit: "true" });
+    expect(getSeekerPreferencesByProfileId).toHaveBeenCalledWith("seeker-uuid");
+    expect(listSeekerCvs).toHaveBeenCalledWith("seeker-uuid");
+  });
+
+  it("does not render supplementary sections in create mode", async () => {
+    vi.mocked(getSeekerProfileByUserId).mockResolvedValue(null);
+    vi.mocked(getCommunityProfileForPrefill).mockResolvedValue({ displayName: null, bio: null });
+    await renderPage();
+    expect(screen.queryByTestId("seeker-preferences-section")).toBeNull();
+    expect(screen.queryByTestId("seeker-cv-manager")).toBeNull();
   });
 });

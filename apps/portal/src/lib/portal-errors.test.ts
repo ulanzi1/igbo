@@ -33,8 +33,8 @@ describe("PORTAL_ERRORS", () => {
     }
   });
 
-  it("has exactly 11 error codes", () => {
-    expect(Object.keys(PORTAL_ERRORS)).toHaveLength(11);
+  it("has exactly 15 error codes", () => {
+    expect(Object.keys(PORTAL_ERRORS)).toHaveLength(15);
   });
 
   it("has DUPLICATE_SEEKER_PROFILE key", () => {
@@ -62,5 +62,21 @@ describe("PORTAL_ERRORS", () => {
   it("PortalErrorCode type-level check", () => {
     const _code: PortalErrorCode = PORTAL_ERRORS.ROLE_MISMATCH;
     expect(_code).toBe("PORTAL_ERRORS.ROLE_MISMATCH");
+  });
+
+  it("has CV_LIMIT_REACHED key", () => {
+    expect(PORTAL_ERRORS.CV_LIMIT_REACHED).toBe("PORTAL_ERRORS.CV_LIMIT_REACHED");
+  });
+
+  it("has SEEKER_PROFILE_REQUIRED key", () => {
+    expect(PORTAL_ERRORS.SEEKER_PROFILE_REQUIRED).toBe("PORTAL_ERRORS.SEEKER_PROFILE_REQUIRED");
+  });
+
+  it("has INVALID_FILE_TYPE key", () => {
+    expect(PORTAL_ERRORS.INVALID_FILE_TYPE).toBe("PORTAL_ERRORS.INVALID_FILE_TYPE");
+  });
+
+  it("has FILE_TOO_LARGE key", () => {
+    expect(PORTAL_ERRORS.FILE_TOO_LARGE).toBe("PORTAL_ERRORS.FILE_TOO_LARGE");
   });
 });
