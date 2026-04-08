@@ -167,4 +167,16 @@ describe("SeekerPreferencesSection", () => {
     const results = await axe(container);
     expect(results).toHaveNoViolations();
   });
+
+  // P-2.3: onSave callback
+  it("calls onSave after successful save", async () => {
+    mockFetch.mockResolvedValue({ ok: true, json: async () => ({ data: mockPrefs }) });
+    const onSave = vi.fn();
+    render(<SeekerPreferencesSection initialPrefs={mockPrefs} onSave={onSave} />);
+    const submitBtn = screen.getByRole("button", { name: /preferencesSave/i });
+    await userEvent.click(submitBtn);
+    await waitFor(() => {
+      expect(onSave).toHaveBeenCalledTimes(1);
+    });
+  });
 });

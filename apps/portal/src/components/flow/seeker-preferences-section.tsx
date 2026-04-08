@@ -28,9 +28,10 @@ const MAX_LOCATIONS = 20;
 
 interface SeekerPreferencesSectionProps {
   initialPrefs?: PortalSeekerPreferences | null;
+  onSave?: () => void;
 }
 
-export function SeekerPreferencesSection({ initialPrefs }: SeekerPreferencesSectionProps) {
+export function SeekerPreferencesSection({ initialPrefs, onSave }: SeekerPreferencesSectionProps) {
   const t = useTranslations("Portal.seeker");
 
   const [desiredRoles, setDesiredRoles] = React.useState<string[]>(
@@ -100,6 +101,7 @@ export function SeekerPreferencesSection({ initialPrefs }: SeekerPreferencesSect
         return;
       }
       toast.success(t("preferencesSuccess"));
+      onSave?.();
     } catch {
       toast.error(t("preferencesError"));
     } finally {

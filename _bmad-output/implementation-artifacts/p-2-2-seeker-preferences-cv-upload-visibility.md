@@ -1,6 +1,6 @@
 # Story P-2.2: Seeker Preferences, CV Upload & Visibility
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
