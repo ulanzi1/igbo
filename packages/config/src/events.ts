@@ -73,18 +73,29 @@ export interface ApplicationSubmittedEvent extends BaseEvent {
   applicationId: string;
   jobId: string;
   seekerUserId: string;
+  companyId: string;
+  employerUserId: string;
 }
 
 export interface ApplicationStatusChangedEvent extends BaseEvent {
   applicationId: string;
+  jobId: string;
   seekerUserId: string;
   companyId: string;
   previousStatus: string;
   newStatus: string;
+  actorUserId: string;
+  actorRole: string; // "job_seeker" | "employer" | "job_admin"
 }
 
 export interface ApplicationWithdrawnEvent extends BaseEvent {
   applicationId: string;
+  jobId: string;
+  seekerUserId: string;
+  companyId: string;
+  previousStatus: string;
+  newStatus: string; // always "withdrawn"
+  actorUserId: string; // the seeker who withdrew
 }
 
 export interface JobViewedEvent extends BaseEvent {

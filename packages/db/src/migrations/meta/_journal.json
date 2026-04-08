@@ -435,6 +435,13 @@
       "when": 1708000061000,
       "tag": "0061_seeker_onboarding",
       "breakpoints": true
+    },
+    {
+      "idx": 62,
+      "version": "7",
+      "when": 1708000062000,
+      "tag": "0062_application_state_machine",
+      "breakpoints": true
     }
   ]
 }
