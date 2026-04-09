@@ -395,7 +395,183 @@ Known reasons:
 
 ---
 
-## 8. Common Gotchas
+## 8. Async Safety Requirements
+
+> **Why this section exists.** Portal Epic 1 retrospective (2026-04-05) identified that idempotency was treated as an optional "pattern" rather than an enforced requirement. With P-2.5A introducing the first portal async handlers (application submission → notifications, status change side-effects), this section codifies idempotency as a **mandatory requirement** for every async handler, with standardized dedup keys, mandatory test cases, graceful degradation rules, and observability standards. Per PREP-B action item.
+
+### 8.1 Idempotency Is a Requirement, Not a Pattern
+
+Every async event handler — whether registered via `eventBus.on()`, `portalEventBus.on()`, or triggered by a Redis pub/sub message — **must** be idempotent. This is not optional. A handler that cannot safely process the same event twice has a bug.
+
+**Implementation:** Use the canonical `EVENT_DEDUP_KEY` from `@igbo/config/events` with Redis `SET NX`:
+
+```typescript
+import { EVENT_DEDUP_KEY, EVENT_DEDUP_TTL_SECONDS } from "@igbo/config/events";
+import { getRedisClient } from "@/lib/redis";
+
+async function withDedup(eventId: string, fn: () => Promise<void>): Promise<void> {
+  const redis = getRedisClient();
+  const acquired = await redis.set(
+    EVENT_DEDUP_KEY(eventId),
+    "1",
+    "EX",
+    EVENT_DEDUP_TTL_SECONDS,
+    "NX",
+  );
+  if (acquired !== "OK") return; // duplicate — silently skip
+  await fn();
+}
+```
+
+Handlers that predate this requirement (community notification-service, points-engine, moderation-service) are grandfathered but tracked as velocity-debt (VD-6). All **new** handlers must use `withDedup` from day one.
+
+### 8.2 Dedup Key Naming Convention
+
+All Redis dedup keys follow a strict naming scheme to prevent collisions and enable debugging:
+
+| Scope                | Key Format                                         | Example                                            |
+| -------------------- | -------------------------------------------------- | -------------------------------------------------- |
+| Event envelope dedup | `event:dedup:{eventId}`                            | `event:dedup:550e8400-e29b-41d4-a716-446655440000` |
+| Business-logic dedup | `dedup:{domain}:{action}:{composite}`              | `dedup:portal:job-view:job123:user456`             |
+| Email dedup          | `dedup:email:{template}:{recipientId}:{contextId}` | `dedup:email:application-received:user789:app123`  |
+| Job/cron dedup       | `dedup:job:{jobName}:{runId}`                      | `dedup:job:expire-postings:2026-04-08`             |
+
+Rules:
+
+- **Event envelope dedup** uses `EVENT_DEDUP_KEY(eventId)` from `@igbo/config/events`. This is the default for all event handlers.
+- **Business-logic dedup** is for cases where the same logical operation can arrive via different events or retries with different `eventId`s (e.g., job-view counting). Use the narrowest composite key that captures uniqueness.
+- All dedup keys **must** have a TTL. Default: `EVENT_DEDUP_TTL_SECONDS` (24h). Shorter TTLs are acceptable with justification in a code comment.
+- Never use timestamps in dedup keys unless the key explicitly represents a time window (e.g., daily job runs).
+
+### 8.3 Mandatory Test Cases per Async Handler
+
+Every async event handler **must** have these three test cases. PRs missing any of the three are blocked in review.
+
+**Test 1 — Happy path:** Handler receives a valid event, performs expected side effects (DB write, email enqueue, status change), and returns successfully.
+
+**Test 2 — Failure-retry:** Handler fails mid-execution (mock a DB or external service error), then receives the same event again. The retry must either complete successfully or fail with an actionable error — never leave data in a partial/corrupt state. Verify:
+
+- No partial writes persisted from the first attempt (use transactions or dedup to prevent)
+- The retry produces the same end state as a first-time success
+
+**Test 3 — Duplicate invocation:** Handler receives the same event twice (same `eventId`). The second invocation must be a no-op. Verify:
+
+- Side effects (DB writes, emails, counter increments) occur exactly once
+- No error is thrown on the duplicate
+- Dedup key was checked via `EVENT_DEDUP_KEY`
+
+```typescript
+// Example test structure for an application.status_changed handler
+describe("handleApplicationStatusChanged", () => {
+  it("processes valid status change event", async () => {
+    // Test 1: happy path
+    await handler(validEvent);
+    expect(mockDb.insert).toHaveBeenCalledOnce();
+    expect(mockEmail.send).toHaveBeenCalledOnce();
+  });
+
+  it("retries cleanly after mid-execution failure", async () => {
+    // Test 2: failure-retry
+    mockDb.insert.mockRejectedValueOnce(new Error("connection lost"));
+    await expect(handler(validEvent)).rejects.toThrow();
+
+    mockDb.insert.mockResolvedValueOnce(undefined);
+    mockRedis.set.mockResolvedValueOnce("OK"); // dedup key expired or was not set
+    await handler(validEvent);
+    expect(mockDb.insert).toHaveBeenCalledTimes(2);
+    expect(mockEmail.send).toHaveBeenCalledOnce(); // only on success
+  });
+
+  it("skips duplicate event without error", async () => {
+    // Test 3: duplicate invocation
+    mockRedis.set.mockResolvedValueOnce("OK"); // first: acquired
+    await handler(validEvent);
+
+    mockRedis.set.mockResolvedValueOnce(null); // second: already exists
+    await handler(validEvent);
+    expect(mockDb.insert).toHaveBeenCalledOnce(); // side effect happened once
+  });
+});
+```
+
+### 8.4 Email Failure Graceful Degradation
+
+Email delivery is **never** on the critical path. An email send failure must not cause the parent operation to fail or roll back.
+
+Rules:
+
+1. **Wrap email sends in try/catch** — log the error, do not re-throw.
+2. **Dedup email sends** using the `dedup:email:{template}:{recipientId}:{contextId}` key pattern. Retried events must not send duplicate emails.
+3. **No silent swallowing** — failed email sends must emit a structured log entry (see §8.6) with enough context to retry manually or investigate.
+4. **No inline email sends in DB transactions** — email calls happen AFTER the transaction commits. If the transaction rolls back, no email is sent.
+5. **Circuit-breaker awareness** — if the email provider returns 5xx or rate-limit errors, log at `warn` level and continue. Do not retry in the same handler invocation; the next event delivery will retry naturally.
+
+```typescript
+// ✅ Correct — email after commit, caught, logged
+await db.transaction(async (tx) => {
+  await tx.update(portalApplications).set({ status: "under_review" }).where(...);
+  await tx.insert(portalApplicationTransitions).values({ ... });
+});
+// Outside transaction — fire-and-forget with dedup
+try {
+  await sendApplicationEmail("status-changed", seekerUserId, applicationId);
+} catch (err) {
+  logger.warn("email_send_failed", { template: "status-changed", seekerUserId, applicationId, error: String(err) });
+}
+
+// ❌ Wrong — email inside transaction, failure causes rollback
+await db.transaction(async (tx) => {
+  await tx.update(...);
+  await emailService.send(...); // if this throws, the DB update rolls back
+});
+```
+
+### 8.5 Upload Pipeline Error States
+
+File uploads progress through a defined state machine. Every state transition must be persisted to the `file_uploads.status` column.
+
+| Status           | Meaning                                       | Terminal? | Next States                                    |
+| ---------------- | --------------------------------------------- | --------- | ---------------------------------------------- |
+| `pending_upload` | Upload initiated, not yet received by storage | No        | `uploaded`, `upload_failed`                    |
+| `uploaded`       | Stored in S3, awaiting processing             | No        | `pending_scan`, `ready` (if no scan required)  |
+| `pending_scan`   | Queued for ClamAV + magic byte verification   | No        | `ready`, `quarantined`, `scan_failed`          |
+| `ready`          | Passed all checks, served to users            | Yes       | —                                              |
+| `quarantined`    | Failed virus scan or magic byte mismatch      | Yes       | —                                              |
+| `upload_failed`  | S3 PutObject failed                           | Yes       | —                                              |
+| `scan_failed`    | Scanner unavailable after max retries         | No        | `pending_scan` (retry), `quarantined` (manual) |
+
+Rules:
+
+1. **Never serve files in non-`ready` status** — queries that surface files to users must filter `WHERE status = 'ready'`.
+2. **`scan_failed` is retriable** — the file-processing job retries `scan_failed` files up to 3 times. After 3 failures, an admin alert is logged and the file remains in `scan_failed` for manual triage.
+3. **CV uploads** follow the same state machine. The TODO in `cvs/route.ts` ("portal/cvs/\* keys are not yet processed by the scanner job") is tracked as velocity-debt (VD-7) and must be resolved before P-2.5A go-live.
+4. **Upload route error handling** — if S3 `PutObject` fails, the route returns 502 and logs the error. No `file_uploads` record is created for failed uploads (no dangling records).
+
+### 8.6 Observability Standards
+
+Every async handler must produce structured log entries at key points. Use the project logger (not `console.log`).
+
+**Required log points per handler:**
+
+| Point                      | Level   | Required Fields                                          |
+| -------------------------- | ------- | -------------------------------------------------------- |
+| Handler invoked            | `debug` | `eventName`, `eventId`, `handler`                        |
+| Dedup skip (duplicate)     | `info`  | `eventName`, `eventId`, `handler`, `reason: "duplicate"` |
+| Handler succeeded          | `info`  | `eventName`, `eventId`, `handler`, `durationMs`          |
+| Handler failed (retriable) | `warn`  | `eventName`, `eventId`, `handler`, `error`, `attempt`    |
+| Handler failed (terminal)  | `error` | `eventName`, `eventId`, `handler`, `error`, `context`    |
+| Email send failed          | `warn`  | `template`, `recipientId`, `contextId`, `error`          |
+| File state transition      | `info`  | `fileUploadId`, `fromStatus`, `toStatus`, `reason`       |
+
+**Correlation:** All log entries within a single handler invocation must include the `eventId` for correlation. For request-scoped operations, include `requestId` if available.
+
+**Metric hooks (future-ready):** Handlers should be structured so that a timing wrapper can be added later without modifying handler logic. The `withDedup` helper already provides a natural instrumentation point.
+
+**Signed off: Winston (Architect) — 2026-04-08**
+
+---
+
+## 9. Common Gotchas
 
 | Gotcha                                              | Fix                                                                                 |
 | --------------------------------------------------- | ----------------------------------------------------------------------------------- |
