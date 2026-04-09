@@ -22,6 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Link } from "@/i18n/navigation";
 import { ConfirmationCheckmark } from "@/components/domain/confirmation-checkmark";
 import type { CvOption } from "@/components/domain/apply-button";
 
@@ -239,12 +240,14 @@ export function ApplicationDrawer({
 
             <div className="flex w-full flex-col gap-3">
               <Button asChild variant="default" className="w-full">
-                <a href="/applications" aria-label={t("confirmation.viewApplications")}>
+                <Link href="/applications" aria-label={t("confirmation.viewApplications")}>
                   {t("confirmation.viewApplications")}
-                </a>
+                </Link>
               </Button>
-              <Button variant="outline" className="w-full" onClick={() => handleOpenChange(false)}>
-                {t("confirmation.browseJobs")}
+              <Button asChild variant="outline" className="w-full">
+                <Link href="/jobs" onClick={() => onSuccess()}>
+                  {t("confirmation.browseJobs")}
+                </Link>
               </Button>
             </div>
           </div>

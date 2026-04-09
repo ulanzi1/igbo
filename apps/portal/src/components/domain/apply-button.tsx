@@ -116,6 +116,8 @@ export function ApplyButton({
         profileLocation={profileLocation}
         enableCoverLetter={enableCoverLetter}
         onSuccess={() => {
+          // Called when user closes the drawer from "confirmed" state (P-2.5B).
+          // router.refresh() triggers here (on confirmed-close) rather than immediately on submit.
           setApplied(true);
           toast.success(t("toast.success"));
           router.refresh();
