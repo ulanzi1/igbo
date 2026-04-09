@@ -322,3 +322,107 @@ describe("submit — event dedup / failure-retry (Playbook §8.3)", () => {
     expect(portalEventBus.emit).toHaveBeenCalledTimes(1);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Re-apply after withdrawal (AC-8 integration lock — P-2.7)
+//
+// Where AC-8 is actually enforced (non-trivial — read this before editing):
+//   1. **DB partial unique index** in migration 0063:
+//        UNIQUE (job_id, seeker_user_id) WHERE status <> 'withdrawn'
+//      The DB physically permits multiple rows for the same (job, seeker) as
+//      long as only one is non-withdrawn at a time.
+//   2. **`getExistingActiveApplication`** uses `ne(status, 'withdrawn')` —
+//      proven by the unit test in
+//      `packages/db/src/queries/portal-applications.test.ts`
+//      ("returns null when only withdrawn application exists").
+//   3. **`application-submission-service.submit`** does NOT pre-check for
+//      existing rows on the happy path. It relies on (1) the DB unique index
+//      and (2) the SET-NX idempotency key. `getExistingActiveApplication` is
+//      only consulted inside the idempotency-replay branch (Step 6).
+//
+// These service-level tests therefore prove the *behavioural* contract: when
+// no active application exists for (job, seeker) — which is exactly the state
+// after a prior withdrawal — submission produces a brand-new row whose id is
+// distinct from the prior withdrawn row's id, with a fresh `submitted` status,
+// and emits `application.submitted` so the employer is notified afresh. The
+// dedup short-circuit in Step 6 must NOT misfire.
+// ---------------------------------------------------------------------------
+describe("submit — re-apply after withdrawal (AC-8)", () => {
+  const PRIOR_WITHDRAWN_APPLICATION: PortalApplication = {
+    ...APPLICATION,
+    id: "app-old-withdrawn",
+    status: "withdrawn",
+    previousStatus: "submitted",
+    transitionedAt: new Date("2026-02-01"),
+    transitionedByUserId: "seeker-1",
+    transitionReason: "Changed my mind",
+    createdAt: new Date("2026-01-15"),
+    updatedAt: new Date("2026-02-01"),
+  };
+
+  it("creates a fresh application row distinct from the prior withdrawn row", async () => {
+    makeRedisMock();
+
+    const freshApplication: PortalApplication = {
+      ...APPLICATION,
+      id: "app-fresh-after-withdraw",
+      status: "submitted",
+      previousStatus: null,
+      transitionedAt: null,
+      transitionedByUserId: null,
+      transitionReason: null,
+      createdAt: new Date("2026-04-09"),
+      updatedAt: new Date("2026-04-09"),
+    };
+    installTxMock(freshApplication);
+
+    const result = await submit(BASE_INPUT);
+
+    // The new row is genuinely new — not a resurrection of the prior withdrawn row
+    expect(result.application.id).toBe("app-fresh-after-withdraw");
+    expect(result.application.id).not.toBe(PRIOR_WITHDRAWN_APPLICATION.id);
+    expect(result.application.status).toBe("submitted");
+    expect(result.application.previousStatus).toBeNull();
+    expect(result.replayed).toBe(false);
+    expect(db.transaction).toHaveBeenCalledTimes(1);
+    // The application.submitted event must fire on a re-apply (employer needs
+    // a fresh notification, not silence because "they applied before")
+    expect(portalEventBus.emit).toHaveBeenCalledWith(
+      "application.submitted",
+      expect.objectContaining({
+        applicationId: "app-fresh-after-withdraw",
+        jobId: "jp-1",
+        seekerUserId: "seeker-1",
+      }),
+    );
+  });
+
+  it("does NOT take the replayed branch when an idempotency key is supplied for a re-apply attempt", async () => {
+    // Regression guard: a fresh idempotency key on a re-apply attempt must
+    // open a new transaction. The replayed branch is reserved for the
+    // SET-NX-fail-AND-existing-row case (idempotent retry of the SAME request).
+    makeRedisMock(); // SET NX returns "OK" — fresh key
+    installTxMock(APPLICATION);
+
+    const result = await submit({ ...BASE_INPUT, idempotencyKey: "key-after-withdraw" });
+
+    expect(result.replayed).toBe(false);
+    expect(db.transaction).toHaveBeenCalledTimes(1);
+    expect(portalEventBus.emit).toHaveBeenCalledWith("application.submitted", expect.any(Object));
+  });
+
+  it("re-apply does NOT consult getExistingActiveApplication on the happy path", async () => {
+    // Documents the actual architecture: the gate query is only used inside
+    // the idempotency replay branch. The DB partial unique index (migration
+    // 0063) is what physically enforces "at most one non-withdrawn row per
+    // (job, seeker)". If a future refactor introduces a service-level
+    // pre-check, this test will fail and force a re-evaluation of the
+    // dedup contract.
+    makeRedisMock();
+    installTxMock(APPLICATION);
+
+    await submit(BASE_INPUT);
+
+    expect(getExistingActiveApplication).not.toHaveBeenCalled();
+  });
+});

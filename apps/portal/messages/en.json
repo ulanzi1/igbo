@@ -709,6 +709,30 @@
         "hired": "Hired",
         "rejected": "Rejected",
         "withdrawn": "Withdrawn"
+      },
+      "withdraw": {
+        "buttonLabel": "Withdraw Application",
+        "dialogTitle": "Withdraw your application for {jobTitle}?",
+        "dialogDescription": "Withdrawing removes you from consideration for this position. This action is permanent and cannot be undone.",
+        "offeredWarningTitle": "You have a pending offer",
+        "offeredWarningBody": "Withdrawing now will decline the offer for this position.",
+        "offeredConfirmCheckbox": "I understand this declines the pending offer",
+        "reasonLabel": "Reason (optional)",
+        "reasonPlaceholder": "Let the employer know why you're withdrawing (optional)",
+        "reasonHelp": "Max 500 characters. This is shared with the employer.",
+        "cancel": "Cancel",
+        "confirm": "Withdraw",
+        "confirmLoading": "Withdrawing…",
+        "toastSuccess": "Application withdrawn",
+        "toastError": "Failed to withdraw application. Please try again.",
+        "errorInvalidTransition": "This application can no longer be withdrawn.",
+        "errorNotFound": "Application not found."
+      }
+    },
+    "notifications": {
+      "employerApplicationWithdrawn": {
+        "title": "A candidate withdrew their application",
+        "body": "{seekerName} withdrew from {jobTitle}"
       }
     },
     "chooseRole": {

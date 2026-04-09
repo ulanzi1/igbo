@@ -54,6 +54,20 @@ vi.mock("@/components/ui/card", () => ({
 vi.mock("@/components/ui/separator", () => ({
   Separator: ({ className }: { className?: string }) => <hr className={className} />,
 }));
+vi.mock("@/components/domain/withdraw-application-controls", () => ({
+  WithdrawApplicationControls: ({
+    applicationId,
+    currentStatus,
+  }: {
+    applicationId: string;
+    jobTitle: string;
+    currentStatus: string;
+  }) => (
+    <button data-testid={`withdraw-controls-${applicationId}`} data-status={currentStatus}>
+      Withdraw
+    </button>
+  ),
+}));
 
 import { render, screen } from "@testing-library/react";
 import { axe, toHaveNoViolations } from "jest-axe";
@@ -184,6 +198,61 @@ describe("ApplicationDetailPage", () => {
   });
 
   it("passes axe-core accessibility assertion", async () => {
+    const { container } = await renderPage();
+    const results = await axe(container);
+    expect(results).toHaveNoViolations();
+  });
+
+  it("renders WithdrawApplicationControls for a withdrawable (submitted) application", async () => {
+    vi.mocked(getApplicationDetailForSeeker).mockResolvedValue({
+      ...mockApplication,
+      status: "submitted",
+    } as never);
+    await renderPage();
+    expect(screen.getByTestId("withdraw-controls-app-1")).toBeTruthy();
+  });
+
+  it("renders WithdrawApplicationControls for offered status (also withdrawable)", async () => {
+    vi.mocked(getApplicationDetailForSeeker).mockResolvedValue({
+      ...mockApplication,
+      status: "offered",
+    } as never);
+    await renderPage();
+    expect(screen.getByTestId("withdraw-controls-app-1")).toBeTruthy();
+  });
+
+  it("does NOT render WithdrawApplicationControls for terminal status (withdrawn)", async () => {
+    vi.mocked(getApplicationDetailForSeeker).mockResolvedValue({
+      ...mockApplication,
+      status: "withdrawn",
+    } as never);
+    await renderPage();
+    expect(screen.queryByTestId("withdraw-controls-app-1")).toBeNull();
+  });
+
+  it("does NOT render WithdrawApplicationControls for terminal status (hired)", async () => {
+    vi.mocked(getApplicationDetailForSeeker).mockResolvedValue({
+      ...mockApplication,
+      status: "hired",
+    } as never);
+    await renderPage();
+    expect(screen.queryByTestId("withdraw-controls-app-1")).toBeNull();
+  });
+
+  it("does NOT render WithdrawApplicationControls for terminal status (rejected)", async () => {
+    vi.mocked(getApplicationDetailForSeeker).mockResolvedValue({
+      ...mockApplication,
+      status: "rejected",
+    } as never);
+    await renderPage();
+    expect(screen.queryByTestId("withdraw-controls-app-1")).toBeNull();
+  });
+
+  it("passes axe-core check with terminal-state application (no withdraw button)", async () => {
+    vi.mocked(getApplicationDetailForSeeker).mockResolvedValue({
+      ...mockApplication,
+      status: "withdrawn",
+    } as never);
     const { container } = await renderPage();
     const results = await axe(container);
     expect(results).toHaveNoViolations();
