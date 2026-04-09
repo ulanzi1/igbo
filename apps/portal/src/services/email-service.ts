@@ -31,8 +31,8 @@ function getResend(): Resend {
 
 export const emailService = {
   send: async (payload: EmailPayload): Promise<void> => {
-    if (process.env.ENABLE_EMAIL_SENDING === "false") {
-      // ci-allow-process-env
+    const emailDisabled = process.env.ENABLE_EMAIL_SENDING === "false"; // ci-allow-process-env
+    if (emailDisabled) {
       console.info(
         JSON.stringify({
           level: "info",
