@@ -188,43 +188,65 @@ describe("Serialization contract", () => {
     expect(roundTripped.reason).toBeUndefined();
   });
 
-  it("ApplicationSubmittedEvent round-trips through JSON", () => {
+  it("ApplicationSubmittedEvent round-trips through JSON (P-2.4: enriched fields)", () => {
     const event: ApplicationSubmittedEvent = {
       ...createEventEnvelope(),
       applicationId: "app-1",
       jobId: "job-1",
       seekerUserId: "u-seeker-1",
+      companyId: "cp-1",
+      employerUserId: "u-employer-1",
     };
     const roundTripped = JSON.parse(JSON.stringify(event)) as ApplicationSubmittedEvent;
     expect(roundTripped.applicationId).toBe("app-1");
     expect(roundTripped.jobId).toBe("job-1");
     expect(roundTripped.seekerUserId).toBe("u-seeker-1");
+    expect(roundTripped.companyId).toBe("cp-1");
+    expect(roundTripped.employerUserId).toBe("u-employer-1");
   });
 
-  it("ApplicationStatusChangedEvent round-trips through JSON", () => {
+  it("ApplicationStatusChangedEvent round-trips through JSON (P-2.4: enriched fields)", () => {
     const event: ApplicationStatusChangedEvent = {
       ...createEventEnvelope(),
       applicationId: "app-2",
+      jobId: "job-2",
       seekerUserId: "u-seeker-2",
       companyId: "cp-4",
       previousStatus: "submitted",
       newStatus: "under_review",
+      actorUserId: "u-employer-2",
+      actorRole: "employer",
     };
     const roundTripped = JSON.parse(JSON.stringify(event)) as ApplicationStatusChangedEvent;
     expect(roundTripped.applicationId).toBe("app-2");
+    expect(roundTripped.jobId).toBe("job-2");
     expect(roundTripped.seekerUserId).toBe("u-seeker-2");
     expect(roundTripped.companyId).toBe("cp-4");
     expect(roundTripped.previousStatus).toBe("submitted");
     expect(roundTripped.newStatus).toBe("under_review");
+    expect(roundTripped.actorUserId).toBe("u-employer-2");
+    expect(roundTripped.actorRole).toBe("employer");
   });
 
-  it("ApplicationWithdrawnEvent round-trips through JSON", () => {
+  it("ApplicationWithdrawnEvent round-trips through JSON (P-2.4: enriched fields)", () => {
     const event: ApplicationWithdrawnEvent = {
       ...createEventEnvelope(),
       applicationId: "app-3",
+      jobId: "job-3",
+      seekerUserId: "u-seeker-3",
+      companyId: "cp-5",
+      previousStatus: "under_review",
+      newStatus: "withdrawn",
+      actorUserId: "u-seeker-3",
     };
     const roundTripped = JSON.parse(JSON.stringify(event)) as ApplicationWithdrawnEvent;
     expect(roundTripped.applicationId).toBe("app-3");
+    expect(roundTripped.jobId).toBe("job-3");
+    expect(roundTripped.seekerUserId).toBe("u-seeker-3");
+    expect(roundTripped.companyId).toBe("cp-5");
+    expect(roundTripped.previousStatus).toBe("under_review");
+    expect(roundTripped.newStatus).toBe("withdrawn");
+    expect(roundTripped.actorUserId).toBe("u-seeker-3");
   });
 
   it("JobExpiredEvent round-trips through JSON", () => {
@@ -332,6 +354,8 @@ const _appSubmitted: PortalEventMap["application.submitted"] = {
   applicationId: "a1",
   jobId: "j1",
   seekerUserId: "u1",
+  companyId: "cp-1",
+  employerUserId: "u-emp-1",
 };
 // Suppress "unused variable" lint errors
 void _jobPublished;

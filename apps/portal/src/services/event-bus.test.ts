@@ -14,7 +14,13 @@ const JOB_PUBLISHED_PAYLOAD = {
 };
 const JOB_UPDATED_PAYLOAD = { jobId: "j1", companyId: "cp-1", changes: { title: "New" } };
 const JOB_CLOSED_PAYLOAD = { jobId: "j1", companyId: "cp-1" };
-const APP_SUBMITTED_PAYLOAD = { applicationId: "a1", jobId: "j1", seekerUserId: "u1" };
+const APP_SUBMITTED_PAYLOAD = {
+  applicationId: "a1",
+  jobId: "j1",
+  seekerUserId: "u1",
+  companyId: "cp-1",
+  employerUserId: "u-emp-1",
+};
 
 // Reset module between tests to clear the HMR singleton
 beforeEach(() => {
