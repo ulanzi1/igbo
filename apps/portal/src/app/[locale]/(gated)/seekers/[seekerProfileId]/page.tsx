@@ -5,6 +5,7 @@ import { getSeekerProfileById } from "@igbo/db/queries/portal-seeker-profiles";
 import { getSeekerTrustSignals } from "@igbo/db/queries/cross-app";
 import { SeekerProfileView } from "@/components/domain/seeker-profile-view";
 import { TrustSignalsPanel } from "@/components/semantic/trust-signals-panel";
+import { SeekerProfileViewTracker } from "@/components/domain/seeker-profile-view-tracker";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface PageProps {
@@ -38,6 +39,11 @@ export default async function SeekerProfilePage({ params }: PageProps) {
           {signals && <TrustSignalsPanel signals={signals} />}
         </CardContent>
       </Card>
+      <SeekerProfileViewTracker
+        seekerProfileId={seekerProfileId}
+        viewerUserId={session.user.id}
+        profileOwnerUserId={profile.userId}
+      />
     </div>
   );
 }

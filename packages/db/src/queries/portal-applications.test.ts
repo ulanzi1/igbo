@@ -15,6 +15,7 @@ import {
   getApplicationWithCurrentStatus,
   insertApplicationWithPayload,
   getExistingActiveApplication,
+  getApplicationCountsByStatusForSeeker,
 } from "./portal-applications";
 import type { PortalApplication, PortalApplicationTransition } from "../schema/portal-applications";
 
@@ -491,5 +492,42 @@ describe("getApplicationDetailForSeeker", () => {
     const { getApplicationDetailForSeeker } = await import("./portal-applications");
     const result = await getApplicationDetailForSeeker("app-1", "u-other");
     expect(result).toBeNull();
+  });
+});
+
+// ─── P-2.8 additions ──────────────────────────────────────────────────────────
+
+describe("getApplicationCountsByStatusForSeeker", () => {
+  function makeGroupByMock(returnValues: unknown[]) {
+    const groupBy = vi.fn().mockResolvedValue(returnValues);
+    const where = vi.fn().mockReturnValue({ groupBy });
+    const from = vi.fn().mockReturnValue({ where });
+    vi.mocked(db.select).mockReturnValue({ from } as unknown as ReturnType<typeof db.select>);
+  }
+
+  it("returns counts grouped by status for mixed statuses", async () => {
+    makeGroupByMock([
+      { status: "submitted", count: 2 },
+      { status: "interview", count: 1 },
+      { status: "rejected", count: 3 },
+    ]);
+    const result = await getApplicationCountsByStatusForSeeker("u-1");
+    expect(result).toHaveLength(3);
+    expect(result).toContainEqual({ status: "submitted", count: 2 });
+    expect(result).toContainEqual({ status: "interview", count: 1 });
+    expect(result).toContainEqual({ status: "rejected", count: 3 });
+  });
+
+  it("returns empty array when seeker has no applications", async () => {
+    makeGroupByMock([]);
+    const result = await getApplicationCountsByStatusForSeeker("u-999");
+    expect(result).toHaveLength(0);
+  });
+
+  it("returns single status when all apps have same status", async () => {
+    makeGroupByMock([{ status: "submitted", count: 5 }]);
+    const result = await getApplicationCountsByStatusForSeeker("u-1");
+    expect(result).toHaveLength(1);
+    expect(result[0]).toEqual({ status: "submitted", count: 5 });
   });
 });

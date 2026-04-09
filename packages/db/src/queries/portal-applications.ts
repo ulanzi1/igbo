@@ -11,7 +11,7 @@ import type {
 import { portalJobPostings } from "../schema/portal-job-postings";
 import { portalCompanyProfiles } from "../schema/portal-company-profiles";
 import { portalSeekerCvs } from "../schema/portal-seeker-cvs";
-import { eq, desc, asc, and, ne } from "drizzle-orm";
+import { eq, desc, asc, and, ne, count } from "drizzle-orm";
 
 export async function createApplication(data: NewPortalApplication): Promise<PortalApplication> {
   const [application] = await db.insert(portalApplications).values(data).returning();
@@ -268,4 +268,24 @@ export async function getApplicationDetailForSeeker(
     );
 
   return rows[0] ?? null;
+}
+
+/**
+ * Returns a count of applications grouped by status for a given seeker.
+ * Used by the seeker analytics dashboard.
+ * Origin: P-2.8
+ */
+export async function getApplicationCountsByStatusForSeeker(
+  seekerUserId: string,
+): Promise<Array<{ status: string; count: number }>> {
+  const rows = await db
+    .select({
+      status: portalApplications.status,
+      count: count(),
+    })
+    .from(portalApplications)
+    .where(eq(portalApplications.seekerUserId, seekerUserId))
+    .groupBy(portalApplications.status);
+
+  return rows.map((row) => ({ status: row.status, count: row.count }));
 }

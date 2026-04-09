@@ -13,6 +13,15 @@ vi.mock("@igbo/db/queries/portal-companies", () => ({
 vi.mock("@igbo/db/queries/portal-seeker-profiles", () => ({
   getSeekerProfileByUserId: vi.fn(),
 }));
+vi.mock("@/services/seeker-analytics-service", () => ({
+  getSeekerAnalytics: vi.fn(),
+}));
+vi.mock("@/components/domain/seeker-analytics-card", () => ({
+  SeekerAnalyticsCard: ({ data }: { data: unknown }) => (
+    <div data-testid="seeker-analytics-card" data-has-data={data !== null ? "true" : "false"} />
+  ),
+  SeekerAnalyticsCardSkeleton: () => <div data-testid="seeker-analytics-skeleton" />,
+}));
 vi.mock("next/navigation", () => ({
   redirect: vi.fn().mockImplementation((url: string) => {
     throw new Error(`REDIRECT:${url}`);
@@ -29,11 +38,13 @@ vi.mock("next-intl/server", () => ({
 import { auth } from "@igbo/auth";
 import { getCompanyByOwnerId } from "@igbo/db/queries/portal-companies";
 import { getSeekerProfileByUserId } from "@igbo/db/queries/portal-seeker-profiles";
+import { getSeekerAnalytics } from "@/services/seeker-analytics-service";
 import Page from "./page";
 
 const mockAuth = auth as unknown as ReturnType<typeof vi.fn>;
 const mockGetCompany = getCompanyByOwnerId as unknown as ReturnType<typeof vi.fn>;
 const mockGetSeekerProfile = getSeekerProfileByUserId as unknown as ReturnType<typeof vi.fn>;
+const mockGetSeekerAnalytics = getSeekerAnalytics as unknown as ReturnType<typeof vi.fn>;
 
 const completedProfile = {
   id: "cp-1",
@@ -44,9 +55,22 @@ const completedProfile = {
   updatedAt: new Date(),
 };
 
+const completedSeekerProfile = {
+  id: "sp-1",
+  userId: "u1",
+  onboardingCompletedAt: new Date("2026-04-01"),
+};
+
+const analyticsData = {
+  profileViews: 5,
+  totalApplications: 3,
+  statusCounts: { active: 2, interviews: 1, offers: 0, rejected: 0, withdrawn: 0 },
+};
+
 describe("Portal Homepage [locale]/page", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockGetSeekerAnalytics.mockResolvedValue(analyticsData);
   });
 
   it("redirects employer without company profile to onboarding", async () => {
@@ -173,5 +197,48 @@ describe("Portal Homepage [locale]/page", () => {
     // callbackUrl should include portal URL, not be empty
     const callbackUrl = decodeURIComponent(href.split("callbackUrl=")[1]!);
     expect(callbackUrl).toContain("http://localhost:3001/en");
+  });
+
+  // P-2.8: Seeker analytics card
+  it("renders analytics card for seeker with completed onboarding", async () => {
+    mockAuth.mockResolvedValue({
+      user: { id: "u1", activePortalRole: "JOB_SEEKER" } as Session["user"],
+      expires: "2099-01-01",
+    } as Session);
+    mockGetSeekerProfile.mockResolvedValue(completedSeekerProfile);
+    mockGetSeekerAnalytics.mockResolvedValue(analyticsData);
+
+    const jsx = await Page({ params: Promise.resolve({ locale: "en" }) });
+    const { getByTestId } = render(jsx as React.ReactElement);
+    expect(getByTestId("seeker-analytics-card")).toBeTruthy();
+    expect(mockGetSeekerAnalytics).toHaveBeenCalledWith("u1");
+  });
+
+  it("employer does not see seeker analytics card", async () => {
+    mockAuth.mockResolvedValue({
+      user: { id: "u2", activePortalRole: "EMPLOYER" } as Session["user"],
+      expires: "2099-01-01",
+    } as Session);
+    mockGetCompany.mockResolvedValue(completedProfile);
+
+    const jsx = await Page({ params: Promise.resolve({ locale: "en" }) });
+    const { queryByTestId } = render(jsx as React.ReactElement);
+    expect(queryByTestId("seeker-analytics-card")).toBeNull();
+    expect(mockGetSeekerAnalytics).not.toHaveBeenCalled();
+  });
+
+  it("renders analytics card with null data when no seeker profile analytics available", async () => {
+    mockAuth.mockResolvedValue({
+      user: { id: "u1", activePortalRole: "JOB_SEEKER" } as Session["user"],
+      expires: "2099-01-01",
+    } as Session);
+    mockGetSeekerProfile.mockResolvedValue(completedSeekerProfile);
+    mockGetSeekerAnalytics.mockResolvedValue(null);
+
+    const jsx = await Page({ params: Promise.resolve({ locale: "en" }) });
+    const { getByTestId } = render(jsx as React.ReactElement);
+    const card = getByTestId("seeker-analytics-card");
+    expect(card).toBeTruthy();
+    expect(card.getAttribute("data-has-data")).toBe("false");
   });
 });
