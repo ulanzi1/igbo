@@ -67,6 +67,7 @@ const fullProfile = {
   consentEmployerView: false,
   consentMatchingChangedAt: null,
   consentEmployerViewChangedAt: null,
+  profileViewCount: 0,
   onboardingCompletedAt: null,
   createdAt: new Date(),
   updatedAt: new Date(),

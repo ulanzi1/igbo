@@ -751,6 +751,23 @@
       "addMoreLater": "You can add more roles later from your portal settings.",
       "error": "Something went wrong. Please try again.",
       "selecting": "Setting up your account..."
+    },
+    "seekerAnalytics": {
+      "title": "Your Job Search",
+      "profileViews": "Profile Views",
+      "totalApplications": "Total Applications",
+      "activeApplications": "Active",
+      "interviews": "Interviews",
+      "offers": "Offers",
+      "rejected": "Rejected",
+      "withdrawn": "Withdrawn",
+      "emptyTitle": "No activity yet",
+      "emptyDescription": "Apply to jobs to see your stats here",
+      "browseJobs": "Browse Jobs",
+      "ariaLabel": "Job search analytics summary",
+      "viewsAriaLabel": "Profile views: {count}",
+      "applicationsAriaLabel": "Total applications submitted: {count}",
+      "statusAriaLabel": "{status}: {count}"
     }
   },
   "Shell": {

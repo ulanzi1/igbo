@@ -6,6 +6,7 @@ import {
   text,
   jsonb,
   boolean,
+  integer,
   uniqueIndex,
   timestamp,
 } from "drizzle-orm/pg-core";
@@ -31,6 +32,8 @@ export const portalSeekerProfiles = pgTable(
     consentEmployerViewChangedAt: timestamp("consent_employer_view_changed_at", {
       withTimezone: true,
     }),
+    // Added in P-2.8 migration 0064
+    profileViewCount: integer("profile_view_count").notNull().default(0),
     // Added in P-2.3 migration 0061
     onboardingCompletedAt: timestamp("onboarding_completed_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),

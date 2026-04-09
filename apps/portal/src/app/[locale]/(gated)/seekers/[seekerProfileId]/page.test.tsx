@@ -39,6 +39,24 @@ vi.mock("@/components/semantic/trust-signals-panel", () => ({
     <div data-testid="trust-signals-panel" data-points={signals.communityPoints} />
   ),
 }));
+vi.mock("@/components/domain/seeker-profile-view-tracker", () => ({
+  SeekerProfileViewTracker: ({
+    seekerProfileId,
+    viewerUserId,
+    profileOwnerUserId,
+  }: {
+    seekerProfileId: string;
+    viewerUserId: string;
+    profileOwnerUserId: string;
+  }) => (
+    <div
+      data-testid="seeker-profile-view-tracker"
+      data-seeker-profile-id={seekerProfileId}
+      data-viewer-user-id={viewerUserId}
+      data-profile-owner-user-id={profileOwnerUserId}
+    />
+  ),
+}));
 vi.mock("@/components/ui/card", () => ({
   Card: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   CardHeader: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
@@ -78,6 +96,7 @@ const mockProfile = {
   consentEmployerView: false,
   consentMatchingChangedAt: null,
   consentEmployerViewChangedAt: null,
+  profileViewCount: 0,
   onboardingCompletedAt: null,
   createdAt: new Date(),
   updatedAt: new Date(),
@@ -158,5 +177,27 @@ describe("SeekerProfilePage", () => {
   it("passes seekerProfileId from params to query", async () => {
     await renderPage("my-specific-id");
     expect(getSeekerProfileById).toHaveBeenCalledWith("my-specific-id");
+  });
+
+  // P-2.8: view tracker
+  it("renders SeekerProfileViewTracker with correct props for employer", async () => {
+    await renderPage("seeker-uuid");
+    const tracker = screen.getByTestId("seeker-profile-view-tracker");
+    expect(tracker).toBeTruthy();
+    expect(tracker.getAttribute("data-seeker-profile-id")).toBe("seeker-uuid");
+    expect(tracker.getAttribute("data-viewer-user-id")).toBe("employer-123");
+    expect(tracker.getAttribute("data-profile-owner-user-id")).toBe("user-seeker");
+  });
+
+  it("view tracker is still rendered (self-view guard handled by component) for seeker's own profile if access allowed", async () => {
+    // If a seeker could somehow access this page, the tracker would be rendered
+    // but the component itself handles the self-view guard.
+    // This test confirms tracker props are correct for any authenticated employer viewer.
+    vi.mocked(auth).mockResolvedValue(
+      adminSession as ReturnType<typeof auth> extends Promise<infer T> ? T : never,
+    );
+    await renderPage("seeker-uuid");
+    const tracker = screen.getByTestId("seeker-profile-view-tracker");
+    expect(tracker.getAttribute("data-viewer-user-id")).toBe("admin-123");
   });
 });
