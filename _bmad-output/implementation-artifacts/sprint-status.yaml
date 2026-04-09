@@ -265,7 +265,7 @@ development_status:
   p-2-4-application-state-machine-event-model: done
   p-2-5a-job-application-submission: done
   p-2-5b-application-confirmation-next-steps-email: done
-  p-2-6-seeker-application-tracking-timeline: backlog
+  p-2-6-seeker-application-tracking-timeline: done
   p-2-7-application-withdrawal: backlog
   p-2-8-seeker-analytics: backlog
   p-2-9-ats-pipeline-view-stage-management: backlog

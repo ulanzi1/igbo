@@ -9,6 +9,8 @@ import type {
   PortalApplicationTransition,
 } from "../schema/portal-applications";
 import { portalJobPostings } from "../schema/portal-job-postings";
+import { portalCompanyProfiles } from "../schema/portal-company-profiles";
+import { portalSeekerCvs } from "../schema/portal-seeker-cvs";
 import { eq, desc, asc, and, ne } from "drizzle-orm";
 
 export async function createApplication(data: NewPortalApplication): Promise<PortalApplication> {
@@ -173,4 +175,97 @@ export async function getExistingActiveApplication(
     )
     .limit(1);
   return application ?? null;
+}
+
+/**
+ * Returns enriched application list for a seeker, joining with job postings
+ * and company profiles to surface job title and company name.
+ * Ordered by updatedAt DESC (most recently updated first).
+ */
+export async function getApplicationsWithJobDataBySeekerId(seekerUserId: string): Promise<
+  Array<{
+    id: string;
+    jobId: string;
+    status: PortalApplicationStatus;
+    createdAt: Date;
+    updatedAt: Date;
+    transitionedAt: Date | null;
+    jobTitle: string | null;
+    companyId: string | null;
+    companyName: string | null;
+  }>
+> {
+  return db
+    .select({
+      id: portalApplications.id,
+      jobId: portalApplications.jobId,
+      status: portalApplications.status,
+      createdAt: portalApplications.createdAt,
+      updatedAt: portalApplications.updatedAt,
+      transitionedAt: portalApplications.transitionedAt,
+      jobTitle: portalJobPostings.title,
+      companyId: portalJobPostings.companyId,
+      companyName: portalCompanyProfiles.name,
+    })
+    .from(portalApplications)
+    .leftJoin(portalJobPostings, eq(portalApplications.jobId, portalJobPostings.id))
+    .leftJoin(portalCompanyProfiles, eq(portalJobPostings.companyId, portalCompanyProfiles.id))
+    .where(eq(portalApplications.seekerUserId, seekerUserId))
+    .orderBy(desc(portalApplications.updatedAt));
+}
+
+/**
+ * Returns a full application with job posting data, company name, and CV label
+ * for the detail view. Scoped to the owning seeker — returns null if the
+ * application does not exist or belongs to a different seeker.
+ *
+ * Uses LEFT JOIN for portal_seeker_cvs because selectedCvId is nullable;
+ * an INNER JOIN would silently drop applications with no CV selected.
+ */
+export async function getApplicationDetailForSeeker(
+  applicationId: string,
+  seekerUserId: string,
+): Promise<{
+  id: string;
+  jobId: string;
+  seekerUserId: string;
+  status: PortalApplicationStatus;
+  createdAt: Date;
+  updatedAt: Date;
+  coverLetterText: string | null;
+  portfolioLinksJson: string[];
+  selectedCvId: string | null;
+  jobTitle: string | null;
+  companyId: string | null;
+  companyName: string | null;
+  cvLabel: string | null;
+} | null> {
+  const rows = await db
+    .select({
+      id: portalApplications.id,
+      jobId: portalApplications.jobId,
+      seekerUserId: portalApplications.seekerUserId,
+      status: portalApplications.status,
+      createdAt: portalApplications.createdAt,
+      updatedAt: portalApplications.updatedAt,
+      coverLetterText: portalApplications.coverLetterText,
+      portfolioLinksJson: portalApplications.portfolioLinksJson,
+      selectedCvId: portalApplications.selectedCvId,
+      jobTitle: portalJobPostings.title,
+      companyId: portalJobPostings.companyId,
+      companyName: portalCompanyProfiles.name,
+      cvLabel: portalSeekerCvs.label,
+    })
+    .from(portalApplications)
+    .leftJoin(portalJobPostings, eq(portalApplications.jobId, portalJobPostings.id))
+    .leftJoin(portalCompanyProfiles, eq(portalJobPostings.companyId, portalCompanyProfiles.id))
+    .leftJoin(portalSeekerCvs, eq(portalApplications.selectedCvId, portalSeekerCvs.id))
+    .where(
+      and(
+        eq(portalApplications.id, applicationId),
+        eq(portalApplications.seekerUserId, seekerUserId),
+      ),
+    );
+
+  return rows[0] ?? null;
 }
