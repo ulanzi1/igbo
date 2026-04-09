@@ -46,7 +46,10 @@ ENV HETZNER_S3_ENDPOINT=$HETZNER_S3_ENDPOINT
 ENV SKIP_ENV_VALIDATION=1
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
-ENV NODE_OPTIONS="--max-old-space-size=4096"
+ENV NODE_OPTIONS="--max-old-space-size=2048"
+
+# Workspace packages export from dist/ — pre-compile before the app build
+RUN pnpm --filter @igbo/config build && pnpm --filter @igbo/db build
 
 RUN pnpm --filter @igbo/community build
 
