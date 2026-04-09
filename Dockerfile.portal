@@ -26,7 +26,7 @@ RUN corepack enable && corepack prepare pnpm@latest --activate
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/apps/portal/node_modules ./apps/portal/node_modules
 
-COPY pnpm-workspace.yaml turbo.json tsconfig.base.json ./
+COPY .npmrc pnpm-workspace.yaml turbo.json tsconfig.base.json ./
 COPY packages/ ./packages/
 COPY apps/portal/ ./apps/portal/
 
@@ -42,6 +42,10 @@ ENV SKIP_ENV_VALIDATION=1
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 ENV NODE_OPTIONS="--max-old-space-size=4096"
+
+# Next.js 16 uses Turbopack which resolves @igbo/* via their exports field
+# (pointing to dist/). Compile config and db so dist/ exists before next build.
+RUN pnpm --filter @igbo/config build && pnpm --filter @igbo/db build
 
 RUN pnpm --filter @igbo/portal build
 
