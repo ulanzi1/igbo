@@ -36,12 +36,12 @@ const s3PublicOrigin = (() => {
 const cspDirectives = [
   "default-src 'self'",
   // Note: 'unsafe-inline' is required by Next.js for inline hydration scripts.
-  // 'strict-dynamic' ensures only scripts loaded by trusted first-party scripts execute,
-  // which mitigates most XSS vectors even with 'unsafe-inline' present.
-  // Full nonce-based CSP requires Next.js experimental.serverActions nonce support.
+  // 'strict-dynamic' is intentionally omitted: without server-generated nonces it
+  // supersedes 'self' and blocks all Next.js chunk scripts. Nonce-based CSP requires
+  // Next.js experimental nonce support and is deferred to a future hardening pass.
   process.env.NODE_ENV === "development"
     ? "script-src 'self' 'unsafe-inline' 'unsafe-eval'"
-    : "script-src 'self' 'unsafe-inline' 'strict-dynamic' https://*.sentry.io",
+    : "script-src 'self' 'unsafe-inline' https://*.sentry.io",
   "style-src 'self' 'unsafe-inline'",
   `img-src 'self' blob: data:${s3PublicOrigin ? ` ${s3PublicOrigin}` : ""}`,
   `media-src 'self'${s3PublicOrigin ? ` ${s3PublicOrigin}` : ""}`,
