@@ -20,9 +20,32 @@ Object.assign(Element.prototype, {
 });
 
 // ─── Mocks ──────────────────────────────────────────────────────────────────
+const mockPush = vi.fn();
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: mockPush, refresh: vi.fn() }),
+  usePathname: () => "/en/jobs/jp-1",
+}));
+
 vi.mock("next-intl", () => ({
   useTranslations: () => (key: string, _params?: Record<string, unknown>) => key,
+  useFormatter: () => ({
+    dateTime: (_date: Date, _opts?: object) => "April 9, 2026 at 10:00 AM",
+  }),
 }));
+
+vi.mock("@/i18n/navigation", () => ({
+  Link: ({
+    children,
+    href,
+    onClick,
+    ...props
+  }: React.AnchorHTMLAttributes<HTMLAnchorElement> & { href: string }) => (
+    <a href={href} onClick={onClick} {...props}>
+      {children}
+    </a>
+  ),
+}));
+
 vi.mock("@/components/ui/button", () => ({
   Button: ({
     children,
@@ -30,12 +53,29 @@ vi.mock("@/components/ui/button", () => ({
     disabled,
     type,
     "aria-busy": ariaBusy,
+    asChild,
     ...props
-  }: React.ButtonHTMLAttributes<HTMLButtonElement> & { "aria-busy"?: boolean }) => (
-    <button onClick={onClick} disabled={disabled} type={type} aria-busy={ariaBusy} {...props}>
-      {children}
-    </button>
-  ),
+  }: React.ButtonHTMLAttributes<HTMLButtonElement> & {
+    "aria-busy"?: boolean;
+    asChild?: boolean;
+  }) => {
+    if (asChild && React.isValidElement(children)) {
+      // Merge only defined props — mirrors Radix Slot's handler merging behavior.
+      // Passing undefined would override the child's own event handlers.
+      const mergeProps: Record<string, unknown> = { ...props };
+      if (onClick !== undefined) mergeProps.onClick = onClick;
+      if (disabled !== undefined) mergeProps.disabled = disabled;
+      return React.cloneElement(
+        children as React.ReactElement<Record<string, unknown>>,
+        mergeProps,
+      );
+    }
+    return (
+      <button onClick={onClick} disabled={disabled} type={type} aria-busy={ariaBusy} {...props}>
+        {children}
+      </button>
+    );
+  },
 }));
 vi.mock("@/components/ui/label", () => ({
   Label: ({ children, htmlFor }: { children: React.ReactNode; htmlFor?: string }) => (
@@ -50,6 +90,14 @@ vi.mock("@/components/ui/textarea", () => ({
 }));
 vi.mock("@/components/ui/badge", () => ({
   Badge: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
+}));
+vi.mock("@/components/ui/card", () => ({
+  Card: ({ children, className }: { children: React.ReactNode; className?: string }) => (
+    <div className={className}>{children}</div>
+  ),
+  CardContent: ({ children, className }: { children: React.ReactNode; className?: string }) => (
+    <div className={className}>{children}</div>
+  ),
 }));
 vi.mock("@/components/ui/select", () => ({
   Select: ({
@@ -83,14 +131,22 @@ vi.mock("@/components/ui/sheet", () => ({
     children: React.ReactNode;
   }) =>
     open ? (
-      <div role="dialog" aria-label="apply-sheet" onClick={() => onOpenChange(false)}>
+      <div role="dialog" aria-label="apply-sheet" data-testid="apply-sheet">
         {children}
+        <button data-testid="sheet-close-btn" onClick={() => onOpenChange(false)}>
+          Close
+        </button>
       </div>
     ) : null,
   SheetContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   SheetHeader: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   SheetTitle: ({ children }: { children: React.ReactNode }) => <h2>{children}</h2>,
   SheetDescription: ({ children }: { children: React.ReactNode }) => <p>{children}</p>,
+}));
+
+// Mock ConfirmationCheckmark to keep tests simple
+vi.mock("@/components/domain/confirmation-checkmark", () => ({
+  ConfirmationCheckmark: () => <div data-testid="confirmation-checkmark" aria-hidden="true" />,
 }));
 
 import { ApplicationDrawer } from "./application-drawer";
@@ -191,23 +247,10 @@ describe("ApplicationDrawer — portfolio links", () => {
   });
 });
 
-describe("ApplicationDrawer — submit success (201)", () => {
-  it("calls onSuccess and closes drawer on 201 response", async () => {
-    const user = userEvent.setup();
-    const onSuccess = vi.fn();
-    const onOpenChange = vi.fn();
-    mockFetch.mockResolvedValue({ ok: true, json: () => Promise.resolve({ data: {} }) });
+// ── Confirmation panel tests (P-2.5B) ─────────────────────────────────────
 
-    render(<ApplicationDrawer {...BASE_PROPS} onSuccess={onSuccess} onOpenChange={onOpenChange} />);
-
-    await user.click(screen.getByRole("button", { name: /drawer.submitButton/i }));
-    await waitFor(() => {
-      expect(onSuccess).toHaveBeenCalledTimes(1);
-      expect(onOpenChange).toHaveBeenCalledWith(false);
-    });
-  });
-
-  it("includes Idempotency-Key header in fetch request", async () => {
+describe("ApplicationDrawer — confirmation panel on success (P-2.5B)", () => {
+  it("shows confirmation panel after successful submit (stays open)", async () => {
     const user = userEvent.setup();
     mockFetch.mockResolvedValue({ ok: true, json: () => Promise.resolve({ data: {} }) });
 
@@ -215,13 +258,164 @@ describe("ApplicationDrawer — submit success (201)", () => {
     await user.click(screen.getByRole("button", { name: /drawer.submitButton/i }));
 
     await waitFor(() => {
-      expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining("/apply"),
-        expect.objectContaining({
-          headers: expect.objectContaining({ "Idempotency-Key": "test-uuid-1234" }),
-        }),
-      );
+      expect(screen.getByText("confirmation.heading")).toBeInTheDocument();
     });
+    // Drawer should still be open
+    expect(screen.getByTestId("apply-sheet")).toBeInTheDocument();
+  });
+
+  it("does NOT call onSuccess immediately on submit success", async () => {
+    const user = userEvent.setup();
+    const onSuccess = vi.fn();
+    mockFetch.mockResolvedValue({ ok: true, json: () => Promise.resolve({ data: {} }) });
+
+    render(<ApplicationDrawer {...BASE_PROPS} onSuccess={onSuccess} />);
+    await user.click(screen.getByRole("button", { name: /drawer.submitButton/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText("confirmation.heading")).toBeInTheDocument();
+    });
+    expect(onSuccess).not.toHaveBeenCalled();
+  });
+
+  it("calls onSuccess when drawer is closed from confirmed state", async () => {
+    const user = userEvent.setup();
+    const onSuccess = vi.fn();
+    const onOpenChange = vi.fn();
+    mockFetch.mockResolvedValue({ ok: true, json: () => Promise.resolve({ data: {} }) });
+
+    render(<ApplicationDrawer {...BASE_PROPS} onSuccess={onSuccess} onOpenChange={onOpenChange} />);
+    await user.click(screen.getByRole("button", { name: /drawer.submitButton/i }));
+    await waitFor(() => {
+      expect(screen.getByText("confirmation.heading")).toBeInTheDocument();
+    });
+
+    // Close the drawer via the sheet close button
+    await user.click(screen.getByTestId("sheet-close-btn"));
+
+    expect(onSuccess).toHaveBeenCalledTimes(1);
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+  });
+
+  it("shows job title and company name in confirmation panel", async () => {
+    const user = userEvent.setup();
+    mockFetch.mockResolvedValue({ ok: true, json: () => Promise.resolve({ data: {} }) });
+
+    render(<ApplicationDrawer {...BASE_PROPS} />);
+    await user.click(screen.getByRole("button", { name: /drawer.submitButton/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText("confirmation.heading")).toBeInTheDocument();
+    });
+    // i18n key for jobAt is rendered (in test, the mock returns the key string)
+    expect(screen.getByText(/confirmation\.jobAt/)).toBeInTheDocument();
+  });
+
+  it("shows submission timestamp in confirmation panel", async () => {
+    const user = userEvent.setup();
+    mockFetch.mockResolvedValue({ ok: true, json: () => Promise.resolve({ data: {} }) });
+
+    render(<ApplicationDrawer {...BASE_PROPS} />);
+    await user.click(screen.getByRole("button", { name: /drawer.submitButton/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText("confirmation.heading")).toBeInTheDocument();
+    });
+    expect(screen.getByText(/confirmation\.submittedAt/)).toBeInTheDocument();
+  });
+
+  it("shows next-steps guidance in confirmation panel", async () => {
+    const user = userEvent.setup();
+    mockFetch.mockResolvedValue({ ok: true, json: () => Promise.resolve({ data: {} }) });
+
+    render(<ApplicationDrawer {...BASE_PROPS} />);
+    await user.click(screen.getByRole("button", { name: /drawer.submitButton/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText("confirmation.heading")).toBeInTheDocument();
+    });
+    expect(screen.getByText("confirmation.nextSteps")).toBeInTheDocument();
+    expect(screen.getByText("confirmation.emailSent")).toBeInTheDocument();
+  });
+
+  it("shows View My Applications link in confirmation panel", async () => {
+    const user = userEvent.setup();
+    mockFetch.mockResolvedValue({ ok: true, json: () => Promise.resolve({ data: {} }) });
+
+    render(<ApplicationDrawer {...BASE_PROPS} />);
+    await user.click(screen.getByRole("button", { name: /drawer.submitButton/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText("confirmation.heading")).toBeInTheDocument();
+    });
+    const link = screen.getByText("confirmation.viewApplications");
+    expect(link).toBeInTheDocument();
+    expect(link.closest("a")?.getAttribute("href")).toBe("/applications");
+  });
+
+  it("Browse More Jobs link navigates to /jobs", async () => {
+    const user = userEvent.setup();
+    mockFetch.mockResolvedValue({ ok: true, json: () => Promise.resolve({ data: {} }) });
+
+    render(<ApplicationDrawer {...BASE_PROPS} />);
+    await user.click(screen.getByRole("button", { name: /drawer.submitButton/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText("confirmation.heading")).toBeInTheDocument();
+    });
+    const browseLink = screen.getByText("confirmation.browseJobs");
+    expect(browseLink.closest("a")?.getAttribute("href")).toBe("/jobs");
+  });
+
+  it("Browse More Jobs calls onSuccess for state sync", async () => {
+    const user = userEvent.setup();
+    const onSuccess = vi.fn();
+    mockFetch.mockResolvedValue({ ok: true, json: () => Promise.resolve({ data: {} }) });
+
+    render(<ApplicationDrawer {...BASE_PROPS} onSuccess={onSuccess} />);
+    await user.click(screen.getByRole("button", { name: /drawer.submitButton/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText("confirmation.heading")).toBeInTheDocument();
+    });
+    await user.click(screen.getByText("confirmation.browseJobs"));
+    expect(onSuccess).toHaveBeenCalledTimes(1);
+  });
+
+  it("renders animated checkmark in confirmation panel", async () => {
+    const user = userEvent.setup();
+    mockFetch.mockResolvedValue({ ok: true, json: () => Promise.resolve({ data: {} }) });
+
+    render(<ApplicationDrawer {...BASE_PROPS} />);
+    await user.click(screen.getByRole("button", { name: /drawer.submitButton/i }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("confirmation-checkmark")).toBeInTheDocument();
+    });
+  });
+
+  it("confirmation panel has role=status and aria-live=polite", async () => {
+    const user = userEvent.setup();
+    mockFetch.mockResolvedValue({ ok: true, json: () => Promise.resolve({ data: {} }) });
+
+    render(<ApplicationDrawer {...BASE_PROPS} />);
+    await user.click(screen.getByRole("button", { name: /drawer.submitButton/i }));
+
+    await waitFor(() => {
+      const statusEl = screen.getByRole("status");
+      expect(statusEl).toBeInTheDocument();
+      expect(statusEl.getAttribute("aria-live")).toBe("polite");
+    });
+  });
+
+  it("does NOT call onSuccess when drawer cancelled (not from confirmed state)", async () => {
+    const user = userEvent.setup();
+    const onSuccess = vi.fn();
+    render(<ApplicationDrawer {...BASE_PROPS} onSuccess={onSuccess} />);
+
+    // Cancel without submitting
+    await user.click(screen.getByRole("button", { name: /drawer.cancelButton/i }));
+    expect(onSuccess).not.toHaveBeenCalled();
   });
 });
 
@@ -343,9 +537,42 @@ describe("ApplicationDrawer — profile location in preview (H-3 fix)", () => {
   });
 });
 
+describe("ApplicationDrawer — Idempotency-Key header", () => {
+  it("includes Idempotency-Key header in fetch request", async () => {
+    const user = userEvent.setup();
+    mockFetch.mockResolvedValue({ ok: true, json: () => Promise.resolve({ data: {} }) });
+
+    render(<ApplicationDrawer {...BASE_PROPS} />);
+    await user.click(screen.getByRole("button", { name: /drawer.submitButton/i }));
+
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.stringContaining("/apply"),
+        expect.objectContaining({
+          headers: expect.objectContaining({ "Idempotency-Key": "test-uuid-1234" }),
+        }),
+      );
+    });
+  });
+});
+
 describe("ApplicationDrawer — axe accessibility", () => {
   it("has no accessibility violations when open with CVs", async () => {
     const { container } = render(<ApplicationDrawer {...BASE_PROPS} />);
+    const results = await axe(container);
+    expect(results).toHaveNoViolations();
+  });
+
+  it("has no accessibility violations on confirmation panel", async () => {
+    const user = userEvent.setup();
+    mockFetch.mockResolvedValue({ ok: true, json: () => Promise.resolve({ data: {} }) });
+    const { container } = render(<ApplicationDrawer {...BASE_PROPS} />);
+
+    await user.click(screen.getByRole("button", { name: /drawer.submitButton/i }));
+    await waitFor(() => {
+      expect(screen.getByText("confirmation.heading")).toBeInTheDocument();
+    });
+
     const results = await axe(container);
     expect(results).toHaveNoViolations();
   });
