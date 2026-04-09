@@ -75,6 +75,7 @@ const mockPosting = {
   screeningStatus: null,
   screeningResultJson: null,
   screeningCheckedAt: null,
+  enableCoverLetter: false,
   createdAt: new Date(),
   updatedAt: new Date(),
 };

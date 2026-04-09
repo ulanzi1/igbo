@@ -1,8 +1,23 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("server-only", () => ({}));
+vi.mock("@igbo/auth", () => ({ auth: vi.fn() }));
 vi.mock("@igbo/db/queries/portal-job-postings", () => ({
   getJobPostingWithCompany: vi.fn(),
+}));
+vi.mock("@igbo/db/queries/portal-seeker-profiles", () => ({
+  getSeekerProfileByUserId: vi.fn(),
+}));
+vi.mock("@igbo/db/queries/portal-applications", () => ({
+  getExistingActiveApplication: vi.fn(),
+}));
+vi.mock("@igbo/db/queries/auth-queries", () => ({
+  findUserById: vi.fn().mockResolvedValue({
+    id: "user-123",
+    locationCity: "Lagos",
+    locationState: "Lagos",
+    locationCountry: "Nigeria",
+  }),
 }));
 vi.mock("@/lib/sanitize", () => ({
   sanitizeHtml: vi.fn((html: string) => html),
@@ -24,6 +39,9 @@ vi.mock("@/components/domain/view-tracker", () => ({
   ViewTracker: ({ jobId }: { jobId: string }) => (
     <div data-testid="view-tracker" data-job-id={jobId} />
   ),
+}));
+vi.mock("@/components/domain/apply-button", () => ({
+  ApplyButton: () => <div data-testid="apply-button" />,
 }));
 
 import React from "react";
@@ -68,6 +86,7 @@ const mockPosting = {
   archivedAt: null,
   viewCount: 5,
   communityPostId: null,
+  enableCoverLetter: false,
   createdAt: new Date(),
   updatedAt: new Date(),
 };

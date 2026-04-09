@@ -22,6 +22,7 @@ vi.mock("@/lib/redis", () => ({
 vi.mock("@/services/event-bus", () => ({
   portalEventBus: {
     setPublisher: (...args: unknown[]) => mockSetPublisher(...args),
+    on: vi.fn(), // notification-service registers handlers at module load
   },
 }));
 

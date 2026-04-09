@@ -12,5 +12,8 @@ export async function register() {
     // Start event bridge for community→portal events
     const { startPortalEventBridge } = await import("@/services/event-bridge");
     startPortalEventBridge(getRedisSubscriber());
+
+    // Register portal notification handlers (seeker email + employer in-app notification)
+    await import("@/services/notification-service");
   }
 }

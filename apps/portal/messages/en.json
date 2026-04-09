@@ -614,6 +614,61 @@
       "consentNote": "You can change these settings at any time. Changes are recorded for compliance.",
       "consentLastChanged": "Last changed {date}"
     },
+    "apply": {
+      "button": {
+        "apply": "Apply",
+        "applying": "Submitting...",
+        "submitted": "Application Submitted",
+        "completeProfile": "Complete Profile to Apply",
+        "deadlinePassed": "Deadline passed"
+      },
+      "drawer": {
+        "title": "Apply to {jobTitle} at {companyName}",
+        "description": "Submit your profile, CV, and optional cover letter to this position.",
+        "profilePreviewHeading": "Your Profile",
+        "cvsLoading": "Loading CVs…",
+        "cvLabel": "Select CV",
+        "cvDefaultBadge": "Default",
+        "cvEmptyTitle": "No CVs uploaded",
+        "cvEmptyDescription": "Upload a CV in your profile to apply to jobs.",
+        "cvEmptyCta": "Go to Profile",
+        "coverLetterLabel": "Cover Letter (optional)",
+        "coverLetterPlaceholder": "Tell the employer why you're a great fit...",
+        "coverLetterCharCount": "{count}/2000",
+        "portfolioLinksLabel": "Portfolio Links (optional, up to 3)",
+        "portfolioLinkPlaceholder": "https://...",
+        "portfolioAddLink": "Add link",
+        "portfolioRemoveLink": "Remove link",
+        "submitButton": "Submit Application",
+        "cancelButton": "Cancel"
+      },
+      "toast": {
+        "success": "Application submitted"
+      },
+      "confirmation": {
+        "heading": "Application Submitted",
+        "jobAt": "{jobTitle} at {companyName}",
+        "submittedAt": "Submitted on {date}",
+        "viewApplications": "View My Applications",
+        "browseJobs": "Browse More Jobs",
+        "emailSent": "A confirmation email has been sent to your inbox.",
+        "nextSteps": "The employer will review your application. You'll be notified of any status changes."
+      },
+      "errors": {
+        "validation": "Please fix the highlighted fields",
+        "invalidCvId": "Please select a valid CV",
+        "coverLetterTooLong": "Cover letter must be 2000 characters or fewer",
+        "invalidPortfolioUrl": "Enter a valid URL (e.g., https://example.com)",
+        "tooManyPortfolioLinks": "You can add at most 3 portfolio links",
+        "duplicate": "You have already applied to this position",
+        "deadlinePassed": "The application deadline for this position has passed",
+        "postingExpired": "This job posting has expired",
+        "postingFilled": "This position has been filled",
+        "postingPaused": "This job posting is currently paused — check back later",
+        "profileRequired": "Complete your profile to apply",
+        "unexpected": "Something went wrong — please try again"
+      }
+    },
     "chooseRole": {
       "title": "Choose Your Path",
       "subtitle": "How would you like to use the OBIGBO Job Portal?",

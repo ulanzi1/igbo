@@ -254,7 +254,7 @@ development_status:
   portal-epic-1-prep-b-async-safety-requirements: done             # Playbook §8: idempotency requirement, dedup keys, 3 mandatory tests, email degradation, upload states, observability (2026-04-08)
   portal-epic-1-prep-c-epic-3-stories-created: done             # P-3.1, P-3.2, P-3.3 created for parallel track (blocks P-2.5A)
   portal-epic-1-prep-d-portal-role-selection: done                  # "Choose Your Path" — self-service role selection (blocks P-2.1)
-  portal-epic-1-spike-1-cv-upload: backlog                          # PDF/DOCX through pipeline (recommended before P-2.2)
+  portal-epic-1-spike-1-cv-upload: done                              # Resolved: P-2.2 implemented full CV upload (PDF/DOCX, MIME validation, S3 storage, error handling, 37+ tests)
   portal-epic-1-spike-2-ats-dnd: backlog                            # Drag-and-drop kanban testability (recommended before P-2.9)
 
   # Portal Epic 2: Seeker Profiles & Job Applications
@@ -263,8 +263,8 @@ development_status:
   p-2-2-seeker-preferences-cv-upload-visibility: done
   p-2-3-seeker-onboarding-flow: done
   p-2-4-application-state-machine-event-model: done
-  p-2-5a-job-application-submission: backlog
-  p-2-5b-application-confirmation-next-steps-email: backlog
+  p-2-5a-job-application-submission: done
+  p-2-5b-application-confirmation-next-steps-email: done
   p-2-6-seeker-application-tracking-timeline: backlog
   p-2-7-application-withdrawal: backlog
   p-2-8-seeker-analytics: backlog

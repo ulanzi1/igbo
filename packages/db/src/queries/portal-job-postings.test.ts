@@ -25,6 +25,7 @@ import {
   getJobAnalytics,
   markSharedToCommunity,
   getJobPostingShareStatus,
+  getJobPostingForApply,
 } from "./portal-job-postings";
 import type { PortalJobPosting } from "../schema/portal-job-postings";
 
@@ -48,8 +49,13 @@ const POSTING: PortalJobPosting = {
   closedOutcome: null,
   closedAt: null,
   archivedAt: null,
+  revisionCount: 0,
   viewCount: 0,
   communityPostId: null,
+  screeningStatus: null,
+  screeningResultJson: null,
+  screeningCheckedAt: null,
+  enableCoverLetter: false,
   createdAt: new Date("2026-01-01"),
   updatedAt: new Date("2026-01-01"),
 };
@@ -545,5 +551,52 @@ describe("getJobPostingShareStatus", () => {
 
     const result = await getJobPostingShareStatus("non-existent");
     expect(result).toBeUndefined();
+  });
+});
+
+describe("getJobPostingForApply", () => {
+  const JOB_ROW = {
+    id: "jp-1",
+    status: "active",
+    applicationDeadline: null,
+    enableCoverLetter: false,
+    companyId: "cp-1",
+    employerUserId: "employer-1",
+  };
+
+  function makeInnerJoinWithLimitMock(returnValues: unknown[]) {
+    const limit = vi.fn().mockResolvedValue(returnValues);
+    const where = vi.fn().mockReturnValue({ limit });
+    const innerJoin = vi.fn().mockReturnValue({ where });
+    const from = vi.fn().mockReturnValue({ innerJoin });
+    vi.mocked(db.select).mockReturnValue({ from } as unknown as ReturnType<typeof db.select>);
+  }
+
+  it("returns job posting with employer details for valid job id", async () => {
+    makeInnerJoinWithLimitMock([JOB_ROW]);
+    const result = await getJobPostingForApply("jp-1");
+    expect(result).not.toBeNull();
+    expect(result?.id).toBe("jp-1");
+    expect(result?.status).toBe("active");
+    expect(result?.companyId).toBe("cp-1");
+    expect(result?.employerUserId).toBe("employer-1");
+    expect(result?.enableCoverLetter).toBe(false);
+    expect(result?.applicationDeadline).toBeNull();
+  });
+
+  it("returns null when job posting does not exist", async () => {
+    makeInnerJoinWithLimitMock([]);
+    const result = await getJobPostingForApply("jp-999");
+    expect(result).toBeNull();
+  });
+
+  it("returns applicationDeadline and enableCoverLetter when set", async () => {
+    const deadline = new Date("2026-06-01");
+    makeInnerJoinWithLimitMock([
+      { ...JOB_ROW, applicationDeadline: deadline, enableCoverLetter: true },
+    ]);
+    const result = await getJobPostingForApply("jp-1");
+    expect(result?.applicationDeadline).toEqual(deadline);
+    expect(result?.enableCoverLetter).toBe(true);
   });
 });

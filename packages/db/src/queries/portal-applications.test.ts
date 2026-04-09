@@ -13,6 +13,8 @@ import {
   insertTransition,
   getTransitionHistory,
   getApplicationWithCurrentStatus,
+  insertApplicationWithPayload,
+  getExistingActiveApplication,
 } from "./portal-applications";
 import type { PortalApplication, PortalApplicationTransition } from "../schema/portal-applications";
 
@@ -25,6 +27,9 @@ const APPLICATION: PortalApplication = {
   transitionedAt: null,
   transitionedByUserId: null,
   transitionReason: null,
+  selectedCvId: null,
+  coverLetterText: null,
+  portfolioLinksJson: [],
   createdAt: new Date("2026-01-01"),
   updatedAt: new Date("2026-01-01"),
 };
@@ -57,6 +62,13 @@ function makeSelectWithJoinMock(returnValues: unknown[]) {
   const where = vi.fn().mockResolvedValue(returnValues);
   const leftJoin = vi.fn().mockReturnValue({ where });
   const from = vi.fn().mockReturnValue({ leftJoin });
+  vi.mocked(db.select).mockReturnValue({ from } as unknown as ReturnType<typeof db.select>);
+}
+
+function makeSelectWithLimitMock(returnValues: unknown[]) {
+  const limit = vi.fn().mockResolvedValue(returnValues);
+  const where = vi.fn().mockReturnValue({ limit });
+  const from = vi.fn().mockReturnValue({ where });
   vi.mocked(db.select).mockReturnValue({ from } as unknown as ReturnType<typeof db.select>);
 }
 
@@ -285,6 +297,76 @@ describe("getApplicationWithCurrentStatus", () => {
     };
     makeSelectWithJoinMock([row]);
     const result = await getApplicationWithCurrentStatus("app-1");
+    expect(result).toBeNull();
+  });
+});
+
+describe("insertApplicationWithPayload", () => {
+  it("inserts application with full payload and returns it", async () => {
+    const expected: PortalApplication = {
+      ...APPLICATION,
+      selectedCvId: "cv-1",
+      coverLetterText: "I am very interested in this role.",
+      portfolioLinksJson: ["https://example.com/portfolio"],
+    };
+    makeInsertMock(expected);
+    const result = await insertApplicationWithPayload({
+      jobId: "jp-1",
+      seekerUserId: "u-1",
+      selectedCvId: "cv-1",
+      coverLetterText: "I am very interested in this role.",
+      portfolioLinks: ["https://example.com/portfolio"],
+    });
+    expect(result).toEqual(expected);
+    expect(db.insert).toHaveBeenCalledTimes(1);
+  });
+
+  it("inserts application with null cv and cover letter", async () => {
+    makeInsertMock(APPLICATION);
+    const result = await insertApplicationWithPayload({
+      jobId: "jp-1",
+      seekerUserId: "u-1",
+      selectedCvId: null,
+      coverLetterText: null,
+      portfolioLinks: [],
+    });
+    expect(result).toEqual(APPLICATION);
+  });
+
+  it("throws if insert returns empty", async () => {
+    const returning = vi.fn().mockResolvedValue([]);
+    const values = vi.fn().mockReturnValue({ returning });
+    vi.mocked(db.insert).mockReturnValue({ values } as unknown as ReturnType<typeof db.insert>);
+    await expect(
+      insertApplicationWithPayload({
+        jobId: "jp-1",
+        seekerUserId: "u-1",
+        selectedCvId: null,
+        coverLetterText: null,
+        portfolioLinks: [],
+      }),
+    ).rejects.toThrow("Failed to insert application");
+  });
+});
+
+describe("getExistingActiveApplication", () => {
+  it("returns non-withdrawn application for job+seeker pair", async () => {
+    makeSelectWithLimitMock([APPLICATION]);
+    const result = await getExistingActiveApplication("jp-1", "u-1");
+    expect(result).toEqual(APPLICATION);
+    expect(result?.id).toBe("app-1");
+  });
+
+  it("returns null when no active application exists", async () => {
+    makeSelectWithLimitMock([]);
+    const result = await getExistingActiveApplication("jp-999", "u-1");
+    expect(result).toBeNull();
+  });
+
+  it("returns null when only withdrawn application exists (filtered by ne constraint)", async () => {
+    // The query uses ne(status, 'withdrawn') so withdrawn rows are never returned
+    makeSelectWithLimitMock([]);
+    const result = await getExistingActiveApplication("jp-1", "u-withdrawn");
     expect(result).toBeNull();
   });
 });
