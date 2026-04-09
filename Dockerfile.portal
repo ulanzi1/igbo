@@ -42,6 +42,11 @@ ENV SKIP_ENV_VALIDATION=1
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 ENV NODE_OPTIONS="--max-old-space-size=4096"
+# @igbo/db exports a Proxy whose getPrototypeOf trap calls ensureDb(), which throws
+# if DATABASE_URL is absent. Next.js 16/Turbopack triggers instanceof checks during
+# static data collection at build time. Provide a dummy URL — postgres() is lazy
+# and never opens a connection until a query runs. Real value injected at runtime.
+ENV DATABASE_URL=postgresql://build:build@localhost:5432/build
 
 # Next.js 16 uses Turbopack which resolves @igbo/* via their exports field
 # (pointing to dist/). Compile config and db so dist/ exists before next build.
