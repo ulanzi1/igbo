@@ -370,3 +370,126 @@ describe("getExistingActiveApplication", () => {
     expect(result).toBeNull();
   });
 });
+
+describe("getApplicationsWithJobDataBySeekerId", () => {
+  function makeDoubleJoinOrderByMock(returnValues: unknown[]) {
+    const orderBy = vi.fn().mockResolvedValue(returnValues);
+    const where = vi.fn().mockReturnValue({ orderBy });
+    const leftJoin2 = vi.fn().mockReturnValue({ where });
+    const leftJoin1 = vi.fn().mockReturnValue({ leftJoin: leftJoin2 });
+    const from = vi.fn().mockReturnValue({ leftJoin: leftJoin1 });
+    vi.mocked(db.select).mockReturnValue({ from } as unknown as ReturnType<typeof db.select>);
+  }
+
+  it("returns enriched list with job title and company name", async () => {
+    const row = {
+      id: "app-1",
+      jobId: "jp-1",
+      status: "submitted" as const,
+      createdAt: new Date("2026-01-01"),
+      updatedAt: new Date("2026-01-02"),
+      transitionedAt: null,
+      jobTitle: "Senior Engineer",
+      companyId: "cp-1",
+      companyName: "Acme Corp",
+    };
+    makeDoubleJoinOrderByMock([row]);
+    const { getApplicationsWithJobDataBySeekerId } = await import("./portal-applications");
+    const result = await getApplicationsWithJobDataBySeekerId("u-1");
+    expect(result).toHaveLength(1);
+    expect(result[0]?.jobTitle).toBe("Senior Engineer");
+    expect(result[0]?.companyName).toBe("Acme Corp");
+    expect(result[0]?.status).toBe("submitted");
+  });
+
+  it("returns empty array when seeker has no applications", async () => {
+    makeDoubleJoinOrderByMock([]);
+    const { getApplicationsWithJobDataBySeekerId } = await import("./portal-applications");
+    const result = await getApplicationsWithJobDataBySeekerId("u-999");
+    expect(result).toHaveLength(0);
+  });
+
+  it("calls db.select once per invocation", async () => {
+    makeDoubleJoinOrderByMock([]);
+    const { getApplicationsWithJobDataBySeekerId } = await import("./portal-applications");
+    await getApplicationsWithJobDataBySeekerId("u-1");
+    expect(db.select).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("getApplicationDetailForSeeker", () => {
+  function makeTripleJoinWhereMock(returnValues: unknown[]) {
+    const where = vi.fn().mockResolvedValue(returnValues);
+    const leftJoin3 = vi.fn().mockReturnValue({ where });
+    const leftJoin2 = vi.fn().mockReturnValue({ leftJoin: leftJoin3 });
+    const leftJoin1 = vi.fn().mockReturnValue({ leftJoin: leftJoin2 });
+    const from = vi.fn().mockReturnValue({ leftJoin: leftJoin1 });
+    vi.mocked(db.select).mockReturnValue({ from } as unknown as ReturnType<typeof db.select>);
+  }
+
+  it("returns full application detail with CV label", async () => {
+    const row = {
+      id: "app-1",
+      jobId: "jp-1",
+      seekerUserId: "u-1",
+      status: "submitted" as const,
+      createdAt: new Date("2026-01-01"),
+      updatedAt: new Date("2026-01-02"),
+      coverLetterText: "I am a great fit.",
+      portfolioLinksJson: ["https://example.com"],
+      selectedCvId: "cv-1",
+      jobTitle: "Senior Engineer",
+      companyId: "cp-1",
+      companyName: "Acme Corp",
+      cvLabel: "Main CV",
+    };
+    makeTripleJoinWhereMock([row]);
+    const { getApplicationDetailForSeeker } = await import("./portal-applications");
+    const result = await getApplicationDetailForSeeker("app-1", "u-1");
+    expect(result).not.toBeNull();
+    expect(result?.id).toBe("app-1");
+    expect(result?.jobTitle).toBe("Senior Engineer");
+    expect(result?.companyName).toBe("Acme Corp");
+    expect(result?.cvLabel).toBe("Main CV");
+    expect(result?.coverLetterText).toBe("I am a great fit.");
+  });
+
+  it("returns null when application not found", async () => {
+    makeTripleJoinWhereMock([]);
+    const { getApplicationDetailForSeeker } = await import("./portal-applications");
+    const result = await getApplicationDetailForSeeker("app-999", "u-1");
+    expect(result).toBeNull();
+  });
+
+  it("returns application with null cvLabel when no CV selected", async () => {
+    const row = {
+      id: "app-1",
+      jobId: "jp-1",
+      seekerUserId: "u-1",
+      status: "submitted" as const,
+      createdAt: new Date("2026-01-01"),
+      updatedAt: new Date("2026-01-02"),
+      coverLetterText: null,
+      portfolioLinksJson: [],
+      selectedCvId: null,
+      jobTitle: "Senior Engineer",
+      companyId: "cp-1",
+      companyName: "Acme Corp",
+      cvLabel: null,
+    };
+    makeTripleJoinWhereMock([row]);
+    const { getApplicationDetailForSeeker } = await import("./portal-applications");
+    const result = await getApplicationDetailForSeeker("app-1", "u-1");
+    expect(result?.cvLabel).toBeNull();
+    expect(result?.coverLetterText).toBeNull();
+  });
+
+  it("returns null for non-owned application (seekerUserId mismatch scoped at DB query level)", async () => {
+    // The query includes `eq(portalApplications.seekerUserId, seekerUserId)` in WHERE
+    // so non-owned applications return empty rows
+    makeTripleJoinWhereMock([]);
+    const { getApplicationDetailForSeeker } = await import("./portal-applications");
+    const result = await getApplicationDetailForSeeker("app-1", "u-other");
+    expect(result).toBeNull();
+  });
+});
