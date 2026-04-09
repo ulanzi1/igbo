@@ -47,6 +47,10 @@ ENV SKIP_ENV_VALIDATION=1
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 ENV NODE_OPTIONS="--max-old-space-size=2048"
+# Dummy DB URL — postgres() is lazy and never connects during build.
+# Required because the db Proxy's getPrototypeOf trap calls ensureDb(),
+# which throws if DATABASE_URL is absent (triggered by Auth.js instanceof checks).
+ENV DATABASE_URL=postgresql://build:build@localhost:5432/build
 
 # Workspace packages export from dist/ — pre-compile before the app build
 RUN pnpm --filter @igbo/config build && pnpm --filter @igbo/db build
