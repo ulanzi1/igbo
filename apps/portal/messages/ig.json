@@ -626,6 +626,7 @@
         "title": "Arịọ {jobTitle} na {companyName}",
         "description": "Zipu profaịlụ gị, CV, na akwụkwọ mkpuchite (ọ bụrụ na ịchọrọ) maka ọrụ a.",
         "profilePreviewHeading": "Profaịlụ Gị",
+        "cvsLoading": "Na-ebugo CV ndị…",
         "cvLabel": "Họrọ CV",
         "cvDefaultBadge": "Ndabara",
         "cvEmptyTitle": "Ọ dịghị CV a bulitewo",
@@ -643,6 +644,15 @@
       },
       "toast": {
         "success": "Arịọ ezigara"
+      },
+      "confirmation": {
+        "heading": "Arịọ Ezigara",
+        "jobAt": "{jobTitle} na {companyName}",
+        "submittedAt": "Ezigara na {date}",
+        "viewApplications": "Lelee Arịọ M",
+        "browseJobs": "Chọọ Ọrụ Ndị Ọzọ",
+        "emailSent": "Ezigara email nkwado na igwe ozi gị.",
+        "nextSteps": "Onye ọrụ ga-elele arịọ gị. A ga-ịkọ gị maka mgbanwe ọ bụla n'ọnọdụ."
       },
       "errors": {
         "validation": "Biko dozie ngalaba ndị pụtara ìhè",
