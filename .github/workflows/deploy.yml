@@ -63,6 +63,20 @@ jobs:
             ghcr.io/${{ github.repository_owner }}/igbo-realtime:sha-${{ github.sha }}
             ghcr.io/${{ github.repository_owner }}/igbo-realtime:latest
 
+      # Portal image: job portal Next.js app on port 3001
+      - name: Build and push portal image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile.portal
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/igbo-portal:sha-${{ github.sha }}
+            ghcr.io/${{ github.repository_owner }}/igbo-portal:latest
+          build-args: |
+            NEXT_PUBLIC_PORTAL_URL=${{ secrets.NEXT_PUBLIC_PORTAL_URL || 'http://localhost:3001' }}
+            NEXT_PUBLIC_APP_URL=${{ secrets.NEXT_PUBLIC_APP_URL || 'http://localhost:3000' }}
+
   # ─── Staging auto-deploy (no approval required) ───────────────────────────────
   deploy-staging:
     name: Deploy to Staging
@@ -90,8 +104,11 @@ jobs:
             'cd ~/igbo && docker compose -f docker-compose.prod.yml images web --format json 2>/dev/null | python3 -c "import sys,json; imgs=json.load(sys.stdin); print(imgs[0][\"Repository\"]+\":\"+imgs[0][\"Tag\"]) if imgs else print(\"\")" 2>/dev/null || echo ""')
           PREV_REALTIME=$(ssh "${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }}" \
             'cd ~/igbo && docker compose -f docker-compose.prod.yml images realtime --format json 2>/dev/null | python3 -c "import sys,json; imgs=json.load(sys.stdin); print(imgs[0][\"Repository\"]+\":\"+imgs[0][\"Tag\"]) if imgs else print(\"\")" 2>/dev/null || echo ""')
+          PREV_PORTAL=$(ssh "${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }}" \
+            'cd ~/igbo && docker compose -f docker-compose.prod.yml images portal --format json 2>/dev/null | python3 -c "import sys,json; imgs=json.load(sys.stdin); print(imgs[0][\"Repository\"]+\":\"+imgs[0][\"Tag\"]) if imgs else print(\"\")" 2>/dev/null || echo ""')
           echo "prev_web_tag=${PREV_WEB}" >> "$GITHUB_OUTPUT"
           echo "prev_realtime_tag=${PREV_REALTIME}" >> "$GITHUB_OUTPUT"
+          echo "prev_portal_tag=${PREV_PORTAL}" >> "$GITHUB_OUTPUT"
 
       - name: Copy deploy script to staging server
         run: |
@@ -109,8 +126,10 @@ jobs:
               ${{ secrets.STAGING_HEALTH_URL }} \
               'ghcr.io/${{ github.repository_owner }}/igbo-web:sha-${{ github.sha }}' \
               'ghcr.io/${{ github.repository_owner }}/igbo-realtime:sha-${{ github.sha }}' \
+              'ghcr.io/${{ github.repository_owner }}/igbo-portal:sha-${{ github.sha }}' \
               '${{ steps.prev-tags.outputs.prev_web_tag }}' \
-              '${{ steps.prev-tags.outputs.prev_realtime_tag }}'"
+              '${{ steps.prev-tags.outputs.prev_realtime_tag }}' \
+              '${{ steps.prev-tags.outputs.prev_portal_tag }}'"
 
   # ─── Production deploy with manual approval gate ─────────────────────────────
   # Requires a reviewer to approve via GitHub environment "production" settings
@@ -138,8 +157,11 @@ jobs:
             'cd ~/igbo && docker compose -f docker-compose.prod.yml images web --format json 2>/dev/null | python3 -c "import sys,json; imgs=json.load(sys.stdin); print(imgs[0][\"Repository\"]+\":\"+imgs[0][\"Tag\"]) if imgs else print(\"\")" 2>/dev/null || echo ""')
           PREV_REALTIME=$(ssh "${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }}" \
             'cd ~/igbo && docker compose -f docker-compose.prod.yml images realtime --format json 2>/dev/null | python3 -c "import sys,json; imgs=json.load(sys.stdin); print(imgs[0][\"Repository\"]+\":\"+imgs[0][\"Tag\"]) if imgs else print(\"\")" 2>/dev/null || echo ""')
+          PREV_PORTAL=$(ssh "${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }}" \
+            'cd ~/igbo && docker compose -f docker-compose.prod.yml images portal --format json 2>/dev/null | python3 -c "import sys,json; imgs=json.load(sys.stdin); print(imgs[0][\"Repository\"]+\":\"+imgs[0][\"Tag\"]) if imgs else print(\"\")" 2>/dev/null || echo ""')
           echo "prev_web_tag=${PREV_WEB}" >> "$GITHUB_OUTPUT"
           echo "prev_realtime_tag=${PREV_REALTIME}" >> "$GITHUB_OUTPUT"
+          echo "prev_portal_tag=${PREV_PORTAL}" >> "$GITHUB_OUTPUT"
 
       - name: Copy deploy script to production server
         run: |
@@ -156,5 +178,7 @@ jobs:
               ${{ secrets.PRODUCTION_HEALTH_URL }} \
               'ghcr.io/${{ github.repository_owner }}/igbo-web:sha-${{ github.sha }}' \
               'ghcr.io/${{ github.repository_owner }}/igbo-realtime:sha-${{ github.sha }}' \
+              'ghcr.io/${{ github.repository_owner }}/igbo-portal:sha-${{ github.sha }}' \
               '${{ steps.prev-tags.outputs.prev_web_tag }}' \
-              '${{ steps.prev-tags.outputs.prev_realtime_tag }}'"
+              '${{ steps.prev-tags.outputs.prev_realtime_tag }}' \
+              '${{ steps.prev-tags.outputs.prev_portal_tag }}'"

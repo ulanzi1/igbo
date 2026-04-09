@@ -34,6 +34,36 @@ services:
     networks:
       - app-network
 
+  portal:
+    image: ${PORTAL_IMAGE:-igbo-portal:local}
+    build:
+      context: .
+      dockerfile: Dockerfile.portal
+      args:
+        NEXT_PUBLIC_PORTAL_URL: ${NEXT_PUBLIC_PORTAL_URL}
+        NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
+    restart: unless-stopped
+    mem_limit: 1g
+    cpus: 1.0
+    ports:
+      - "3001:3001"
+    env_file: .env
+    environment:
+      NODE_ENV: production
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3001/api/v1/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - app-network
+
   realtime:
     image: ${REALTIME_IMAGE:-igbo-realtime:local}
     build:
