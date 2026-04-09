@@ -44,7 +44,6 @@ WORKDIR /app
 
 # Reuse builder node_modules and prune devDeps
 COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/apps/community/node_modules ./apps/community/node_modules 2>/dev/null || true
 COPY --from=builder /app/package.json ./package.json
 
 RUN npm prune --omit=dev 2>/dev/null || true
