@@ -154,7 +154,7 @@ describe("ApplicationDetailPage", () => {
   });
 
   it("redirects if unauthenticated", async () => {
-    vi.mocked(auth).mockResolvedValue(null);
+    vi.mocked(auth).mockResolvedValue(null as never);
     await expect(renderPage()).rejects.toThrow("REDIRECT:/en");
   });
 
