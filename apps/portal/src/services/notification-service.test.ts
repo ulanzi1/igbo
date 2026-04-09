@@ -40,7 +40,9 @@ vi.mock("@/lib/redis", () => ({
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-async function getHandler(): Promise<(payload: unknown) => Promise<void>> {
+async function getHandler(
+  eventName: "application.submitted" | "application.withdrawn" = "application.submitted",
+): Promise<(payload: unknown) => Promise<void>> {
   // Reset HMR guard so the module re-registers
   const global = globalThis as unknown as { __portalNotifHandlersRegistered?: boolean };
   global.__portalNotifHandlersRegistered = false;
@@ -48,8 +50,8 @@ async function getHandler(): Promise<(payload: unknown) => Promise<void>> {
   // Re-import to trigger handler registration
   vi.resetModules();
   await import("./notification-service");
-  const call = mockPortalEventBusOn.mock.calls.find(([event]) => event === "application.submitted");
-  if (!call) throw new Error("application.submitted handler not registered");
+  const call = mockPortalEventBusOn.mock.calls.find(([event]) => event === eventName);
+  if (!call) throw new Error(`${eventName} handler not registered`);
   return call[1] as (payload: unknown) => Promise<void>;
 }
 
@@ -318,5 +320,148 @@ describe("notification-service — application.submitted handler", () => {
       ([event]) => event === "application.submitted",
     );
     expect(appSubmittedCalls).toHaveLength(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// application.withdrawn handler
+// ---------------------------------------------------------------------------
+
+const WITHDRAWN_PAYLOAD = {
+  eventId: "evt-wd-001",
+  version: 1,
+  timestamp: "2026-04-09T12:00:00.000Z",
+  applicationId: "app-wd-123",
+  jobId: "job-wd-456",
+  seekerUserId: "seeker-wd-789",
+  companyId: "company-wd-abc",
+  previousStatus: "submitted",
+  newStatus: "withdrawn",
+  actorUserId: "seeker-wd-789",
+};
+
+describe("notification-service — application.withdrawn handler", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+    mockRedisSet.mockResolvedValue("OK");
+    mockFindUserById.mockResolvedValue({
+      id: "seeker-wd-789",
+      email: "seeker@example.com",
+      name: "Ada Obi",
+      languagePreference: "en",
+    });
+    mockGetJobPostingById.mockResolvedValue({ id: "job-wd-456", title: "Senior Engineer" });
+    mockGetCompanyById.mockResolvedValue({
+      id: "company-wd-abc",
+      ownerUserId: "employer-wd-xyz",
+      name: "Igbo Tech",
+    });
+    mockCreateNotification.mockResolvedValue({ id: "notif-wd-1" });
+  });
+
+  afterEach(() => {
+    const global = globalThis as unknown as { __portalNotifHandlersRegistered?: boolean };
+    global.__portalNotifHandlersRegistered = false;
+  });
+
+  it("registers handler on application.withdrawn event", async () => {
+    const global = globalThis as unknown as { __portalNotifHandlersRegistered?: boolean };
+    global.__portalNotifHandlersRegistered = false;
+    vi.resetModules();
+    await import("./notification-service");
+    expect(mockPortalEventBusOn).toHaveBeenCalledWith(
+      "application.withdrawn",
+      expect.any(Function),
+    );
+  });
+
+  it("creates employer in-app notification with correct args", async () => {
+    const handler = await getHandler("application.withdrawn");
+    await handler(WITHDRAWN_PAYLOAD);
+
+    expect(mockCreateNotification).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: "employer-wd-xyz",
+        type: "system",
+        title: "A candidate withdrew their application",
+        body: "Ada Obi withdrew from Senior Engineer",
+        link: `/admin/applications/${WITHDRAWN_PAYLOAD.applicationId}`,
+      }),
+    );
+  });
+
+  it("uses Redis SET NX dedup key for app-withdrawn", async () => {
+    const handler = await getHandler("application.withdrawn");
+    await handler(WITHDRAWN_PAYLOAD);
+
+    expect(mockRedisSet).toHaveBeenCalledWith(
+      `dedup:portal:notif:app-withdrawn:${WITHDRAWN_PAYLOAD.applicationId}`,
+      "1",
+      "EX",
+      900,
+      "NX",
+    );
+  });
+
+  it("skips notification if dedup key already set", async () => {
+    mockRedisSet.mockResolvedValue(null); // key already exists
+    const handler = await getHandler("application.withdrawn");
+    await handler(WITHDRAWN_PAYLOAD);
+
+    expect(mockCreateNotification).not.toHaveBeenCalled();
+  });
+
+  it("does not throw when notification creation fails (fire-and-forget)", async () => {
+    mockCreateNotification.mockRejectedValue(new Error("DB error"));
+    const handler = await getHandler("application.withdrawn");
+    await expect(handler(WITHDRAWN_PAYLOAD)).resolves.not.toThrow();
+  });
+
+  it("logs warning and skips notification when company has no ownerUserId", async () => {
+    mockGetCompanyById.mockResolvedValue({ id: "company-wd-abc", ownerUserId: null, name: "Inc" });
+    const handler = await getHandler("application.withdrawn");
+    await handler(WITHDRAWN_PAYLOAD);
+
+    expect(mockCreateNotification).not.toHaveBeenCalled();
+  });
+
+  it("logs warning and skips notification when company lookup returns null", async () => {
+    mockGetCompanyById.mockResolvedValue(null);
+    const handler = await getHandler("application.withdrawn");
+    await handler(WITHDRAWN_PAYLOAD);
+
+    expect(mockCreateNotification).not.toHaveBeenCalled();
+  });
+
+  it("proceeds if Redis dedup check throws (fail-open)", async () => {
+    mockRedisSet.mockRejectedValue(new Error("Redis down"));
+    const handler = await getHandler("application.withdrawn");
+    await handler(WITHDRAWN_PAYLOAD);
+
+    expect(mockCreateNotification).toHaveBeenCalled();
+  });
+
+  it("creates notification with fallback values when seeker lookup fails", async () => {
+    mockFindUserById.mockRejectedValue(new Error("DB timeout"));
+    const handler = await getHandler("application.withdrawn");
+    await handler(WITHDRAWN_PAYLOAD);
+
+    expect(mockCreateNotification).toHaveBeenCalledWith(
+      expect.objectContaining({
+        body: "A candidate withdrew from Senior Engineer",
+      }),
+    );
+  });
+
+  it("creates notification with fallback job title when posting lookup fails", async () => {
+    mockGetJobPostingById.mockRejectedValue(new Error("DB timeout"));
+    const handler = await getHandler("application.withdrawn");
+    await handler(WITHDRAWN_PAYLOAD);
+
+    expect(mockCreateNotification).toHaveBeenCalledWith(
+      expect.objectContaining({
+        body: "Ada Obi withdrew from Unknown Position",
+      }),
+    );
   });
 });

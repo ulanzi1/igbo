@@ -6,7 +6,7 @@ import { getCompanyById } from "@igbo/db/queries/portal-companies";
 import { createNotification } from "@igbo/db/queries/notifications";
 import { enqueueEmailJob } from "@/services/email-service";
 import { getRedisClient } from "@/lib/redis";
-import type { ApplicationSubmittedEvent } from "@igbo/config/events";
+import type { ApplicationSubmittedEvent, ApplicationWithdrawnEvent } from "@igbo/config/events";
 
 const NOTIF_DEDUP_TTL_SECONDS = 15 * 60; // 15 minutes
 
@@ -174,6 +174,115 @@ if (globalForNotif.__portalNotifHandlersRegistered) {
         );
         // Error logged — does not propagate (submission already succeeded)
       }
+    }
+  });
+
+  // ── application.withdrawn handler ────────────────────────────────────────
+  portalEventBus.on("application.withdrawn", async (payload: ApplicationWithdrawnEvent) => {
+    const { applicationId, jobId, seekerUserId, companyId } = payload;
+
+    // Idempotency: deduplicate using Redis SET NX
+    try {
+      const redis = getRedisClient();
+      const dedupKey = `dedup:portal:notif:app-withdrawn:${applicationId}`;
+      const acquired = await redis.set(dedupKey, "1", "EX", NOTIF_DEDUP_TTL_SECONDS, "NX");
+      if (acquired === null) {
+        console.info(
+          JSON.stringify({
+            level: "info",
+            message: "portal.notification.app_withdrawn.dedup_skipped",
+            applicationId,
+          }),
+        );
+        return;
+      }
+    } catch (redisErr: unknown) {
+      console.error(
+        JSON.stringify({
+          level: "error",
+          message: "portal.notification.dedup_check.error",
+          applicationId,
+          error: String(redisErr),
+        }),
+      );
+      // Proceed without dedup — fail-open for notifications
+    }
+
+    // Resolve seeker, job posting, and company in parallel
+    // Employer user ID is derived from company profile ownerUserId (same as application.submitted pattern)
+    const [seekerResult, postingResult, companyResult] = await Promise.allSettled([
+      findUserById(seekerUserId),
+      getJobPostingById(jobId),
+      getCompanyById(companyId),
+    ]);
+
+    const seeker = seekerResult.status === "fulfilled" ? seekerResult.value : null;
+    const posting = postingResult.status === "fulfilled" ? postingResult.value : null;
+    const company = companyResult.status === "fulfilled" ? companyResult.value : null;
+
+    for (const [label, result] of [
+      ["seeker", seekerResult],
+      ["posting", postingResult],
+      ["company", companyResult],
+    ] as const) {
+      if (result.status === "rejected") {
+        console.error(
+          JSON.stringify({
+            level: "error",
+            message: "portal.notification.app_withdrawn.data_fetch.error",
+            applicationId,
+            field: label,
+            error: String(result.reason),
+          }),
+        );
+      }
+    }
+
+    // Employer is the company profile owner
+    const employerUserId = company?.ownerUserId ?? null;
+    if (!employerUserId) {
+      console.warn(
+        JSON.stringify({
+          level: "warn",
+          message: "portal.notification.app_withdrawn.no_employer",
+          applicationId,
+          jobId,
+        }),
+      );
+      return;
+    }
+
+    const seekerName = seeker?.name ?? "A candidate";
+    const jobTitle = posting?.title ?? "Unknown Position";
+
+    // TODO(P-6.1A): Hardcoded English per existing application.submitted pattern
+    try {
+      await createNotification({
+        userId: employerUserId,
+        type: "system",
+        title: "A candidate withdrew their application",
+        body: `${seekerName} withdrew from ${jobTitle}`,
+        link: `/admin/applications/${applicationId}`,
+      });
+      console.info(
+        JSON.stringify({
+          level: "info",
+          message: "portal.notification.app_withdrawn.employer_notification.created",
+          applicationId,
+          employerUserId,
+        }),
+      );
+    } catch (notifErr: unknown) {
+      console.error(
+        JSON.stringify({
+          level: "error",
+          message: "portal.notification.app_withdrawn.employer_notification.error",
+          applicationId,
+          employerUserId,
+          error: String(notifErr),
+        }),
+      );
+      // Error logged — does not propagate (fire-and-forget)
     }
   });
 }

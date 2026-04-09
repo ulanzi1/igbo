@@ -709,6 +709,30 @@
         "hired": "Ahịrịọrụ",
         "rejected": "Ajụtara",
         "withdrawn": "Ewepụtara"
+      },
+      "withdraw": {
+        "buttonLabel": "Wepu Arịọ",
+        "dialogTitle": "Wepu arịọ gị maka {jobTitle}?",
+        "dialogDescription": "Iwepụ arịọ ga-ewepụ gị n'ọchịchọ maka ọkwa a. Omume a bụ nke mgbe niile ma enweghị ike itughari ya.",
+        "offeredWarningTitle": "Ị nwere nkwa na-atọ ụtọ",
+        "offeredWarningBody": "Iwepụ ugbu a ga-atụfu nkwa maka ọkwa a.",
+        "offeredConfirmCheckbox": "Aghọtara m na nke a ga-ajụ nkwa a",
+        "reasonLabel": "Ihe kpatara (ọ bụghị ihe dị mkpa)",
+        "reasonPlaceholder": "Kọọ onye ọrụ ihe kpatara ị na-ewepụ arịọ (ọ bụghị ihe dị mkpa)",
+        "reasonHelp": "Mkpụrụ okwu 500 nke ugwu. Onye ọrụ ga-ahụ ihe a.",
+        "cancel": "Kagbuo",
+        "confirm": "Wepu",
+        "confirmLoading": "Na-ewepụ…",
+        "toastSuccess": "Ewepụtara arịọ",
+        "toastError": "Ọ dịghị ike iwepụ arịọ. Biko nwaa ọzọ.",
+        "errorInvalidTransition": "Enweghị ike iwepụ arịọ a ọzọ.",
+        "errorNotFound": "Ahụghị arịọ."
+      }
+    },
+    "notifications": {
+      "employerApplicationWithdrawn": {
+        "title": "Onye nọ n'ọchịchọ weputara arịọ ya",
+        "body": "{seekerName} weputara arịọ ya maka {jobTitle}"
       }
     },
     "chooseRole": {
