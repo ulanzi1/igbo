@@ -727,6 +727,11 @@
         "toastError": "Failed to withdraw application. Please try again.",
         "errorInvalidTransition": "This application can no longer be withdrawn.",
         "errorNotFound": "Application not found."
+      },
+      "kanban": {
+        "boardLabel": "Application tracking board",
+        "cardRoleDescription": "draggable application card",
+        "columnLabel": "{status} column, {count} applications"
       }
     },
     "notifications": {

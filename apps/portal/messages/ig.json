@@ -727,6 +727,11 @@
         "toastError": "Ọ dịghị ike iwepụ arịọ. Biko nwaa ọzọ.",
         "errorInvalidTransition": "Enweghị ike iwepụ arịọ a ọzọ.",
         "errorNotFound": "Ahụghị arịọ."
+      },
+      "kanban": {
+        "boardLabel": "Bọọdụ nsọpụrụ arịọ",
+        "cardRoleDescription": "kaadị arịọ a na-adọkpụ",
+        "columnLabel": "{status} kọlụm, arịọ {count}"
       }
     },
     "notifications": {
