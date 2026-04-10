@@ -95,7 +95,7 @@ describe("Portal proxy", () => {
       expect(result.status).toBe(307);
       const location = result.headers.get("Location") ?? "";
       expect(location).toContain("/api/auth/verify-session");
-      expect(location).toContain("returnTo=");
+      expect(location).toContain("callbackUrl=");
     });
 
     it("verify-session returnTo includes _itp_refresh=1 for loop prevention", async () => {
@@ -103,7 +103,7 @@ describe("Portal proxy", () => {
       const result = await proxy(req as unknown as NextRequest);
       const location = result.headers.get("Location") ?? "";
       const verifyUrl = new URL(location);
-      const returnTo = verifyUrl.searchParams.get("returnTo") ?? "";
+      const returnTo = verifyUrl.searchParams.get("callbackUrl") ?? "";
       expect(new URL(returnTo).searchParams.get("_itp_refresh")).toBe("1");
     });
 
@@ -113,7 +113,7 @@ describe("Portal proxy", () => {
       expect(result.status).toBe(307);
       const location = result.headers.get("Location") ?? "";
       expect(location).toContain("http://localhost:3000/login");
-      expect(location).toContain("returnTo=");
+      expect(location).toContain("callbackUrl=");
       expect(location).not.toContain("verify-session");
     });
   });
@@ -205,7 +205,7 @@ describe("Portal proxy", () => {
       expect(result.status).toBe(307);
       const location = result.headers.get("Location") ?? "";
       expect(location).toContain("/api/auth/verify-session");
-      expect(location).toContain("returnTo=");
+      expect(location).toContain("callbackUrl=");
     });
 
     it("falls back to login when decode throws AND _itp_refresh=1 is present", async () => {
@@ -229,7 +229,7 @@ describe("Portal proxy", () => {
       expect(result.status).toBe(307);
       const location = result.headers.get("Location") ?? "";
       expect(location).toContain("/api/auth/verify-session");
-      expect(location).toContain("returnTo=");
+      expect(location).toContain("callbackUrl=");
     });
 
     it("falls back to login when decode returns null AND _itp_refresh=1 is present", async () => {
@@ -370,7 +370,7 @@ describe("Portal proxy", () => {
       const location = result.headers.get("Location") ?? "";
       // returnTo should include the full URL with host
       const verifyUrl = new URL(location);
-      const returnTo = verifyUrl.searchParams.get("returnTo") ?? "";
+      const returnTo = verifyUrl.searchParams.get("callbackUrl") ?? "";
       expect(returnTo).toContain("http://localhost:3001");
     });
   });

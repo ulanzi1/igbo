@@ -91,7 +91,8 @@
       "engagementLow": "New Member",
       "engagementMedium": "Active Member",
       "engagementHigh": "Trusted Member",
-      "communityTrust": "Community Trust"
+      "communityTrust": "Community trust",
+      "points": "points"
     },
     "upload": {
       "dragOrClick": "Drag & drop or click to upload",
@@ -331,6 +332,41 @@
       "salaryRange": "${min} – ${max}",
       "jobDescription": "Job Description",
       "requirements": "Requirements"
+    },
+    "ats": {
+      "closedSection": "Closed",
+      "closedSectionExpand": "Show {count} closed",
+      "closedSectionCollapse": "Collapse",
+      "appliedOn": "Applied {date}",
+      "matchScorePlaceholder": "Match score coming soon",
+      "ariaSidePanel": "Candidate details",
+      "noCoverLetter": "No cover letter provided",
+      "sidePanel": {
+        "title": "Candidate Details",
+        "profile": "Profile",
+        "skills": "Skills",
+        "trustSignals": "Community Trust",
+        "coverLetter": "Cover Letter",
+        "cv": "Resume",
+        "downloadCv": "Download CV",
+        "noCv": "No resume attached",
+        "portfolioLinks": "Portfolio Links",
+        "noPortfolio": "No portfolio links",
+        "timeline": "Timeline",
+        "noTransitions": "No status changes yet"
+      },
+      "kanban": {
+        "submitted": "Applied",
+        "under_review": "Under Review",
+        "shortlisted": "Shortlisted",
+        "interview": "Interview",
+        "offered": "Offered"
+      }
+    },
+    "applications": {
+      "kanban": {
+        "cardRoleDescription": "application card"
+      }
     }
   },
   "Shell": {

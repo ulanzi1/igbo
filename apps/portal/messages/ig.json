@@ -91,7 +91,8 @@
       "engagementLow": "Onye Otu Ọhụrụ",
       "engagementMedium": "Onye Otu Na-arụ Ọrụ",
       "engagementHigh": "Onye Otu A Tụkwasịrị Obi",
-      "communityTrust": "Ntụkwasị Obi Obodo"
+      "communityTrust": "Ntụkwasị Obi Obodo",
+      "points": "ntụpọ"
     },
     "upload": {
       "dragOrClick": "Dọba ma ọ bụ pịa iji bulite",
@@ -331,6 +332,41 @@
       "salaryRange": "${min} – ${max}",
       "jobDescription": "Nkọwa Ọrụ",
       "requirements": "Ihe A Chọrọ"
+    },
+    "ats": {
+      "closedSection": "Mechiri",
+      "closedSectionExpand": "Gosi {count} mechiri",
+      "closedSectionCollapse": "Mechie",
+      "appliedOn": "Webara {date}",
+      "matchScorePlaceholder": "Ihe nkwado na-abịa n'oge ya",
+      "ariaSidePanel": "Nkọwa onye ọrụ",
+      "noCoverLetter": "Ọ dịghị akwụkwọ mkpuchite",
+      "sidePanel": {
+        "title": "Nkọwa Onye Ọrụ",
+        "profile": "Profaịl",
+        "skills": "Nka",
+        "trustSignals": "Ntụkwasị Obi Obodo",
+        "coverLetter": "Akwụkwọ Mkpuchite",
+        "cv": "Résumé",
+        "downloadCv": "Budata CV",
+        "noCv": "Ọ dịghị résumé ejikọtara",
+        "portfolioLinks": "Njikọ Nchịkọta",
+        "noPortfolio": "Ọ dịghị njikọ nchịkọta",
+        "timeline": "Usoro Oge",
+        "noTransitions": "Ọ dịghị mgbanwe ọnọdụ ọ bụ ugbu a"
+      },
+      "kanban": {
+        "submitted": "Webara",
+        "under_review": "Na-atụle",
+        "shortlisted": "Họpụtara",
+        "interview": "Ajụjụ Ọrụ",
+        "offered": "Nyere Ọrụ"
+      }
+    },
+    "applications": {
+      "kanban": {
+        "cardRoleDescription": "kaadị ngwa"
+      }
     }
   },
   "Shell": {
