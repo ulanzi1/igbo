@@ -13,6 +13,10 @@ function getCommunityUrl() {
   return process.env.NEXT_PUBLIC_COMMUNITY_URL ?? "http://localhost:3000";
 }
 
+function getPortalUrl() {
+  return process.env.NEXT_PUBLIC_PORTAL_URL ?? "http://localhost:3001";
+}
+
 interface NavLink {
   key: string;
   href: string;
@@ -125,7 +129,11 @@ export function PortalTopNav({ className }: { className?: string }) {
           {!isAuthenticated && (
             <>
               <Button asChild size="sm" variant="ghost" className="hidden sm:inline-flex">
-                <a href={`${communityUrl}/login`}>{t("login")}</a>
+                <a
+                  href={`${communityUrl}/login?callbackUrl=${encodeURIComponent(`${getPortalUrl()}/${locale}`)}`}
+                >
+                  {t("login")}
+                </a>
               </Button>
               <Button asChild size="sm" className="hidden sm:inline-flex">
                 <a href={`${communityUrl}/join`}>{t("joinNow")}</a>
@@ -191,7 +199,7 @@ export function PortalTopNav({ className }: { className?: string }) {
                   {!isAuthenticated && (
                     <>
                       <a
-                        href={`${communityUrl}/login`}
+                        href={`${communityUrl}/login?callbackUrl=${encodeURIComponent(`${getPortalUrl()}/${locale}`)}`}
                         className="flex items-center min-h-[44px] px-4 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-colors rounded-md"
                       >
                         {t("login")}

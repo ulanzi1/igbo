@@ -42,16 +42,16 @@ function itpRefreshOrLogin(request: NextRequest): NextResponse {
   if (hasRefreshed) {
     // Second attempt — refresh already tried, fall back to login
     const loginUrl = new URL("/login", COMMUNITY_BASE_URL);
-    loginUrl.searchParams.set("returnTo", request.nextUrl.href);
+    loginUrl.searchParams.set("callbackUrl", request.nextUrl.href);
     return NextResponse.redirect(loginUrl);
   }
 
-  // First attempt — redirect to verify-session with _itp_refresh=1 in returnTo
+  // First attempt — redirect to verify-session with _itp_refresh=1 in callbackUrl
   const returnToUrl = new URL(request.nextUrl.href);
   returnToUrl.searchParams.set("_itp_refresh", "1");
 
   const verifyUrl = new URL("/api/auth/verify-session", COMMUNITY_BASE_URL);
-  verifyUrl.searchParams.set("returnTo", returnToUrl.href);
+  verifyUrl.searchParams.set("callbackUrl", returnToUrl.href);
   return NextResponse.redirect(verifyUrl);
 }
 

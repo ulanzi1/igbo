@@ -30,6 +30,7 @@ export function PortalBottomNav() {
   const { isSeeker, isEmployer, isAdmin } = useActivePortalRole();
   const pathname = usePathname();
   const communityUrl = process.env.NEXT_PUBLIC_COMMUNITY_URL ?? "http://localhost:3000";
+  const portalUrl = process.env.NEXT_PUBLIC_PORTAL_URL ?? "http://localhost:3001";
 
   const seekerItems: BottomNavItem[] = [
     { key: "home", href: `/${locale}`, label: t("home"), icon: HomeIcon },
@@ -76,7 +77,12 @@ export function PortalBottomNav() {
   const guestItems: BottomNavItem[] = [
     { key: "home", href: `/${locale}`, label: t("home"), icon: HomeIcon },
     { key: "browseAll", href: `/${locale}/jobs`, label: t("browseAll"), icon: BriefcaseIcon },
-    { key: "login", href: `${communityUrl}/login`, label: t("login"), icon: LogInIcon },
+    {
+      key: "login",
+      href: `${communityUrl}/login?callbackUrl=${encodeURIComponent(`${portalUrl}/${locale}`)}`,
+      label: t("login"),
+      icon: LogInIcon,
+    },
   ];
 
   const items = isEmployer
