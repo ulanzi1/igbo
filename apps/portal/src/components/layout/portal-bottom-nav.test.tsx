@@ -72,12 +72,16 @@ describe("PortalBottomNav", () => {
     expect(screen.queryByText("myApplications")).not.toBeInTheDocument();
   });
 
-  it("guest login link points to community login, not portal", () => {
+  it("guest login link points to community login with callbackUrl back to portal", () => {
     process.env.NEXT_PUBLIC_COMMUNITY_URL = "http://localhost:3000";
+    process.env.NEXT_PUBLIC_PORTAL_URL = "http://localhost:3001";
     setGuest();
     render(<PortalBottomNav />);
     const loginLink = screen.getByText("login").closest("a");
-    expect(loginLink).toHaveAttribute("href", "http://localhost:3000/login");
+    const href = loginLink?.getAttribute("href") ?? "";
+    expect(href).toContain("http://localhost:3000/login");
+    expect(href).toContain("callbackUrl=");
+    expect(href).toContain(encodeURIComponent("http://localhost:3001/"));
   });
 
   it("marks active tab based on current pathname", () => {

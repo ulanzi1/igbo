@@ -48,7 +48,7 @@ export default async function PortalHomePage({ params }: PageProps) {
         <p className="text-muted-foreground mb-8">{t("guestWelcome")}</p>
         <div className="flex gap-4">
           <a
-            href={`${communityUrl}/login?returnTo=${encodeURIComponent(`${portalUrl}/${locale}`)}`}
+            href={`${communityUrl}/login?callbackUrl=${encodeURIComponent(`${portalUrl}/${locale}`)}`}
             className="inline-flex items-center justify-center min-h-[44px] px-6 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
           >
             {tNav("login")}
