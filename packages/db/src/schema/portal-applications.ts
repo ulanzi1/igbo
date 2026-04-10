@@ -1,7 +1,8 @@
 import "server-only";
-import { pgTable, uuid, timestamp, pgEnum, text } from "drizzle-orm/pg-core";
+import { pgTable, uuid, timestamp, pgEnum, text, jsonb } from "drizzle-orm/pg-core";
 import { authUsers } from "./auth-users";
 import { portalJobPostings } from "./portal-job-postings";
+import { portalSeekerCvs } from "./portal-seeker-cvs";
 import type { PortalJobStatus } from "./portal-job-postings";
 
 export const portalApplicationStatusEnum = pgEnum("portal_application_status", [
@@ -36,6 +37,12 @@ export const portalApplications = pgTable("portal_applications", {
     onDelete: "set null",
   }),
   transitionReason: text("transition_reason"),
+  // Added in P-2.5A migration 0063
+  selectedCvId: uuid("selected_cv_id").references(() => portalSeekerCvs.id, {
+    onDelete: "set null",
+  }),
+  coverLetterText: text("cover_letter_text"),
+  portfolioLinksJson: jsonb("portfolio_links_json").$type<string[]>().notNull().default([]),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });

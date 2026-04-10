@@ -361,7 +361,10 @@
         "shortlisted": "Shortlisted",
         "interview": "Interview",
         "offered": "Offered"
-      }
+      },
+      "pageTitle": "Candidates",
+      "breadcrumbMyJobs": "My Jobs",
+      "candidateCount": "{count} candidates"
     },
     "applications": {
       "kanban": {

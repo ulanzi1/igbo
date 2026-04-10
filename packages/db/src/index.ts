@@ -39,6 +39,8 @@ import * as analyticsSnapshotsSchema from "./schema/platform-analytics-snapshots
 import * as governanceDocumentsSchema from "./schema/platform-governance-documents";
 import * as portalCompanyProfilesSchema from "./schema/portal-company-profiles";
 import * as portalJobPostingsSchema from "./schema/portal-job-postings";
+import * as portalSeekerProfilesSchema from "./schema/portal-seeker-profiles";
+import * as portalSeekerCvsSchema from "./schema/portal-seeker-cvs";
 import * as portalApplicationsSchema from "./schema/portal-applications";
 
 const schemaMap = {
@@ -81,6 +83,8 @@ const schemaMap = {
   ...governanceDocumentsSchema,
   ...portalCompanyProfilesSchema,
   ...portalJobPostingsSchema,
+  ...portalSeekerProfilesSchema,
+  ...portalSeekerCvsSchema,
   ...portalApplicationsSchema,
 };
 
