@@ -134,6 +134,42 @@ export async function getCommunityTrustSignals(
   };
 }
 
+export interface SeekerTrustSignals extends CommunityTrustSignals {
+  badgeType: string | null;
+  memberDurationDays: number;
+  communityPoints: number;
+}
+
+/**
+ * Returns trust signals enriched with seeker-specific data:
+ * badge type, membership duration in days, and community points.
+ * Used by the employer ATS side panel.
+ */
+export async function getSeekerTrustSignals(userId: string): Promise<SeekerTrustSignals | null> {
+  const [base, verification, duration, engagement] = await Promise.all([
+    getCommunityTrustSignals(userId),
+    getCommunityVerificationStatus(userId),
+    getMembershipDuration(userId).catch(() => ({ durationDays: 0 })),
+    getUserEngagementLevel(userId),
+  ]);
+
+  if (!base) return null;
+
+  const pointsRow = await db
+    .select({ total: sql<string>`COALESCE(SUM(${platformPointsLedger.points}), 0)` })
+    .from(platformPointsLedger)
+    .where(eq(platformPointsLedger.userId, userId));
+
+  const communityPoints = parseInt(pointsRow[0]?.total ?? "0", 10);
+
+  return {
+    ...base,
+    badgeType: verification.badgeType,
+    memberDurationDays: duration.durationDays,
+    communityPoints,
+  };
+}
+
 /**
  * Returns the **upstream** referral ancestry for a user — i.e. who referred
  * this user, who referred *them*, etc., up to MAX_DEPTH levels.
