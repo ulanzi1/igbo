@@ -55,7 +55,7 @@ export async function transition(
     fromStatus,
     toStatus: toStatus as PortalApplicationStatus,
     actorUserId,
-    actorRole: actorRole as "employer" | "seeker" | "admin",
+    actorRole: actorRole as "employer" | "job_seeker" | "job_admin",
     reason: null,
   });
 }
