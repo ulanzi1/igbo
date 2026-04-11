@@ -449,6 +449,13 @@
       "when": 1708000063000,
       "tag": "0063_job_application_submission",
       "breakpoints": true
+    },
+    {
+      "idx": 64,
+      "version": "7",
+      "when": 1708000064000,
+      "tag": "0064_seeker_analytics",
+      "breakpoints": true
     }
   ]
 }

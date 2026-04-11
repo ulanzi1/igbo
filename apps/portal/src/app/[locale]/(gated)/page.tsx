@@ -4,6 +4,12 @@ import { redirect } from "next/navigation";
 import { auth } from "@igbo/auth";
 import { getCompanyByOwnerId } from "@igbo/db/queries/portal-companies";
 import { getSeekerProfileByUserId } from "@igbo/db/queries/portal-seeker-profiles";
+import { getSeekerAnalytics } from "@/services/seeker-analytics-service";
+import {
+  SeekerAnalyticsCard,
+  SeekerAnalyticsCardSkeleton,
+} from "@/components/domain/seeker-analytics-card";
+import { Suspense } from "react";
 import type { Session } from "next-auth";
 
 interface PageProps {
@@ -34,11 +40,13 @@ export default async function PortalHomePage({ params }: PageProps) {
   }
 
   // Seeker onboarding redirect logic
+  let seekerAnalytics = null;
   if (session?.user && activePortalRole === "JOB_SEEKER") {
     const seekerProfile = await getSeekerProfileByUserId(session.user.id);
     if (!seekerProfile || !seekerProfile.onboardingCompletedAt) {
       redirect(`/${locale}/onboarding/seeker`);
     }
+    seekerAnalytics = await getSeekerAnalytics(session.user.id);
   }
 
   if (!session) {
@@ -65,14 +73,28 @@ export default async function PortalHomePage({ params }: PageProps) {
     );
   }
 
+  const isSeeker = activePortalRole === "JOB_SEEKER";
   const isEmployer = activePortalRole === "EMPLOYER";
   const welcomeMessage = isEmployer ? t("employerWelcome") : t("seekerWelcome");
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] px-4 text-center">
-      <h1 className="text-3xl font-bold text-foreground mb-2">{t("title")}</h1>
-      <p className="text-lg text-muted-foreground mb-4">{welcomeMessage}</p>
-      <p className="text-sm text-muted-foreground">{t("subtitle")}</p>
+    <div className="flex flex-col min-h-[60vh] px-4 py-8 max-w-2xl mx-auto">
+      {isSeeker && (
+        <Suspense fallback={<SeekerAnalyticsCardSkeleton />}>
+          <SeekerAnalyticsCard data={seekerAnalytics} />
+        </Suspense>
+      )}
+      <div
+        className={
+          isSeeker
+            ? "mt-6 text-center"
+            : "flex flex-col items-center justify-center flex-1 text-center"
+        }
+      >
+        <h1 className="text-3xl font-bold text-foreground mb-2">{t("title")}</h1>
+        <p className="text-lg text-muted-foreground mb-4">{welcomeMessage}</p>
+        <p className="text-sm text-muted-foreground">{t("subtitle")}</p>
+      </div>
     </div>
   );
 }

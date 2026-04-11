@@ -751,6 +751,23 @@
       "addMoreLater": "Ị nwere ike ịtụkwasị ọrụ ndị ọzọ n'oge na-adịgide.",
       "error": "Ihe adịghị mma. Biko nwaa ọzọ.",
       "selecting": "Na-edozi akaụntụ gị..."
+    },
+    "seekerAnalytics": {
+      "title": "Nchọpụta Ọrụ Gị",
+      "profileViews": "Nlele Profaịlụ",
+      "totalApplications": "Arịọ Niile",
+      "activeApplications": "Na-arụ ọrụ",
+      "interviews": "Ajụjụ Ọnụ",
+      "offers": "Ohere",
+      "rejected": "Ajụtara",
+      "withdrawn": "Ewepụtara",
+      "emptyTitle": "Ọ dịghị ihe ọhụrụ",
+      "emptyDescription": "Rịọ ọrụ ka ị hụ ọnụọgụ gị ebe a",
+      "browseJobs": "Chọọ Ọrụ",
+      "ariaLabel": "Nchịkọta nchọpụta ọrụ",
+      "viewsAriaLabel": "Nlele profaịlụ: {count}",
+      "applicationsAriaLabel": "Arịọ niile ezigara: {count}",
+      "statusAriaLabel": "{status}: {count}"
     }
   },
   "Shell": {

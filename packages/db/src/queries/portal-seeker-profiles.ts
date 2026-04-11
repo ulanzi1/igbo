@@ -3,7 +3,7 @@ import { db } from "../index";
 import { portalSeekerProfiles } from "../schema/portal-seeker-profiles";
 import type { NewPortalSeekerProfile, PortalSeekerProfile } from "../schema/portal-seeker-profiles";
 import { auditLogs } from "../schema/audit-logs";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 
 export async function createSeekerProfile(
   data: NewPortalSeekerProfile,
@@ -109,6 +109,14 @@ export async function markSeekerOnboardingComplete(
     )
     .returning();
   return updated ?? null;
+}
+
+// Origin: P-2.8. Atomically increments profile_view_count. Throws on DB failure.
+export async function incrementProfileViewCount(seekerProfileId: string): Promise<void> {
+  await db
+    .update(portalSeekerProfiles)
+    .set({ profileViewCount: sql`${portalSeekerProfiles.profileViewCount} + 1` })
+    .where(eq(portalSeekerProfiles.id, seekerProfileId));
 }
 
 // Origin: P-2.2. Consumer: P-2.x matching engine. Do not bypass this helper in any matching code path.

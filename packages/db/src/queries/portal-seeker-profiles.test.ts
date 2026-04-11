@@ -16,6 +16,7 @@ import {
   updateSeekerConsent,
   isSeekerEligibleForMatching,
   markSeekerOnboardingComplete,
+  incrementProfileViewCount,
 } from "./portal-seeker-profiles";
 
 const mockProfile = {
@@ -420,5 +421,31 @@ describe("isSeekerEligibleForMatching", () => {
     vi.mocked(db.select).mockReturnValue({ from } as unknown as ReturnType<typeof db.select>);
     const result = await isSeekerEligibleForMatching("user-123");
     expect(result).toBe(true);
+  });
+});
+
+// ─── P-2.8 additions ──────────────────────────────────────────────────────────
+
+describe("incrementProfileViewCount", () => {
+  it("issues an atomic UPDATE against the profile id", async () => {
+    const where = vi.fn().mockResolvedValue(undefined);
+    const set = vi.fn().mockReturnValue({ where });
+    vi.mocked(db.update).mockReturnValue({ set } as unknown as ReturnType<typeof db.update>);
+
+    await incrementProfileViewCount("seeker-uuid");
+
+    expect(db.update).toHaveBeenCalled();
+    expect(set).toHaveBeenCalledWith(
+      expect.objectContaining({ profileViewCount: expect.anything() }),
+    );
+    expect(where).toHaveBeenCalled();
+  });
+
+  it("propagates DB errors so callers can compensate", async () => {
+    const where = vi.fn().mockRejectedValue(new Error("db down"));
+    const set = vi.fn().mockReturnValue({ where });
+    vi.mocked(db.update).mockReturnValue({ set } as unknown as ReturnType<typeof db.update>);
+
+    await expect(incrementProfileViewCount("seeker-uuid")).rejects.toThrow("db down");
   });
 });
