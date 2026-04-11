@@ -727,6 +727,11 @@
         "toastError": "Ọ dịghị ike iwepụ arịọ. Biko nwaa ọzọ.",
         "errorInvalidTransition": "Enweghị ike iwepụ arịọ a ọzọ.",
         "errorNotFound": "Ahụghị arịọ."
+      },
+      "kanban": {
+        "boardLabel": "Bọọdụ nsọpụrụ arịọ",
+        "cardRoleDescription": "kaadị arịọ a na-adọkpụ",
+        "columnLabel": "{status} kọlụm, arịọ {count}"
       }
     },
     "notifications": {
@@ -768,6 +773,58 @@
       "viewsAriaLabel": "Nlele profaịlụ: {count}",
       "applicationsAriaLabel": "Arịọ niile ezigara: {count}",
       "statusAriaLabel": "{status}: {count}"
+    },
+    "ats": {
+      "pageTitle": "Ndị Na-achọ Ọrụ",
+      "breadcrumbMyJobs": "Ọrụ M",
+      "viewCandidatesWithCount": "Lee Ndị Na-achọ Ọrụ ({count})",
+      "candidateCount": "{count} ndị na-achọ ọrụ",
+      "columnCount": "{count}",
+      "columnLabel": "Kọlụm {status}, {count} ndị na-achọ ọrụ",
+      "closedSection": "Emechiri",
+      "closedSectionExpand": "Gosi emechiri ({count})",
+      "closedSectionCollapse": "Zoo emechiri",
+      "matchScorePlaceholder": "—",
+      "appliedOn": "Tinyere na {date}",
+      "invalidTransition": "Enweghị ike ịkwaga site na {from} gaa {to}. Ọkwa ndị ziri ezi: {validStages}",
+      "transitionSuccess": "Kwagara na {status}",
+      "transitionError": "Emezughị ịmelite ọnọdụ",
+      "emptyBoard": "Enweghị onye na-achọ ọrụ ugbu a",
+      "emptyBoardDescription": "Ndị na-achọ ọrụ ga-apụta ebe a mgbe ha tinyere arịrịọ",
+      "noCoverLetter": "Enweghị leta mkpuchi",
+      "loadingError": "Ịbubata ndị na-achọ ọrụ emepụtaghị",
+      "ariaBoard": "Bọdụ pipeline ndị na-achọ ọrụ",
+      "ariaSidePanel": "Ngalaba nkọwa nke onye na-achọ ọrụ",
+      "cardRoleDescription": "kaadị onye na-achọ ọrụ enwere ike ịdọrọ",
+      "cardAriaLabel": "{seekerName}, {seekerHeadline}, tinyere na {date}",
+      "statusNames": {
+        "submitted": "Etinyere",
+        "under_review": "Na-enyocha",
+        "shortlisted": "Ahọpụtara",
+        "interview": "Ajụjụ Ọnụ",
+        "offered": "Onyinye",
+        "hired": "Egoro",
+        "rejected": "Jụrụ",
+        "withdrawn": "Wepụrụ"
+      },
+      "sidePanel": {
+        "title": "Nkọwa Onye Na-achọ Ọrụ",
+        "profile": "Profaịlụ",
+        "trustSignals": "Ntụkwasị Obi Obodo",
+        "coverLetter": "Leta Mkpuchi",
+        "cv": "Akwụkwọ Ọrụ",
+        "downloadCv": "Budata Akwụkwọ Ọrụ",
+        "noCv": "Enweghị akwụkwọ ọrụ etinyere",
+        "portfolioLinks": "Portfolio",
+        "noPortfolio": "Enweghị njikọ portfolio",
+        "timeline": "Usoro Oge",
+        "skills": "Nkà",
+        "noSkills": "Enweghị nkà edepụtara",
+        "noSummary": "Enweghị nchịkọta enyere",
+        "loading": "Na-ebubata nkọwa...",
+        "loadError": "Ịbubata nkọwa emepụtaghị",
+        "close": "Mechie ngalaba"
+      }
     }
   },
   "Shell": {

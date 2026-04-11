@@ -727,6 +727,11 @@
         "toastError": "Failed to withdraw application. Please try again.",
         "errorInvalidTransition": "This application can no longer be withdrawn.",
         "errorNotFound": "Application not found."
+      },
+      "kanban": {
+        "boardLabel": "Application tracking board",
+        "cardRoleDescription": "draggable application card",
+        "columnLabel": "{status} column, {count} applications"
       }
     },
     "notifications": {
@@ -768,6 +773,58 @@
       "viewsAriaLabel": "Profile views: {count}",
       "applicationsAriaLabel": "Total applications submitted: {count}",
       "statusAriaLabel": "{status}: {count}"
+    },
+    "ats": {
+      "pageTitle": "Candidates",
+      "breadcrumbMyJobs": "My Jobs",
+      "viewCandidatesWithCount": "View Candidates ({count})",
+      "candidateCount": "{count} candidates",
+      "columnCount": "{count}",
+      "columnLabel": "{status} column, {count} candidates",
+      "closedSection": "Closed",
+      "closedSectionExpand": "Show closed ({count})",
+      "closedSectionCollapse": "Hide closed",
+      "matchScorePlaceholder": "—",
+      "appliedOn": "Applied {date}",
+      "invalidTransition": "Cannot move from {from} to {to}. Valid next stages: {validStages}",
+      "transitionSuccess": "Moved to {status}",
+      "transitionError": "Failed to update status",
+      "emptyBoard": "No applications yet",
+      "emptyBoardDescription": "Candidates will appear here when they apply to this posting",
+      "noCoverLetter": "No cover letter provided",
+      "loadingError": "Failed to load candidates",
+      "ariaBoard": "Candidate pipeline board",
+      "ariaSidePanel": "Candidate details panel",
+      "cardRoleDescription": "draggable candidate card",
+      "cardAriaLabel": "{seekerName}, {seekerHeadline}, applied {date}",
+      "statusNames": {
+        "submitted": "Submitted",
+        "under_review": "Under Review",
+        "shortlisted": "Shortlisted",
+        "interview": "Interview",
+        "offered": "Offered",
+        "hired": "Hired",
+        "rejected": "Rejected",
+        "withdrawn": "Withdrawn"
+      },
+      "sidePanel": {
+        "title": "Candidate Details",
+        "profile": "Profile",
+        "trustSignals": "Community Trust",
+        "coverLetter": "Cover Letter",
+        "cv": "Resume",
+        "downloadCv": "Download Resume",
+        "noCv": "No resume attached",
+        "portfolioLinks": "Portfolio",
+        "noPortfolio": "No portfolio links",
+        "timeline": "Timeline",
+        "skills": "Skills",
+        "noSkills": "No skills listed",
+        "noSummary": "No summary provided",
+        "loading": "Loading candidate details...",
+        "loadError": "Failed to load candidate details",
+        "close": "Close panel"
+      }
     }
   },
   "Shell": {

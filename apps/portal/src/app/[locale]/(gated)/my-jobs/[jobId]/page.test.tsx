@@ -162,4 +162,19 @@ describe("EmployerJobDetailPage", () => {
     } as never);
     await expect(renderPage()).rejects.toThrow("REDIRECT:/en/my-jobs");
   });
+
+  it("renders 'View Candidates' link with correct href and count", async () => {
+    await renderPage();
+    const link = screen.getByTestId("view-candidates-link");
+    expect(link.getAttribute("href")).toBe("/en/my-jobs/posting-uuid/candidates");
+    // mockAnalytics.applicationCount === 2
+    expect(link.getAttribute("data-application-count")).toBe("2");
+  });
+
+  it("'View Candidates' link defaults count to 0 when analytics is null", async () => {
+    vi.mocked(getJobAnalytics).mockResolvedValue(null);
+    await renderPage();
+    const link = screen.getByTestId("view-candidates-link");
+    expect(link.getAttribute("data-application-count")).toBe("0");
+  });
 });
