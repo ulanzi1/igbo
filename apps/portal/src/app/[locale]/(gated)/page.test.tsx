@@ -159,7 +159,7 @@ describe("Portal Homepage [locale]/page", () => {
     expect(getByText(/joinNow/i)).toBeInTheDocument();
   });
 
-  it("guest login CTA has returnTo pointing to portal URL (not empty)", async () => {
+  it("guest login CTA has callbackUrl pointing to portal URL (not empty)", async () => {
     process.env.COMMUNITY_URL = "http://localhost:3000";
     process.env.NEXTAUTH_URL = "http://localhost:3001";
     mockAuth.mockResolvedValue(null);
@@ -169,9 +169,9 @@ describe("Portal Homepage [locale]/page", () => {
     const loginLink = container.querySelector("a[href*='/login']");
     expect(loginLink).toBeTruthy();
     const href = loginLink!.getAttribute("href")!;
-    expect(href).toContain("returnTo=");
-    // returnTo should include portal URL, not be empty
-    const returnTo = decodeURIComponent(href.split("returnTo=")[1]!);
-    expect(returnTo).toContain("http://localhost:3001/en");
+    expect(href).toContain("callbackUrl=");
+    // callbackUrl should include portal URL, not be empty
+    const callbackUrl = decodeURIComponent(href.split("callbackUrl=")[1]!);
+    expect(callbackUrl).toContain("http://localhost:3001/en");
   });
 });

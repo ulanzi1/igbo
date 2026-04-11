@@ -5,6 +5,7 @@ import { getApplicationDetailForSeeker } from "@igbo/db/queries/portal-applicati
 import { getTransitionHistory } from "@igbo/db/queries/portal-applications";
 import { ApplicationStatusBadge } from "@/components/domain/application-status-badge";
 import { ApplicationTimeline } from "@/components/domain/application-timeline";
+import { WithdrawApplicationControls } from "@/components/domain/withdraw-application-controls";
 import { Link } from "@/i18n/navigation";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -33,6 +34,12 @@ export default async function ApplicationDetailPage({ params }: PageProps) {
     ? application.portfolioLinksJson
     : [];
 
+  // TODO(PREP-A): Replace with APPLICATION_TERMINAL_STATES from @igbo/db when PR #26 merges
+  const APPLICATION_TERMINAL_STATES = ["hired", "rejected", "withdrawn"] as const;
+  const isWithdrawable = !APPLICATION_TERMINAL_STATES.includes(
+    application.status as (typeof APPLICATION_TERMINAL_STATES)[number],
+  );
+
   return (
     <div className="py-8">
       {/* Back link */}
@@ -56,11 +63,20 @@ export default async function ApplicationDetailPage({ params }: PageProps) {
           </p>
           <p className="text-sm text-muted-foreground">{application.companyName ?? "—"}</p>
         </div>
-        <div>
-          <p className="mb-1 text-xs font-medium uppercase text-muted-foreground">
-            {t("currentStatus")}
-          </p>
-          <ApplicationStatusBadge status={application.status} />
+        <div className="flex flex-col gap-3">
+          <div>
+            <p className="mb-1 text-xs font-medium uppercase text-muted-foreground">
+              {t("currentStatus")}
+            </p>
+            <ApplicationStatusBadge status={application.status} />
+          </div>
+          {isWithdrawable && (
+            <WithdrawApplicationControls
+              applicationId={application.id}
+              jobTitle={application.jobTitle ?? ""}
+              currentStatus={application.status}
+            />
+          )}
         </div>
       </div>
 
