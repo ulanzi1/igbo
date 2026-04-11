@@ -54,3 +54,4 @@ Add `// ci-allow-<reason>` above the relevant line, with a justification comment
 | `apps/portal/src/services/event-bus.ts` | `no-server-only` | shared with standalone server |
 | `apps/portal/src/services/job-analytics-service.ts` | `process-env` | Build community post content |
 | `apps/portal/src/services/notification-service.ts` | `process-env` | const companyName = company?.name ?? "Unknown Company"; |
+| `packages/auth/src/redis.ts` | `process-env` | if (!_global.__igboAuthRedis) { |
