@@ -6,7 +6,9 @@ import { AtsKanbanBoard } from "@/components/domain/ats-kanban-board";
 import { ClosedApplicationsSection } from "@/components/domain/closed-applications-section";
 import { CandidateSidePanel } from "@/components/domain/candidate-side-panel";
 import type { KanbanApplication } from "@/components/domain/candidate-card";
-import { APPLICATION_TERMINAL_STATES } from "@igbo/db/schema/portal-applications";
+
+// Defined locally to avoid importing server-only @igbo/db in a client component.
+const APPLICATION_TERMINAL_STATES = ["hired", "rejected", "withdrawn"] as const;
 
 export interface AtsPipelineViewProps {
   applications: KanbanApplication[];

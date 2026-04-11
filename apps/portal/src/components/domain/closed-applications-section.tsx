@@ -5,7 +5,9 @@ import { useTranslations } from "next-intl";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import { CandidateCard, type KanbanApplication } from "@/components/domain/candidate-card";
-import { APPLICATION_TERMINAL_STATES } from "@igbo/db/schema/portal-applications";
+
+// Defined locally to avoid importing server-only @igbo/db in a client component.
+const APPLICATION_TERMINAL_STATES = ["hired", "rejected", "withdrawn"] as const;
 
 export interface ClosedApplicationsSectionProps {
   applications: KanbanApplication[];
