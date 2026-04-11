@@ -531,3 +531,204 @@ describe("getApplicationCountsByStatusForSeeker", () => {
     expect(result[0]).toEqual({ status: "submitted", count: 5 });
   });
 });
+
+// ─── P-2.9 additions ──────────────────────────────────────────────────────────
+
+describe("getApplicationsWithSeekerDataByJobId", () => {
+  function makeDoubleJoinOrderByMock(returnValues: unknown[]) {
+    const orderBy = vi.fn().mockResolvedValue(returnValues);
+    const where = vi.fn().mockReturnValue({ orderBy });
+    const leftJoin2 = vi.fn().mockReturnValue({ where });
+    const leftJoin1 = vi.fn().mockReturnValue({ leftJoin: leftJoin2 });
+    const from = vi.fn().mockReturnValue({ leftJoin: leftJoin1 });
+    vi.mocked(db.select).mockReturnValue({ from } as unknown as ReturnType<typeof db.select>);
+  }
+
+  it("returns enriched rows with seeker name, headline, profileId and skills", async () => {
+    const row = {
+      id: "app-1",
+      jobId: "jp-1",
+      seekerUserId: "u-1",
+      status: "submitted" as const,
+      createdAt: new Date("2026-01-01"),
+      updatedAt: new Date("2026-01-01"),
+      coverLetterText: null,
+      portfolioLinksJson: [],
+      selectedCvId: null,
+      seekerName: "Ada Okafor",
+      seekerHeadline: "Senior Engineer",
+      seekerProfileId: "sp-1",
+      seekerSkills: ["typescript", "react"],
+    };
+    makeDoubleJoinOrderByMock([row]);
+    const { getApplicationsWithSeekerDataByJobId } = await import("./portal-applications");
+    const result = await getApplicationsWithSeekerDataByJobId("jp-1");
+    expect(result).toHaveLength(1);
+    expect(result[0]?.seekerName).toBe("Ada Okafor");
+    expect(result[0]?.seekerHeadline).toBe("Senior Engineer");
+    expect(result[0]?.seekerProfileId).toBe("sp-1");
+    expect(result[0]?.seekerSkills).toEqual(["typescript", "react"]);
+  });
+
+  it("returns empty array when no applications exist", async () => {
+    makeDoubleJoinOrderByMock([]);
+    const { getApplicationsWithSeekerDataByJobId } = await import("./portal-applications");
+    const result = await getApplicationsWithSeekerDataByJobId("jp-999");
+    expect(result).toHaveLength(0);
+  });
+
+  it("coerces null skills/portfolioLinksJson to empty arrays", async () => {
+    const row = {
+      id: "app-1",
+      jobId: "jp-1",
+      seekerUserId: "u-1",
+      status: "submitted" as const,
+      createdAt: new Date("2026-01-01"),
+      updatedAt: new Date("2026-01-01"),
+      coverLetterText: null,
+      portfolioLinksJson: null,
+      selectedCvId: null,
+      seekerName: null,
+      seekerHeadline: null,
+      seekerProfileId: null,
+      seekerSkills: null,
+    };
+    makeDoubleJoinOrderByMock([row]);
+    const { getApplicationsWithSeekerDataByJobId } = await import("./portal-applications");
+    const result = await getApplicationsWithSeekerDataByJobId("jp-1");
+    expect(result[0]?.seekerSkills).toEqual([]);
+    expect(result[0]?.portfolioLinksJson).toEqual([]);
+  });
+
+  it("returns mixed statuses for a busy posting", async () => {
+    const rows = [
+      {
+        id: "app-1",
+        jobId: "jp-1",
+        seekerUserId: "u-1",
+        status: "submitted" as const,
+        createdAt: new Date("2026-01-03"),
+        updatedAt: new Date("2026-01-03"),
+        coverLetterText: null,
+        portfolioLinksJson: [],
+        selectedCvId: null,
+        seekerName: "A",
+        seekerHeadline: "H1",
+        seekerProfileId: "sp-1",
+        seekerSkills: [],
+      },
+      {
+        id: "app-2",
+        jobId: "jp-1",
+        seekerUserId: "u-2",
+        status: "under_review" as const,
+        createdAt: new Date("2026-01-02"),
+        updatedAt: new Date("2026-01-02"),
+        coverLetterText: null,
+        portfolioLinksJson: [],
+        selectedCvId: null,
+        seekerName: "B",
+        seekerHeadline: "H2",
+        seekerProfileId: "sp-2",
+        seekerSkills: [],
+      },
+    ];
+    makeDoubleJoinOrderByMock(rows);
+    const { getApplicationsWithSeekerDataByJobId } = await import("./portal-applications");
+    const result = await getApplicationsWithSeekerDataByJobId("jp-1");
+    expect(result).toHaveLength(2);
+    expect(result.map((r) => r.status)).toEqual(["submitted", "under_review"]);
+  });
+});
+
+describe("getApplicationDetailForEmployer", () => {
+  function makeQuadrupleJoinWhereMock(returnValues: unknown[]) {
+    const where = vi.fn().mockResolvedValue(returnValues);
+    const leftJoin5 = vi.fn().mockReturnValue({ where });
+    const leftJoin4 = vi.fn().mockReturnValue({ leftJoin: leftJoin5 });
+    const leftJoin3 = vi.fn().mockReturnValue({ leftJoin: leftJoin4 });
+    const leftJoin2 = vi.fn().mockReturnValue({ leftJoin: leftJoin3 });
+    const leftJoin1 = vi.fn().mockReturnValue({ leftJoin: leftJoin2 });
+    const from = vi.fn().mockReturnValue({ leftJoin: leftJoin1 });
+    vi.mocked(db.select).mockReturnValue({ from } as unknown as ReturnType<typeof db.select>);
+  }
+
+  it("returns full detail row for valid employer ownership", async () => {
+    const row = {
+      id: "app-1",
+      jobId: "jp-1",
+      seekerUserId: "u-1",
+      status: "under_review" as const,
+      createdAt: new Date("2026-01-01"),
+      updatedAt: new Date("2026-01-02"),
+      coverLetterText: "I am excited to apply",
+      portfolioLinksJson: ["https://example.com"],
+      selectedCvId: "cv-1",
+      jobTitle: "Senior Engineer",
+      companyId: "cp-1",
+      seekerName: "Ada Okafor",
+      seekerHeadline: "Full Stack Engineer",
+      seekerProfileId: "sp-1",
+      seekerSummary: "5+ years of experience",
+      seekerSkills: ["typescript", "react"],
+      cvId: "cv-1",
+      cvLabel: "Primary CV",
+      cvProcessedUrl: "https://storage.example.com/cvs/file.pdf",
+    };
+    makeQuadrupleJoinWhereMock([row]);
+    const { getApplicationDetailForEmployer } = await import("./portal-applications");
+    const result = await getApplicationDetailForEmployer("app-1", "cp-1");
+    expect(result).not.toBeNull();
+    expect(result?.id).toBe("app-1");
+    expect(result?.seekerName).toBe("Ada Okafor");
+    expect(result?.seekerSkills).toEqual(["typescript", "react"]);
+    expect(result?.cvProcessedUrl).toBe("https://storage.example.com/cvs/file.pdf");
+    expect(result?.cvLabel).toBe("Primary CV");
+  });
+
+  it("returns null when company does not own the job (DB WHERE filters)", async () => {
+    // WHERE clause includes eq(portalJobPostings.companyId, companyId)
+    // so wrong-company lookups return empty rows
+    makeQuadrupleJoinWhereMock([]);
+    const { getApplicationDetailForEmployer } = await import("./portal-applications");
+    const result = await getApplicationDetailForEmployer("app-1", "cp-other");
+    expect(result).toBeNull();
+  });
+
+  it("returns null when application does not exist", async () => {
+    makeQuadrupleJoinWhereMock([]);
+    const { getApplicationDetailForEmployer } = await import("./portal-applications");
+    const result = await getApplicationDetailForEmployer("app-missing", "cp-1");
+    expect(result).toBeNull();
+  });
+
+  it("coerces null portfolioLinksJson/seekerSkills to empty arrays", async () => {
+    const row = {
+      id: "app-1",
+      jobId: "jp-1",
+      seekerUserId: "u-1",
+      status: "submitted" as const,
+      createdAt: new Date("2026-01-01"),
+      updatedAt: new Date("2026-01-01"),
+      coverLetterText: null,
+      portfolioLinksJson: null,
+      selectedCvId: null,
+      jobTitle: "Engineer",
+      companyId: "cp-1",
+      seekerName: "Ada",
+      seekerHeadline: "Engineer",
+      seekerProfileId: "sp-1",
+      seekerSummary: null,
+      seekerSkills: null,
+      cvId: null,
+      cvLabel: null,
+      cvProcessedUrl: null,
+    };
+    makeQuadrupleJoinWhereMock([row]);
+    const { getApplicationDetailForEmployer } = await import("./portal-applications");
+    const result = await getApplicationDetailForEmployer("app-1", "cp-1");
+    expect(result?.seekerSkills).toEqual([]);
+    expect(result?.portfolioLinksJson).toEqual([]);
+    expect(result?.cvProcessedUrl).toBeNull();
+  });
+});

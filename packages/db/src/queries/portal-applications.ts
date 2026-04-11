@@ -11,6 +11,9 @@ import type {
 import { portalJobPostings } from "../schema/portal-job-postings";
 import { portalCompanyProfiles } from "../schema/portal-company-profiles";
 import { portalSeekerCvs } from "../schema/portal-seeker-cvs";
+import { portalSeekerProfiles } from "../schema/portal-seeker-profiles";
+import { authUsers } from "../schema/auth-users";
+import { platformFileUploads } from "../schema/file-uploads";
 import { eq, desc, asc, and, ne, count } from "drizzle-orm";
 
 export async function createApplication(data: NewPortalApplication): Promise<PortalApplication> {
@@ -288,4 +291,141 @@ export async function getApplicationCountsByStatusForSeeker(
     .groupBy(portalApplications.status);
 
   return rows.map((row) => ({ status: row.status, count: row.count }));
+}
+
+// ─── P-2.9 additions ──────────────────────────────────────────────────────────
+
+/**
+ * Returns all applications for a given job, enriched with seeker profile
+ * summary (name, headline, seekerProfileId, skills) and application payload
+ * fields (coverLetterText, portfolioLinksJson, selectedCvId).
+ *
+ * Uses LEFT JOIN for both seeker_profiles and auth_users so applications
+ * with missing joins are never silently dropped. Ordered by createdAt DESC
+ * so new applications surface at the top of each column.
+ */
+export async function getApplicationsWithSeekerDataByJobId(jobId: string): Promise<
+  Array<{
+    id: string;
+    jobId: string;
+    seekerUserId: string;
+    status: PortalApplicationStatus;
+    createdAt: Date;
+    updatedAt: Date;
+    coverLetterText: string | null;
+    portfolioLinksJson: string[];
+    selectedCvId: string | null;
+    seekerName: string | null;
+    seekerHeadline: string | null;
+    seekerProfileId: string | null;
+    seekerSkills: string[];
+  }>
+> {
+  const rows = await db
+    .select({
+      id: portalApplications.id,
+      jobId: portalApplications.jobId,
+      seekerUserId: portalApplications.seekerUserId,
+      status: portalApplications.status,
+      createdAt: portalApplications.createdAt,
+      updatedAt: portalApplications.updatedAt,
+      coverLetterText: portalApplications.coverLetterText,
+      portfolioLinksJson: portalApplications.portfolioLinksJson,
+      selectedCvId: portalApplications.selectedCvId,
+      seekerName: authUsers.name,
+      seekerHeadline: portalSeekerProfiles.headline,
+      seekerProfileId: portalSeekerProfiles.id,
+      seekerSkills: portalSeekerProfiles.skills,
+    })
+    .from(portalApplications)
+    .leftJoin(authUsers, eq(portalApplications.seekerUserId, authUsers.id))
+    .leftJoin(
+      portalSeekerProfiles,
+      eq(portalApplications.seekerUserId, portalSeekerProfiles.userId),
+    )
+    .where(eq(portalApplications.jobId, jobId))
+    .orderBy(desc(portalApplications.createdAt));
+
+  return rows.map((row) => ({
+    ...row,
+    portfolioLinksJson: (row.portfolioLinksJson ?? []) as string[],
+    seekerSkills: (row.seekerSkills ?? []) as string[],
+  }));
+}
+
+/**
+ * Returns a full application detail row scoped by the owning company's id
+ * (via the job_postings join). Returns null when the application does not
+ * exist or when the company does not own the job — enforcing the
+ * 404-not-403 information-leak policy (caller returns 404 on null).
+ *
+ * The `cvProcessedUrl` is the public/pre-signed S3 object URL stored at
+ * CV upload time and is rendered directly as the "Download Resume" href.
+ */
+export async function getApplicationDetailForEmployer(
+  applicationId: string,
+  companyId: string,
+): Promise<{
+  id: string;
+  jobId: string;
+  seekerUserId: string;
+  status: PortalApplicationStatus;
+  createdAt: Date;
+  updatedAt: Date;
+  coverLetterText: string | null;
+  portfolioLinksJson: string[];
+  selectedCvId: string | null;
+  jobTitle: string | null;
+  companyId: string | null;
+  seekerName: string | null;
+  seekerHeadline: string | null;
+  seekerProfileId: string | null;
+  seekerSummary: string | null;
+  seekerSkills: string[];
+  cvId: string | null;
+  cvLabel: string | null;
+  cvProcessedUrl: string | null;
+} | null> {
+  const rows = await db
+    .select({
+      id: portalApplications.id,
+      jobId: portalApplications.jobId,
+      seekerUserId: portalApplications.seekerUserId,
+      status: portalApplications.status,
+      createdAt: portalApplications.createdAt,
+      updatedAt: portalApplications.updatedAt,
+      coverLetterText: portalApplications.coverLetterText,
+      portfolioLinksJson: portalApplications.portfolioLinksJson,
+      selectedCvId: portalApplications.selectedCvId,
+      jobTitle: portalJobPostings.title,
+      companyId: portalJobPostings.companyId,
+      seekerName: authUsers.name,
+      seekerHeadline: portalSeekerProfiles.headline,
+      seekerProfileId: portalSeekerProfiles.id,
+      seekerSummary: portalSeekerProfiles.summary,
+      seekerSkills: portalSeekerProfiles.skills,
+      cvId: portalSeekerCvs.id,
+      cvLabel: portalSeekerCvs.label,
+      cvProcessedUrl: platformFileUploads.processedUrl,
+    })
+    .from(portalApplications)
+    .leftJoin(portalJobPostings, eq(portalApplications.jobId, portalJobPostings.id))
+    .leftJoin(authUsers, eq(portalApplications.seekerUserId, authUsers.id))
+    .leftJoin(
+      portalSeekerProfiles,
+      eq(portalApplications.seekerUserId, portalSeekerProfiles.userId),
+    )
+    .leftJoin(portalSeekerCvs, eq(portalApplications.selectedCvId, portalSeekerCvs.id))
+    .leftJoin(platformFileUploads, eq(portalSeekerCvs.fileUploadId, platformFileUploads.id))
+    .where(
+      and(eq(portalApplications.id, applicationId), eq(portalJobPostings.companyId, companyId)),
+    );
+
+  const row = rows[0];
+  if (!row) return null;
+  return {
+    ...row,
+    portfolioLinksJson: (row.portfolioLinksJson ?? []) as string[],
+    seekerSkills: (row.seekerSkills ?? []) as string[],
+  };
 }

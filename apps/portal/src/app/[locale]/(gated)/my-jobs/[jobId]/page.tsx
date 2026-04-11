@@ -1,6 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { Users } from "lucide-react";
 import { requireCompanyProfile } from "@/lib/require-company-profile";
 import { getJobPostingWithCompany, getJobAnalytics } from "@igbo/db/queries/portal-job-postings";
 import { JobAnalyticsCard, JobAnalyticsCardSkeleton } from "@/components/domain/job-analytics-card";
@@ -32,6 +33,8 @@ export default async function EmployerJobDetailPage({ params }: PageProps) {
 
   const isActive = posting.status === "active";
   const isShared = analytics?.communityPostId != null;
+  const applicationCount = analytics?.applicationCount ?? 0;
+  const ats = await getTranslations("Portal.ats");
 
   return (
     <div className="max-w-3xl py-8">
@@ -84,6 +87,21 @@ export default async function EmployerJobDetailPage({ params }: PageProps) {
         </h2>
         <p className="mb-3 text-sm text-muted-foreground">{t("shareDescription")}</p>
         <ShareToCommunityButton jobId={jobId} isActive={isActive} isShared={isShared} />
+      </section>
+
+      <section aria-labelledby="candidates-heading" className="mb-6">
+        <h2 id="candidates-heading" className="mb-3 text-lg font-semibold">
+          {ats("pageTitle")}
+        </h2>
+        <Link
+          href={`/${locale}/my-jobs/${jobId}/candidates`}
+          className="inline-flex items-center gap-2 rounded-md border border-input bg-background px-4 py-2 text-sm font-medium hover:bg-accent"
+          data-testid="view-candidates-link"
+          data-application-count={applicationCount}
+        >
+          <Users className="size-4" aria-hidden="true" />
+          {ats("viewCandidatesWithCount", { count: applicationCount })}
+        </Link>
       </section>
     </div>
   );
