@@ -13,6 +13,7 @@ vi.mock("@igbo/db/queries/portal-seeker-cvs", () => ({
 }));
 vi.mock("@igbo/db/queries/file-uploads", () => ({
   createFileUpload: vi.fn(),
+  updateFileUpload: vi.fn(),
 }));
 vi.mock("@aws-sdk/client-s3", () => ({
   // Must use class/regular function — arrow functions cannot be used with `new`
@@ -27,7 +28,7 @@ vi.mock("@/lib/s3-client", () => ({
 import { auth } from "@igbo/auth";
 import { getSeekerProfileByUserId } from "@igbo/db/queries/portal-seeker-profiles";
 import { listSeekerCvs, countSeekerCvs, createSeekerCv } from "@igbo/db/queries/portal-seeker-cvs";
-import { createFileUpload } from "@igbo/db/queries/file-uploads";
+import { createFileUpload, updateFileUpload } from "@igbo/db/queries/file-uploads";
 import { GET, POST } from "./route";
 
 const seekerSession = { user: { id: "user-1", activePortalRole: "JOB_SEEKER" } };
@@ -165,6 +166,7 @@ describe("POST /api/v1/seekers/me/cvs", () => {
     vi.mocked(createFileUpload).mockResolvedValue(
       mockFileUpload as Awaited<ReturnType<typeof createFileUpload>>,
     );
+    vi.mocked(updateFileUpload).mockResolvedValue(undefined);
     vi.mocked(createSeekerCv).mockResolvedValue({ ...mockCv, isDefault: true } as Awaited<
       ReturnType<typeof createSeekerCv>
     >);
@@ -172,7 +174,28 @@ describe("POST /api/v1/seekers/me/cvs", () => {
     expect(res.status).toBe(201);
     const body = await res.json();
     expect(body.data.isDefault).toBe(true);
+    expect(body.data.file).toMatchObject({ originalFilename: "resume.pdf", status: "ready" });
     expect(vi.mocked(createSeekerCv).mock.calls[0]?.[0]).toMatchObject({ isDefault: true });
+  });
+
+  it("marks file upload as ready with processedUrl after S3 upload", async () => {
+    vi.mocked(getSeekerProfileByUserId).mockResolvedValue(mockProfile);
+    vi.mocked(countSeekerCvs).mockResolvedValue(0);
+    vi.mocked(createFileUpload).mockResolvedValue(
+      mockFileUpload as Awaited<ReturnType<typeof createFileUpload>>,
+    );
+    vi.mocked(updateFileUpload).mockResolvedValue(undefined);
+    vi.mocked(createSeekerCv).mockResolvedValue({ ...mockCv, isDefault: true } as Awaited<
+      ReturnType<typeof createSeekerCv>
+    >);
+    await POST(makePostRequest(makePdfFile()));
+    expect(vi.mocked(updateFileUpload)).toHaveBeenCalledWith(
+      mockFileUpload.id,
+      expect.objectContaining({
+        status: "ready",
+        processedUrl: expect.stringContaining("portal/cvs/"),
+      }),
+    );
   });
 
   it("returns 201 and second CV is not default (count=1)", async () => {
@@ -181,6 +204,7 @@ describe("POST /api/v1/seekers/me/cvs", () => {
     vi.mocked(createFileUpload).mockResolvedValue(
       mockFileUpload as Awaited<ReturnType<typeof createFileUpload>>,
     );
+    vi.mocked(updateFileUpload).mockResolvedValue(undefined);
     vi.mocked(createSeekerCv).mockResolvedValue({ ...mockCv, isDefault: false } as Awaited<
       ReturnType<typeof createSeekerCv>
     >);
@@ -251,6 +275,7 @@ describe("POST /api/v1/seekers/me/cvs", () => {
     vi.mocked(createFileUpload).mockResolvedValue(
       mockFileUpload as Awaited<ReturnType<typeof createFileUpload>>,
     );
+    vi.mocked(updateFileUpload).mockResolvedValue(undefined);
     vi.mocked(createSeekerCv).mockResolvedValue(
       mockCv as Awaited<ReturnType<typeof createSeekerCv>>,
     );

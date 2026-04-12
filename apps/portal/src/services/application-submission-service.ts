@@ -1,6 +1,10 @@
 import "server-only";
 import { db } from "@igbo/db";
-import { portalApplications, canAcceptApplications } from "@igbo/db/schema/portal-applications";
+import {
+  portalApplications,
+  portalApplicationTransitions,
+  canAcceptApplications,
+} from "@igbo/db/schema/portal-applications";
 import type { PortalApplication } from "@igbo/db/schema/portal-applications";
 import { getJobPostingForApply } from "@igbo/db/queries/portal-job-postings";
 import { getExistingActiveApplication } from "@igbo/db/queries/portal-applications";
@@ -79,7 +83,11 @@ export async function submit(input: SubmitApplicationInput): Promise<SubmitAppli
   }
 
   // Step 4: Application deadline guard (AC-5)
-  if (job.applicationDeadline !== null && job.applicationDeadline <= new Date()) {
+  // Compare date-only so the deadline day itself remains open (midnight UTC != end-of-day).
+  if (
+    job.applicationDeadline !== null &&
+    job.applicationDeadline.toISOString().slice(0, 10) < new Date().toISOString().slice(0, 10)
+  ) {
     throw new ApiError({
       title: "Application deadline has passed",
       status: 409,
@@ -138,6 +146,16 @@ export async function submit(input: SubmitApplicationInput): Promise<SubmitAppli
         })
         .returning();
       if (!row) throw new Error("Failed to insert application");
+
+      // Record initial submission as a self-transition (submitted → submitted)
+      await tx.insert(portalApplicationTransitions).values({
+        applicationId: row.id,
+        fromStatus: "submitted",
+        toStatus: "submitted",
+        actorUserId: seekerUserId,
+        actorRole: "job_seeker",
+      });
+
       return row;
     });
   } catch (err) {

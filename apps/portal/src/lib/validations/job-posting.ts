@@ -40,7 +40,7 @@ export const jobPostingSchema = z
     employmentType: z.enum(EMPLOYMENT_TYPE_OPTIONS),
     applicationDeadline: z.string().datetime().optional().nullable(),
     expiresAt: z.string().datetime().optional().nullable(),
-    descriptionIgboHtml: z.string().max(50000).optional().or(z.literal("")),
+    descriptionIgboHtml: z.string().max(50000).optional().nullable().or(z.literal("")),
     culturalContextJson: culturalContextSchema.optional().nullable(),
   })
   .refine(

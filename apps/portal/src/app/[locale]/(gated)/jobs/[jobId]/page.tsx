@@ -15,33 +15,43 @@ interface PageProps {
 
 export default async function JobDetailPage({ params }: PageProps) {
   const { locale, jobId } = await params;
-  const pt = await getTranslations("Portal.posting");
-  const jt = await getTranslations("Portal.jobDetail");
 
-  const result = await getJobPostingWithCompany(jobId);
+  // Batch 1: translations + job data + session — all independent
+  const [pt, jt, result, session] = await Promise.all([
+    getTranslations("Portal.posting"),
+    getTranslations("Portal.jobDetail"),
+    getJobPostingWithCompany(jobId),
+    auth(),
+  ]);
+
   if (!result || result.posting.status !== "active") {
     redirect(`/${locale}/jobs`);
   }
 
   const { posting, company } = result;
-
-  // Load seeker-specific data for apply button
-  const session = await auth();
   const isSeeker = session?.user?.activePortalRole === "JOB_SEEKER";
+  // Compare date-only (YYYY-MM-DD) so the deadline day itself is still open for applications.
+  // Storing as UTC midnight means a datetime compare would immediately show "passed" on the day.
   const deadlinePassed =
-    posting.applicationDeadline !== null && posting.applicationDeadline <= new Date();
+    posting.applicationDeadline !== null &&
+    posting.applicationDeadline.toISOString().slice(0, 10) < new Date().toISOString().slice(0, 10);
 
   let seekerProfile = null;
   let hasExistingApplication = false;
   let profileLocation: string | null = null;
 
   if (isSeeker && session?.user?.id) {
-    seekerProfile = await getSeekerProfileByUserId(session.user.id);
+    const userId = session.user.id;
+
+    // Batch 2: all seeker queries in parallel — fire speculatively, discard if no profile
+    const [profile, existing, authUser] = await Promise.all([
+      getSeekerProfileByUserId(userId),
+      getExistingActiveApplication(jobId, userId),
+      findUserById(userId),
+    ]);
+
+    seekerProfile = profile;
     if (seekerProfile) {
-      const [existing, authUser] = await Promise.all([
-        getExistingActiveApplication(jobId, session.user.id),
-        findUserById(session.user.id),
-      ]);
       hasExistingApplication = existing !== null;
       // Build location string from auth user's location fields
       if (authUser) {
@@ -81,8 +91,7 @@ export default async function JobDetailPage({ params }: PageProps) {
           </div>
         )}
         <p className="mt-2 text-sm text-muted-foreground">
-          {posting.location ?? jt("remote")} &middot;{" "}
-          {pt(`employmentType.${posting.employmentType}`)}
+          {posting.location ?? jt("remote")} &middot; {pt(`type.${posting.employmentType}`)}
         </p>
 
         {(posting.salaryMin || posting.salaryMax || posting.salaryCompetitiveOnly) && (

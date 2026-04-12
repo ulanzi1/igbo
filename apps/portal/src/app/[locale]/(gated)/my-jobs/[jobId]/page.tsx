@@ -51,8 +51,7 @@ export default async function EmployerJobDetailPage({ params }: PageProps) {
           <h1 className="text-2xl font-bold">{posting.title}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {pt(`status.${posting.status as PortalJobStatus}`)} &middot;{" "}
-            {posting.location ?? jt("remote")} &middot;{" "}
-            {pt(`employmentType.${posting.employmentType}`)}
+            {posting.location ?? jt("remote")} &middot; {pt(`type.${posting.employmentType}`)}
           </p>
         </div>
         <Link

@@ -193,7 +193,7 @@ export function SeekerCvManager({ initialCvs = [], onUploadSuccess }: SeekerCvMa
           <Button
             type="button"
             variant="outline"
-            disabled={uploading || !uploadLabel.trim()}
+            disabled={uploading}
             onClick={() => fileInputRef.current?.click()}
           >
             {uploading ? t("cvUploading") : t("cvUpload")}
