@@ -101,7 +101,12 @@ export function NotesSection({ applicationId, initialNotes }: NotesSectionProps)
         </ol>
       )}
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-2">
+      <form
+        onSubmit={handleSubmit}
+        role="form"
+        aria-label={t("ariaForm")}
+        className="flex flex-col gap-2"
+      >
         <label htmlFor="notes-textarea" className="text-xs font-medium text-muted-foreground">
           {t("addLabel")}
         </label>

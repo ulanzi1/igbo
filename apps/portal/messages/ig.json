@@ -836,7 +836,9 @@
         "saving": "Na-echekwa…",
         "saveSuccess": "Echekwara ndetu",
         "saveError": "Echekwaghị ndetu",
-        "maxLength": "{count}/2000"
+        "maxLength": "{count}/2000",
+        "ariaSection": "Ndetu nzuzo onye ọrụ",
+        "ariaForm": "Tinye ndetu ọhụrụ"
       },
       "bulk": {
         "ariaToolbar": "Ngwá ọrụ mmemme ọtụtụ",
@@ -862,6 +864,14 @@
           "confirm": "Kwenye Mjụ",
           "confirming": "Na-ajụ…"
         }
+      },
+      "export": {
+        "button": "Bupụ Ndị Na-achọ Ọrụ",
+        "noData": "Ọ dịghị onye na-achọ ọrụ iji bupụ maka ọrụ a",
+        "downloading": "Na-ebupụ…",
+        "success": "A bupụtara CSV nke ọma",
+        "error": "Ọ dajụọ ibupụ ndị na-achọ ọrụ",
+        "ariaButton": "Bupụ ndị na-achọ ọrụ niile dị ka CSV"
       }
     }
   },

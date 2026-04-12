@@ -98,7 +98,10 @@ export const PATCH = withApiHandler(async (req: Request): Promise<Response> => {
   for (const app of owned) {
     let targetStatus: PortalApplicationStatus | null;
     if (action === "reject") {
-      targetStatus = "rejected";
+      // Skip applications already in terminal state (no valid transitions)
+      // rather than wasting a transition() call + DB transaction that will throw.
+      const hasTransitions = (VALID_TRANSITIONS[app.status] ?? []).length > 0;
+      targetStatus = hasTransitions ? "rejected" : null;
     } else {
       targetStatus = getNextAdvanceStatus(app.status);
     }

@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { useDensity } from "@/providers/density-context";
 
 /**
  * P-2.10: Bulk action toolbar surfaced above the ATS kanban board when one
@@ -38,8 +39,13 @@ export function BulkActionToolbar({
   onClear,
 }: BulkActionToolbarProps) {
   const t = useTranslations("Portal.ats.bulk");
+  const { density } = useDensity();
   const [isProcessing, setIsProcessing] = useState(false);
   const [rejectModalOpen, setRejectModalOpen] = useState(false);
+
+  const paddingClass = density === "dense" ? "p-2" : "p-3";
+  const gapClass = density === "dense" ? "gap-2" : "gap-3";
+  const marginClass = density === "dense" ? "mb-2" : "mb-3";
 
   async function runBulkAction(action: "advance" | "reject", reason?: string): Promise<void> {
     setIsProcessing(true);
@@ -82,7 +88,7 @@ export function BulkActionToolbar({
         role="toolbar"
         aria-label={t("ariaToolbar")}
         data-testid="bulk-action-toolbar"
-        className="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-primary/40 bg-primary/5 p-3"
+        className={`${marginClass} flex flex-wrap items-center justify-between ${gapClass} rounded-lg border border-primary/40 bg-primary/5 ${paddingClass}`}
       >
         <span className="text-sm font-medium" data-testid="bulk-selected-count">
           {t("selectedCount", { count: selectedCount })}

@@ -836,7 +836,9 @@
         "saving": "Saving…",
         "saveSuccess": "Note saved",
         "saveError": "Failed to save note",
-        "maxLength": "{count}/2000"
+        "maxLength": "{count}/2000",
+        "ariaSection": "Private employer notes",
+        "ariaForm": "Add a new note"
       },
       "bulk": {
         "ariaToolbar": "Bulk actions toolbar",
@@ -862,6 +864,14 @@
           "confirm": "Confirm Rejection",
           "confirming": "Rejecting…"
         }
+      },
+      "export": {
+        "button": "Export Candidates",
+        "noData": "No candidates to export for this posting",
+        "downloading": "Exporting…",
+        "success": "CSV exported successfully",
+        "error": "Failed to export candidates",
+        "ariaButton": "Export all candidates as CSV"
       }
     }
   },

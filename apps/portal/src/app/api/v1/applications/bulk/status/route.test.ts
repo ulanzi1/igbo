@@ -146,19 +146,19 @@ describe("PATCH /api/v1/applications/bulk/status", () => {
     );
   });
 
-  it("bulk reject: terminal-state candidates are skipped when transition throws", async () => {
+  it("bulk reject: terminal-state candidates are pre-filtered and skipped without calling transition", async () => {
     vi.mocked(getApplicationsByIds).mockResolvedValue([
       { id: APP1, status: "submitted", jobId: "jp-1", seekerUserId: "s-1", companyId: COMPANY_ID },
       { id: APP2, status: "withdrawn", jobId: "jp-1", seekerUserId: "s-2", companyId: COMPANY_ID },
     ]);
-    vi.mocked(transition).mockImplementation(async (id) => {
-      if (id === APP2) throw new Error("terminal state");
-    });
     const res = await PATCH(makeRequest({ applicationIds: [APP1, APP2], action: "reject" }));
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.data.processed).toBe(1);
     expect(body.data.skipped).toBe(1);
+    // transition should only be called for APP1 (not terminal)
+    expect(transition).toHaveBeenCalledTimes(1);
+    expect(transition).toHaveBeenCalledWith(APP1, "rejected", EMPLOYER_ID, "employer", undefined);
     const skippedItem = body.data.results.find(
       (r: { applicationId: string }) => r.applicationId === APP2,
     );
