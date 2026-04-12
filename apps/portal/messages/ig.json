@@ -824,6 +824,54 @@
         "loading": "Na-ebubata nkọwa...",
         "loadError": "Ịbubata nkọwa emepụtaghị",
         "close": "Mechie ngalaba"
+      },
+      "notes": {
+        "heading": "Ndetu",
+        "empty": "Enweghị ndetu ugbu a. Tinye ndetu mbụ gị n'okpuru.",
+        "listLabel": "Ndetu ndị na-achọ ọrụ, n'usoro oge",
+        "unknownAuthor": "Amaghị",
+        "addLabel": "Tinye ndetu nzuzo",
+        "placeholder": "Dee ndetu nzuzo gbasara onye na-achọ ọrụ a (naanị otu gị ga-ahụ ya)…",
+        "save": "Chekwaa Ndetu",
+        "saving": "Na-echekwa…",
+        "saveSuccess": "Echekwara ndetu",
+        "saveError": "Echekwaghị ndetu",
+        "maxLength": "{count}/2000",
+        "ariaSection": "Ndetu nzuzo onye ọrụ",
+        "ariaForm": "Tinye ndetu ọhụrụ"
+      },
+      "bulk": {
+        "ariaToolbar": "Ngwá ọrụ mmemme ọtụtụ",
+        "selectedCount": "{count} ahọpụtara",
+        "advance": "Kwagide",
+        "reject": "Jụ",
+        "message": "Ozi",
+        "messageDisabled": "Izipu ozi ga-abịa n'ọdịnihu",
+        "clear": "Hichapụ",
+        "advanceSuccess": "{processed} kwagidere, {skipped} hapụrụ",
+        "rejectSuccess": "{processed} jụrụ, {skipped} hapụrụ",
+        "bulkError": "Mmemme ọtụtụ emezughị",
+        "processing": "Na-arụ ọrụ…",
+        "selectCard": "Họrọ onye na-achọ ọrụ",
+        "ariaCheckbox": "Họrọ {name}",
+        "selectAllColumn": "Họrọ niile na {status}",
+        "rejectModal": {
+          "title": "Jụ {count} arịrịọ?",
+          "description": "Nke a ga-akwaga ndị niile ahọpụtara gaa ọnọdụ Jụrụ. Enweghị ike ịgbanwe nke a.",
+          "reasonLabel": "Ihe kpatara (nhọrọ)",
+          "reasonPlaceholder": "Kọwaa ihe kpatara ịjụ ndị a (nhọrọ, a ga-ahụ na ndekọ)",
+          "cancel": "Kagbuo",
+          "confirm": "Kwenye Mjụ",
+          "confirming": "Na-ajụ…"
+        }
+      },
+      "export": {
+        "button": "Bupụ Ndị Na-achọ Ọrụ",
+        "noData": "Ọ dịghị onye na-achọ ọrụ iji bupụ maka ọrụ a",
+        "downloading": "Na-ebupụ…",
+        "success": "A bupụtara CSV nke ọma",
+        "error": "Ọ dajụọ ibupụ ndị na-achọ ọrụ",
+        "ariaButton": "Bupụ ndị na-achọ ọrụ niile dị ka CSV"
       }
     }
   },

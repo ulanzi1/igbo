@@ -428,3 +428,131 @@ describe("AtsKanbanBoard — DragCancel", () => {
     expect(screen.getByTestId("ats-kanban-board")).toBeInTheDocument();
   });
 });
+
+// ---------------------------------------------------------------------------
+// 11. Multi-select (P-2.10)
+// ---------------------------------------------------------------------------
+describe("AtsKanbanBoard — multi-select (P-2.10)", () => {
+  it("does not render selection checkboxes when onToggleSelect is omitted", () => {
+    renderWithPortalProviders(<AtsKanbanBoard applications={MOCK_APPLICATIONS} />);
+    // No per-card checkbox
+    expect(screen.queryByTestId("candidate-select-app-1")).not.toBeInTheDocument();
+    // No per-column select-all
+    expect(screen.queryByTestId("kanban-column-select-all-submitted")).not.toBeInTheDocument();
+  });
+
+  it("renders per-card selection checkboxes when onToggleSelect is provided", () => {
+    renderWithPortalProviders(
+      <AtsKanbanBoard
+        applications={MOCK_APPLICATIONS}
+        selectedIds={new Set<string>()}
+        onToggleSelect={vi.fn()}
+      />,
+    );
+    // Every non-terminal card should have a select checkbox
+    expect(screen.getByTestId("candidate-select-app-1")).toBeInTheDocument();
+    expect(screen.getByTestId("candidate-select-app-2")).toBeInTheDocument();
+    expect(screen.getByTestId("candidate-select-app-3")).toBeInTheDocument();
+  });
+
+  it("calls onToggleSelect when a card checkbox is clicked", async () => {
+    const onToggleSelect = vi.fn();
+    const user = userEvent.setup();
+    renderWithPortalProviders(
+      <AtsKanbanBoard
+        applications={MOCK_APPLICATIONS}
+        selectedIds={new Set<string>()}
+        onToggleSelect={onToggleSelect}
+      />,
+    );
+    await user.click(screen.getByTestId("candidate-select-app-1"));
+    expect(onToggleSelect).toHaveBeenCalledWith("app-1");
+  });
+
+  it("marks card checkbox as checked when id is in selectedIds", () => {
+    renderWithPortalProviders(
+      <AtsKanbanBoard
+        applications={MOCK_APPLICATIONS}
+        selectedIds={new Set<string>(["app-2"])}
+        onToggleSelect={vi.fn()}
+      />,
+    );
+    expect(screen.getByTestId("candidate-select-app-2")).toHaveAttribute("data-state", "checked");
+    expect(screen.getByTestId("candidate-select-app-1")).toHaveAttribute("data-state", "unchecked");
+  });
+
+  it("renders select-all checkbox per column with onToggleColumnSelect", async () => {
+    const onToggleColumnSelect = vi.fn();
+    const user = userEvent.setup();
+    renderWithPortalProviders(
+      <AtsKanbanBoard
+        applications={MOCK_APPLICATIONS}
+        selectedIds={new Set<string>()}
+        onToggleSelect={vi.fn()}
+        onToggleColumnSelect={onToggleColumnSelect}
+      />,
+    );
+    const submittedSelectAll = screen.getByTestId("kanban-column-select-all-submitted");
+    await user.click(submittedSelectAll);
+    expect(onToggleColumnSelect).toHaveBeenCalledWith("submitted", ["app-1", "app-4"], true);
+  });
+
+  it("select-all reflects checked state when all column cards are selected", () => {
+    renderWithPortalProviders(
+      <AtsKanbanBoard
+        applications={MOCK_APPLICATIONS}
+        selectedIds={new Set<string>(["app-1", "app-4"])}
+        onToggleSelect={vi.fn()}
+        onToggleColumnSelect={vi.fn()}
+      />,
+    );
+    expect(screen.getByTestId("kanban-column-select-all-submitted")).toHaveAttribute(
+      "data-state",
+      "checked",
+    );
+  });
+
+  it("does not render select-all for empty columns", () => {
+    // No applications in shortlisted/interview/offered columns
+    const justSubmitted = [MOCK_APPLICATIONS[0]!];
+    renderWithPortalProviders(
+      <AtsKanbanBoard
+        applications={justSubmitted}
+        selectedIds={new Set<string>()}
+        onToggleSelect={vi.fn()}
+        onToggleColumnSelect={vi.fn()}
+      />,
+    );
+    expect(screen.queryByTestId("kanban-column-select-all-shortlisted")).not.toBeInTheDocument();
+  });
+
+  it("checkbox click does not trigger card onClick", async () => {
+    const onCardClick = vi.fn();
+    const onToggleSelect = vi.fn();
+    const user = userEvent.setup();
+    renderWithPortalProviders(
+      <AtsKanbanBoard
+        applications={MOCK_APPLICATIONS}
+        onCardClick={onCardClick}
+        selectedIds={new Set<string>()}
+        onToggleSelect={onToggleSelect}
+      />,
+    );
+    await user.click(screen.getByTestId("candidate-select-app-1"));
+    expect(onToggleSelect).toHaveBeenCalled();
+    expect(onCardClick).not.toHaveBeenCalled();
+  });
+
+  it("has no axe violations with selection UI enabled", async () => {
+    const { container } = renderWithPortalProviders(
+      <AtsKanbanBoard
+        applications={MOCK_APPLICATIONS}
+        selectedIds={new Set<string>(["app-1"])}
+        onToggleSelect={vi.fn()}
+        onToggleColumnSelect={vi.fn()}
+      />,
+    );
+    const results = await axe(container);
+    expect(results).toHaveNoViolations();
+  });
+});

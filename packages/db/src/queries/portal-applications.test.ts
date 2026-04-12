@@ -732,3 +732,71 @@ describe("getApplicationDetailForEmployer", () => {
     expect(result?.cvProcessedUrl).toBeNull();
   });
 });
+
+describe("getApplicationsByIds (P-2.10)", () => {
+  // select().from().innerJoin().where() → rows
+  function makeInnerJoinWhereMock(rows: unknown[]) {
+    const where = vi.fn().mockResolvedValue(rows);
+    const innerJoin = vi.fn().mockReturnValue({ where });
+    const from = vi.fn().mockReturnValue({ innerJoin });
+    vi.mocked(db.select).mockReturnValue({
+      from,
+    } as unknown as ReturnType<typeof db.select>);
+  }
+
+  it("returns empty array without hitting db when ids is empty", async () => {
+    const { getApplicationsByIds } = await import("./portal-applications");
+    const result = await getApplicationsByIds([], "cp-1");
+    expect(result).toEqual([]);
+    expect(db.select).not.toHaveBeenCalled();
+  });
+
+  it("returns matching applications scoped by companyId", async () => {
+    const rows = [
+      {
+        id: "app-1",
+        status: "submitted" as const,
+        jobId: "jp-1",
+        seekerUserId: "u-1",
+        companyId: "cp-1",
+      },
+      {
+        id: "app-2",
+        status: "under_review" as const,
+        jobId: "jp-1",
+        seekerUserId: "u-2",
+        companyId: "cp-1",
+      },
+    ];
+    makeInnerJoinWhereMock(rows);
+    const { getApplicationsByIds } = await import("./portal-applications");
+    const result = await getApplicationsByIds(["app-1", "app-2"], "cp-1");
+    expect(result).toHaveLength(2);
+    expect(result[0]?.id).toBe("app-1");
+    expect(result[1]?.companyId).toBe("cp-1");
+  });
+
+  it("returns empty array when no apps match (different company)", async () => {
+    makeInnerJoinWhereMock([]);
+    const { getApplicationsByIds } = await import("./portal-applications");
+    const result = await getApplicationsByIds(["app-x"], "cp-2");
+    expect(result).toEqual([]);
+  });
+
+  it("handles single-id array", async () => {
+    const rows = [
+      {
+        id: "app-1",
+        status: "submitted" as const,
+        jobId: "jp-1",
+        seekerUserId: "u-1",
+        companyId: "cp-1",
+      },
+    ];
+    makeInnerJoinWhereMock(rows);
+    const { getApplicationsByIds } = await import("./portal-applications");
+    const result = await getApplicationsByIds(["app-1"], "cp-1");
+    expect(result).toHaveLength(1);
+    expect(result[0]?.id).toBe("app-1");
+  });
+});

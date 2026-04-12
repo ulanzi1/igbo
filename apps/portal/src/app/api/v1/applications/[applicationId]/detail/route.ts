@@ -9,6 +9,7 @@ import {
   getApplicationDetailForEmployer,
   getTransitionHistory,
 } from "@igbo/db/queries/portal-applications";
+import { getNotesByApplicationId } from "@igbo/db/queries/portal-application-notes";
 import { getCompanyByOwnerId } from "@igbo/db/queries/portal-companies";
 import { getSeekerTrustSignals } from "@igbo/db/queries/cross-app";
 
@@ -45,10 +46,11 @@ export const GET = withApiHandler(async (req: Request): Promise<Response> => {
   }
 
   // Fetch supplementary data in parallel
-  const [trustSignals, transitions] = await Promise.all([
+  const [trustSignals, transitions, notes] = await Promise.all([
     getSeekerTrustSignals(application.seekerUserId),
     getTransitionHistory(idValidation.data),
+    getNotesByApplicationId(idValidation.data),
   ]);
 
-  return successResponse({ application, trustSignals, transitions });
+  return successResponse({ application, trustSignals, transitions, notes });
 });

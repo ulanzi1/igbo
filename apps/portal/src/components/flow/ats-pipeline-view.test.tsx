@@ -12,6 +12,19 @@ vi.mock("sonner", () => ({
   toast: { success: vi.fn(), error: vi.fn() },
 }));
 
+// Mock next/navigation — router.refresh() is called after bulk actions
+const routerRefresh = vi.fn();
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({
+    refresh: routerRefresh,
+    push: vi.fn(),
+    replace: vi.fn(),
+    back: vi.fn(),
+    forward: vi.fn(),
+    prefetch: vi.fn(),
+  }),
+}));
+
 beforeAll(() => {
   Object.assign(Element.prototype, {
     hasPointerCapture: () => false,
@@ -54,6 +67,7 @@ beforeEach(() => {
         },
         trustSignals: null,
         transitions: [],
+        notes: [],
       },
     }),
   }) as unknown as typeof fetch;
@@ -147,5 +161,63 @@ describe("AtsPipelineView — side panel interaction", () => {
 
     await user.click(screen.getByTestId("candidate-card-app-3"));
     expect(await screen.findByTestId("candidate-side-panel")).toBeInTheDocument();
+  });
+});
+
+describe("AtsPipelineView — bulk selection (P-2.10)", () => {
+  it("does not render bulk toolbar when nothing is selected", () => {
+    renderWithPortalProviders(<AtsPipelineView applications={MIXED_APPS} />);
+    expect(screen.queryByTestId("bulk-action-toolbar")).not.toBeInTheDocument();
+  });
+
+  it("shows bulk toolbar after a candidate card is selected", async () => {
+    const user = userEvent.setup();
+    renderWithPortalProviders(<AtsPipelineView applications={MIXED_APPS} />);
+
+    await user.click(screen.getByTestId("candidate-select-app-1"));
+
+    expect(screen.getByTestId("bulk-action-toolbar")).toBeInTheDocument();
+    expect(screen.getByTestId("bulk-selected-count")).toHaveTextContent("1 selected");
+  });
+
+  it("increments the counter when multiple cards are selected", async () => {
+    const user = userEvent.setup();
+    renderWithPortalProviders(<AtsPipelineView applications={MIXED_APPS} />);
+
+    await user.click(screen.getByTestId("candidate-select-app-1"));
+    await user.click(screen.getByTestId("candidate-select-app-2"));
+
+    expect(screen.getByTestId("bulk-selected-count")).toHaveTextContent("2 selected");
+  });
+
+  it("removes the toolbar when selection is cleared via Clear button", async () => {
+    const user = userEvent.setup();
+    renderWithPortalProviders(<AtsPipelineView applications={MIXED_APPS} />);
+
+    await user.click(screen.getByTestId("candidate-select-app-1"));
+    expect(screen.getByTestId("bulk-action-toolbar")).toBeInTheDocument();
+
+    await user.click(screen.getByTestId("bulk-clear-button"));
+    expect(screen.queryByTestId("bulk-action-toolbar")).not.toBeInTheDocument();
+  });
+
+  it("deselects a card when its checkbox is clicked again", async () => {
+    const user = userEvent.setup();
+    renderWithPortalProviders(<AtsPipelineView applications={MIXED_APPS} />);
+
+    await user.click(screen.getByTestId("candidate-select-app-1"));
+    expect(screen.getByTestId("bulk-selected-count")).toHaveTextContent("1 selected");
+
+    await user.click(screen.getByTestId("candidate-select-app-1"));
+    expect(screen.queryByTestId("bulk-action-toolbar")).not.toBeInTheDocument();
+  });
+
+  it("select-all column checkbox selects every card in the column", async () => {
+    const user = userEvent.setup();
+    renderWithPortalProviders(<AtsPipelineView applications={MIXED_APPS} />);
+
+    // Submitted column has app-1; under_review has app-2
+    await user.click(screen.getByTestId("kanban-column-select-all-submitted"));
+    expect(screen.getByTestId("bulk-selected-count")).toHaveTextContent("1 selected");
   });
 });

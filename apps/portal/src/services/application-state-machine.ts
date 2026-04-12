@@ -38,12 +38,18 @@ export function canAcceptApplications(jobStatus: PortalJobStatus): boolean {
 // Valid transitions map
 // Key: fromStatus, Value: list of { toStatus, allowedActors }
 // ---------------------------------------------------------------------------
-interface TransitionRule {
+export interface TransitionRule {
   toStatus: PortalApplicationStatus;
   allowedActors: PortalActorRole[];
 }
 
-const VALID_TRANSITIONS: Record<PortalApplicationStatus, TransitionRule[]> = {
+/**
+ * Exported for P-2.10 bulk status route: `getNextAdvanceStatus()` needs to
+ * introspect the map to compute the next valid forward transition for each
+ * application. VALID_TRANSITIONS is the server-authoritative source — do
+ * NOT import client-side EMPLOYER_TRANSITIONS from the kanban board.
+ */
+export const VALID_TRANSITIONS: Record<PortalApplicationStatus, TransitionRule[]> = {
   submitted: [
     { toStatus: "under_review", allowedActors: ["employer"] },
     { toStatus: "rejected", allowedActors: ["employer"] },

@@ -255,7 +255,7 @@ development_status:
   portal-epic-1-prep-c-epic-3-stories-created: done             # P-3.1, P-3.2, P-3.3 created for parallel track (blocks P-2.5A)
   portal-epic-1-prep-d-portal-role-selection: done                  # "Choose Your Path" — self-service role selection (blocks P-2.1)
   portal-epic-1-spike-1-cv-upload: done                              # Resolved: P-2.2 implemented full CV upload (PDF/DOCX, MIME validation, S3 storage, error handling, 37+ tests)
-  portal-epic-1-spike-2-ats-dnd: backlog                            # Drag-and-drop kanban testability (recommended before P-2.9)
+  portal-epic-1-spike-2-ats-dnd: done                               # Resolved: SPIKE-2 PoC implemented (branch spike/2-ats-dnd, commit c85100e9); findings incorporated into P-2.9 (PR #37)
 
   # Portal Epic 2: Seeker Profiles & Job Applications
   portal-epic-2: in-progress
@@ -266,10 +266,10 @@ development_status:
   p-2-5a-job-application-submission: done
   p-2-5b-application-confirmation-next-steps-email: done
   p-2-6-seeker-application-tracking-timeline: done
-  p-2-7-application-withdrawal: backlog
-  p-2-8-seeker-analytics: backlog
-  p-2-9-ats-pipeline-view-stage-management: backlog
-  p-2-10-employer-notes-bulk-actions: backlog
+  p-2-7-application-withdrawal: done                                # PR #35 merged
+  p-2-8-seeker-analytics: done                                      # PR #36 merged
+  p-2-9-ats-pipeline-view-stage-management: done                    # PR #37 open (feat/p-2-9-ats-pipeline)
+  p-2-10-employer-notes-bulk-actions: done
   p-2-11-bulk-candidate-export: backlog
   portal-epic-2-retrospective: optional
 

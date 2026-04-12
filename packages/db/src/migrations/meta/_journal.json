@@ -456,6 +456,13 @@
       "when": 1708000064000,
       "tag": "0064_seeker_analytics",
       "breakpoints": true
+    },
+    {
+      "idx": 65,
+      "version": "7",
+      "when": 1708000065000,
+      "tag": "0065_employer_application_notes",
+      "breakpoints": true
     }
   ]
 }
