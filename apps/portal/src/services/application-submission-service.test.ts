@@ -8,6 +8,7 @@ vi.mock("@igbo/db/queries/portal-applications");
 vi.mock("@igbo/db/queries/portal-seeker-cvs");
 vi.mock("@igbo/db/schema/portal-applications", () => ({
   portalApplications: { id: "pa_id" },
+  portalApplicationTransitions: { id: "pat_id" },
   canAcceptApplications: vi.fn(),
 }));
 vi.mock("@igbo/db", () => ({
@@ -91,11 +92,14 @@ const BASE_INPUT = {
 // Transaction helper
 // ---------------------------------------------------------------------------
 function installTxMock(returnRow: PortalApplication | null) {
+  // values() returns an object that is BOTH directly awaitable (for transitions insert)
+  // AND has a .returning() method (for applications insert).
   const tx = {
     insert: (_table: unknown) => ({
-      values: (_data: unknown) => ({
-        returning: () => Promise.resolve(returnRow ? [returnRow] : []),
-      }),
+      values: (_data: unknown) =>
+        Object.assign(Promise.resolve(undefined), {
+          returning: () => Promise.resolve(returnRow ? [returnRow] : []),
+        }),
     }),
   };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -160,6 +164,34 @@ describe("submit — happy path", () => {
     const redis = makeRedisMock();
     await submit(BASE_INPUT);
     expect(redis.set).not.toHaveBeenCalled();
+  });
+
+  it("inserts initial submitted→submitted transition inside transaction", async () => {
+    makeRedisMock();
+    const insertSpy = vi.fn().mockReturnValue({
+      values: vi.fn().mockReturnValue(
+        Object.assign(Promise.resolve(undefined), {
+          returning: vi.fn().mockResolvedValue([APPLICATION]),
+        }),
+      ),
+    });
+    vi.mocked(db.transaction).mockImplementation(
+      async (
+        fn: any, // eslint-disable-line @typescript-eslint/no-explicit-any
+      ) => fn({ insert: insertSpy }),
+    );
+    await submit(BASE_INPUT);
+    // First call: portalApplications; second call: portalApplicationTransitions
+    expect(insertSpy).toHaveBeenCalledTimes(2);
+    // Both inserts share the same mock return value, so values.mock.calls[1] is the transition
+    const sharedValues = insertSpy.mock.results[0]?.value?.values;
+    const transitionValues = sharedValues?.mock?.calls[1]?.[0];
+    expect(transitionValues).toMatchObject({
+      applicationId: APPLICATION.id,
+      fromStatus: "submitted",
+      toStatus: "submitted",
+      actorRole: "job_seeker",
+    });
   });
 });
 
@@ -235,6 +267,18 @@ describe("submit — deadline passed (AC-5)", () => {
       }),
     });
     expect(db.transaction).not.toHaveBeenCalled();
+  });
+
+  it("does NOT throw when deadline is today (UTC midnight — deadline day still open)", async () => {
+    const todayMidnightUTC = new Date();
+    todayMidnightUTC.setUTCHours(0, 0, 0, 0);
+    vi.mocked(getJobPostingForApply).mockResolvedValue({
+      ...JOB,
+      applicationDeadline: todayMidnightUTC,
+    });
+    makeRedisMock();
+    const result = await submit(BASE_INPUT);
+    expect(result.replayed).toBe(false);
   });
 
   it("does NOT throw when deadline is null", async () => {

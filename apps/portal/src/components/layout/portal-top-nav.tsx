@@ -34,7 +34,7 @@ export function PortalTopNav({ className }: { className?: string }) {
 
   const seekerLinks: NavLink[] = [
     { key: "jobs", href: `/${locale}/jobs`, label: t("jobs") },
-    { key: "browseAll", href: `/${locale}/jobs/browse`, label: t("browseAll") },
+    { key: "browseAll", href: `/${locale}/jobs`, label: t("browseAll") },
     { key: "apprenticeships", href: `/${locale}/apprenticeships`, label: t("apprenticeships") },
     { key: "myApplications", href: `/${locale}/applications`, label: t("myApplications") },
     { key: "savedJobs", href: `/${locale}/saved-jobs`, label: t("savedJobs") },
