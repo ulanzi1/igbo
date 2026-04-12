@@ -408,6 +408,7 @@ export function AtsKanbanBoard({
 
   return (
     <DndContext
+      id="ats-kanban-dnd"
       sensors={sensors}
       collisionDetection={closestCorners}
       onDragStart={handleDragStart}

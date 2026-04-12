@@ -6,8 +6,13 @@ import { withApiHandler } from "@/lib/api-middleware";
 import { successResponse } from "@/lib/api-response";
 import { ApiError } from "@/lib/api-error";
 import { getSeekerProfileByUserId } from "@igbo/db/queries/portal-seeker-profiles";
-import { listSeekerCvs, countSeekerCvs, createSeekerCv } from "@igbo/db/queries/portal-seeker-cvs";
-import { createFileUpload } from "@igbo/db/queries/file-uploads";
+import {
+  listSeekerCvs,
+  countSeekerCvs,
+  createSeekerCv,
+  type CvWithFile,
+} from "@igbo/db/queries/portal-seeker-cvs";
+import { createFileUpload, updateFileUpload } from "@igbo/db/queries/file-uploads";
 import { cvLabelSchema } from "@/lib/validations/seeker-cv";
 import { PORTAL_ERRORS } from "@/lib/portal-errors";
 import { getPortalS3Client } from "@/lib/s3-client";
@@ -114,6 +119,12 @@ export const POST = withApiHandler(async (req: Request): Promise<Response> => {
     fileSize: file.size,
   });
 
+  // Portal CVs have no scanner job — mark ready immediately and store a direct URL
+  const s3Endpoint = process.env.HETZNER_S3_ENDPOINT ?? ""; // ci-allow-process-env
+  const s3Bucket = process.env.HETZNER_S3_BUCKET ?? ""; // ci-allow-process-env
+  const processedUrl = `${s3Endpoint}/${s3Bucket}/${objectKey}`;
+  await updateFileUpload(upload.id, { status: "ready", processedUrl });
+
   const cv = await createSeekerCv({
     seekerProfileId: profile.id,
     fileUploadId: upload.id,
@@ -121,5 +132,17 @@ export const POST = withApiHandler(async (req: Request): Promise<Response> => {
     isDefault: count === 0,
   });
 
-  return successResponse(cv, undefined, 201);
+  // Return CvWithFile so the client-side SeekerCvManager can render cv.file.originalFilename
+  const cvWithFile: CvWithFile = {
+    ...cv,
+    file: {
+      originalFilename: file.name,
+      fileType: file.type,
+      fileSize: file.size,
+      objectKey,
+      status: "ready",
+    },
+  };
+
+  return successResponse(cvWithFile, undefined, 201);
 });

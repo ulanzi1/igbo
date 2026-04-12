@@ -53,7 +53,7 @@ export function ApplicationTimeline({ transitions }: ApplicationTimelineProps) {
                     })}
               </p>
               <p className="mt-0.5 text-xs text-muted-foreground">
-                {format.dateTime(transition.createdAt, {
+                {format.dateTime(new Date(transition.createdAt), {
                   year: "numeric",
                   month: "short",
                   day: "numeric",

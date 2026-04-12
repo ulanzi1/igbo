@@ -733,6 +733,129 @@ describe("getApplicationDetailForEmployer", () => {
   });
 });
 
+// ─── P-2.11 additions ──────────────────────────────────────────────────────────
+
+describe("getApplicationsForExport (P-2.11)", () => {
+  // Chain: select → from → innerJoin → leftJoin → leftJoin → where → orderBy
+  function makeExportQueryMock(rows: unknown[]) {
+    const orderBy = vi.fn().mockResolvedValue(rows);
+    const where = vi.fn().mockReturnValue({ orderBy });
+    const leftJoin2 = vi.fn().mockReturnValue({ where });
+    const leftJoin1 = vi.fn().mockReturnValue({ leftJoin: leftJoin2 });
+    const innerJoin = vi.fn().mockReturnValue({ leftJoin: leftJoin1 });
+    const from = vi.fn().mockReturnValue({ innerJoin });
+    vi.mocked(db.select).mockReturnValue({ from } as unknown as ReturnType<typeof db.select>);
+  }
+
+  it("returns applications with seeker data when job is owned by company", async () => {
+    const row = {
+      seekerName: "Ada Okafor",
+      seekerEmail: "ada@example.com",
+      seekerHeadline: "Senior Engineer",
+      status: "submitted" as const,
+      createdAt: new Date("2026-04-01"),
+      transitionedAt: new Date("2026-04-05"),
+      consentEmployerView: true,
+    };
+    makeExportQueryMock([row]);
+    const { getApplicationsForExport } = await import("./portal-applications");
+    const result = await getApplicationsForExport("jp-1", "cp-1");
+    expect(result).toHaveLength(1);
+    expect(result[0]?.seekerName).toBe("Ada Okafor");
+    expect(result[0]?.seekerEmail).toBe("ada@example.com");
+    expect(result[0]?.seekerHeadline).toBe("Senior Engineer");
+    expect(result[0]?.status).toBe("submitted");
+    expect(result[0]?.consentEmployerView).toBe(true);
+  });
+
+  it("returns empty array when job is not owned by company (INNER JOIN filter)", async () => {
+    makeExportQueryMock([]);
+    const { getApplicationsForExport } = await import("./portal-applications");
+    const result = await getApplicationsForExport("jp-1", "cp-other");
+    expect(result).toHaveLength(0);
+  });
+
+  it("returns consentEmployerView correctly for each row", async () => {
+    const rows = [
+      {
+        seekerName: "Ada Okafor",
+        seekerEmail: "ada@example.com",
+        seekerHeadline: "Engineer",
+        status: "submitted" as const,
+        createdAt: new Date("2026-04-01"),
+        transitionedAt: null,
+        consentEmployerView: true,
+      },
+      {
+        seekerName: "Bob Eze",
+        seekerEmail: "bob@example.com",
+        seekerHeadline: "Designer",
+        status: "under_review" as const,
+        createdAt: new Date("2026-04-02"),
+        transitionedAt: new Date("2026-04-04"),
+        consentEmployerView: false,
+      },
+    ];
+    makeExportQueryMock(rows);
+    const { getApplicationsForExport } = await import("./portal-applications");
+    const result = await getApplicationsForExport("jp-1", "cp-1");
+    expect(result[0]?.consentEmployerView).toBe(true);
+    expect(result[1]?.consentEmployerView).toBe(false);
+  });
+
+  it("returns transitionedAt when available, null when not", async () => {
+    const rows = [
+      {
+        seekerName: "Ada",
+        seekerEmail: "ada@example.com",
+        seekerHeadline: "Engineer",
+        status: "submitted" as const,
+        createdAt: new Date("2026-04-01"),
+        transitionedAt: new Date("2026-04-05"),
+        consentEmployerView: true,
+      },
+      {
+        seekerName: "Bob",
+        seekerEmail: "bob@example.com",
+        seekerHeadline: "Designer",
+        status: "submitted" as const,
+        createdAt: new Date("2026-04-02"),
+        transitionedAt: null,
+        consentEmployerView: false,
+      },
+    ];
+    makeExportQueryMock(rows);
+    const { getApplicationsForExport } = await import("./portal-applications");
+    const result = await getApplicationsForExport("jp-1", "cp-1");
+    expect(result[0]?.transitionedAt).toEqual(new Date("2026-04-05"));
+    expect(result[1]?.transitionedAt).toBeNull();
+  });
+
+  it("returns empty array when job has no applicants", async () => {
+    makeExportQueryMock([]);
+    const { getApplicationsForExport } = await import("./portal-applications");
+    const result = await getApplicationsForExport("jp-empty", "cp-1");
+    expect(result).toHaveLength(0);
+  });
+
+  it("returns null seeker data when no profile exists (LEFT JOIN)", async () => {
+    const row = {
+      seekerName: null,
+      seekerEmail: null,
+      seekerHeadline: null,
+      status: "submitted" as const,
+      createdAt: new Date("2026-04-01"),
+      transitionedAt: null,
+      consentEmployerView: null,
+    };
+    makeExportQueryMock([row]);
+    const { getApplicationsForExport } = await import("./portal-applications");
+    const result = await getApplicationsForExport("jp-1", "cp-1");
+    expect(result[0]?.seekerName).toBeNull();
+    expect(result[0]?.consentEmployerView).toBeNull();
+  });
+});
+
 describe("getApplicationsByIds (P-2.10)", () => {
   // select().from().innerJoin().where() → rows
   function makeInnerJoinWhereMock(rows: unknown[]) {

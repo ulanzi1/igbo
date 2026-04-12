@@ -28,6 +28,23 @@ vi.mock("@/components/flow/ats-pipeline-view", () => ({
     <div data-testid="ats-pipeline-view" data-app-count={applications.length} />
   ),
 }));
+vi.mock("@/components/domain/export-candidates-button", () => ({
+  ExportCandidatesButton: ({
+    jobId,
+    applicationCount,
+  }: {
+    jobId: string;
+    applicationCount: number;
+  }) => (
+    <button
+      data-testid="export-candidates-button"
+      data-job-id={jobId}
+      data-app-count={applicationCount}
+    >
+      Export Candidates
+    </button>
+  ),
+}));
 
 import React from "react";
 import { render, screen } from "@testing-library/react";
@@ -163,5 +180,20 @@ describe("AtsCandidatesPage", () => {
       company: mockCompany,
     } as never);
     await expect(renderPage()).rejects.toThrow("REDIRECT:/en/my-jobs");
+  });
+
+  it("renders ExportCandidatesButton with correct jobId and application count", async () => {
+    await renderPage("en", "posting-uuid");
+    const exportBtn = screen.getByTestId("export-candidates-button");
+    expect(exportBtn).toBeTruthy();
+    expect(exportBtn.getAttribute("data-job-id")).toBe("posting-uuid");
+    expect(exportBtn.getAttribute("data-app-count")).toBe("2");
+  });
+
+  it("passes applicationCount=0 to ExportCandidatesButton when no applications", async () => {
+    vi.mocked(getApplicationsWithSeekerDataByJobId).mockResolvedValue([]);
+    await renderPage();
+    const exportBtn = screen.getByTestId("export-candidates-button");
+    expect(exportBtn.getAttribute("data-app-count")).toBe("0");
   });
 });

@@ -156,10 +156,10 @@ describe("SeekerCvManager", () => {
     });
   });
 
-  it("upload button is disabled when label is empty", () => {
+  it("upload button is enabled without a label (label falls back to filename)", () => {
     render(<SeekerCvManager />);
     const uploadBtn = screen.getByRole("button", { name: /cvUpload/i });
-    expect(uploadBtn).toBeDisabled();
+    expect(uploadBtn).not.toBeDisabled();
   });
 
   it("has no accessibility violations", async () => {

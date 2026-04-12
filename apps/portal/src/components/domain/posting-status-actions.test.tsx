@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -138,11 +139,18 @@ describe("PostingStatusActions", () => {
   });
 
   describe("active status", () => {
-    it("shows Edit link, Pause button, and Close Posting button", () => {
+    it("shows View Applications link, Edit link, Pause button, and Close Posting button", () => {
       renderActions("active");
+      expect(screen.getByTestId("view-candidates-link")).toBeTruthy();
       expect(screen.getByTestId("edit-link")).toBeTruthy();
       expect(screen.getByTestId("pause-button")).toBeTruthy();
       expect(screen.getByTestId("close-posting-button")).toBeTruthy();
+    });
+
+    it("View Applications link points to candidates page", () => {
+      renderActions("active");
+      const link = screen.getByTestId("view-candidates-link") as HTMLAnchorElement;
+      expect(link.href).toContain("/en/my-jobs/posting-uuid/candidates");
     });
 
     it("Pause button calls PATCH with paused", async () => {
@@ -170,10 +178,17 @@ describe("PostingStatusActions", () => {
   });
 
   describe("paused status", () => {
-    it("shows Unpause button and Close Posting button", () => {
+    it("shows View Applications link, Unpause button and Close Posting button", () => {
       renderActions("paused");
+      expect(screen.getByTestId("view-candidates-link")).toBeTruthy();
       expect(screen.getByTestId("unpause-button")).toBeTruthy();
       expect(screen.getByTestId("close-posting-button")).toBeTruthy();
+    });
+
+    it("View Applications link points to candidates page", () => {
+      renderActions("paused");
+      const link = screen.getByTestId("view-candidates-link") as HTMLAnchorElement;
+      expect(link.href).toContain("/en/my-jobs/posting-uuid/candidates");
     });
 
     it("Unpause button calls PATCH with active", async () => {
@@ -211,10 +226,10 @@ describe("PostingStatusActions", () => {
   });
 
   describe("filled status", () => {
-    it("shows disabled View Applications button", () => {
+    it("shows View Applications link pointing to candidates page", () => {
       renderActions("filled");
-      const btn = screen.getByTestId("view-applications-disabled") as HTMLButtonElement;
-      expect(btn.disabled).toBe(true);
+      const link = screen.getByTestId("view-candidates-link") as HTMLAnchorElement;
+      expect(link.href).toContain("/en/my-jobs/posting-uuid/candidates");
     });
   });
 

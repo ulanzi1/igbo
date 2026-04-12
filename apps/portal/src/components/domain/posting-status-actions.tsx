@@ -105,16 +105,13 @@ export function PostingStatusActions({
   if (status === "filled") {
     return (
       <div>
-        <button
-          type="button"
-          disabled
-          title={lt("comingSoon")}
-          aria-label={`${lt("viewApplications")} — ${lt("comingSoon")}`}
-          className="cursor-not-allowed text-sm text-muted-foreground opacity-50"
-          data-testid="view-applications-disabled"
+        <Link
+          href={`/${locale}/my-jobs/${postingId}/candidates`}
+          className="text-sm text-primary hover:underline"
+          data-testid="view-candidates-link"
         >
           {lt("viewApplications")}
-        </button>
+        </Link>
       </div>
     );
   }
@@ -217,6 +214,13 @@ export function PostingStatusActions({
       {status === "active" && (
         <>
           <Link
+            href={`/${locale}/my-jobs/${postingId}/candidates`}
+            className="rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:opacity-90"
+            data-testid="view-candidates-link"
+          >
+            {lt("viewApplications")}
+          </Link>
+          <Link
             href={`/${locale}/jobs/${postingId}/edit`}
             className="rounded-md border border-input px-3 py-1.5 text-sm hover:bg-accent"
             data-testid="edit-link"
@@ -246,6 +250,13 @@ export function PostingStatusActions({
 
       {status === "paused" && (
         <>
+          <Link
+            href={`/${locale}/my-jobs/${postingId}/candidates`}
+            className="rounded-md border border-input px-3 py-1.5 text-sm hover:bg-accent"
+            data-testid="view-candidates-link"
+          >
+            {lt("viewApplications")}
+          </Link>
           <button
             type="button"
             onClick={() => patchStatus("active")}
