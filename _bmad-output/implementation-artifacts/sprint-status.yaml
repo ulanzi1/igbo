@@ -270,7 +270,7 @@ development_status:
   p-2-8-seeker-analytics: done                                      # PR #36 merged
   p-2-9-ats-pipeline-view-stage-management: done                    # PR #37 open (feat/p-2-9-ats-pipeline)
   p-2-10-employer-notes-bulk-actions: done
-  p-2-11-bulk-candidate-export: backlog
+  p-2-11-bulk-candidate-export: done
   portal-epic-2-retrospective: optional
 
   # Portal Epic 3: Job Admin Review & Quality Assurance
