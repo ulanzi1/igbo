@@ -5,6 +5,7 @@ import { requireCompanyProfile } from "@/lib/require-company-profile";
 import { getJobPostingWithCompany } from "@igbo/db/queries/portal-job-postings";
 import { getApplicationsWithSeekerDataByJobId } from "@igbo/db/queries/portal-applications";
 import { AtsPipelineView } from "@/components/flow/ats-pipeline-view";
+import { ExportCandidatesButton } from "@/components/domain/export-candidates-button";
 import type { KanbanApplication } from "@/components/domain/candidate-card";
 
 interface PageProps {
@@ -52,6 +53,7 @@ export default async function AtsCandidatesPage({ params }: PageProps) {
             {t("candidateCount", { count: applications.length })}
           </p>
         </div>
+        <ExportCandidatesButton jobId={jobId} applicationCount={applications.length} />
       </div>
 
       <AtsPipelineView applications={applications} />

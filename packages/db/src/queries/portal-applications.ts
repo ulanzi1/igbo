@@ -470,3 +470,57 @@ export async function getApplicationDetailForEmployer(
     seekerSkills: (row.seekerSkills ?? []) as string[],
   };
 }
+
+/**
+ * Returns all applications for a given job scoped to the owning company,
+ * with the minimal fields needed for CSV export: seeker name, email (for
+ * consent check), headline, status, applied date, last status change date,
+ * and the consent flag.
+ *
+ * The INNER JOIN on portalJobPostings ensures that if the job does not
+ * belong to `companyId`, zero rows are returned (not an error). Callers
+ * must verify ownership separately (getJobPostingWithCompany) to distinguish
+ * "no applicants" from "not owned".
+ *
+ * Ordered by createdAt ASC (chronological for CSV readability).
+ */
+export async function getApplicationsForExport(
+  jobId: string,
+  companyId: string,
+): Promise<
+  Array<{
+    seekerName: string | null;
+    seekerEmail: string | null;
+    seekerHeadline: string | null;
+    status: PortalApplicationStatus;
+    createdAt: Date;
+    transitionedAt: Date | null;
+    consentEmployerView: boolean | null;
+  }>
+> {
+  return db
+    .select({
+      seekerName: authUsers.name,
+      seekerEmail: authUsers.email,
+      seekerHeadline: portalSeekerProfiles.headline,
+      status: portalApplications.status,
+      createdAt: portalApplications.createdAt,
+      transitionedAt: portalApplications.transitionedAt,
+      consentEmployerView: portalSeekerProfiles.consentEmployerView,
+    })
+    .from(portalApplications)
+    .innerJoin(
+      portalJobPostings,
+      and(
+        eq(portalApplications.jobId, portalJobPostings.id),
+        eq(portalJobPostings.companyId, companyId),
+      ),
+    )
+    .leftJoin(authUsers, eq(portalApplications.seekerUserId, authUsers.id))
+    .leftJoin(
+      portalSeekerProfiles,
+      eq(portalApplications.seekerUserId, portalSeekerProfiles.userId),
+    )
+    .where(eq(portalApplications.jobId, jobId))
+    .orderBy(asc(portalApplications.createdAt));
+}
