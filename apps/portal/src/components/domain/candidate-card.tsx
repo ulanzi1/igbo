@@ -3,6 +3,7 @@
 import React, { forwardRef, useCallback } from "react";
 import { useTranslations, useFormatter } from "next-intl";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { ApplicationStatusBadge } from "@/components/domain/application-status-badge";
 import { useDensity } from "@/providers/density-context";
 import type { PortalApplicationStatus } from "@igbo/db/schema/portal-applications";
@@ -27,6 +28,9 @@ interface CandidateCardProps extends React.HTMLAttributes<HTMLDivElement> {
   isDragging?: boolean;
   /** When true, renders the status badge inside the card (closed section context). */
   showStatusBadge?: boolean;
+  /** P-2.10: when provided, renders a selection checkbox in the card header. */
+  isSelected?: boolean;
+  onToggleSelect?: () => void;
 }
 
 /**
@@ -37,7 +41,17 @@ interface CandidateCardProps extends React.HTMLAttributes<HTMLDivElement> {
  * break the list/listitem a11y relationship).
  */
 export const CandidateCard = forwardRef<HTMLDivElement, CandidateCardProps>(function CandidateCard(
-  { application, onClick, isDragging = false, showStatusBadge = false, style, className, ...rest },
+  {
+    application,
+    onClick,
+    isDragging = false,
+    showStatusBadge = false,
+    isSelected = false,
+    onToggleSelect,
+    style,
+    className,
+    ...rest
+  },
   ref,
 ) {
   const t = useTranslations("Portal.ats");
@@ -95,7 +109,24 @@ export const CandidateCard = forwardRef<HTMLDivElement, CandidateCardProps>(func
       className={`bg-card text-card-foreground ${paddingClass} flex flex-col ${gapClass} cursor-pointer rounded-lg border border-border shadow-[0_1px_3px_rgba(0,0,0,0.08)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.12)] transition-shadow focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none ${isDragging ? "opacity-40 shadow-lg" : ""}${className ? ` ${className}` : ""}`}
     >
       <div className="flex items-start justify-between gap-2">
-        <p className={`font-medium ${textClass}`}>{seekerName}</p>
+        <div className="flex min-w-0 items-start gap-2">
+          {onToggleSelect ? (
+            <span
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={(e) => e.stopPropagation()}
+              onKeyDown={(e) => e.stopPropagation()}
+              className="flex shrink-0 items-center pt-0.5"
+            >
+              <Checkbox
+                checked={isSelected}
+                onCheckedChange={() => onToggleSelect()}
+                aria-label={t("bulk.ariaCheckbox", { name: seekerName })}
+                data-testid={`candidate-select-${application.id}`}
+              />
+            </span>
+          ) : null}
+          <p className={`font-medium ${textClass} truncate`}>{seekerName}</p>
+        </div>
         <span className="text-xs text-muted-foreground shrink-0" aria-hidden="true">
           {t("matchScorePlaceholder")}
         </span>

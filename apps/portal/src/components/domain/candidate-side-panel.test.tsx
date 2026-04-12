@@ -79,6 +79,7 @@ function makeDetail(
         createdAt: new Date("2024-03-15T10:00:00Z"),
       },
     ],
+    notes: [],
   };
 }
 
@@ -212,6 +213,34 @@ describe("CandidateSidePanel — populated", () => {
     await screen.findByText("Ada Okafor");
     // TrustSignalsPanel renders verifiedMember label when isVerified=true
     expect(screen.getAllByText(/Verified/i).length).toBeGreaterThan(0);
+  });
+
+  it("renders NotesSection with provided notes (P-2.10)", async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue({
+        data: {
+          ...makeDetail(),
+          notes: [
+            {
+              id: "note-1",
+              applicationId: APP_ID,
+              authorUserId: "employer-1",
+              authorName: "Chidi Eze",
+              content: "Strong candidate, schedule follow-up.",
+              createdAt: new Date("2024-03-16T10:00:00Z"),
+            },
+          ],
+        },
+      }),
+    }) as unknown as typeof fetch;
+
+    renderWithPortalProviders(<CandidateSidePanel applicationId={APP_ID} onClose={() => {}} />);
+    await screen.findByText("Ada Okafor");
+    // Notes heading + note content render
+    expect(screen.getByRole("heading", { name: /^Notes$/i })).toBeInTheDocument();
+    expect(screen.getByText("Strong candidate, schedule follow-up.")).toBeInTheDocument();
+    expect(screen.getByText("Chidi Eze")).toBeInTheDocument();
   });
 });
 

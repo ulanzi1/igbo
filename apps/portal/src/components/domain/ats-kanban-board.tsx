@@ -19,6 +19,7 @@ import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-
 import { CSS } from "@dnd-kit/utilities";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { CandidateCard, type KanbanApplication } from "@/components/domain/candidate-card";
 import { useDensity } from "@/providers/density-context";
@@ -77,9 +78,16 @@ export function isValidDrop(from: PortalApplicationStatus, to: PortalApplication
 interface SortableCandidateCardProps {
   application: KanbanApplication;
   onClick?: () => void;
+  isSelected?: boolean;
+  onToggleSelect?: () => void;
 }
 
-function SortableCandidateCard({ application, onClick }: SortableCandidateCardProps) {
+function SortableCandidateCard({
+  application,
+  onClick,
+  isSelected,
+  onToggleSelect,
+}: SortableCandidateCardProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: application.id,
   });
@@ -96,6 +104,8 @@ function SortableCandidateCard({ application, onClick }: SortableCandidateCardPr
       application={application}
       onClick={onClick}
       isDragging={isDragging}
+      isSelected={isSelected}
+      onToggleSelect={onToggleSelect}
       style={style}
       data-kanban-card-id={application.id}
       {...attributes}
@@ -114,6 +124,13 @@ interface KanbanColumnProps {
   isDropTarget: boolean;
   isInvalidTarget: boolean;
   onCardClick?: (applicationId: string) => void;
+  selectedIds?: Set<string>;
+  onToggleSelect?: (applicationId: string) => void;
+  onToggleColumnSelect?: (
+    status: PortalApplicationStatus,
+    appIds: string[],
+    checked: boolean,
+  ) => void;
 }
 
 function KanbanColumn({
@@ -122,6 +139,9 @@ function KanbanColumn({
   isDropTarget,
   isInvalidTarget,
   onCardClick,
+  selectedIds,
+  onToggleSelect,
+  onToggleColumnSelect,
 }: KanbanColumnProps) {
   const tAts = useTranslations("Portal.ats");
   const { density } = useDensity();
@@ -130,6 +150,13 @@ function KanbanColumn({
   const columnId = `kanban-col-list-${status}`;
   const statusLabel = tAts(`statusNames.${status}`);
   const gapClass = density === "dense" ? "gap-1" : density === "compact" ? "gap-1.5" : "gap-2";
+
+  const columnAppIds = applications.map((a) => a.id);
+  const selectedInColumn = selectedIds
+    ? columnAppIds.filter((id) => selectedIds.has(id)).length
+    : 0;
+  const allSelected = columnAppIds.length > 0 && selectedInColumn === columnAppIds.length;
+  const selectionEnabled = Boolean(onToggleSelect);
 
   return (
     <div
@@ -143,10 +170,20 @@ function KanbanColumn({
       }`}
       data-testid={`kanban-column-${status}`}
     >
-      <div className="mb-2 flex items-center justify-between px-1">
-        <h3 className="text-sm font-semibold" id={columnId}>
-          {statusLabel}
-        </h3>
+      <div className="mb-2 flex items-center justify-between gap-2 px-1">
+        <div className="flex min-w-0 items-center gap-2">
+          {selectionEnabled && onToggleColumnSelect && columnAppIds.length > 0 ? (
+            <Checkbox
+              checked={allSelected}
+              onCheckedChange={(next) => onToggleColumnSelect(status, columnAppIds, next === true)}
+              aria-label={tAts("bulk.selectAllColumn", { status: statusLabel })}
+              data-testid={`kanban-column-select-all-${status}`}
+            />
+          ) : null}
+          <h3 className="text-sm font-semibold" id={columnId}>
+            {statusLabel}
+          </h3>
+        </div>
         <Badge
           variant="secondary"
           aria-label={tAts("columnLabel", { status: statusLabel, count: applications.length })}
@@ -169,6 +206,8 @@ function KanbanColumn({
                 key={app.id}
                 application={app}
                 onClick={onCardClick ? () => onCardClick(app.id) : undefined}
+                isSelected={selectedIds?.has(app.id) ?? false}
+                onToggleSelect={onToggleSelect ? () => onToggleSelect(app.id) : undefined}
               />
             ))}
           </div>
@@ -196,6 +235,16 @@ export interface AtsKanbanBoardProps {
   ) => Promise<void>;
   /** Called when a card is clicked (opens the candidate side panel). */
   onCardClick?: (applicationId: string) => void;
+  /** P-2.10: Multi-select. Pass undefined to disable selection UI entirely. */
+  selectedIds?: Set<string>;
+  onToggleSelect?: (applicationId: string) => void;
+  onToggleColumnSelect?: (
+    status: PortalApplicationStatus,
+    appIds: string[],
+    checked: boolean,
+  ) => void;
+  /** Called when a drag starts — used to clear any active selection. */
+  onClearSelection?: () => void;
 }
 
 async function defaultStatusChange(
@@ -222,6 +271,10 @@ export function AtsKanbanBoard({
   applications: initialApps,
   onStatusChange,
   onCardClick,
+  selectedIds,
+  onToggleSelect,
+  onToggleColumnSelect,
+  onClearSelection,
 }: AtsKanbanBoardProps) {
   const tAts = useTranslations("Portal.ats");
   const [applications, setApplications] = useState<KanbanApplication[]>(initialApps);
@@ -252,6 +305,8 @@ export function AtsKanbanBoard({
     (event: DragStartEvent) => {
       const id = event.active.id as string;
       setActiveId(id);
+      // P-2.10: clear any multi-select selection when a drag begins
+      onClearSelection?.();
 
       const app = applications.find((a) => a.id === id);
       if (app) {
@@ -265,7 +320,7 @@ export function AtsKanbanBoard({
         });
       }
     },
-    [applications],
+    [applications, onClearSelection],
   );
 
   const formatValidStages = useCallback(
@@ -373,6 +428,9 @@ export function AtsKanbanBoard({
             isDropTarget={dropFeedback.valid.includes(status)}
             isInvalidTarget={dropFeedback.invalid.includes(status)}
             onCardClick={onCardClick}
+            selectedIds={selectedIds}
+            onToggleSelect={onToggleSelect}
+            onToggleColumnSelect={onToggleColumnSelect}
           />
         ))}
       </div>

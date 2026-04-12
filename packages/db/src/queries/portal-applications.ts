@@ -14,7 +14,7 @@ import { portalSeekerCvs } from "../schema/portal-seeker-cvs";
 import { portalSeekerProfiles } from "../schema/portal-seeker-profiles";
 import { authUsers } from "../schema/auth-users";
 import { platformFileUploads } from "../schema/file-uploads";
-import { eq, desc, asc, and, ne, count } from "drizzle-orm";
+import { eq, desc, asc, and, ne, count, inArray } from "drizzle-orm";
 
 export async function createApplication(data: NewPortalApplication): Promise<PortalApplication> {
   const [application] = await db.insert(portalApplications).values(data).returning();
@@ -291,6 +291,47 @@ export async function getApplicationCountsByStatusForSeeker(
     .groupBy(portalApplications.status);
 
   return rows.map((row) => ({ status: row.status, count: row.count }));
+}
+
+// ─── P-2.10 additions ─────────────────────────────────────────────────────────
+
+/**
+ * Batch ownership verification for the bulk status route.
+ * Returns applications whose id is in `ids` AND whose job belongs to
+ * `companyId`. If the returned array length < `ids.length`, at least one
+ * id does not belong to this company — callers treat mismatch as 404
+ * (fail-closed) to avoid leaking which specific IDs failed validation.
+ *
+ * Used by PATCH /api/v1/applications/bulk/status. Inner join on
+ * `portal_job_postings` enforces the company scope in a single query
+ * rather than N individual getApplicationWithCurrentStatus calls.
+ * Origin: P-2.10
+ */
+export async function getApplicationsByIds(
+  ids: string[],
+  companyId: string,
+): Promise<
+  Array<{
+    id: string;
+    status: PortalApplicationStatus;
+    jobId: string;
+    seekerUserId: string;
+    companyId: string;
+  }>
+> {
+  if (ids.length === 0) return [];
+  const rows = await db
+    .select({
+      id: portalApplications.id,
+      status: portalApplications.status,
+      jobId: portalApplications.jobId,
+      seekerUserId: portalApplications.seekerUserId,
+      companyId: portalJobPostings.companyId,
+    })
+    .from(portalApplications)
+    .innerJoin(portalJobPostings, eq(portalApplications.jobId, portalJobPostings.id))
+    .where(and(inArray(portalApplications.id, ids), eq(portalJobPostings.companyId, companyId)));
+  return rows;
 }
 
 // ─── P-2.9 additions ──────────────────────────────────────────────────────────

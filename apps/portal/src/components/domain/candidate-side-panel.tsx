@@ -9,9 +9,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { TrustSignalsPanel } from "@/components/semantic/trust-signals-panel";
 import { ApplicationTimeline } from "@/components/domain/application-timeline";
+import { NotesSection } from "@/components/domain/notes-section";
 import type { PortalApplicationStatus } from "@igbo/db/schema/portal-applications";
 import type { PortalApplicationTransition } from "@igbo/db/schema/portal-applications";
 import type { SeekerTrustSignals } from "@igbo/db/queries/cross-app";
+import type { ApplicationNote } from "@igbo/db/queries/portal-application-notes";
 
 /** Returns true only for http/https URLs — blocks javascript: and data: protocol XSS. */
 function isSafeUrl(url: string): boolean {
@@ -41,6 +43,7 @@ export interface CandidateDetailResponse {
   };
   trustSignals: SeekerTrustSignals | null;
   transitions: PortalApplicationTransition[];
+  notes: ApplicationNote[];
 }
 
 export interface CandidateSidePanelProps {
@@ -148,7 +151,7 @@ function LoadingSkeleton() {
 
 function PanelContent({ data }: { data: CandidateDetailResponse }) {
   const t = useTranslations("Portal.ats");
-  const { application, trustSignals, transitions } = data;
+  const { application, trustSignals, transitions, notes } = data;
 
   return (
     <div className="flex flex-col gap-6 py-4">
@@ -256,6 +259,9 @@ function PanelContent({ data }: { data: CandidateDetailResponse }) {
           <p className="text-sm text-muted-foreground">—</p>
         )}
       </section>
+
+      {/* Notes (P-2.10) */}
+      <NotesSection applicationId={application.id} initialNotes={notes} />
     </div>
   );
 }

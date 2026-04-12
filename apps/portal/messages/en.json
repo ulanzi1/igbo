@@ -824,6 +824,44 @@
         "loading": "Loading candidate details...",
         "loadError": "Failed to load candidate details",
         "close": "Close panel"
+      },
+      "notes": {
+        "heading": "Notes",
+        "empty": "No notes yet. Add your first note below.",
+        "listLabel": "Candidate notes, chronological",
+        "unknownAuthor": "Unknown",
+        "addLabel": "Add a private note",
+        "placeholder": "Write a private note about this candidate (visible only to your team)…",
+        "save": "Save Note",
+        "saving": "Saving…",
+        "saveSuccess": "Note saved",
+        "saveError": "Failed to save note",
+        "maxLength": "{count}/2000"
+      },
+      "bulk": {
+        "ariaToolbar": "Bulk actions toolbar",
+        "selectedCount": "{count} selected",
+        "advance": "Advance",
+        "reject": "Reject",
+        "message": "Message",
+        "messageDisabled": "Messaging is coming in a future release",
+        "clear": "Clear",
+        "advanceSuccess": "{processed} advanced, {skipped} skipped",
+        "rejectSuccess": "{processed} rejected, {skipped} skipped",
+        "bulkError": "Bulk action failed",
+        "processing": "Processing…",
+        "selectCard": "Select candidate",
+        "ariaCheckbox": "Select {name}",
+        "selectAllColumn": "Select all in {status}",
+        "rejectModal": {
+          "title": "Reject {count} applications?",
+          "description": "This will move all selected candidates to the Rejected status. This action cannot be undone.",
+          "reasonLabel": "Reason (optional)",
+          "reasonPlaceholder": "Share why these candidates are being rejected (optional, visible in audit log)",
+          "cancel": "Cancel",
+          "confirm": "Confirm Rejection",
+          "confirming": "Rejecting…"
+        }
       }
     }
   },

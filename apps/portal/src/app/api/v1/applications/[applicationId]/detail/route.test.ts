@@ -7,6 +7,9 @@ vi.mock("@igbo/db/queries/portal-applications", () => ({
   getApplicationDetailForEmployer: vi.fn(),
   getTransitionHistory: vi.fn(),
 }));
+vi.mock("@igbo/db/queries/portal-application-notes", () => ({
+  getNotesByApplicationId: vi.fn(),
+}));
 vi.mock("@igbo/db/queries/portal-companies", () => ({
   getCompanyByOwnerId: vi.fn(),
 }));
@@ -19,6 +22,7 @@ import {
   getApplicationDetailForEmployer,
   getTransitionHistory,
 } from "@igbo/db/queries/portal-applications";
+import { getNotesByApplicationId } from "@igbo/db/queries/portal-application-notes";
 import { getCompanyByOwnerId } from "@igbo/db/queries/portal-companies";
 import { getSeekerTrustSignals } from "@igbo/db/queries/cross-app";
 import { GET } from "./route";
@@ -81,6 +85,17 @@ const mockTransitions = [
   },
 ];
 
+const mockNotes = [
+  {
+    id: "note-1",
+    applicationId: VALID_APP_ID,
+    authorUserId: EMPLOYER_ID,
+    authorName: "Employer Jane",
+    content: "Great candidate",
+    createdAt: new Date("2024-01-03"),
+  },
+];
+
 function makeRequest(applicationId: string): Request {
   return new Request(`https://jobs.igbo.com/api/v1/applications/${applicationId}/detail`, {
     method: "GET",
@@ -102,6 +117,7 @@ beforeEach(() => {
     mockTrustSignals as unknown as Awaited<ReturnType<typeof getSeekerTrustSignals>>,
   );
   vi.mocked(getTransitionHistory).mockResolvedValue(mockTransitions);
+  vi.mocked(getNotesByApplicationId).mockResolvedValue(mockNotes);
 });
 
 describe("GET /api/v1/applications/[applicationId]/detail", () => {
@@ -116,11 +132,20 @@ describe("GET /api/v1/applications/[applicationId]/detail", () => {
     expect(body.data.transitions).toHaveLength(1);
   });
 
-  it("calls all three queries in parallel with correct args", async () => {
+  it("calls all four queries in parallel with correct args", async () => {
     await GET(makeRequest(VALID_APP_ID));
     expect(getApplicationDetailForEmployer).toHaveBeenCalledWith(VALID_APP_ID, COMPANY_ID);
     expect(getSeekerTrustSignals).toHaveBeenCalledWith(SEEKER_ID);
     expect(getTransitionHistory).toHaveBeenCalledWith(VALID_APP_ID);
+    expect(getNotesByApplicationId).toHaveBeenCalledWith(VALID_APP_ID);
+  });
+
+  it("returns notes in the response (P-2.10)", async () => {
+    const res = await GET(makeRequest(VALID_APP_ID));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.data.notes).toHaveLength(1);
+    expect(body.data.notes[0].content).toBe("Great candidate");
   });
 
   it("returns 401 when not authenticated", async () => {
