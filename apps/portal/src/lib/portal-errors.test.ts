@@ -33,8 +33,8 @@ describe("PORTAL_ERRORS", () => {
     }
   });
 
-  it("has exactly 15 error codes", () => {
-    expect(Object.keys(PORTAL_ERRORS)).toHaveLength(15);
+  it("has exactly 18 error codes", () => {
+    expect(Object.keys(PORTAL_ERRORS)).toHaveLength(18);
   });
 
   it("has DUPLICATE_SEEKER_PROFILE key", () => {
@@ -78,5 +78,17 @@ describe("PORTAL_ERRORS", () => {
 
   it("has FILE_TOO_LARGE key", () => {
     expect(PORTAL_ERRORS.FILE_TOO_LARGE).toBe("PORTAL_ERRORS.FILE_TOO_LARGE");
+  });
+
+  it("has ALREADY_FLAGGED key", () => {
+    expect(PORTAL_ERRORS.ALREADY_FLAGGED).toBe("PORTAL_ERRORS.ALREADY_FLAGGED");
+  });
+
+  it("has FLAG_NOT_FOUND key", () => {
+    expect(PORTAL_ERRORS.FLAG_NOT_FOUND).toBe("PORTAL_ERRORS.FLAG_NOT_FOUND");
+  });
+
+  it("has INVALID_FLAG_TARGET key", () => {
+    expect(PORTAL_ERRORS.INVALID_FLAG_TARGET).toBe("PORTAL_ERRORS.INVALID_FLAG_TARGET");
   });
 });

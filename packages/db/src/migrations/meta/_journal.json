@@ -463,6 +463,13 @@
       "when": 1708000065000,
       "tag": "0065_employer_application_notes",
       "breakpoints": true
+    },
+    {
+      "idx": 66,
+      "version": "7",
+      "when": 1708000066000,
+      "tag": "0066_portal_admin_flags",
+      "breakpoints": true
     }
   ]
 }

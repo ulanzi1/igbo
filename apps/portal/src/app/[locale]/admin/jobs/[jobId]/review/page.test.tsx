@@ -28,6 +28,12 @@ vi.mock("@/components/domain/review-action-panel", () => ({
 vi.mock("@/components/domain/screening-results-panel", () => ({
   ScreeningResultsPanel: () => null,
 }));
+vi.mock("@/components/domain/flag-history-panel", () => ({
+  FlagHistoryPanel: () => null,
+}));
+vi.mock("@/components/domain/flag-posting-trigger", () => ({
+  FlagPostingTrigger: () => null,
+}));
 
 import { auth } from "@igbo/auth";
 import { redirect } from "next/navigation";
@@ -93,6 +99,7 @@ const mockDetail = {
   screeningResult: null,
   reportCount: 0,
   reviewHistory: [],
+  flags: [],
 };
 
 function makeParams(locale = "en", jobId = "posting-1") {
@@ -174,9 +181,10 @@ describe("ReviewDetailPage", () => {
     expect(result).toBeDefined();
   });
 
-  it("renders reports placeholder section", async () => {
+  it("renders flag history section", async () => {
     const result = await ReviewDetailPage({ params: makeParams() });
 
     expect(result).toBeDefined();
+    expect(getReviewDetail).toHaveBeenCalled();
   });
 });

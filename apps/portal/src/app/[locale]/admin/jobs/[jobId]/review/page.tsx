@@ -8,6 +8,8 @@ import { sanitizeHtml } from "@/lib/sanitize";
 import { SalaryDisplay } from "@/components/semantic/salary-display";
 import { ReviewActionPanel } from "@/components/domain/review-action-panel";
 import { ScreeningResultsPanel } from "@/components/domain/screening-results-panel";
+import { FlagHistoryPanel } from "@/components/domain/flag-history-panel";
+import { FlagPostingTrigger } from "@/components/domain/flag-posting-trigger";
 
 interface PageProps {
   params: Promise<{ locale: string; jobId: string }>;
@@ -47,6 +49,7 @@ export default async function ReviewDetailPage({ params }: PageProps) {
     confidenceIndicator,
     screeningResult,
     reviewHistory,
+    flags,
   } = detail;
 
   const formatDate = (d: Date) => format.dateTime(new Date(d), { dateStyle: "medium" });
@@ -175,14 +178,25 @@ export default async function ReviewDetailPage({ params }: PageProps) {
             <ScreeningResultsPanel screeningResult={screeningResult} />
           </section>
 
-          {/* User Reports Placeholder */}
+          {/* Violation Flags */}
           <section
-            aria-label={t("reports")}
+            aria-label={t("flagHistory")}
             className="rounded-lg border border-border bg-card p-6"
-            data-testid="reports-section"
+            data-testid="flag-history-section"
           >
-            <h2 className="mb-2 text-lg font-semibold">{t("reports")}</h2>
-            <p className="text-sm text-muted-foreground">{t("reportsPlaceholder")}</p>
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-lg font-semibold">{t("flagHistory")}</h2>
+              <FlagPostingTrigger
+                postingId={posting.id}
+                postingTitle={posting.title}
+                postingStatus={posting.status}
+              />
+            </div>
+            <FlagHistoryPanel
+              flags={flags}
+              postingTitle={posting.title}
+              onFlagResolved={() => {}}
+            />
           </section>
 
           {/* Review Action Panel — only shown when pending */}

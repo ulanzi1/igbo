@@ -249,7 +249,7 @@ development_status:
 
   # Portal Epic 1 — Retro Action Items
   portal-epic-1-ai-7-bundled-implicit-requirements-fix: done       # Story template + Playbook + CI enforcement — live CI validation confirmed 2026-04-06
-  portal-epic-1-ai-8-typescript-gotchas-playbook: backlog          # Zod v4, JSONB, Tiptap mock, useSession patterns
+  portal-epic-1-ai-8-typescript-gotchas-playbook: done             # Absorbed into AI-13 → Playbook §10 (PR #42)
   portal-epic-1-prep-a-state-interaction-matrix: done           # Terminal state policy + cross-state invariants (blocks P-2.4)
   portal-epic-1-prep-b-async-safety-requirements: done             # Playbook §8: idempotency requirement, dedup keys, 3 mandatory tests, email degradation, upload states, observability (2026-04-08)
   portal-epic-1-prep-c-epic-3-stories-created: done             # P-3.1, P-3.2, P-3.3 created for parallel track (blocks P-2.5A)
@@ -275,19 +275,19 @@ development_status:
 
   # Portal Epic 2 — Retro Action Items
   portal-epic-2-ai-9-test-factory-pattern: backlog              # apps/portal/src/test/factories.ts — before P-4 start
-  portal-epic-2-ai-10-apierror-docs: backlog                    # JSDoc on toProblemDetails() + Playbook error handling
-  portal-epic-2-ai-11-link-import-ci: backlog                   # CI rule: next/link → @/i18n/navigation in portal
+  portal-epic-2-ai-10-apierror-docs: done                       # JSDoc on toProblemDetails() + Playbook §10.1 entry + §10.2.7 deep dive (PR #42)
+  portal-epic-2-ai-11-link-import-ci: done                      # CI scanner check-next-link-import.ts + 9 known violations allowlist (PR #42)
   portal-epic-2-ai-12-spec-codebase-verification: done          # Story template Gate 1 addition
-  portal-epic-2-ai-13-ts-gotchas-playbook: backlog              # Carried from AI-8: Zod, JSONB, transaction mock, useSession, etc.
-  portal-epic-2-ai-14-404-not-403-invariant: backlog            # Playbook Security section
-  portal-epic-2-ai-15-model-selection-guide: backlog            # Playbook: sonnet vs opus decision framework
+  portal-epic-2-ai-13-ts-gotchas-playbook: done                 # Playbook §10 with 9 deep dives — absorbs AI-8 (PR #42)
+  portal-epic-2-ai-14-404-not-403-invariant: done               # Playbook §9 Security Invariants (PR #42)
+  portal-epic-2-ai-15-model-selection-guide: done               # Playbook §11 + SN-5 Agent Model gate (PR #42)
 
   # Portal Epic 3: Job Admin Review & Quality Assurance
   portal-epic-3: in-progress
   p-3-1-admin-review-queue-dashboard: done
   p-3-2-approve-reject-request-changes-workflow: done
   p-3-3-rule-based-content-screening-mvp: done
-  p-3-4a-admin-policy-violation-flagging: backlog
+  p-3-4a-admin-policy-violation-flagging: done
   p-3-4b-user-reporting-escalation-queue: backlog
   p-3-5-employer-verification-flow-with-tier-impact: backlog
   p-3-6-platform-wide-admin-analytics: backlog

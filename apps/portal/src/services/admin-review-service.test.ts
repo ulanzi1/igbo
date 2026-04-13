@@ -18,6 +18,18 @@ vi.mock("@igbo/db/queries/cross-app", () => ({
   getCommunityTrustSignals: vi.fn(),
 }));
 
+vi.mock("@igbo/db/queries/portal-admin-flags", () => ({
+  insertAdminFlag: vi.fn(),
+  getOpenFlagForPosting: vi.fn(),
+  getAdminFlagById: vi.fn(),
+  getFlagsForPosting: vi.fn(),
+  listOpenFlags: vi.fn(),
+  resolveAdminFlag: vi.fn(),
+  dismissAdminFlag: vi.fn(),
+  countOpenViolationsForCompany: vi.fn(),
+  countRecentViolationsForCompany: vi.fn(),
+}));
+
 // Mock db for transaction-based service functions
 vi.mock("@igbo/db", () => ({
   db: {
@@ -46,12 +58,26 @@ vi.mock("@igbo/db/schema/portal-admin-reviews", () => ({
   },
 }));
 
+vi.mock("@igbo/db/schema/portal-admin-flags", () => ({
+  portalAdminFlags: {
+    id: "paf_id",
+    postingId: "paf_posting_id",
+    status: "paf_status",
+    autoPaused: "paf_auto_paused",
+  },
+}));
+
+vi.mock("@igbo/db/schema/audit-logs", () => ({
+  auditLogs: { id: "al_id", actorId: "al_actor", action: "al_action" },
+}));
+
 vi.mock("drizzle-orm", () => ({
   eq: vi.fn((col: unknown, val: unknown) => ({ eq: [col, val] })),
   and: vi.fn((...args: unknown[]) => ({ and: args })),
   gte: vi.fn((col: unknown, val: unknown) => ({ gte: [col, val] })),
   count: vi.fn(() => ({ count: true })),
   desc: vi.fn((col: unknown) => ({ desc: col })),
+  inArray: vi.fn((col: unknown, vals: unknown[]) => ({ inArray: [col, vals] })),
   sql: Object.assign(
     vi.fn((_s: TemplateStringsArray, ..._v: unknown[]) => ({ sql: true })),
     { as: vi.fn() },
@@ -70,6 +96,13 @@ import {
 } from "@igbo/db/queries/portal-admin-reviews";
 import { getJobPostingById } from "@igbo/db/queries/portal-job-postings";
 import { getCommunityTrustSignals } from "@igbo/db/queries/cross-app";
+import {
+  countOpenViolationsForCompany,
+  countRecentViolationsForCompany,
+  getFlagsForPosting,
+  getAdminFlagById,
+  getOpenFlagForPosting,
+} from "@igbo/db/queries/portal-admin-flags";
 import { db } from "@igbo/db";
 import { portalEventBus } from "@/services/event-bus";
 import {
@@ -161,6 +194,11 @@ beforeEach(() => {
     changesRequestedRate: 0.1,
   });
   vi.mocked(getReviewHistoryForPosting).mockResolvedValue([]);
+  vi.mocked(getFlagsForPosting).mockResolvedValue([]);
+  vi.mocked(countOpenViolationsForCompany).mockResolvedValue(0);
+  vi.mocked(countRecentViolationsForCompany).mockResolvedValue(0);
+  vi.mocked(getAdminFlagById).mockResolvedValue(null);
+  vi.mocked(getOpenFlagForPosting).mockResolvedValue(null);
 });
 
 describe("getReviewQueue", () => {
@@ -789,5 +827,377 @@ describe("checkFastLaneEligibility", () => {
 
     expect(result.eligible).toBe(false);
     expect(result.reasons).toContain("Posting not found");
+  });
+
+  it("returns ineligible when recent policy violations exist (P-3.4A)", async () => {
+    vi.mocked(getJobPostingById).mockResolvedValue(PENDING_POSTING as never);
+    setupDbSelect([[{ trustBadge: true }], [{ cnt: 0 }]]);
+    vi.mocked(countRecentViolationsForCompany).mockResolvedValue(1);
+
+    const result = await checkFastLaneEligibility("posting-1");
+
+    expect(result.eligible).toBe(false);
+    expect(result.reasons).toContain("Policy violations found in last 60 days");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// P-3.4A: Flag service function tests
+// ---------------------------------------------------------------------------
+
+import {
+  flagPosting,
+  resolveFlagWithAction,
+  dismissFlag,
+  getViolationsQueue,
+} from "./admin-review-service";
+
+const ACTIVE_POSTING = {
+  ...BASE_POSTING,
+  id: "posting-active",
+  status: "active" as const,
+  companyId: "company-1",
+};
+
+const BASE_FLAG = {
+  id: "flag-1",
+  postingId: "posting-active",
+  adminUserId: "admin-1",
+  category: "other" as const,
+  severity: "low",
+  description: "This posting contains misleading information about the role.",
+  status: "open" as const,
+  autoPaused: false,
+  resolvedAt: null,
+  resolvedByUserId: null,
+  resolutionAction: null,
+  resolutionNote: null,
+  createdAt: new Date("2026-04-01"),
+};
+
+// A richer tx mock that supports insert().values().returning()
+function installFlagTxMock() {
+  const inserts: { table: unknown; values: unknown }[] = [];
+  const updates: { table: unknown; set: unknown }[] = [];
+  let insertReturning: unknown[] = [BASE_FLAG];
+  let updateReturning: unknown[] = [{ id: "posting-active" }];
+
+  const tx = {
+    insert: (table: unknown) => ({
+      values: (data: unknown) => {
+        inserts.push({ table, values: data });
+        return {
+          returning: () => Promise.resolve(insertReturning),
+        };
+      },
+    }),
+    update: (table: unknown) => ({
+      set: (data: unknown) => {
+        updates.push({ table, set: data });
+        return {
+          where: () => ({
+            returning: () => Promise.resolve(updateReturning),
+          }),
+        };
+      },
+    }),
+  };
+
+  vi.mocked(db.transaction).mockImplementation(async (fn: (tx: never) => Promise<unknown>) =>
+    fn(tx as never),
+  );
+
+  return {
+    inserts,
+    updates,
+    setInsertReturning: (rows: unknown[]) => {
+      insertReturning = rows;
+    },
+    setUpdateReturning: (rows: unknown[]) => {
+      updateReturning = rows;
+    },
+  };
+}
+
+describe("flagPosting", () => {
+  let cap: ReturnType<typeof installFlagTxMock>;
+
+  beforeEach(() => {
+    vi.mocked(getJobPostingById).mockResolvedValue(ACTIVE_POSTING as never);
+    vi.mocked(getOpenFlagForPosting).mockResolvedValue(null);
+    cap = installFlagTxMock();
+  });
+
+  it("creates a low-severity flag without pausing the posting", async () => {
+    const flag = await flagPosting(
+      "posting-active",
+      "admin-1",
+      "other",
+      "low",
+      "This posting contains misleading information about the role.",
+    );
+
+    expect(flag).toBeDefined();
+    expect(db.transaction).toHaveBeenCalledTimes(1);
+    // No posting status UPDATE for low severity
+    expect(cap.updates).toHaveLength(0);
+    expect(cap.inserts.length).toBeGreaterThanOrEqual(2); // flag insert + audit log
+    expect(vi.mocked(portalEventBus.emit)).toHaveBeenCalledWith(
+      "job.flagged",
+      expect.objectContaining({
+        jobId: "posting-active",
+        adminUserId: "admin-1",
+        severity: "low",
+      }),
+    );
+  });
+
+  it("auto-pauses posting for high-severity flag", async () => {
+    cap.setInsertReturning([{ ...BASE_FLAG, severity: "high", autoPaused: true }]);
+    cap.setUpdateReturning([{ id: "posting-active" }]);
+
+    const flag = await flagPosting(
+      "posting-active",
+      "admin-1",
+      "discriminatory_language",
+      "high",
+      "This posting contains discriminatory language targeting applicants.",
+    );
+
+    expect(flag).toBeDefined();
+    // UPDATE posting + UPDATE flag autoPaused
+    expect(cap.updates.length).toBeGreaterThanOrEqual(1);
+    expect(vi.mocked(portalEventBus.emit)).toHaveBeenCalledWith(
+      "job.flagged",
+      expect.objectContaining({ severity: "high" }),
+    );
+  });
+
+  it("throws 404 when posting not found", async () => {
+    vi.mocked(getJobPostingById).mockResolvedValue(null);
+
+    await expect(
+      flagPosting("bad-id", "admin-1", "other", "low", "Long enough description text here."),
+    ).rejects.toMatchObject({ status: 404 });
+  });
+
+  it("throws 409 when posting is not active", async () => {
+    vi.mocked(getJobPostingById).mockResolvedValue({
+      ...ACTIVE_POSTING,
+      status: "paused",
+    } as never);
+
+    await expect(
+      flagPosting("posting-active", "admin-1", "other", "low", "Long enough description text."),
+    ).rejects.toMatchObject({ status: 409 });
+  });
+
+  it("throws 409 when open flag already exists", async () => {
+    vi.mocked(getOpenFlagForPosting).mockResolvedValue(BASE_FLAG as never);
+
+    await expect(
+      flagPosting("posting-active", "admin-1", "other", "low", "This posting already has a flag."),
+    ).rejects.toMatchObject({ status: 409 });
+  });
+
+  it("throws 400 when description is too short", async () => {
+    await expect(
+      flagPosting("posting-active", "admin-1", "other", "low", "Short"),
+    ).rejects.toMatchObject({ status: 400 });
+  });
+});
+
+describe("resolveFlagWithAction", () => {
+  let cap: ReturnType<typeof installFlagTxMock>;
+
+  beforeEach(() => {
+    vi.mocked(getAdminFlagById).mockResolvedValue(BASE_FLAG as never);
+    vi.mocked(getJobPostingById).mockResolvedValue(ACTIVE_POSTING as never);
+    cap = installFlagTxMock();
+    // resolveAdminFlag returns the resolved flag
+    cap.setInsertReturning([]);
+    cap.setUpdateReturning([{ id: "flag-1" }]);
+  });
+
+  it("resolves flag with request_changes action", async () => {
+    await resolveFlagWithAction(
+      "flag-1",
+      "admin-1",
+      "request_changes",
+      "Please correct the salary information before resubmission.",
+    );
+
+    expect(db.transaction).toHaveBeenCalledTimes(1);
+    expect(cap.updates.length).toBeGreaterThanOrEqual(1);
+    const flagUpdate = cap.updates[0];
+    expect((flagUpdate?.set as Record<string, unknown>).status).toBe("resolved");
+    expect((flagUpdate?.set as Record<string, unknown>).resolutionAction).toBe("request_changes");
+  });
+
+  it("resolves flag with reject action", async () => {
+    await resolveFlagWithAction(
+      "flag-1",
+      "admin-1",
+      "reject",
+      "This posting is a confirmed scam and must be permanently removed.",
+    );
+
+    expect(db.transaction).toHaveBeenCalledTimes(1);
+    const flagUpdate = cap.updates[0];
+    expect((flagUpdate?.set as Record<string, unknown>).resolutionAction).toBe("reject");
+  });
+
+  it("throws 404 when flag not found", async () => {
+    vi.mocked(getAdminFlagById).mockResolvedValue(null);
+
+    await expect(
+      resolveFlagWithAction(
+        "bad-flag",
+        "admin-1",
+        "reject",
+        "This posting is a confirmed scam right here.",
+      ),
+    ).rejects.toMatchObject({ status: 404 });
+  });
+
+  it("throws 404 when flag status is not open", async () => {
+    vi.mocked(getAdminFlagById).mockResolvedValue({
+      ...BASE_FLAG,
+      status: "resolved",
+    } as never);
+
+    await expect(
+      resolveFlagWithAction(
+        "flag-1",
+        "admin-1",
+        "reject",
+        "This posting is a confirmed scam and fraud.",
+      ),
+    ).rejects.toMatchObject({ status: 404 });
+  });
+
+  it("throws 400 when note is too short", async () => {
+    await expect(
+      resolveFlagWithAction("flag-1", "admin-1", "reject", "Short"),
+    ).rejects.toMatchObject({ status: 400 });
+  });
+
+  it("throws 409 when max revisions reached for request_changes", async () => {
+    vi.mocked(getJobPostingById).mockResolvedValue({
+      ...ACTIVE_POSTING,
+      revisionCount: 3,
+    } as never);
+
+    await expect(
+      resolveFlagWithAction(
+        "flag-1",
+        "admin-1",
+        "request_changes",
+        "Please correct the salary information before resubmission.",
+      ),
+    ).rejects.toMatchObject({ status: 409 });
+  });
+});
+
+describe("dismissFlag", () => {
+  let cap: ReturnType<typeof installFlagTxMock>;
+
+  beforeEach(() => {
+    vi.mocked(getAdminFlagById).mockResolvedValue(BASE_FLAG as never);
+    cap = installFlagTxMock();
+    cap.setInsertReturning([]);
+    cap.setUpdateReturning([{ ...BASE_FLAG, status: "dismissed", autoPaused: false }]);
+  });
+
+  it("dismisses an open flag without restoring posting (autoPaused=false)", async () => {
+    await dismissFlag(
+      "flag-1",
+      "admin-1",
+      "Upon further review, this was not a genuine policy violation.",
+    );
+
+    expect(db.transaction).toHaveBeenCalledTimes(1);
+    const flagUpdate = cap.updates[0];
+    expect((flagUpdate?.set as Record<string, unknown>).status).toBe("dismissed");
+    expect((flagUpdate?.set as Record<string, unknown>).resolutionAction).toBe("dismiss");
+    // No second posting update since autoPaused=false
+    expect(cap.updates).toHaveLength(1);
+  });
+
+  it("restores posting to active when autoPaused=true", async () => {
+    vi.mocked(getAdminFlagById).mockResolvedValue({
+      ...BASE_FLAG,
+      autoPaused: true,
+    } as never);
+    cap.setUpdateReturning([{ ...BASE_FLAG, status: "dismissed", autoPaused: true }]);
+
+    await dismissFlag(
+      "flag-1",
+      "admin-1",
+      "Upon further review, this was not a genuine policy violation.",
+    );
+
+    // Should have 2 updates: flag dismiss + posting un-pause
+    expect(cap.updates).toHaveLength(2);
+    const postingUpdate = cap.updates[1];
+    expect((postingUpdate?.set as Record<string, unknown>).status).toBe("active");
+  });
+
+  it("throws 404 when flag not found", async () => {
+    vi.mocked(getAdminFlagById).mockResolvedValue(null);
+
+    await expect(
+      dismissFlag("bad-flag", "admin-1", "Upon review this was a false positive."),
+    ).rejects.toMatchObject({ status: 404 });
+  });
+
+  it("throws 400 when note is too short", async () => {
+    await expect(dismissFlag("flag-1", "admin-1", "Short")).rejects.toMatchObject({ status: 400 });
+  });
+});
+
+describe("getViolationsQueue", () => {
+  it("delegates to listOpenFlags with default options", async () => {
+    const { listOpenFlags } = await import("@igbo/db/queries/portal-admin-flags");
+    vi.mocked(listOpenFlags).mockResolvedValue({ items: [], total: 0 });
+
+    const result = await getViolationsQueue({});
+
+    expect(result).toEqual({ items: [], total: 0 });
+    expect(listOpenFlags).toHaveBeenCalledWith({ limit: 50, offset: 0 });
+  });
+});
+
+describe("buildConfidenceIndicator wired (P-3.4A)", () => {
+  it("violationCount reflects real query result", async () => {
+    vi.mocked(countOpenViolationsForCompany).mockResolvedValue(2);
+    vi.mocked(listPendingReviewPostings).mockResolvedValue({
+      items: [{ posting: BASE_POSTING, company: BASE_COMPANY, employerName: "John" }],
+      total: 1,
+    });
+
+    const result = await getReviewQueue({ page: 1, pageSize: 20 });
+
+    expect(result.items[0]?.confidenceIndicator.violationCount).toBe(2);
+    expect(result.items[0]?.confidenceIndicator.level).toBe("low");
+  });
+});
+
+describe("getReviewDetail includes flags (P-3.4A)", () => {
+  it("returns flags from getFlagsForPosting", async () => {
+    vi.mocked(getPostingWithReviewContext).mockResolvedValue({
+      posting: BASE_POSTING,
+      company: BASE_COMPANY,
+      employerName: "John Doe",
+      totalPostings: 5,
+      approvedCount: 4,
+      rejectedCount: 1,
+    });
+    vi.mocked(getFlagsForPosting).mockResolvedValue([BASE_FLAG as never]);
+
+    const result = await getReviewDetail("posting-1");
+
+    expect(result?.flags).toHaveLength(1);
+    expect(result?.flags[0]?.id).toBe("flag-1");
   });
 });
