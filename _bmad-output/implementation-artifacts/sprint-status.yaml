@@ -258,7 +258,7 @@ development_status:
   portal-epic-1-spike-2-ats-dnd: done                               # Resolved: SPIKE-2 PoC implemented (branch spike/2-ats-dnd, commit c85100e9); findings incorporated into P-2.9 (PR #37)
 
   # Portal Epic 2: Seeker Profiles & Job Applications
-  portal-epic-2: in-progress
+  portal-epic-2: done
   p-2-1-seeker-profile-creation-community-trust-data: done
   p-2-2-seeker-preferences-cv-upload-visibility: done
   p-2-3-seeker-onboarding-flow: done
@@ -271,7 +271,16 @@ development_status:
   p-2-9-ats-pipeline-view-stage-management: done                    # PR #37 open (feat/p-2-9-ats-pipeline)
   p-2-10-employer-notes-bulk-actions: done
   p-2-11-bulk-candidate-export: done
-  portal-epic-2-retrospective: optional
+  portal-epic-2-retrospective: done
+
+  # Portal Epic 2 — Retro Action Items
+  portal-epic-2-ai-9-test-factory-pattern: backlog              # apps/portal/src/test/factories.ts — before P-4 start
+  portal-epic-2-ai-10-apierror-docs: backlog                    # JSDoc on toProblemDetails() + Playbook error handling
+  portal-epic-2-ai-11-link-import-ci: backlog                   # CI rule: next/link → @/i18n/navigation in portal
+  portal-epic-2-ai-12-spec-codebase-verification: done          # Story template Gate 1 addition
+  portal-epic-2-ai-13-ts-gotchas-playbook: backlog              # Carried from AI-8: Zod, JSONB, transaction mock, useSession, etc.
+  portal-epic-2-ai-14-404-not-403-invariant: backlog            # Playbook Security section
+  portal-epic-2-ai-15-model-selection-guide: backlog            # Playbook: sonnet vs opus decision framework
 
   # Portal Epic 3: Job Admin Review & Quality Assurance
   portal-epic-3: in-progress

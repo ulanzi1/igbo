@@ -8,6 +8,9 @@ Add `// ci-allow-<reason>` above the relevant line, with a justification comment
 | ---- | ------ | ------------- |
 | `apps/community/ci-checks.test.ts` | `literal-jsx` | `export function Allow() { |
 | `apps/community/ci-checks.test.ts` | `literal-jsx` | return ( |
+| `apps/community/ci-checks.test.ts` | `next-link-import` | ` opt-out on preceding line", () => { |
+| `apps/community/ci-checks.test.ts` | `next-link-import` | "apps/portal/src/components/Allowed.tsx", |
+| `apps/community/ci-checks.test.ts` | `next-link-import` | const knownPath = KNOWN_VIOLATIONS[0]!; |
 | `apps/community/ci-checks.test.ts` | `no-server-only` | in first 5 lines", () => { |
 | `apps/community/ci-checks.test.ts` | `no-server-only` | "apps/community/src/services/event-bus.ts", |
 | `apps/community/ci-checks.test.ts` | `process-env` | (Tier 3 suppress)", () => { |

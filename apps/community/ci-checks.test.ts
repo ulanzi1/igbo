@@ -5,7 +5,7 @@
  * This is the SINGLE authoritative test surface for ALL scanners (F8 fix — no co-located
  * scripts/ci-checks/check-*.test.ts files that would be missed by the vitest config).
  */
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "fs";
 import { join, resolve } from "path";
 import { tmpdir } from "os";
@@ -14,7 +14,11 @@ import { scanDirectProcessEnv } from "../../scripts/ci-checks/check-process-env"
 import { scanMissingServerOnly } from "../../scripts/ci-checks/check-server-only";
 import { scanHardcodedJsxStrings } from "../../scripts/ci-checks/check-hardcoded-jsx-strings";
 import { scanUnsanitizedHtml } from "../../scripts/ci-checks/check-unsanitized-html";
-import { generateAllowlistRegistry } from "../../scripts/ci-checks/index";
+import { generateAllowlistRegistry, run } from "../../scripts/ci-checks/index";
+import {
+  scanNextLinkImports,
+  KNOWN_VIOLATIONS,
+} from "../../scripts/ci-checks/check-next-link-import";
 
 let tmpDir: string;
 
@@ -796,18 +800,172 @@ describe("allowlist registry drift", () => {
   });
 });
 
+// ─── next/link import scanner ──────────────────────────────────────────────────
+
+describe("scanNextLinkImports", () => {
+  it("detects `import Link from 'next/link'` in portal src", () => {
+    createFile(
+      "apps/portal/src/components/MyLink.tsx",
+      `import Link from "next/link";\nexport default function MyLink() { return <Link href="/">Home</Link>; }`,
+    );
+    const results = scanNextLinkImports(tmpDir);
+    expect(results).toHaveLength(1);
+    expect(results[0].check).toBe("next-link-import");
+    expect(results[0].file).toBe("apps/portal/src/components/MyLink.tsx");
+  });
+
+  it("detects `import { default as Link } from 'next/link'`", () => {
+    createFile(
+      "apps/portal/src/components/AliasLink.tsx",
+      `import { default as Link } from "next/link";\nexport default function A() { return <Link href="/">X</Link>; }`,
+    );
+    const results = scanNextLinkImports(tmpDir);
+    expect(results).toHaveLength(1);
+  });
+
+  it("ignores `import { Link } from '@/i18n/navigation'`", () => {
+    createFile(
+      "apps/portal/src/components/Good.tsx",
+      `import { Link } from "@/i18n/navigation";\nexport default function G() { return <Link href="/">OK</Link>; }`,
+    );
+    const results = scanNextLinkImports(tmpDir);
+    expect(results).toHaveLength(0);
+  });
+
+  it("respects `// ci-allow-next-link-import` opt-out on preceding line", () => {
+    createFile(
+      "apps/portal/src/components/Allowed.tsx",
+      `// ci-allow-next-link-import\nimport Link from "next/link";\nexport default function A() { return <Link href="/">X</Link>; }`,
+    );
+    const results = scanNextLinkImports(tmpDir);
+    expect(results).toHaveLength(0);
+  });
+
+  it("scopes to portal only — community file with next/link is not flagged", () => {
+    createFile(
+      "apps/community/src/components/CommunityLink.tsx",
+      `import Link from "next/link";\nexport default function A() { return <Link href="/">X</Link>; }`,
+    );
+    const results = scanNextLinkImports(tmpDir);
+    expect(results).toHaveLength(0);
+  });
+
+  it("returns result for file at a KNOWN_VIOLATIONS path", () => {
+    const knownPath = KNOWN_VIOLATIONS[0]!;
+    createFile(knownPath, `import Link from "next/link";\nexport {};`);
+    const results = scanNextLinkImports(tmpDir);
+    expect(results).toHaveLength(1);
+    expect(results[0].file).toBe(knownPath);
+  });
+
+  it("returns result for file NOT in KNOWN_VIOLATIONS", () => {
+    createFile(
+      "apps/portal/src/components/brand-new.tsx",
+      `import Link from "next/link";\nexport {};`,
+    );
+    const results = scanNextLinkImports(tmpDir);
+    expect(results).toHaveLength(1);
+  });
+
+  it("skips `import type { Link } from 'next/link'`", () => {
+    createFile(
+      "apps/portal/src/components/TypeOnly.tsx",
+      `import type { Link } from "next/link";\nexport {};`,
+    );
+    const results = scanNextLinkImports(tmpDir);
+    expect(results).toHaveLength(0);
+  });
+
+  it("known-violation file with opt-out comment returns no result", () => {
+    const knownPath = KNOWN_VIOLATIONS[0]!;
+    createFile(
+      knownPath,
+      `// ci-allow-next-link-import\nimport Link from "next/link";\nexport {};`,
+    );
+    const results = scanNextLinkImports(tmpDir);
+    expect(results).toHaveLength(0);
+  });
+});
+
+describe("scanNextLinkImports — run() integration", () => {
+  it("new violations are hard failures, known violations are warnings", async () => {
+    // Create a known-violation file
+    const knownPath = KNOWN_VIOLATIONS[0]!;
+    createFile(knownPath, `import Link from "next/link";\nexport {};`);
+    // Create a new-violation file (NOT in KNOWN_VIOLATIONS)
+    createFile(
+      "apps/portal/src/components/new-violation.tsx",
+      `import Link from "next/link";\nexport {};`,
+    );
+
+    // Mock process.cwd to use tmpDir
+    const cwdSpy = vi.spyOn(process, "cwd").mockReturnValue(tmpDir);
+    // Mock process.exit to prevent killing the test runner
+    const exitSpy = vi.spyOn(process, "exit").mockImplementation((code) => {
+      throw new Error(`exit:${code}`);
+    });
+    // Capture console output
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+
+    // Mock all other scanners to return [] — isolate to next-link-import only
+    const staleModule = await import("../../scripts/ci-checks/check-stale-imports");
+    const envModule = await import("../../scripts/ci-checks/check-process-env");
+    const serverOnlyModule = await import("../../scripts/ci-checks/check-server-only");
+    const jsxModule = await import("../../scripts/ci-checks/check-hardcoded-jsx-strings");
+    const htmlModule = await import("../../scripts/ci-checks/check-unsanitized-html");
+    const indexModule = await import("../../scripts/ci-checks/index");
+
+    vi.spyOn(staleModule, "scanForStaleImports").mockReturnValue([]);
+    vi.spyOn(envModule, "scanDirectProcessEnv").mockReturnValue([]);
+    vi.spyOn(serverOnlyModule, "scanMissingServerOnly").mockReturnValue([]);
+    vi.spyOn(jsxModule, "scanHardcodedJsxStrings").mockReturnValue([]);
+    vi.spyOn(htmlModule, "scanUnsanitizedHtml").mockReturnValue([]);
+    vi.spyOn(indexModule, "generateAllowlistRegistry").mockReturnValue({
+      content: "",
+      violations: [],
+    });
+
+    try {
+      run();
+    } catch (e: unknown) {
+      expect((e as Error).message).toBe("exit:1");
+    }
+
+    // Verify: new violation appears in console.error
+    const errorOutput = errorSpy.mock.calls.map((c) => c.join(" ")).join("\n");
+    expect(errorOutput).toContain("new-violation.tsx");
+
+    // Verify: known violation appears in console.warn
+    const warnOutput = warnSpy.mock.calls.map((c) => c.join(" ")).join("\n");
+    expect(warnOutput).toContain("next-link-import (known)");
+
+    cwdSpy.mockRestore();
+    exitSpy.mockRestore();
+    errorSpy.mockRestore();
+    warnSpy.mockRestore();
+    logSpy.mockRestore();
+  });
+});
+
 // ─── Integration canary ───────────────────────────────────────────────────────
 
 describe("integration canary — real codebase", () => {
   const ROOT = resolve(__dirname, "../..");
 
-  it("all five scanners report zero violations against current codebase", () => {
+  it("all six scanners report zero violations against current codebase", () => {
+    // next-link-import: filter out known violations (they are warnings, not failures)
+    const knownSet = new Set(KNOWN_VIOLATIONS);
+    const nextLinkNew = scanNextLinkImports(ROOT).filter((r) => !knownSet.has(r.file));
+
     const results = [
       ...scanForStaleImports(ROOT),
       ...scanDirectProcessEnv(ROOT),
       ...scanMissingServerOnly(ROOT),
       ...scanHardcodedJsxStrings(ROOT),
       ...scanUnsanitizedHtml(ROOT),
+      ...nextLinkNew,
     ];
     expect(
       results,
