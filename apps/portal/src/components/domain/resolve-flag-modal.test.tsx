@@ -67,7 +67,7 @@ describe("ResolveFlagModal", () => {
   });
 
   it("submit enabled after selecting action and filling note", async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ pointerEventsCheck: 0 });
     renderWithPortalProviders(<ResolveFlagModal {...BASE_PROPS} />);
 
     await user.click(screen.getByLabelText(/Request changes/));
@@ -80,7 +80,7 @@ describe("ResolveFlagModal", () => {
   });
 
   it("calls resolve endpoint for request_changes", async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ pointerEventsCheck: 0 });
     renderWithPortalProviders(<ResolveFlagModal {...BASE_PROPS} />);
 
     await user.click(screen.getByLabelText(/Request changes/));
@@ -102,7 +102,7 @@ describe("ResolveFlagModal", () => {
   });
 
   it("calls resolve endpoint for reject", async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ pointerEventsCheck: 0 });
     renderWithPortalProviders(<ResolveFlagModal {...BASE_PROPS} />);
 
     await user.click(screen.getByLabelText(/Reject posting/));
@@ -124,7 +124,7 @@ describe("ResolveFlagModal", () => {
   });
 
   it("calls dismiss endpoint for dismiss action", async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ pointerEventsCheck: 0 });
     renderWithPortalProviders(<ResolveFlagModal {...BASE_PROPS} />);
 
     await user.click(screen.getByLabelText(/Dismiss/));

@@ -68,7 +68,7 @@ describe("FlagPostingModal", () => {
   });
 
   it("proceed button enabled after all fields filled", async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ pointerEventsCheck: 0 });
     renderWithPortalProviders(<FlagPostingModal {...BASE_PROPS} />);
 
     // Select category
@@ -88,7 +88,7 @@ describe("FlagPostingModal", () => {
   });
 
   it("shows confirmation step after clicking proceed", async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ pointerEventsCheck: 0 });
     renderWithPortalProviders(<FlagPostingModal {...BASE_PROPS} />);
 
     await user.click(screen.getByTestId("flag-category-select"));
@@ -105,7 +105,7 @@ describe("FlagPostingModal", () => {
   });
 
   it("shows high severity warning in confirm step", async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ pointerEventsCheck: 0 });
     renderWithPortalProviders(<FlagPostingModal {...BASE_PROPS} />);
 
     await user.click(screen.getByTestId("flag-category-select"));
@@ -121,7 +121,7 @@ describe("FlagPostingModal", () => {
   });
 
   it("does NOT show high severity warning for low severity", async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ pointerEventsCheck: 0 });
     renderWithPortalProviders(<FlagPostingModal {...BASE_PROPS} />);
 
     await user.click(screen.getByTestId("flag-category-select"));
@@ -137,7 +137,7 @@ describe("FlagPostingModal", () => {
   });
 
   it("submits the flag on confirm", async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ pointerEventsCheck: 0 });
     renderWithPortalProviders(<FlagPostingModal {...BASE_PROPS} />);
 
     await user.click(screen.getByTestId("flag-category-select"));
@@ -162,7 +162,7 @@ describe("FlagPostingModal", () => {
   });
 
   it("back button returns to form step", async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ pointerEventsCheck: 0 });
     renderWithPortalProviders(<FlagPostingModal {...BASE_PROPS} />);
 
     await user.click(screen.getByTestId("flag-category-select"));
