@@ -31,7 +31,7 @@ export default async function ViolationsPage({ params }: PageProps) {
         {t("violationsTitle")}
       </h1>
 
-      <ViolationsTable items={items} locale={locale} onResolved={() => {}} />
+      <ViolationsTable items={items} onResolved={() => {}} />
     </main>
   );
 }

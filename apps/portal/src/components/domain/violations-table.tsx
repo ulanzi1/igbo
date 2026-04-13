@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { useRouter } from "next/navigation";
 import { useTranslations, useFormatter } from "next-intl";
 import {
@@ -19,7 +19,6 @@ import type { OpenFlagWithContext } from "@igbo/db/queries/portal-admin-flags";
 
 interface ViolationsTableProps {
   items: OpenFlagWithContext[];
-  locale: string;
   onResolved: () => void;
 }
 
@@ -59,7 +58,7 @@ function useSeverityLabel() {
   };
 }
 
-export function ViolationsTable({ items, locale, onResolved }: ViolationsTableProps) {
+export function ViolationsTable({ items, onResolved }: ViolationsTableProps) {
   const t = useTranslations("Portal.admin");
   const format = useFormatter();
   const router = useRouter();
@@ -120,7 +119,7 @@ export function ViolationsTable({ items, locale, onResolved }: ViolationsTablePr
                     variant="ghost"
                     aria-label={`${t("violationsViewPosting")} ${item.postingTitle}`}
                   >
-                    <Link href={`/${locale}/admin/jobs/${item.postingId}/review`}>
+                    <Link href={`/admin/jobs/${item.postingId}/review`}>
                       {t("violationsViewPosting")}
                     </Link>
                   </Button>
