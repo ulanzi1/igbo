@@ -5,7 +5,10 @@ import { scanDirectProcessEnv } from "./check-process-env";
 import { scanMissingServerOnly } from "./check-server-only";
 import { scanHardcodedJsxStrings } from "./check-hardcoded-jsx-strings";
 import { scanUnsanitizedHtml } from "./check-unsanitized-html";
-import { scanNextLinkImports, KNOWN_VIOLATIONS as NEXT_LINK_KNOWN_VIOLATIONS } from "./check-next-link-import";
+import {
+  scanNextLinkImports,
+  KNOWN_VIOLATIONS as NEXT_LINK_KNOWN_VIOLATIONS,
+} from "./check-next-link-import";
 import type { CheckResult } from "./types";
 
 // All known ci-allow-<reason> tags (existing + new)
@@ -204,9 +207,7 @@ function run(): void {
     : scanUnsanitizedHtml(rootDir);
 
   // next-link-import scanner with known-violation filtering
-  const nextLinkAll = disabledChecks.has("next-link-import")
-    ? []
-    : scanNextLinkImports(rootDir);
+  const nextLinkAll = disabledChecks.has("next-link-import") ? [] : scanNextLinkImports(rootDir);
   const knownSet = new Set(NEXT_LINK_KNOWN_VIOLATIONS);
   const nextLinkNew = nextLinkAll.filter((r) => !knownSet.has(r.file));
   const nextLinkKnown = nextLinkAll.filter((r) => knownSet.has(r.file));

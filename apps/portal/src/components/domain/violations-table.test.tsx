@@ -23,7 +23,9 @@ vi.mock("next/navigation", () => ({
 }));
 
 vi.mock("@/i18n/navigation", () => ({
-  Link: ({ children, ...props }: Record<string, unknown>) => <a {...props}>{children}</a>,
+  Link: ({ children, ...props }: { children: React.ReactNode; [key: string]: unknown }) => (
+    <a {...props}>{children}</a>
+  ),
 }));
 
 vi.mock("next-auth/react", () => ({
