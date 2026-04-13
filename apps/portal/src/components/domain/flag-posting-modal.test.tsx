@@ -1,10 +1,11 @@
+import React from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { axe, toHaveNoViolations } from "jest-axe";
+import { fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { renderWithPortalProviders, screen, waitFor } from "@/test-utils/render";
-import { FlagPostingModal } from "./flag-posting-modal";
 
-// jsdom doesn't implement pointer capture or scrollIntoView — required by Radix UI Select
+// jsdom doesn't implement pointer capture or scrollIntoView — required by Radix UI
 Object.assign(Element.prototype, {
   hasPointerCapture: () => false,
   setPointerCapture: () => undefined,
@@ -12,7 +13,6 @@ Object.assign(Element.prototype, {
   scrollIntoView: () => undefined,
 });
 
-// Radix RadioGroup also needs ResizeObserver
 global.ResizeObserver = class ResizeObserver {
   observe() {}
   unobserve() {}
@@ -21,10 +21,44 @@ global.ResizeObserver = class ResizeObserver {
 
 expect.extend(toHaveNoViolations);
 
+// Mock Radix Select with native <select>/<option> to avoid CI timeouts.
+// Collects options from SelectContent children and renders them inside <select>.
+vi.mock("@/components/ui/select", () => ({
+  Select: ({
+    children,
+    value,
+    onValueChange,
+  }: {
+    children: React.ReactNode;
+    value: string;
+    onValueChange: (v: string) => void;
+  }) => {
+    let testId: string | undefined;
+    React.Children.forEach(children, (child: unknown) => {
+      const el = child as React.ReactElement<Record<string, unknown>> | null;
+      if (el?.props?.["data-testid"]) testId = el.props["data-testid"] as string;
+    });
+    return (
+      <select data-testid={testId} value={value} onChange={(e) => onValueChange(e.target.value)}>
+        <option value="">--</option>
+        {children}
+      </select>
+    );
+  },
+  SelectTrigger: () => null,
+  SelectValue: () => null,
+  SelectContent: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  SelectItem: ({ value, children }: { value: string; children: React.ReactNode }) => (
+    <option value={value}>{children}</option>
+  ),
+}));
+
 vi.mock("next-auth/react", () => ({
   useSession: () => ({ data: null, status: "unauthenticated" }),
   SessionProvider: ({ children }: { children: React.ReactNode }) => children,
 }));
+
+import { FlagPostingModal } from "./flag-posting-modal";
 
 vi.mock("sonner", () => ({
   toast: { success: vi.fn(), error: vi.fn() },
@@ -72,8 +106,9 @@ describe("FlagPostingModal", () => {
     renderWithPortalProviders(<FlagPostingModal {...BASE_PROPS} />);
 
     // Select category
-    await user.click(screen.getByTestId("flag-category-select"));
-    await user.click(screen.getByText("Other"));
+    fireEvent.change(screen.getByTestId("flag-category-select"), {
+      target: { value: "other" },
+    });
 
     // Select severity
     await user.click(screen.getByLabelText(/Low/));
@@ -91,8 +126,9 @@ describe("FlagPostingModal", () => {
     const user = userEvent.setup({ pointerEventsCheck: 0 });
     renderWithPortalProviders(<FlagPostingModal {...BASE_PROPS} />);
 
-    await user.click(screen.getByTestId("flag-category-select"));
-    await user.click(screen.getByText("Other"));
+    fireEvent.change(screen.getByTestId("flag-category-select"), {
+      target: { value: "other" },
+    });
     await user.click(screen.getByLabelText(/Low/));
     await user.type(
       screen.getByTestId("flag-description-textarea"),
@@ -108,8 +144,9 @@ describe("FlagPostingModal", () => {
     const user = userEvent.setup({ pointerEventsCheck: 0 });
     renderWithPortalProviders(<FlagPostingModal {...BASE_PROPS} />);
 
-    await user.click(screen.getByTestId("flag-category-select"));
-    await user.click(screen.getByText("Other"));
+    fireEvent.change(screen.getByTestId("flag-category-select"), {
+      target: { value: "other" },
+    });
     await user.click(screen.getByLabelText(/High/));
     await user.type(
       screen.getByTestId("flag-description-textarea"),
@@ -124,8 +161,9 @@ describe("FlagPostingModal", () => {
     const user = userEvent.setup({ pointerEventsCheck: 0 });
     renderWithPortalProviders(<FlagPostingModal {...BASE_PROPS} />);
 
-    await user.click(screen.getByTestId("flag-category-select"));
-    await user.click(screen.getByText("Other"));
+    fireEvent.change(screen.getByTestId("flag-category-select"), {
+      target: { value: "other" },
+    });
     await user.click(screen.getByLabelText(/Low/));
     await user.type(
       screen.getByTestId("flag-description-textarea"),
@@ -140,8 +178,9 @@ describe("FlagPostingModal", () => {
     const user = userEvent.setup({ pointerEventsCheck: 0 });
     renderWithPortalProviders(<FlagPostingModal {...BASE_PROPS} />);
 
-    await user.click(screen.getByTestId("flag-category-select"));
-    await user.click(screen.getByText("Other"));
+    fireEvent.change(screen.getByTestId("flag-category-select"), {
+      target: { value: "other" },
+    });
     await user.click(screen.getByLabelText(/Low/));
     await user.type(
       screen.getByTestId("flag-description-textarea"),
@@ -165,8 +204,9 @@ describe("FlagPostingModal", () => {
     const user = userEvent.setup({ pointerEventsCheck: 0 });
     renderWithPortalProviders(<FlagPostingModal {...BASE_PROPS} />);
 
-    await user.click(screen.getByTestId("flag-category-select"));
-    await user.click(screen.getByText("Other"));
+    fireEvent.change(screen.getByTestId("flag-category-select"), {
+      target: { value: "other" },
+    });
     await user.click(screen.getByLabelText(/Low/));
     await user.type(
       screen.getByTestId("flag-description-textarea"),
