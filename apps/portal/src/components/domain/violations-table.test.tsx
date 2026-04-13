@@ -22,6 +22,10 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: vi.fn(), push: vi.fn(), replace: vi.fn() }),
 }));
 
+vi.mock("@/i18n/navigation", () => ({
+  Link: ({ children, ...props }: Record<string, unknown>) => <a {...props}>{children}</a>,
+}));
+
 vi.mock("next-auth/react", () => ({
   useSession: () => ({ data: null, status: "unauthenticated" }),
   SessionProvider: ({ children }: { children: React.ReactNode }) => children,
@@ -53,7 +57,6 @@ const BASE_FLAG = {
 };
 
 const BASE_PROPS = {
-  locale: "en",
   onResolved: vi.fn(),
 };
 
