@@ -13,7 +13,7 @@ import { findUserById } from "@igbo/db/queries/auth-queries";
 import { VerificationReviewDetail } from "@/components/domain/verification-review-detail";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 
 interface PageProps {
   params: Promise<{ locale: string; verificationId: string }>;
