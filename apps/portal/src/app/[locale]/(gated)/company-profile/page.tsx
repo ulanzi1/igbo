@@ -2,7 +2,9 @@ import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { auth } from "@igbo/auth";
 import { getCompanyByOwnerId } from "@igbo/db/queries/portal-companies";
+import { getVerificationStatus } from "@/services/employer-verification-service";
 import { CompanyProfileForm } from "@/components/flow/company-profile-form";
+import { VerificationStatusSection } from "@/components/domain/verification-status-section";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -24,6 +26,9 @@ export default async function CompanyProfilePage({ params, searchParams }: PageP
   }
 
   const profile = await getCompanyByOwnerId(session.user.id);
+  const verificationData = profile
+    ? await getVerificationStatus(profile.id).catch(() => null)
+    : null;
 
   const isCreateMode = !profile;
   const isEditMode = !!profile && edit === "true";
@@ -96,6 +101,14 @@ export default async function CompanyProfilePage({ params, searchParams }: PageP
               <span className="font-medium">{t("cultureInfo")}: </span>
               {profile.cultureInfo}
             </div>
+          )}
+          {verificationData && (
+            <VerificationStatusSection
+              status={verificationData.status}
+              submittedAt={verificationData.latestVerification?.submittedAt ?? null}
+              reviewedAt={verificationData.latestVerification?.reviewedAt ?? null}
+              adminNotes={verificationData.latestVerification?.adminNotes ?? null}
+            />
           )}
         </CardContent>
       </Card>

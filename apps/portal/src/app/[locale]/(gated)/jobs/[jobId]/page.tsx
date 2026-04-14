@@ -9,6 +9,7 @@ import { sanitizeHtml } from "@/lib/sanitize";
 import { ViewTracker } from "@/components/domain/view-tracker";
 import { ApplyButton } from "@/components/domain/apply-button";
 import { ReportPostingButton } from "@/components/domain/report-posting-button";
+import { TrustBadge } from "@/components/domain/trust-badge";
 
 interface PageProps {
   params: Promise<{ locale: string; jobId: string }>;
@@ -76,7 +77,10 @@ export default async function JobDetailPage({ params }: PageProps) {
       <div className="mb-6">
         <div className="flex items-start justify-between gap-2">
           <div>
-            <h1 className="text-3xl font-bold">{posting.title}</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-3xl font-bold">{posting.title}</h1>
+              {company.trustBadge && <TrustBadge />}
+            </div>
             <p className="mt-1 text-xl font-medium text-muted-foreground">{company.name}</p>
           </div>
           {canReport && <ReportPostingButton postingId={posting.id} postingTitle={posting.title} />}

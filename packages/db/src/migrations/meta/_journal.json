@@ -477,6 +477,13 @@
       "when": 1708000067000,
       "tag": "0067_portal_posting_reports",
       "breakpoints": true
+    },
+    {
+      "idx": 68,
+      "version": "7",
+      "when": 1708000068000,
+      "tag": "0068_employer_verification",
+      "breakpoints": true
     }
   ]
 }

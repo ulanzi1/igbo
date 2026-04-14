@@ -1,6 +1,7 @@
 import { useTranslations, useLocale } from "next-intl";
 import { SalaryDisplay } from "@/components/semantic/salary-display";
 import { CulturalContextBadges } from "@/components/semantic/cultural-context-badges";
+import { TrustBadge } from "@/components/domain/trust-badge";
 import type React from "react";
 
 interface Posting {
@@ -23,6 +24,7 @@ interface Posting {
 interface JobPostingCardProps {
   posting: Posting;
   actions?: React.ReactNode;
+  trustBadge?: boolean;
 }
 
 const STATUS_BADGE_CLASSES: Record<string, string> = {
@@ -35,7 +37,7 @@ const STATUS_BADGE_CLASSES: Record<string, string> = {
   rejected: "bg-red-100 text-red-700",
 };
 
-export function JobPostingCard({ posting, actions }: JobPostingCardProps) {
+export function JobPostingCard({ posting, actions, trustBadge }: JobPostingCardProps) {
   const t = useTranslations("Portal.posting");
   const et = useTranslations("Portal.expiry");
   const locale = useLocale();
@@ -65,7 +67,10 @@ export function JobPostingCard({ posting, actions }: JobPostingCardProps) {
     <div className="rounded-lg border border-border bg-card p-4">
       <div className="flex items-start justify-between">
         <div className="min-w-0 flex-1">
-          <h3 className="truncate font-medium">{posting.title}</h3>
+          <div className="flex items-center gap-2">
+            <h3 className="truncate font-medium">{posting.title}</h3>
+            {trustBadge && <TrustBadge />}
+          </div>
           <div className="mt-1 flex flex-wrap items-center gap-2">
             <span
               className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-medium ${badgeClass}`}

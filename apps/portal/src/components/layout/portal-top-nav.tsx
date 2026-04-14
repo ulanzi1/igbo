@@ -56,7 +56,9 @@ export function PortalTopNav({ className }: { className?: string }) {
       label: t("screeningKeywords"),
     },
     { key: "violations", href: `/${locale}/admin/violations`, label: t("violations") },
+    { key: "verifications", href: `/${locale}/admin/verifications`, label: t("verifications") },
     { key: "reports", href: `/${locale}/admin/reports`, label: t("reports") },
+    { key: "analytics", href: `/${locale}/admin/analytics`, label: t("analytics") },
     { key: "settings", href: `/${locale}/admin/settings`, label: t("settings") },
   ];
 

@@ -33,8 +33,8 @@ describe("PORTAL_ERRORS", () => {
     }
   });
 
-  it("has exactly 21 error codes", () => {
-    expect(Object.keys(PORTAL_ERRORS)).toHaveLength(21);
+  it("has exactly 23 error codes", () => {
+    expect(Object.keys(PORTAL_ERRORS)).toHaveLength(23);
   });
 
   it("has DUPLICATE_SEEKER_PROFILE key", () => {
