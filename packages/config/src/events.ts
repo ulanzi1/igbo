@@ -129,6 +129,16 @@ export interface JobFlaggedEvent extends BaseEvent {
   autoPaused: boolean;
 }
 
+export interface PostingReportedEvent extends BaseEvent {
+  jobId: string;
+  reportId: string;
+  reporterUserId: string;
+  category: string;
+  reportCount: number;
+  priorityEscalated: boolean;
+  autoPaused: boolean;
+}
+
 // Portal event map — used by portal EventBus
 export interface PortalEventMap {
   "job.published": JobPublishedEvent;
@@ -143,6 +153,7 @@ export interface PortalEventMap {
   "job.shared_to_community": JobSharedToCommunityEvent;
   "job.reviewed": JobReviewedEvent;
   "job.flagged": JobFlaggedEvent;
+  "posting.reported": PostingReportedEvent;
 }
 
 export type PortalEventName = keyof PortalEventMap;

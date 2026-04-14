@@ -288,7 +288,7 @@ development_status:
   p-3-2-approve-reject-request-changes-workflow: done
   p-3-3-rule-based-content-screening-mvp: done
   p-3-4a-admin-policy-violation-flagging: done
-  p-3-4b-user-reporting-escalation-queue: backlog
+  p-3-4b-user-reporting-escalation-queue: done
   p-3-5-employer-verification-flow-with-tier-impact: backlog
   p-3-6-platform-wide-admin-analytics: backlog
   p-3-7-admin-audit-log-decision-traceability: backlog

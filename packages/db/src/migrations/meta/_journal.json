@@ -470,6 +470,13 @@
       "when": 1708000066000,
       "tag": "0066_portal_admin_flags",
       "breakpoints": true
+    },
+    {
+      "idx": 67,
+      "version": "7",
+      "when": 1708000067000,
+      "tag": "0067_portal_posting_reports",
+      "breakpoints": true
     }
   ]
 }

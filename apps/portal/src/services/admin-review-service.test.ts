@@ -30,6 +30,11 @@ vi.mock("@igbo/db/queries/portal-admin-flags", () => ({
   countRecentViolationsForCompany: vi.fn(),
 }));
 
+vi.mock("@igbo/db/queries/portal-posting-reports", () => ({
+  countActiveReportsForCompanyPostings: vi.fn(),
+  countActiveReportsForPosting: vi.fn(),
+}));
+
 // Mock db for transaction-based service functions
 vi.mock("@igbo/db", () => ({
   db: {
@@ -103,6 +108,10 @@ import {
   getAdminFlagById,
   getOpenFlagForPosting,
 } from "@igbo/db/queries/portal-admin-flags";
+import {
+  countActiveReportsForCompanyPostings,
+  countActiveReportsForPosting,
+} from "@igbo/db/queries/portal-posting-reports";
 import { db } from "@igbo/db";
 import { portalEventBus } from "@/services/event-bus";
 import {
@@ -197,6 +206,8 @@ beforeEach(() => {
   vi.mocked(getFlagsForPosting).mockResolvedValue([]);
   vi.mocked(countOpenViolationsForCompany).mockResolvedValue(0);
   vi.mocked(countRecentViolationsForCompany).mockResolvedValue(0);
+  vi.mocked(countActiveReportsForCompanyPostings).mockResolvedValue(0);
+  vi.mocked(countActiveReportsForPosting).mockResolvedValue(0);
   vi.mocked(getAdminFlagById).mockResolvedValue(null);
   vi.mocked(getOpenFlagForPosting).mockResolvedValue(null);
 });
@@ -249,8 +260,7 @@ describe("getReviewQueue", () => {
   });
 
   it("confidence indicator is low when violations > 0 (placeholder threshold)", async () => {
-    // violationCount is hardcoded to 0 in P-3.1, so this tests the logic directly
-    // In P-3.1, level will be "high" or "medium" since violations are always 0
+    // violations and reports both default to 0 in beforeEach mocks
     vi.mocked(listPendingReviewPostings).mockResolvedValue({
       items: [{ posting: BASE_POSTING, company: BASE_COMPANY, employerName: "John" }],
       total: 1,

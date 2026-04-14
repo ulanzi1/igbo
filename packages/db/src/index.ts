@@ -47,6 +47,7 @@ import * as portalSeekerProfilesSchema from "./schema/portal-seeker-profiles";
 import * as portalSeekerPreferencesSchema from "./schema/portal-seeker-preferences";
 import * as portalSeekerCvsSchema from "./schema/portal-seeker-cvs";
 import * as portalAdminFlagsSchema from "./schema/portal-admin-flags";
+import * as portalPostingReportsSchema from "./schema/portal-posting-reports";
 
 const schemaMap = {
   ...platformSettingsSchema,
@@ -96,6 +97,7 @@ const schemaMap = {
   ...portalSeekerPreferencesSchema,
   ...portalSeekerCvsSchema,
   ...portalAdminFlagsSchema,
+  ...portalPostingReportsSchema,
 };
 
 /** Factory — for tests and custom connection strings */

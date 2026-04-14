@@ -43,6 +43,11 @@ vi.mock("@/components/domain/view-tracker", () => ({
 vi.mock("@/components/domain/apply-button", () => ({
   ApplyButton: () => <div data-testid="apply-button" />,
 }));
+vi.mock("@/components/domain/report-posting-button", () => ({
+  ReportPostingButton: ({ postingId }: { postingId: string }) => (
+    <button data-testid="report-posting-button" data-posting-id={postingId} />
+  ),
+}));
 
 import React from "react";
 import { render, screen } from "@testing-library/react";
