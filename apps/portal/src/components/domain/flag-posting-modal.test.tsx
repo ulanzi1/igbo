@@ -2,27 +2,34 @@ import React from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { axe, toHaveNoViolations } from "jest-axe";
 import { fireEvent } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import { renderWithPortalProviders, screen, waitFor } from "@/test-utils/render";
-
-// jsdom doesn't implement pointer capture or scrollIntoView — required by Radix UI
-Object.assign(Element.prototype, {
-  hasPointerCapture: () => false,
-  setPointerCapture: () => undefined,
-  releasePointerCapture: () => undefined,
-  scrollIntoView: () => undefined,
-});
-
-global.ResizeObserver = class ResizeObserver {
-  observe() {}
-  unobserve() {}
-  disconnect() {}
-};
 
 expect.extend(toHaveNoViolations);
 
-// Mock Radix Select with native <select>/<option> to avoid CI timeouts.
-// Collects options from SelectContent children and renders them inside <select>.
+// Mock Radix Dialog to avoid scroll-lock / pointer-events:none on <body> in jsdom.
+vi.mock("@/components/ui/dialog", () => ({
+  Dialog: ({ children, open }: { children: React.ReactNode; open: boolean }) =>
+    open ? <div data-testid="dialog-wrapper">{children}</div> : null,
+  DialogContent: ({ children }: { children: React.ReactNode }) => (
+    <div role="dialog" aria-labelledby="dialog-title">
+      {children}
+    </div>
+  ),
+  DialogHeader: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  DialogTitle: ({ children }: { children: React.ReactNode }) => (
+    <h2 id="dialog-title">{children}</h2>
+  ),
+  DialogDescription: ({
+    children,
+    ...rest
+  }: {
+    children: React.ReactNode;
+    [k: string]: unknown;
+  }) => <p {...rest}>{children}</p>,
+  DialogFooter: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+}));
+
+// Mock Radix Select with native <select>/<option>.
 vi.mock("@/components/ui/select", () => ({
   Select: ({
     children,
@@ -34,12 +41,19 @@ vi.mock("@/components/ui/select", () => ({
     onValueChange: (v: string) => void;
   }) => {
     let testId: string | undefined;
+    let id: string | undefined;
     React.Children.forEach(children, (child: unknown) => {
       const el = child as React.ReactElement<Record<string, unknown>> | null;
       if (el?.props?.["data-testid"]) testId = el.props["data-testid"] as string;
+      if (el?.props?.id) id = el.props.id as string;
     });
     return (
-      <select data-testid={testId} value={value} onChange={(e) => onValueChange(e.target.value)}>
+      <select
+        id={id}
+        data-testid={testId}
+        value={value}
+        onChange={(e) => onValueChange(e.target.value)}
+      >
         <option value="">--</option>
         {children}
       </select>
@@ -53,7 +67,7 @@ vi.mock("@/components/ui/select", () => ({
   ),
 }));
 
-// Mock Radix RadioGroup with native radio inputs to avoid CI timeouts.
+// Mock Radix RadioGroup with native radio inputs.
 vi.mock("@/components/ui/radio-group", () => ({
   RadioGroup: ({
     children,
@@ -84,11 +98,11 @@ vi.mock("next-auth/react", () => ({
   SessionProvider: ({ children }: { children: React.ReactNode }) => children,
 }));
 
-import { FlagPostingModal } from "./flag-posting-modal";
-
 vi.mock("sonner", () => ({
   toast: { success: vi.fn(), error: vi.fn() },
 }));
+
+import { FlagPostingModal } from "./flag-posting-modal";
 
 global.fetch = vi.fn();
 
@@ -99,6 +113,19 @@ const BASE_PROPS = {
   onOpenChange: vi.fn(),
   onSuccess: vi.fn(),
 };
+
+const DESCRIPTION = "This posting contains misleading information about the role.";
+
+/** Fill the form: select category, severity, and description via fireEvent (instant). */
+function fillForm(severity: string = "low") {
+  fireEvent.change(screen.getByTestId("flag-category-select"), {
+    target: { value: "other" },
+  });
+  fireEvent.click(screen.getByLabelText(new RegExp(severity, "i")));
+  fireEvent.change(screen.getByTestId("flag-description-textarea"), {
+    target: { value: DESCRIPTION },
+  });
+}
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -127,93 +154,42 @@ describe("FlagPostingModal", () => {
     expect(screen.getByTestId("flag-proceed-button")).toBeDisabled();
   });
 
-  it("proceed button enabled after all fields filled", async () => {
-    const user = userEvent.setup({ pointerEventsCheck: 0 });
+  it("proceed button enabled after all fields filled", () => {
     renderWithPortalProviders(<FlagPostingModal {...BASE_PROPS} />);
-
-    // Select category
-    fireEvent.change(screen.getByTestId("flag-category-select"), {
-      target: { value: "other" },
-    });
-
-    // Select severity
-    await user.click(screen.getByLabelText(/Low/));
-
-    // Fill description
-    await user.type(
-      screen.getByTestId("flag-description-textarea"),
-      "This posting contains misleading information about the role.",
-    );
-
+    fillForm();
     expect(screen.getByTestId("flag-proceed-button")).not.toBeDisabled();
   });
 
-  it("shows confirmation step after clicking proceed", async () => {
-    const user = userEvent.setup({ pointerEventsCheck: 0 });
+  it("shows confirmation step after clicking proceed", () => {
     renderWithPortalProviders(<FlagPostingModal {...BASE_PROPS} />);
-
-    fireEvent.change(screen.getByTestId("flag-category-select"), {
-      target: { value: "other" },
-    });
-    await user.click(screen.getByLabelText(/Low/));
-    await user.type(
-      screen.getByTestId("flag-description-textarea"),
-      "This posting contains misleading information about the role.",
-    );
-    await user.click(screen.getByTestId("flag-proceed-button"));
+    fillForm();
+    fireEvent.click(screen.getByTestId("flag-proceed-button"));
 
     expect(screen.getByTestId("flag-confirm-submit")).toBeInTheDocument();
     expect(screen.getByTestId("flag-confirm-back")).toBeInTheDocument();
   });
 
-  it("shows high severity warning in confirm step", async () => {
-    const user = userEvent.setup({ pointerEventsCheck: 0 });
+  it("shows high severity warning in confirm step", () => {
     renderWithPortalProviders(<FlagPostingModal {...BASE_PROPS} />);
-
-    fireEvent.change(screen.getByTestId("flag-category-select"), {
-      target: { value: "other" },
-    });
-    await user.click(screen.getByLabelText(/High/));
-    await user.type(
-      screen.getByTestId("flag-description-textarea"),
-      "This posting contains misleading information about the role.",
-    );
-    await user.click(screen.getByTestId("flag-proceed-button"));
+    fillForm("high");
+    fireEvent.click(screen.getByTestId("flag-proceed-button"));
 
     expect(screen.getByTestId("high-severity-warning")).toBeInTheDocument();
   });
 
-  it("does NOT show high severity warning for low severity", async () => {
-    const user = userEvent.setup({ pointerEventsCheck: 0 });
+  it("does NOT show high severity warning for low severity", () => {
     renderWithPortalProviders(<FlagPostingModal {...BASE_PROPS} />);
-
-    fireEvent.change(screen.getByTestId("flag-category-select"), {
-      target: { value: "other" },
-    });
-    await user.click(screen.getByLabelText(/Low/));
-    await user.type(
-      screen.getByTestId("flag-description-textarea"),
-      "This posting contains misleading information about the role.",
-    );
-    await user.click(screen.getByTestId("flag-proceed-button"));
+    fillForm("low");
+    fireEvent.click(screen.getByTestId("flag-proceed-button"));
 
     expect(screen.queryByTestId("high-severity-warning")).not.toBeInTheDocument();
   });
 
   it("submits the flag on confirm", async () => {
-    const user = userEvent.setup({ pointerEventsCheck: 0 });
     renderWithPortalProviders(<FlagPostingModal {...BASE_PROPS} />);
-
-    fireEvent.change(screen.getByTestId("flag-category-select"), {
-      target: { value: "other" },
-    });
-    await user.click(screen.getByLabelText(/Low/));
-    await user.type(
-      screen.getByTestId("flag-description-textarea"),
-      "This posting contains misleading information about the role.",
-    );
-    await user.click(screen.getByTestId("flag-proceed-button"));
-    await user.click(screen.getByTestId("flag-confirm-submit"));
+    fillForm();
+    fireEvent.click(screen.getByTestId("flag-proceed-button"));
+    fireEvent.click(screen.getByTestId("flag-confirm-submit"));
 
     await waitFor(() => {
       expect(global.fetch).toHaveBeenCalledWith(
@@ -226,24 +202,12 @@ describe("FlagPostingModal", () => {
     });
   });
 
-  it("back button returns to form step", async () => {
-    const user = userEvent.setup({ pointerEventsCheck: 0 });
+  it("back button returns to form step", () => {
     renderWithPortalProviders(<FlagPostingModal {...BASE_PROPS} />);
+    fillForm();
+    fireEvent.click(screen.getByTestId("flag-proceed-button"));
+    fireEvent.click(screen.getByTestId("flag-confirm-back"));
 
-    fireEvent.change(screen.getByTestId("flag-category-select"), {
-      target: { value: "other" },
-    });
-    await user.click(screen.getByLabelText(/Low/));
-    await user.type(
-      screen.getByTestId("flag-description-textarea"),
-      "This posting contains misleading information about the role.",
-    );
-    await user.click(screen.getByTestId("flag-proceed-button"));
-
-    // Go back
-    await user.click(screen.getByTestId("flag-confirm-back"));
-
-    // Should be back on form
     expect(screen.getByTestId("flag-description-textarea")).toBeInTheDocument();
   });
 
