@@ -53,6 +53,32 @@ vi.mock("@/components/ui/select", () => ({
   ),
 }));
 
+// Mock Radix RadioGroup with native radio inputs to avoid CI timeouts.
+vi.mock("@/components/ui/radio-group", () => ({
+  RadioGroup: ({
+    children,
+    value: _value,
+    onValueChange,
+    ...rest
+  }: {
+    children: React.ReactNode;
+    value: string;
+    onValueChange: (v: string) => void;
+    [key: string]: unknown;
+  }) => (
+    <div
+      role="radiogroup"
+      {...rest}
+      onChange={(e: React.ChangeEvent<HTMLInputElement>) => onValueChange(e.target.value)}
+    >
+      {children}
+    </div>
+  ),
+  RadioGroupItem: ({ value, id }: { value: string; id: string }) => (
+    <input type="radio" name="radio-group" value={value} id={id} />
+  ),
+}));
+
 vi.mock("next-auth/react", () => ({
   useSession: () => ({ data: null, status: "unauthenticated" }),
   SessionProvider: ({ children }: { children: React.ReactNode }) => children,

@@ -1,10 +1,10 @@
+import React from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { axe, toHaveNoViolations } from "jest-axe";
 import userEvent from "@testing-library/user-event";
 import { renderWithPortalProviders, screen, waitFor } from "@/test-utils/render";
-import { ResolveFlagModal } from "./resolve-flag-modal";
 
-// jsdom doesn't implement pointer capture — required by Radix UI RadioGroup
+// jsdom doesn't implement pointer capture — required by Radix UI
 Object.assign(Element.prototype, {
   hasPointerCapture: () => false,
   setPointerCapture: () => undefined,
@@ -20,6 +20,32 @@ global.ResizeObserver = class ResizeObserver {
 
 expect.extend(toHaveNoViolations);
 
+// Mock Radix RadioGroup with native radio inputs to avoid CI timeouts.
+vi.mock("@/components/ui/radio-group", () => ({
+  RadioGroup: ({
+    children,
+    value: _value,
+    onValueChange,
+    ...rest
+  }: {
+    children: React.ReactNode;
+    value: string;
+    onValueChange: (v: string) => void;
+    [key: string]: unknown;
+  }) => (
+    <div
+      role="radiogroup"
+      {...rest}
+      onChange={(e: React.ChangeEvent<HTMLInputElement>) => onValueChange(e.target.value)}
+    >
+      {children}
+    </div>
+  ),
+  RadioGroupItem: ({ value, id }: { value: string; id: string }) => (
+    <input type="radio" name="radio-group" value={value} id={id} />
+  ),
+}));
+
 vi.mock("next-auth/react", () => ({
   useSession: () => ({ data: null, status: "unauthenticated" }),
   SessionProvider: ({ children }: { children: React.ReactNode }) => children,
@@ -28,6 +54,8 @@ vi.mock("next-auth/react", () => ({
 vi.mock("sonner", () => ({
   toast: { success: vi.fn(), error: vi.fn() },
 }));
+
+import { ResolveFlagModal } from "./resolve-flag-modal";
 
 global.fetch = vi.fn();
 
