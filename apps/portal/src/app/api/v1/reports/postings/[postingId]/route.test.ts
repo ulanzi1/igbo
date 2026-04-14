@@ -80,7 +80,7 @@ describe("POST /api/v1/reports/postings/[postingId]", () => {
   });
 
   it("returns 401 when not authenticated", async () => {
-    vi.mocked(auth).mockResolvedValue(null);
+    vi.mocked(auth).mockResolvedValue(null as never);
     const req = makeRequest("posting-1", { category: "scam_fraud", description: "desc" });
 
     await expect(POST(req)).rejects.toMatchObject({ status: 401 });
