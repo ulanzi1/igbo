@@ -278,6 +278,18 @@ export async function approvePosting(
       decision: "approved",
       feedbackComment: null,
     });
+
+    await tx.insert(auditLogs).values({
+      actorId: reviewerUserId,
+      action: "portal.posting.approve",
+      targetType: "portal_job_posting",
+      details: {
+        postingId,
+        companyId: posting.companyId,
+        decision: "approved",
+        ...(metadata?.fastLane ? { fastLane: true } : {}),
+      },
+    });
   });
 
   portalEventBus.emit("job.reviewed", {
@@ -341,6 +353,19 @@ export async function rejectPosting(
       reviewerUserId,
       decision: "rejected",
       feedbackComment: reason,
+    });
+
+    await tx.insert(auditLogs).values({
+      actorId: reviewerUserId,
+      action: "portal.posting.reject",
+      targetType: "portal_job_posting",
+      details: {
+        postingId,
+        companyId: posting.companyId,
+        decision: "rejected",
+        reason,
+        category,
+      },
     });
   });
 
@@ -412,6 +437,18 @@ export async function requestChanges(
       reviewerUserId,
       decision: "changes_requested",
       feedbackComment,
+    });
+
+    await tx.insert(auditLogs).values({
+      actorId: reviewerUserId,
+      action: "portal.posting.request_changes",
+      targetType: "portal_job_posting",
+      details: {
+        postingId,
+        companyId: posting.companyId,
+        decision: "changes_requested",
+        feedbackComment,
+      },
     });
   });
 

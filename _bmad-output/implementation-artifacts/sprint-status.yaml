@@ -291,7 +291,7 @@ development_status:
   p-3-4b-user-reporting-escalation-queue: done
   p-3-5-employer-verification-flow-with-tier-impact: done
   p-3-6-platform-wide-admin-analytics: done
-  p-3-7-admin-audit-log-decision-traceability: backlog
+  p-3-7-admin-audit-log-decision-traceability: done
   portal-epic-3-retrospective: optional
 
   # Portal Epic 4: Search, Discovery & Guest Access

@@ -99,6 +99,12 @@ describe("PortalTopNav", () => {
       expect(screen.getAllByText("settings").length).toBeGreaterThan(0);
     });
 
+    it("renders audit log nav link for admin", () => {
+      setSession({ user: { activePortalRole: "JOB_ADMIN", portalRoles: ["JOB_ADMIN"] } });
+      render(<PortalTopNav />);
+      expect(screen.getAllByText("auditLog").length).toBeGreaterThan(0);
+    });
+
     it("does not show seeker items for admin role", () => {
       setSession({ user: { activePortalRole: "JOB_ADMIN", portalRoles: ["JOB_ADMIN"] } });
       render(<PortalTopNav />);

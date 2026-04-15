@@ -564,7 +564,7 @@ describe("approvePosting", () => {
     expect(cap.updates).toHaveLength(1);
     expect(cap.updates[0]?.set).toMatchObject({ status: "active" });
 
-    expect(cap.inserts).toHaveLength(1);
+    expect(cap.inserts).toHaveLength(2);
     expect(cap.inserts[0]?.values).toMatchObject({
       postingId: "posting-1",
       reviewerUserId: "admin-1",
@@ -581,6 +581,30 @@ describe("approvePosting", () => {
         companyId: "company-1",
       }),
     );
+  });
+
+  it("writes audit log entry inside transaction", async () => {
+    await approvePosting("posting-1", "admin-1");
+
+    expect(cap.inserts[1]?.values).toMatchObject({
+      actorId: "admin-1",
+      action: "portal.posting.approve",
+      targetType: "portal_job_posting",
+      details: expect.objectContaining({
+        postingId: "posting-1",
+        companyId: "company-1",
+        decision: "approved",
+      }),
+    });
+  });
+
+  it("includes fastLane flag in audit details when metadata.fastLane is true", async () => {
+    await approvePosting("posting-1", "admin-1", { fastLane: true });
+
+    expect(cap.inserts[1]?.values).toMatchObject({
+      action: "portal.posting.approve",
+      details: expect.objectContaining({ fastLane: true }),
+    });
   });
 
   it("throws 404 when posting not found", async () => {
@@ -629,7 +653,7 @@ describe("rejectPosting", () => {
       adminFeedbackComment: reason,
     });
 
-    expect(cap.inserts).toHaveLength(1);
+    expect(cap.inserts).toHaveLength(2);
     expect(cap.inserts[0]?.values).toMatchObject({
       postingId: "posting-1",
       reviewerUserId: "admin-1",
@@ -643,6 +667,24 @@ describe("rejectPosting", () => {
         decision: "rejected",
       }),
     );
+  });
+
+  it("writes audit log entry with reason and category", async () => {
+    const reason = "This posting violates our policy guidelines.";
+    await rejectPosting("posting-1", "admin-1", reason, "policy_violation");
+
+    expect(cap.inserts[1]?.values).toMatchObject({
+      actorId: "admin-1",
+      action: "portal.posting.reject",
+      targetType: "portal_job_posting",
+      details: expect.objectContaining({
+        postingId: "posting-1",
+        companyId: "company-1",
+        decision: "rejected",
+        reason,
+        category: "policy_violation",
+      }),
+    });
   });
 
   it("throws 400 when reason is shorter than 20 chars", async () => {
@@ -720,7 +762,7 @@ describe("requestChanges", () => {
     // (the mock for `sql` returns `{ sql: true }`).
     expect((cap.updates[0]?.set as Record<string, unknown>).revisionCount).toBeDefined();
 
-    expect(cap.inserts).toHaveLength(1);
+    expect(cap.inserts).toHaveLength(2);
     expect(cap.inserts[0]?.values).toMatchObject({
       postingId: "posting-1",
       reviewerUserId: "admin-1",
@@ -734,6 +776,23 @@ describe("requestChanges", () => {
         decision: "changes_requested",
       }),
     );
+  });
+
+  it("writes audit log entry with feedbackComment", async () => {
+    const feedback = "Please add salary information and improve job description.";
+    await requestChanges("posting-1", "admin-1", feedback);
+
+    expect(cap.inserts[1]?.values).toMatchObject({
+      actorId: "admin-1",
+      action: "portal.posting.request_changes",
+      targetType: "portal_job_posting",
+      details: expect.objectContaining({
+        postingId: "posting-1",
+        companyId: "company-1",
+        decision: "changes_requested",
+        feedbackComment: feedback,
+      }),
+    });
   });
 
   it("throws 400 when feedback is shorter than 20 chars", async () => {
