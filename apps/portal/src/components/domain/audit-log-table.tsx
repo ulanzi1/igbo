@@ -21,8 +21,26 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { PORTAL_AUDIT_ACTIONS } from "@igbo/db/queries/portal-admin-audit-logs";
 import type { AuditLogRow, PaginatedAuditLogs } from "@igbo/db/queries/audit-logs";
+
+// Keep in sync with PORTAL_AUDIT_ACTIONS in @igbo/db (can't import server-only from a client component)
+const PORTAL_AUDIT_ACTIONS = [
+  "portal.posting.approve",
+  "portal.posting.reject",
+  "portal.posting.request_changes",
+  "portal.flag.create",
+  "portal.flag.resolve",
+  "portal.flag.dismiss",
+  "portal.report.submit",
+  "portal.report.resolve",
+  "portal.report.dismiss",
+  "portal.verification.submit",
+  "portal.verification.approve",
+  "portal.verification.reject",
+  "portal.blocklist.add",
+  "portal.blocklist.update",
+  "portal.blocklist.delete",
+] as const;
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChevronDown, ChevronRight, Download } from "lucide-react";
 

@@ -23,15 +23,6 @@ vi.mock("next/navigation", () => ({
   useSearchParams: () => mockSearchParams,
 }));
 
-vi.mock("@igbo/db/queries/portal-admin-audit-logs", () => ({
-  PORTAL_AUDIT_ACTIONS: [
-    "portal.posting.approve",
-    "portal.posting.reject",
-    "portal.posting.request_changes",
-    "portal.flag.create",
-  ],
-}));
-
 const mockLog: AuditLogRow = {
   id: "log-1",
   actorId: "admin-1",
