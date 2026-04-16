@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { axe, toHaveNoViolations } from "jest-axe";
 import { renderWithPortalProviders, screen } from "@/test-utils/render";
 import { FlagHistoryPanel } from "./flag-history-panel";
+import { adminFlagFactory } from "@/test/factories";
 
 // jsdom doesn't implement pointer capture or scrollIntoView
 Object.assign(Element.prototype, {
@@ -34,21 +35,13 @@ vi.mock("sonner", () => ({
 
 global.fetch = vi.fn();
 
-const BASE_FLAG = {
+const BASE_FLAG = adminFlagFactory({
   id: "flag-1",
   postingId: "posting-1",
   adminUserId: "admin-1",
-  category: "other" as const,
-  severity: "low",
   description: "This posting contains misleading information about the role.",
-  status: "open" as const,
-  autoPaused: false,
-  resolvedAt: null,
-  resolvedByUserId: null,
-  resolutionAction: null,
-  resolutionNote: null,
   createdAt: new Date("2026-04-01"),
-};
+});
 
 const RESOLVED_FLAG = {
   ...BASE_FLAG,

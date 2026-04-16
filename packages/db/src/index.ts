@@ -49,6 +49,7 @@ import * as portalSeekerCvsSchema from "./schema/portal-seeker-cvs";
 import * as portalAdminFlagsSchema from "./schema/portal-admin-flags";
 import * as portalPostingReportsSchema from "./schema/portal-posting-reports";
 import * as portalEmployerVerificationsSchema from "./schema/portal-employer-verifications";
+import * as portalJobSearchQueries from "./queries/portal-job-search";
 
 const schemaMap = {
   ...platformSettingsSchema,
@@ -138,3 +139,5 @@ export const db = new Proxy({} as ReturnType<typeof createDb>, {
 });
 
 export type Database = ReturnType<typeof createDb>;
+
+export { portalJobSearchQueries };

@@ -49,8 +49,9 @@ export async function getFlagsForPosting(postingId: string): Promise<PortalAdmin
 export async function listOpenFlags(options: {
   limit: number;
   offset: number;
+  companyId?: string;
 }): Promise<{ items: OpenFlagWithContext[]; total: number }> {
-  const { limit, offset } = options;
+  const { limit, offset, companyId } = options;
 
   // Severity ordering: high=0, medium=1, low=2
   const severityOrder = sql<number>`CASE ${portalAdminFlags.severity}
@@ -58,6 +59,11 @@ export async function listOpenFlags(options: {
     WHEN 'medium' THEN 1
     ELSE 2
   END`;
+
+  const whereCondition = and(
+    eq(portalAdminFlags.status, "open"),
+    companyId ? eq(portalJobPostings.companyId, companyId) : undefined,
+  );
 
   const [items, countRows] = await Promise.all([
     db
@@ -82,14 +88,15 @@ export async function listOpenFlags(options: {
       .from(portalAdminFlags)
       .innerJoin(portalJobPostings, eq(portalAdminFlags.postingId, portalJobPostings.id))
       .innerJoin(portalCompanyProfiles, eq(portalJobPostings.companyId, portalCompanyProfiles.id))
-      .where(eq(portalAdminFlags.status, "open"))
+      .where(whereCondition)
       .orderBy(severityOrder, portalAdminFlags.createdAt, portalAdminFlags.id)
       .limit(limit)
       .offset(offset),
     db
       .select({ total: sql<number>`count(*)::int` })
       .from(portalAdminFlags)
-      .where(eq(portalAdminFlags.status, "open")),
+      .innerJoin(portalJobPostings, eq(portalAdminFlags.postingId, portalJobPostings.id))
+      .where(whereCondition),
   ]);
 
   return { items: items as OpenFlagWithContext[], total: countRows[0]?.total ?? 0 };

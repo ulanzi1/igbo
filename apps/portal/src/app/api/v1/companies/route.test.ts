@@ -11,25 +11,19 @@ vi.mock("@igbo/db/queries/portal-companies", () => ({
 import { auth } from "@igbo/auth";
 import { createCompanyProfile, getCompanyByOwnerId } from "@igbo/db/queries/portal-companies";
 import { POST, GET } from "./route";
+import { companyProfileFactory } from "@/test/factories";
 
 const employerSession = {
   user: { id: "user-123", activePortalRole: "EMPLOYER" },
 };
 
-const mockProfile = {
+const mockProfile = companyProfileFactory({
   id: "company-uuid",
   ownerUserId: "user-123",
   name: "Acme Corp",
-  logoUrl: null,
-  description: null,
   industry: "technology",
   companySize: "11-50",
-  cultureInfo: null,
-  trustBadge: false,
-  onboardingCompletedAt: null,
-  createdAt: new Date(),
-  updatedAt: new Date(),
-};
+});
 
 function makeRequest(body: unknown, method = "POST"): Request {
   return new Request("https://jobs.igbo.com/api/v1/companies", {

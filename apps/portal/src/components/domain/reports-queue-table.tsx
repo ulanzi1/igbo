@@ -58,7 +58,16 @@ export function ReportsQueueTable({ items }: ReportsQueueTableProps) {
         {items.map((item) => (
           <TableRow key={item.postingId} data-testid={`report-row-${item.postingId}`}>
             <TableCell className="font-medium">{item.postingTitle}</TableCell>
-            <TableCell className="text-sm text-muted-foreground">{item.companyName}</TableCell>
+            <TableCell className="text-sm text-muted-foreground">
+              <Link
+                href={`/admin/postings?companyId=${item.companyId}`}
+                className="text-primary hover:underline"
+                aria-label={t("viewCompanyPostings", { company: item.companyName })}
+                data-testid={`company-link-${item.postingId}`}
+              >
+                {item.companyName}
+              </Link>
+            </TableCell>
             <TableCell>
               <Badge variant="secondary" data-testid={`report-count-${item.postingId}`}>
                 {item.reportCount}

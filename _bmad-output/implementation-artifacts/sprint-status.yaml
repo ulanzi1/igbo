@@ -274,7 +274,7 @@ development_status:
   portal-epic-2-retrospective: done
 
   # Portal Epic 2 — Retro Action Items
-  portal-epic-2-ai-9-test-factory-pattern: backlog              # apps/portal/src/test/factories.ts — before P-4 start
+  portal-epic-2-ai-9-test-factory-pattern: done                  # Absorbed into PREP-E (DX Prep Sprint) — reclassified as infrastructure invariant (2026-04-15)
   portal-epic-2-ai-10-apierror-docs: done                       # JSDoc on toProblemDetails() + Playbook §10.1 entry + §10.2.7 deep dive (PR #42)
   portal-epic-2-ai-11-link-import-ci: done                      # CI scanner check-next-link-import.ts + 9 known violations allowlist (PR #42)
   portal-epic-2-ai-12-spec-codebase-verification: done          # Story template Gate 1 addition
@@ -283,7 +283,7 @@ development_status:
   portal-epic-2-ai-15-model-selection-guide: done               # Playbook §11 + SN-5 Agent Model gate (PR #42)
 
   # Portal Epic 3: Job Admin Review & Quality Assurance
-  portal-epic-3: in-progress
+  portal-epic-3: done
   p-3-1-admin-review-queue-dashboard: done
   p-3-2-approve-reject-request-changes-workflow: done
   p-3-3-rule-based-content-screening-mvp: done
@@ -292,7 +292,20 @@ development_status:
   p-3-5-employer-verification-flow-with-tier-impact: done
   p-3-6-platform-wide-admin-analytics: done
   p-3-7-admin-audit-log-decision-traceability: done
-  portal-epic-3-retrospective: optional
+  portal-epic-3-retrospective: done
+
+  # Portal Epic 3 — Retro Action Items & Prep
+  portal-epic-3-hotfix-admin-layout-nav: done                  # Admin layout PortalLayout wrapper + violations onResolved fix (2026-04-15)
+  portal-epic-3-ai-16-three-story-tripwire-rule: done          # Playbook §6.5: same friction in 3 stories = immediate escalation (2026-04-15)
+  portal-epic-3-ai-17-infrastructure-invariant-class: done     # Playbook §6.3: DX items affecting every story = infrastructure invariant (2026-04-15)
+  portal-epic-3-ai-18-story-sizing-guardrail: done             # Playbook §11.5 + story template Story Sizing Check section (2026-04-15)
+  portal-epic-3-ai-19-portal-logout-button: done                # Logout button in portal top nav + mobile menu, signOut → community (2026-04-15)
+  portal-epic-3-p-3x-1-admin-all-postings-view: done    # Browse all postings across all statuses, filterable by employer
+  portal-epic-3-p-3x-2-admin-employer-directory: done       # Browse all employers with verification/posting/violation stats
+  portal-epic-3-p-3x-3-admin-nav-entity-linking: done  # Cross-entity links, fix dead settings link, nav integration check
+  portal-epic-3-prep-e-dx-prep-sprint: done                   # Test factories + mockTransaction() + turbo build automation (HARD GATE for P-4)
+  portal-epic-3-prep-f-full-text-search-spike: done            # tsvector + GIN + bilingual handling + testing strategy (HARD GATE for P-4.1A)
+  portal-epic-3-prep-g-cursor-pagination-poc: done    # Opaque cursor encoding + sort stability (HARD GATE for P-4.1A)
 
   # Portal Epic 4: Search, Discovery & Guest Access
   portal-epic-4: backlog

@@ -42,6 +42,7 @@ import {
   getTransitionHistory as getTransitionHistoryReExport,
 } from "./application-state-machine";
 import type { PortalApplicationTransition } from "@igbo/db/schema/portal-applications";
+import { installMockTransaction } from "@/test/mock-transaction";
 
 // ---------------------------------------------------------------------------
 // Test fixtures
@@ -53,43 +54,6 @@ const BASE_APP = {
   seekerUserId: "seeker-1",
   companyId: "cp-1",
 };
-
-// ---------------------------------------------------------------------------
-// Transaction mock helpers
-// ---------------------------------------------------------------------------
-type CapturedInsert = { table: unknown; values: unknown };
-type CapturedUpdate = { table: unknown; set: unknown };
-
-interface TxCapture {
-  inserts: CapturedInsert[];
-  updates: CapturedUpdate[];
-}
-
-function installTxMock(): TxCapture {
-  const inserts: CapturedInsert[] = [];
-  const updates: CapturedUpdate[] = [];
-
-  const tx = {
-    insert: (table: unknown) => ({
-      values: (data: unknown) => {
-        inserts.push({ table, values: data });
-        return Promise.resolve(undefined);
-      },
-    }),
-    update: (table: unknown) => ({
-      set: (data: unknown) => {
-        updates.push({ table, set: data });
-        return {
-          where: () => Promise.resolve(undefined),
-        };
-      },
-    }),
-  };
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mock transaction callback typing
-  vi.mocked(db.transaction).mockImplementation(async (fn: any) => fn(tx));
-  return { inserts, updates };
-}
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -303,7 +267,7 @@ describe("transition — wrong actor role rejected", () => {
 describe("transition — valid employer transitions", () => {
   it("transitions submitted → under_review, inserts DB rows atomically, emits status_changed", async () => {
     vi.mocked(getApplicationWithCurrentStatus).mockResolvedValue(BASE_APP);
-    const cap = installTxMock();
+    const cap = installMockTransaction();
 
     await transition("app-1", "under_review", "employer-1", "employer");
 
@@ -348,7 +312,7 @@ describe("transition — valid employer transitions", () => {
       ...BASE_APP,
       status: "under_review",
     });
-    installTxMock();
+    installMockTransaction();
 
     await transition("app-1", "shortlisted", "employer-1", "employer");
 
@@ -366,7 +330,7 @@ describe("transition — valid employer transitions", () => {
       ...BASE_APP,
       status: "shortlisted",
     });
-    installTxMock();
+    installMockTransaction();
 
     await transition("app-1", "interview", "employer-1", "employer");
 
@@ -384,7 +348,7 @@ describe("transition — valid employer transitions", () => {
       ...BASE_APP,
       status: "interview",
     });
-    installTxMock();
+    installMockTransaction();
 
     await transition("app-1", "offered", "employer-1", "employer");
 
@@ -399,7 +363,7 @@ describe("transition — valid employer transitions", () => {
       ...BASE_APP,
       status: "offered",
     });
-    installTxMock();
+    installMockTransaction();
 
     await transition("app-1", "hired", "employer-1", "employer");
 
@@ -414,7 +378,7 @@ describe("transition — valid employer transitions", () => {
 
   it("transitions submitted → rejected by employer", async () => {
     vi.mocked(getApplicationWithCurrentStatus).mockResolvedValue(BASE_APP);
-    installTxMock();
+    installMockTransaction();
 
     await transition("app-1", "rejected", "employer-1", "employer");
 
@@ -426,7 +390,7 @@ describe("transition — valid employer transitions", () => {
 
   it("passes optional reason to transition insert", async () => {
     vi.mocked(getApplicationWithCurrentStatus).mockResolvedValue(BASE_APP);
-    const cap = installTxMock();
+    const cap = installMockTransaction();
 
     await transition("app-1", "rejected", "employer-1", "employer", "Not the right fit");
 
@@ -435,7 +399,7 @@ describe("transition — valid employer transitions", () => {
 
   it("defaults reason to null when not provided", async () => {
     vi.mocked(getApplicationWithCurrentStatus).mockResolvedValue(BASE_APP);
-    const cap = installTxMock();
+    const cap = installMockTransaction();
 
     await transition("app-1", "under_review", "employer-1", "employer");
 
@@ -449,7 +413,7 @@ describe("transition — valid employer transitions", () => {
 describe("transition — valid seeker withdrawal", () => {
   it("transitions submitted → withdrawn by seeker, emits application.withdrawn", async () => {
     vi.mocked(getApplicationWithCurrentStatus).mockResolvedValue(BASE_APP);
-    const cap = installTxMock();
+    const cap = installMockTransaction();
 
     await transition("app-1", "withdrawn", "seeker-1", "job_seeker");
 
@@ -477,7 +441,7 @@ describe("transition — valid seeker withdrawal", () => {
       ...BASE_APP,
       status: "under_review",
     });
-    installTxMock();
+    installMockTransaction();
 
     await transition("app-1", "withdrawn", "seeker-1", "job_seeker");
 
@@ -493,7 +457,7 @@ describe("transition — valid seeker withdrawal", () => {
 
   it("does NOT emit application.status_changed for withdrawal", async () => {
     vi.mocked(getApplicationWithCurrentStatus).mockResolvedValue(BASE_APP);
-    installTxMock();
+    installMockTransaction();
 
     await transition("app-1", "withdrawn", "seeker-1", "job_seeker");
 
@@ -508,7 +472,7 @@ describe("transition — valid seeker withdrawal", () => {
       ...BASE_APP,
       status: "shortlisted",
     });
-    installTxMock();
+    installMockTransaction();
 
     await transition("app-1", "withdrawn", "seeker-1", "job_seeker");
 
@@ -543,7 +507,7 @@ describe("transition — event emitted only after transaction commits", () => {
 
   it("emits event exactly once after successful transaction", async () => {
     vi.mocked(getApplicationWithCurrentStatus).mockResolvedValue(BASE_APP);
-    installTxMock();
+    installMockTransaction();
 
     await transition("app-1", "under_review", "employer-1", "employer");
 
@@ -570,7 +534,7 @@ describe("transition — full lifecycle traversal", () => {
         ...BASE_APP,
         status: step.status as "submitted",
       });
-      installTxMock();
+      installMockTransaction();
 
       await transition("app-1", step.to as "under_review", "employer-1", "employer");
 

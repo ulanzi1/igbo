@@ -27,22 +27,17 @@ vi.mock("sonner", () => ({
 
 import { toast } from "sonner";
 import { ReportInvestigationDetail } from "./report-investigation-detail";
+import { postingReportFactory } from "@/test/factories";
 
 global.fetch = vi.fn();
 
-const OPEN_REPORT = {
+const OPEN_REPORT = postingReportFactory({
   id: "report-1",
   postingId: "posting-1",
   reporterUserId: "user-1",
-  category: "scam_fraud" as const,
   description: "This posting looks like a scam with unrealistic claims.",
-  status: "open" as const,
-  resolutionAction: null,
-  resolvedAt: null,
-  resolvedByUserId: null,
-  resolutionNote: null,
   createdAt: new Date("2026-04-10"),
-};
+});
 
 const BASE_PROPS = {
   postingId: "posting-1",

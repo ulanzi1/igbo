@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { MenuIcon, XIcon, BriefcaseIcon, ArrowLeftIcon, UserCircleIcon } from "lucide-react";
+import { signOut } from "next-auth/react";
+import { MenuIcon, XIcon, BriefcaseIcon, ArrowLeftIcon, LogOutIcon } from "lucide-react";
 import { useTranslations, useLocale } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -50,6 +51,8 @@ export function PortalTopNav({ className }: { className?: string }) {
 
   const adminLinks: NavLink[] = [
     { key: "reviewQueue", href: `/${locale}/admin`, label: t("reviewQueue") },
+    { key: "allPostings", href: `/${locale}/admin/postings`, label: t("allPostings") },
+    { key: "employers", href: `/${locale}/admin/employers`, label: t("employers") },
     {
       key: "screeningKeywords",
       href: `/${locale}/admin/screening/keywords`,
@@ -60,7 +63,6 @@ export function PortalTopNav({ className }: { className?: string }) {
     { key: "reports", href: `/${locale}/admin/reports`, label: t("reports") },
     { key: "analytics", href: `/${locale}/admin/analytics`, label: t("analytics") },
     { key: "auditLog", href: `/${locale}/admin/audit-logs`, label: t("auditLog") },
-    { key: "settings", href: `/${locale}/admin/settings`, label: t("settings") },
   ];
 
   const guestLinks: NavLink[] = [
@@ -153,14 +155,17 @@ export function PortalTopNav({ className }: { className?: string }) {
             </>
           )}
 
-          {/* User avatar placeholder for authenticated */}
+          {/* Logout button for authenticated users */}
           {isAuthenticated && (
             <button
               type="button"
-              aria-label={t("profile")}
-              className="flex h-9 w-9 items-center justify-center rounded-full border border-border bg-muted text-muted-foreground hover:bg-accent transition-colors"
+              onClick={() => void signOut({ callbackUrl: communityUrl })}
+              aria-label={t("logout")}
+              data-testid="logout-button"
+              className="hidden sm:flex items-center gap-1.5 min-h-[44px] px-3 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
             >
-              <UserCircleIcon className="size-5" aria-hidden="true" />
+              <LogOutIcon className="size-4" aria-hidden="true" />
+              {t("logout")}
             </button>
           )}
 
@@ -208,6 +213,20 @@ export function PortalTopNav({ className }: { className?: string }) {
                     <ArrowLeftIcon className="size-4" aria-hidden="true" />
                     {t("backToCommunity")}
                   </a>
+                  {isAuthenticated && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMobileMenuOpen(false);
+                        void signOut({ callbackUrl: communityUrl });
+                      }}
+                      data-testid="logout-button-mobile"
+                      className="flex items-center gap-2 min-h-[44px] px-4 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-colors rounded-md w-full text-left"
+                    >
+                      <LogOutIcon className="size-4" aria-hidden="true" />
+                      {t("logout")}
+                    </button>
+                  )}
                   {!isAuthenticated && (
                     <>
                       <a

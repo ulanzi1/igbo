@@ -23,20 +23,15 @@ import { listScreeningKeywords } from "@igbo/db/queries/portal-screening-keyword
 import { db } from "@igbo/db";
 import { ApiError } from "@igbo/auth/api-error";
 import { GET, POST } from "./route";
+import { installMockTransaction, type MockTransactionHandle } from "@/test/mock-transaction";
+import { screeningKeywordFactory } from "@/test/factories";
 
 const adminSession = { user: { id: "admin-1", activePortalRole: "JOB_ADMIN" } };
 
-const fakeKeyword = {
+const fakeKeyword = screeningKeywordFactory({
   id: "kw-1",
-  phrase: "must be male",
-  category: "discriminatory",
-  severity: "high",
-  notes: null,
   createdByAdminId: "admin-1",
-  createdAt: new Date("2026-01-01"),
-  updatedAt: new Date("2026-01-01"),
-  deletedAt: null,
-};
+});
 
 function makeGet(url = "https://jobs.igbo.com/api/v1/admin/screening/keywords") {
   return new Request(url, {
@@ -57,38 +52,13 @@ function makePost(body: unknown) {
   });
 }
 
-const mockAuditValues = vi.fn().mockResolvedValue([]);
-const mockInsertKeyword = vi.fn();
-
-/** Build a tx stub: .insert(portalScreeningKeywords).values().returning() → [row]; .insert(auditLogs).values() */
-function makeTx() {
-  return {
-    insert: vi.fn((table: unknown) => {
-      // Route inserts portalScreeningKeywords first (with .returning()), then auditLogs (without).
-      // We distinguish by call order via mockInsertKeyword for the keyword chain.
-      if (mockInsertKeyword.mock.calls.length === 0) {
-        mockInsertKeyword(table);
-        return {
-          values: vi.fn().mockReturnValue({
-            returning: vi.fn().mockResolvedValue([fakeKeyword]),
-          }),
-        };
-      }
-      return { values: mockAuditValues };
-    }),
-  };
-}
+let txHandle: MockTransactionHandle;
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mockInsertKeyword.mockClear();
-  mockAuditValues.mockClear();
   vi.mocked(requireJobAdminRole).mockResolvedValue(adminSession as never);
   vi.mocked(listScreeningKeywords).mockResolvedValue({ items: [fakeKeyword as never], total: 1 });
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  vi.mocked(db.transaction).mockImplementation(async (cb: any) => {
-    return cb(makeTx());
-  });
+  txHandle = installMockTransaction({ insertReturning: [fakeKeyword] });
 });
 
 describe("GET /api/v1/admin/screening/keywords", () => {
@@ -162,8 +132,6 @@ describe("POST /api/v1/admin/screening/keywords", () => {
 
   it("writes audit log on success", async () => {
     await POST(makePost({ phrase: "must be male", category: "discriminatory" }));
-    expect(mockAuditValues).toHaveBeenCalledWith(
-      expect.objectContaining({ action: "portal.blocklist.add" }),
-    );
+    expect(txHandle.inserts[1]?.values).toMatchObject({ action: "portal.blocklist.add" });
   });
 });

@@ -34,6 +34,17 @@ vi.mock("@/components/domain/flag-history-panel", () => ({
 vi.mock("@/components/domain/flag-posting-trigger", () => ({
   FlagPostingTrigger: () => null,
 }));
+vi.mock("@/i18n/navigation", () => ({
+  Link: ({
+    href,
+    children,
+    ...rest
+  }: {
+    href: string;
+    children: unknown;
+    [key: string]: unknown;
+  }) => ({ href, children, ...rest }),
+}));
 
 import { auth } from "@igbo/auth";
 import { redirect } from "next/navigation";
@@ -186,5 +197,56 @@ describe("ReviewDetailPage", () => {
 
     expect(result).toBeDefined();
     expect(getReviewDetail).toHaveBeenCalled();
+  });
+
+  it("renders company name as link to filtered postings", async () => {
+    const result = await ReviewDetailPage({ params: makeParams() });
+    const str = JSON.stringify(result);
+
+    expect(str).toContain("/admin/postings?companyId=company-1");
+    expect(str).toContain("company-name-link");
+    expect(str).toContain("viewCompanyPostings");
+  });
+
+  it("renders violations count as link when violationCount > 0", async () => {
+    vi.mocked(getReviewDetail).mockResolvedValue({
+      ...mockDetail,
+      confidenceIndicator: { ...mockDetail.confidenceIndicator, violationCount: 3 },
+    });
+
+    const result = await ReviewDetailPage({ params: makeParams() });
+    const str = JSON.stringify(result);
+
+    expect(str).toContain("/admin/violations?companyId=company-1");
+    expect(str).toContain("violations-count-link");
+    expect(str).toContain("viewCompanyViolations");
+  });
+
+  it("does not render violations link when violationCount is 0", async () => {
+    const result = await ReviewDetailPage({ params: makeParams() });
+    const str = JSON.stringify(result);
+
+    expect(str).not.toContain("violations-count-link");
+  });
+
+  it("renders reports count as link when reportCount > 0", async () => {
+    vi.mocked(getReviewDetail).mockResolvedValue({
+      ...mockDetail,
+      confidenceIndicator: { ...mockDetail.confidenceIndicator, reportCount: 2 },
+    });
+
+    const result = await ReviewDetailPage({ params: makeParams() });
+    const str = JSON.stringify(result);
+
+    expect(str).toContain("/admin/reports");
+    expect(str).toContain("reports-count-link");
+    expect(str).toContain("viewCompanyReports");
+  });
+
+  it("does not render reports link when reportCount is 0", async () => {
+    const result = await ReviewDetailPage({ params: makeParams() });
+    const str = JSON.stringify(result);
+
+    expect(str).not.toContain("reports-count-link");
   });
 });

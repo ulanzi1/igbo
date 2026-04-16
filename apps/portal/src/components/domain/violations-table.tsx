@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Link } from "@/i18n/navigation";
 import { useRouter } from "next/navigation";
-import { useTranslations, useFormatter } from "next-intl";
+import { useTranslations, useFormatter, useLocale } from "next-intl";
 import {
   Table,
   TableBody,
@@ -19,7 +19,8 @@ import type { OpenFlagWithContext } from "@igbo/db/queries/portal-admin-flags";
 
 interface ViolationsTableProps {
   items: OpenFlagWithContext[];
-  onResolved: () => void;
+  companyFilter?: { id: string; name: string } | null;
+  clearFilterHref?: string;
 }
 
 function severityBadgeClass(severity: string): string {
@@ -58,9 +59,10 @@ function useSeverityLabel() {
   };
 }
 
-export function ViolationsTable({ items, onResolved }: ViolationsTableProps) {
+export function ViolationsTable({ items, companyFilter, clearFilterHref }: ViolationsTableProps) {
   const t = useTranslations("Portal.admin");
   const format = useFormatter();
+  const locale = useLocale();
   const router = useRouter();
   const categoryLabel = useCategoryLabel();
   const severityLabel = useSeverityLabel();
@@ -69,20 +71,36 @@ export function ViolationsTable({ items, onResolved }: ViolationsTableProps) {
 
   const formatDate = (d: Date) => format.dateTime(new Date(d), { dateStyle: "medium" });
 
+  const filterIndicator = companyFilter ? (
+    <div className="mb-4 flex items-center gap-2 text-sm" data-testid="company-filter-indicator">
+      <span>{t("violationsCompanyFilter", { company: companyFilter.name })}</span>
+      {clearFilterHref && (
+        <a href={clearFilterHref} className="text-primary hover:underline text-xs">
+          {t("clearFilters")}
+        </a>
+      )}
+    </div>
+  ) : null;
+
   if (items.length === 0) {
     return (
-      <p className="text-sm text-muted-foreground" data-testid="violations-empty">
-        {t("violationsEmpty")}
-      </p>
+      <>
+        {filterIndicator}
+        <p className="text-sm text-muted-foreground" data-testid="violations-empty">
+          {t("violationsEmpty")}
+        </p>
+      </>
     );
   }
 
   return (
     <>
+      {filterIndicator}
       <Table aria-label={t("violationsTitle")} data-testid="violations-table">
         <TableHeader>
           <TableRow>
             <TableHead scope="col">{t("violationsPostingTitle")}</TableHead>
+            <TableHead scope="col">{t("companyColumn")}</TableHead>
             <TableHead scope="col">{t("violationsCategory")}</TableHead>
             <TableHead scope="col">{t("violationsSeverity")}</TableHead>
             <TableHead scope="col">{t("violationsFlaggedAt")}</TableHead>
@@ -93,6 +111,16 @@ export function ViolationsTable({ items, onResolved }: ViolationsTableProps) {
           {items.map((item) => (
             <TableRow key={item.id} data-testid={`violation-row-${item.id}`}>
               <TableCell className="font-medium">{item.postingTitle}</TableCell>
+              <TableCell>
+                <a
+                  href={`/${locale}/admin/postings?companyId=${item.companyId}`}
+                  className="text-primary hover:underline"
+                  aria-label={t("viewCompanyPostings", { company: item.companyName })}
+                  data-testid={`company-link-${item.id}`}
+                >
+                  {item.companyName}
+                </a>
+              </TableCell>
               <TableCell>
                 <Badge variant="outline" className="text-xs">
                   {categoryLabel(item.category)}
@@ -155,7 +183,6 @@ export function ViolationsTable({ items, onResolved }: ViolationsTableProps) {
           onSuccess={() => {
             setResolveModalOpen(false);
             setSelectedFlag(null);
-            onResolved();
             router.refresh();
           }}
         />

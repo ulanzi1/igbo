@@ -36,20 +36,21 @@ import {
   getJobPostingWithCompany,
 } from "@igbo/db/queries/portal-job-postings";
 import { portalEventBus } from "@/services/event-bus";
+import { jobPostingFactory, companyProfileFactory } from "@/test/factories";
 
-const EXPIRED_POSTING = {
+const EXPIRED_POSTING = jobPostingFactory({
   id: "jp-exp-1",
   companyId: "cp-1",
   title: "Software Engineer",
   expiresAt: new Date("2026-01-01"),
-};
+});
 
-const EXPIRING_POSTING = {
+const EXPIRING_POSTING = jobPostingFactory({
   id: "jp-warn-1",
   companyId: "cp-2",
   title: "Marketing Manager",
   expiresAt: new Date(Date.now() + 86400000 * 2), // 2 days from now
-};
+});
 
 function makeRequest(authHeader?: string) {
   return new Request("http://localhost/api/v1/internal/jobs/expire-postings", {
@@ -58,20 +59,13 @@ function makeRequest(authHeader?: string) {
   });
 }
 
-const MOCK_COMPANY = {
+const MOCK_COMPANY = companyProfileFactory({
   id: "cp-1",
   ownerUserId: "user-owner-1",
   name: "Test Co",
-  logoUrl: null,
-  description: null,
   industry: "technology",
   companySize: "1-10",
-  cultureInfo: null,
-  trustBadge: false,
-  onboardingCompletedAt: null,
-  createdAt: new Date(),
-  updatedAt: new Date(),
-};
+});
 
 beforeEach(() => {
   vi.clearAllMocks();

@@ -294,9 +294,21 @@ Every deferred decision must be labeled:
 | **Velocity-debt**   | Acceptable shortcut with known trigger for revisiting | Document the trigger condition |
 | **Structural-debt** | Must fix before scaling — compounds over time         | Fix before next epic starts    |
 
-### 6.3 Decision Trigger Template
+### 6.3 Infrastructure Invariants
 
-When deferring a decision, document it in the retro or story spec:
+A third classification beyond velocity-debt and structural-debt. Infrastructure invariants are DX items that affect **every story** — fixture factories, build tooling, mock utilities. They are not optional improvements; they are load-bearing infrastructure.
+
+| Label                        | Definition                                                 | Rule                                                          |
+| ---------------------------- | ---------------------------------------------------------- | ------------------------------------------------------------- |
+| **Infrastructure invariant** | DX item that imposes friction on every story in the sprint | Treat like a failing CI check: stop and fix before next story |
+
+**How to identify:** If the same manual workaround appears in 3+ stories within an epic (the "three-story tripwire" — see §6.5), reclassify the item as an infrastructure invariant and gate the next epic on resolving it.
+
+**Examples:** Test factories for all portal entities, shared `mockTransaction()` utility, auto-rebuild on package changes.
+
+### 6.4 Decision Trigger Template
+
+When deferring a decision, document it in the retro or story spec (see also §6.3 for infrastructure invariant classification):
 
 ```markdown
 **Debt Item:** [What was deferred]
@@ -304,6 +316,25 @@ When deferring a decision, document it in the retro or story spec:
 **Decision Trigger:** [Specific condition that forces revisiting]
 **Current Workaround:** [What we're doing now]
 ```
+
+### 6.5 Three-Story Tripwire Rule
+
+If the same friction point appears in **3 stories within an epic**, it is immediately escalated to a blocking prep item for the next epic. Do not wait for the retrospective.
+
+**Process:**
+
+1. Dev or SM notices the same workaround/friction in a third story.
+2. SM creates a backlog item and classifies it as an infrastructure invariant (§6.3).
+3. The item becomes a **hard gate** for the next epic's sprint planning.
+4. The retrospective documents it as "caught by tripwire" (not "discovered in retro").
+
+**Rationale:** P-3 retrospective showed that "just 20 minutes per story" friction across 8 stories with 13 migrations represented meaningful velocity drag — but was invisible until retro because no individual instance was painful enough to escalate. The tripwire catches compounding issues mid-epic.
+
+**Examples from P-3:**
+
+- `pnpm --filter @igbo/db build` required after every new query file (6+ stories)
+- Manual test fixture widening after every migration (8 stories, 13 migrations)
+- `db.transaction` mock typing inconsistency (two different workarounds in same epic)
 
 ---
 
@@ -661,12 +692,31 @@ Use `.$type<MyType>()` for type-safe JSONB columns in Drizzle schema definitions
 portfolioLinksJson: jsonb("portfolio_links_json").$type<string[]>(),
 ```
 
-#### 10.2.3 `db.transaction` Mock Widening
+#### 10.2.3 `db.transaction` Mock — Use Shared Utility
 
-When a new schema is added to `packages/db/src/index.ts`, the `PgTransaction` generic widens. Existing test mocks of `db.transaction` using typed callbacks will fail. Fix by typing the callback as `any`:
+Use `installMockTransaction()` from `@/test/mock-transaction` instead of inline `mockImplementation`. This absorbs the single `any` suppression needed for the `PgTransaction` generic (which widens with each new schema added to `packages/db/src/index.ts`), so consumer test files need no casts.
 
 ```typescript
-vi.mocked(db.transaction).mockImplementation(async (cb: any) => cb(mockTx));
+import { installMockTransaction } from "@/test/mock-transaction";
+
+// Capture inserts/updates:
+const { inserts, updates } = installMockTransaction();
+await someService("posting-1", "admin-1");
+expect(inserts[0]?.values).toMatchObject({ status: "approved" });
+
+// With insert .returning() result (for services that read inserted rows):
+installMockTransaction({ insertReturning: [mockRow] });
+
+// With custom update .returning() result:
+installMockTransaction({ updateReturning: [] }); // simulate race condition
+
+// Complex custom tx (table-aware dispatch, flat-chaining, multi-op):
+installMockTransaction({ tx: myCustomTxObject });
+
+// Reconfigure mid-test:
+const handle = installMockTransaction();
+handle.setInsertReturning([{ ...BASE_FLAG, severity: "high" }]);
+handle.setUpdateReturning([]);
 ```
 
 #### 10.2.4 `db.execute()` Return Format
@@ -780,4 +830,83 @@ Upgrade to opus when the story involves **one or more** of these complexity indi
 
 SM decides model selection with dev input **at story creation time** (SN-5 gate). The decision is recorded in the story spec. If the wrong model was selected, the dev agent or dev can escalate — but the default should be a conscious choice, not an afterthought.
 
-**Signed off: Winston (Architect) — 2026-04-13**
+### 11.5 Story Sizing Guardrail
+
+When a story touches **3 or more system axes**, flag it for potential split during planning. System axes are:
+
+1. **DB queries** — new query functions or schema changes
+2. **Services** — new or modified service layer functions
+3. **API routes** — new endpoints or route changes
+4. **UI components** — new interactive components (not just wiring)
+5. **Cross-feature integration** — wiring into existing features (fast-lane, confidence indicator, nav, etc.)
+
+**Reference:** P-3.4A touched all 5 axes and produced +907 tests — larger than P-3.5, P-3.6, and P-3.7 combined. A split into 2–3 stories would have been more manageable.
+
+**Target:** No single story should exceed ~500 net new tests. If estimation suggests it will, split proactively.
+
+**Signed off: Winston (Architect) — 2026-04-15**
+
+---
+
+## §12 Portal DX Patterns (PREP-E)
+
+These patterns were established in PREP-E to eliminate the 20–30 min per-story friction encountered across Portal Epic 3.
+
+### 12.1 Test Factories
+
+`apps/portal/src/test/factories.ts` exports a factory function for every portal entity. Factories return plain objects matching `$inferSelect` types — no DB writes, no `server-only` imports.
+
+**When to use:** Any time a test file needs a complete entity object. Pass only the fields that matter for the test as overrides; the factory handles all required columns with sensible defaults.
+
+```typescript
+import { jobPostingFactory, companyProfileFactory, adminFlagFactory } from "@/test/factories";
+
+// Minimal — only test-specific fields:
+const posting = jobPostingFactory({ id: "posting-1", status: "pending_review" });
+const company = companyProfileFactory({ id: "company-1", trustBadge: true });
+const flag = adminFlagFactory({ id: "flag-1", postingId: "posting-1", severity: "high" });
+
+// With JOIN-result extra fields (not in schema):
+const item = {
+  ...jobPostingFactory({ id: "posting-1", status: "active" }),
+  employerTotalPostings: 3, // computed via JOIN, not in portal_job_postings
+};
+```
+
+**Maintenance:** When a new column is added to a schema, update only the corresponding factory default. All test files automatically pick up the new field with its default value.
+
+**Available factories:** `companyProfileFactory`, `jobPostingFactory`, `applicationFactory`, `applicationTransitionFactory`, `adminReviewFactory`, `adminFlagFactory`, `postingReportFactory`, `employerVerificationFactory`, `screeningKeywordFactory`, `seekerProfileFactory`, `seekerPreferenceFactory`, `seekerCvFactory`, `applicationNoteFactory`.
+
+### 12.2 `installMockTransaction()` — Shared db.transaction Utility
+
+`apps/portal/src/test/mock-transaction.ts` provides a unified `installMockTransaction()` that replaces all per-file transaction mock helpers. See §10.2.3 for full API.
+
+**Key design:** The default tx supports both Pattern A (insert/update capture, direct-await) and Pattern B (insert.values().returning()). For complex patterns (table-aware dispatch, flat-chaining, multi-operation), pass a custom `tx` object.
+
+**Default tx behavior:**
+
+- `insert(table).values(data)` — records the insert, returns a Promise that resolves to `undefined` AND has `.returning()` → `insertReturningRows`
+- `update(table).set(data).where().returning()` — records the update, returns `updateReturningRows`
+- Default `updateReturning: [{ id: "test-id" }]` — non-empty simulates successful UPDATE (pass race condition guard)
+- Default `insertReturning: []` — override with `{ insertReturning: [row] }` when the service reads the inserted row
+
+### 12.3 Turbo Auto-Rebuild
+
+`packages/db` has a `turbo.json` with explicit `inputs` so turbo detects new query files without requiring a manual `pnpm --filter @igbo/db build`:
+
+```json
+// packages/db/turbo.json
+{
+  "extends": ["//"],
+  "tasks": {
+    "build": {
+      "inputs": ["src/**/*.ts", "tsconfig.json"],
+      "outputs": ["dist/**", "tsconfig.tsbuildinfo"]
+    }
+  }
+}
+```
+
+**How it works:** The root `turbo.json` has `"typecheck": { "dependsOn": ["^build"] }`. When `pnpm turbo typecheck --filter=@igbo/portal` runs, turbo automatically builds `@igbo/db` first if any `src/**/*.ts` file has changed. The `tsconfig.tsbuildinfo` is included in outputs so turbo restores it alongside `dist/**` from cache.
+
+**Watch mode:** `pnpm --filter @igbo/db build:watch` starts `tsc --build --watch` for live incremental compilation during development.

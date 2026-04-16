@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { setRequestLocale } from "next-intl/server";
 import { redirect } from "next/navigation";
 import { auth } from "@igbo/auth";
@@ -75,7 +75,7 @@ export default async function ReviewDetailPage({ params }: PageProps) {
       {/* Back navigation */}
       <div className="mb-6">
         <Link
-          href={`/${locale}/admin`}
+          href="/admin"
           className="text-sm text-muted-foreground hover:underline"
           data-testid="back-to-queue"
         >
@@ -241,9 +241,14 @@ export default async function ReviewDetailPage({ params }: PageProps) {
             <h2 className="mb-4 text-lg font-semibold">{t("employerProfile")}</h2>
 
             <div className="space-y-2">
-              <p className="font-medium" data-testid="company-name">
+              <Link
+                href={`/admin/postings?companyId=${company.id}`}
+                className="font-medium text-primary hover:underline"
+                aria-label={t("viewCompanyPostings", { company: company.name })}
+                data-testid="company-name-link"
+              >
                 {company.name}
-              </p>
+              </Link>
 
               {employerName && (
                 <p className="text-sm text-muted-foreground" data-testid="employer-name">
@@ -281,10 +286,34 @@ export default async function ReviewDetailPage({ params }: PageProps) {
 
               <div className="pt-1 text-xs text-muted-foreground" data-testid="trust-signals">
                 <p>
-                  {t("violations")}: {confidenceIndicator.violationCount}
+                  {t("violations")}:{" "}
+                  {confidenceIndicator.violationCount > 0 ? (
+                    <Link
+                      href={`/admin/violations?companyId=${company.id}`}
+                      className="text-primary hover:underline"
+                      aria-label={t("viewCompanyViolations", { company: company.name })}
+                      data-testid="violations-count-link"
+                    >
+                      {confidenceIndicator.violationCount}
+                    </Link>
+                  ) : (
+                    confidenceIndicator.violationCount
+                  )}
                 </p>
                 <p>
-                  {t("reports")}: {confidenceIndicator.reportCount}
+                  {t("reports")}:{" "}
+                  {confidenceIndicator.reportCount > 0 ? (
+                    <Link
+                      href="/admin/reports"
+                      className="text-primary hover:underline"
+                      aria-label={t("viewCompanyReports", { company: company.name })}
+                      data-testid="reports-count-link"
+                    >
+                      {confidenceIndicator.reportCount}
+                    </Link>
+                  ) : (
+                    confidenceIndicator.reportCount
+                  )}
                 </p>
                 <p>
                   {t("engagement")}: {confidenceIndicator.engagementLevel}

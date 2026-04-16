@@ -61,19 +61,13 @@ import { countOpenViolationsForCompany } from "@igbo/db/queries/portal-admin-fla
 import { getCompanyById } from "@igbo/db/queries/portal-companies";
 import { findUserById } from "@igbo/db/queries/auth-queries";
 import Page from "./page";
+import { employerVerificationFactory } from "@/test/factories";
 
 const adminSession = { user: { id: "admin-1", activePortalRole: "JOB_ADMIN" } };
-const mockVerification = {
+const mockVerification = employerVerificationFactory({
   id: "ver-1",
   companyId: "company-1",
-  submittedDocuments: [],
-  status: "pending",
-  adminNotes: null,
-  submittedAt: new Date(),
-  reviewedAt: null,
-  reviewedByAdminId: null,
-  createdAt: new Date(),
-};
+});
 const mockCompany = { id: "company-1", name: "ACME Ltd", ownerUserId: "user-1" };
 
 beforeEach(() => {

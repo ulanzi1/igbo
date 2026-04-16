@@ -61,7 +61,16 @@ export function VerificationQueueTable({ items }: VerificationQueueTableProps) {
       <TableBody>
         {items.map((item) => (
           <TableRow key={item.id} data-testid="queue-row">
-            <TableCell className="font-medium">{item.companyName}</TableCell>
+            <TableCell className="font-medium">
+              <Link
+                href={`/admin/postings?companyId=${item.companyId}`}
+                className="text-primary hover:underline"
+                aria-label={t("viewCompanyPostings", { company: item.companyName })}
+                data-testid={`company-link-${item.id}`}
+              >
+                {item.companyName}
+              </Link>
+            </TableCell>
             <TableCell>{item.ownerUserName}</TableCell>
             <TableCell>{formatDate(item.submittedAt)}</TableCell>
             <TableCell>{item.documentCount}</TableCell>

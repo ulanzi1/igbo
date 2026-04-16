@@ -4,8 +4,11 @@ import { render, screen } from "@testing-library/react";
 import React from "react";
 import type { Session } from "next-auth";
 
+const mockSignOut = vi.fn();
+
 vi.mock("next-auth/react", () => ({
   useSession: vi.fn(),
+  signOut: (...args: unknown[]) => mockSignOut(...args),
   SessionProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
@@ -22,6 +25,7 @@ vi.mock("sonner", () => ({
   toast: vi.fn(),
 }));
 
+import { fireEvent } from "@testing-library/react";
 import { useSession } from "next-auth/react";
 import { PortalTopNav } from "./portal-top-nav";
 
@@ -45,6 +49,7 @@ function setGuest() {
 }
 
 beforeEach(() => {
+  vi.clearAllMocks();
   process.env.NEXT_PUBLIC_COMMUNITY_URL = "http://localhost:3000";
 });
 
@@ -96,13 +101,30 @@ describe("PortalTopNav", () => {
       expect(screen.getAllByText("reviewQueue").length).toBeGreaterThan(0);
       expect(screen.getAllByText("reports").length).toBeGreaterThan(0);
       expect(screen.getAllByText("analytics").length).toBeGreaterThan(0);
-      expect(screen.getAllByText("settings").length).toBeGreaterThan(0);
+    });
+
+    it("does not render settings nav link for admin", () => {
+      setSession({ user: { activePortalRole: "JOB_ADMIN", portalRoles: ["JOB_ADMIN"] } });
+      render(<PortalTopNav />);
+      expect(screen.queryByText("settings")).not.toBeInTheDocument();
     });
 
     it("renders audit log nav link for admin", () => {
       setSession({ user: { activePortalRole: "JOB_ADMIN", portalRoles: ["JOB_ADMIN"] } });
       render(<PortalTopNav />);
       expect(screen.getAllByText("auditLog").length).toBeGreaterThan(0);
+    });
+
+    it("renders all postings nav link for admin", () => {
+      setSession({ user: { activePortalRole: "JOB_ADMIN", portalRoles: ["JOB_ADMIN"] } });
+      render(<PortalTopNav />);
+      expect(screen.getAllByText("allPostings").length).toBeGreaterThan(0);
+    });
+
+    it("renders employers nav link for admin", () => {
+      setSession({ user: { activePortalRole: "JOB_ADMIN", portalRoles: ["JOB_ADMIN"] } });
+      render(<PortalTopNav />);
+      expect(screen.getAllByText("employers").length).toBeGreaterThan(0);
     });
 
     it("does not show seeker items for admin role", () => {
@@ -126,6 +148,27 @@ describe("PortalTopNav", () => {
       render(<PortalTopNav />);
       expect(screen.getByText("login")).toBeInTheDocument();
       expect(screen.getByText("joinNow")).toBeInTheDocument();
+    });
+  });
+
+  describe("logout button", () => {
+    it("renders logout button for authenticated users", () => {
+      setSession({ user: { activePortalRole: "JOB_SEEKER", portalRoles: ["JOB_SEEKER"] } });
+      render(<PortalTopNav />);
+      expect(screen.getByTestId("logout-button")).toBeInTheDocument();
+    });
+
+    it("does not render logout button for guests", () => {
+      setGuest();
+      render(<PortalTopNav />);
+      expect(screen.queryByTestId("logout-button")).not.toBeInTheDocument();
+    });
+
+    it("calls signOut with community URL on click", () => {
+      setSession({ user: { activePortalRole: "EMPLOYER", portalRoles: ["EMPLOYER"] } });
+      render(<PortalTopNav />);
+      fireEvent.click(screen.getByTestId("logout-button"));
+      expect(mockSignOut).toHaveBeenCalledWith({ callbackUrl: "http://localhost:3000" });
     });
   });
 

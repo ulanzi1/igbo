@@ -862,7 +862,8 @@ export async function dismissFlag(
 export async function getViolationsQueue(options: {
   limit?: number;
   offset?: number;
+  companyId?: string;
 }): Promise<{ items: OpenFlagWithContext[]; total: number }> {
-  const { limit = 50, offset = 0 } = options;
-  return listOpenFlags({ limit, offset });
+  const { limit = 50, offset = 0, companyId } = options;
+  return listOpenFlags({ limit, offset, companyId });
 }

@@ -13,7 +13,8 @@ export const GET = withApiHandler(async (req: Request) => {
     Math.min(parseInt(url.searchParams.get("limit") ?? "50", 10) || 50, 100),
   );
   const offset = Math.max(0, parseInt(url.searchParams.get("offset") ?? "0", 10) || 0);
+  const companyId = url.searchParams.get("companyId") ?? undefined;
 
-  const result = await getViolationsQueue({ limit, offset });
+  const result = await getViolationsQueue({ limit, offset, companyId });
   return successResponse(result);
 });
