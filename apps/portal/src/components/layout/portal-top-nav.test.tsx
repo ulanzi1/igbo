@@ -149,6 +149,14 @@ describe("PortalTopNav", () => {
       expect(screen.getByText("login")).toBeInTheDocument();
       expect(screen.getByText("joinNow")).toBeInTheDocument();
     });
+
+    it("guest browseAll link points to /en/search (P-4.1B nav update)", () => {
+      setGuest();
+      render(<PortalTopNav />);
+      const browseLinks = screen.getAllByText("browseAll").map((el) => el.closest("a"));
+      const searchLinks = browseLinks.filter((l) => l?.getAttribute("href")?.includes("/search"));
+      expect(searchLinks.length).toBeGreaterThan(0);
+    });
   });
 
   describe("logout button", () => {

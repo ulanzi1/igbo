@@ -168,7 +168,8 @@
         "full_time": "Full-time",
         "part_time": "Part-time",
         "contract": "Contract",
-        "internship": "Internship"
+        "internship": "Internship",
+        "apprenticeship": "Apprenticeship"
       },
       "saveChanges": "Save Changes",
       "updated": "Job posting updated",
@@ -1192,6 +1193,91 @@
         "success": "CSV exported successfully",
         "error": "Failed to export candidates",
         "ariaButton": "Export all candidates as CSV"
+      }
+    },
+    "search": {
+      "pageTitle": "Find Jobs",
+      "heading": "Search Jobs",
+      "searchBarPlaceholder": "Search jobs by title, company, or skill…",
+      "searchBarAriaLabel": "Search jobs",
+      "clearSearchAriaLabel": "Clear search",
+      "filtersHeading": "Filters",
+      "openFiltersButton": "Filter",
+      "openFiltersAriaLabel": "Open filters",
+      "closeFiltersAriaLabel": "Close filters",
+      "activeFilterCount": "{count}",
+      "activeFiltersAriaLabel": "Active filters",
+      "clearAll": "Clear all",
+      "removeFilterAriaLabel": "Remove filter {value}",
+      "filterGroup": {
+        "location": "Location",
+        "employmentType": "Employment Type",
+        "industry": "Industry",
+        "salary": "Salary Range",
+        "remote": "Remote",
+        "culturalContext": "Cultural Context"
+      },
+      "facet": {
+        "location": {
+          "zero": "No matches"
+        }
+      },
+      "salary": {
+        "min": "Minimum",
+        "max": "Maximum",
+        "chipMin": "Min ₦{amount}",
+        "chipMax": "Max ₦{amount}",
+        "bucket": {
+          "<50k": "Under ₦50k",
+          "50k-100k": "₦50k – ₦100k",
+          "100k-200k": "₦100k – ₦200k",
+          ">200k": "₦200k+",
+          "competitive": "Competitive"
+        },
+        "competitiveTooltip": "Competitive salary postings (filter coming in a future release)"
+      },
+      "remote": {
+        "label": "Remote only"
+      },
+      "sort": {
+        "label": "Sort by",
+        "relevance": "Relevance",
+        "date": "Newest First",
+        "salary_desc": "Salary: High to Low",
+        "salary_asc": "Salary: Low to High"
+      },
+      "sortFallbackNotice": "Sorted by newest — enter a search term for relevance ranking",
+      "sortFallbackNoticeAriaLabel": "Sort order notice",
+      "resultsSummary": "Showing {shown} of {total} {total, plural, one {result} other {results}}",
+      "resultsSummaryUpdating": "Updating…",
+      "loadMore": "Load More",
+      "loadingMore": "Loading…",
+      "endOfResults": "End of results",
+      "empty": {
+        "filtered": {
+          "title": "No exact matches — try broadening your search",
+          "body": "Remove a filter or change your keywords to see more opportunities.",
+          "clearFilters": "Clear filters",
+          "browseAll": "Browse all jobs"
+        },
+        "coldStart": {
+          "title": "New opportunities are being added daily",
+          "body": "Check back soon — Igbo-community employers are posting new roles weekly."
+        }
+      },
+      "card": {
+        "postingAgeRelative": "{days, plural, one {# day ago} other {# days ago}}",
+        "postingAgeAbsolute": "Posted {date}",
+        "deadlineInDays": "Closes in {days, plural, one {# day} other {# days}}",
+        "deadlineAbsolute": "Closes {date}",
+        "deadlineToday": "Closes today",
+        "viewDetails": "View details",
+        "companyNameAriaLabel": "Company: {name}"
+      },
+      "errors": {
+        "network": "We couldn’t load search results. Check your connection and try again.",
+        "loadMore": "Couldn’t load more results. Try again.",
+        "retry": "Retry"
       }
     }
   },

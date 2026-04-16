@@ -168,7 +168,8 @@
         "full_time": "Oge Niile",
         "part_time": "Oge Ụfọdụ",
         "contract": "Nkwekọrịta",
-        "internship": "Ọzụzụ Ọrụ"
+        "internship": "Ọzụzụ Ọrụ",
+        "apprenticeship": "TODO(ig-translations): Apprenticeship"
       },
       "saveChanges": "Chekwaa Mgbanwe",
       "updated": "Edeziri ntinye ọrụ",
@@ -1192,6 +1193,91 @@
         "success": "A bupụtara CSV nke ọma",
         "error": "Ọ dajụọ ibupụ ndị na-achọ ọrụ",
         "ariaButton": "Bupụ ndị na-achọ ọrụ niile dị ka CSV"
+      }
+    },
+    "search": {
+      "pageTitle": "TODO(ig-translations): Find Jobs",
+      "heading": "TODO(ig-translations): Search Jobs",
+      "searchBarPlaceholder": "TODO(ig-translations): Search jobs by title, company, or skill…",
+      "searchBarAriaLabel": "TODO(ig-translations): Search jobs",
+      "clearSearchAriaLabel": "TODO(ig-translations): Clear search",
+      "filtersHeading": "TODO(ig-translations): Filters",
+      "openFiltersButton": "TODO(ig-translations): Filter",
+      "openFiltersAriaLabel": "TODO(ig-translations): Open filters",
+      "closeFiltersAriaLabel": "TODO(ig-translations): Close filters",
+      "activeFilterCount": "{count}",
+      "activeFiltersAriaLabel": "TODO(ig-translations): Active filters",
+      "clearAll": "TODO(ig-translations): Clear all",
+      "removeFilterAriaLabel": "TODO(ig-translations): Remove filter {value}",
+      "filterGroup": {
+        "location": "TODO(ig-translations): Location",
+        "employmentType": "TODO(ig-translations): Employment Type",
+        "industry": "TODO(ig-translations): Industry",
+        "salary": "TODO(ig-translations): Salary Range",
+        "remote": "TODO(ig-translations): Remote",
+        "culturalContext": "TODO(ig-translations): Cultural Context"
+      },
+      "facet": {
+        "location": {
+          "zero": "TODO(ig-translations): No matches"
+        }
+      },
+      "salary": {
+        "min": "TODO(ig-translations): Minimum",
+        "max": "TODO(ig-translations): Maximum",
+        "chipMin": "TODO(ig-translations): Min ₦{amount}",
+        "chipMax": "TODO(ig-translations): Max ₦{amount}",
+        "bucket": {
+          "<50k": "TODO(ig-translations): Under ₦50k",
+          "50k-100k": "TODO(ig-translations): ₦50k – ₦100k",
+          "100k-200k": "TODO(ig-translations): ₦100k – ₦200k",
+          ">200k": "TODO(ig-translations): ₦200k+",
+          "competitive": "TODO(ig-translations): Competitive"
+        },
+        "competitiveTooltip": "TODO(ig-translations): Competitive salary postings (filter coming in a future release)"
+      },
+      "remote": {
+        "label": "TODO(ig-translations): Remote only"
+      },
+      "sort": {
+        "label": "TODO(ig-translations): Sort by",
+        "relevance": "TODO(ig-translations): Relevance",
+        "date": "TODO(ig-translations): Newest First",
+        "salary_desc": "TODO(ig-translations): Salary: High to Low",
+        "salary_asc": "TODO(ig-translations): Salary: Low to High"
+      },
+      "sortFallbackNotice": "TODO(ig-translations): Sorted by newest — enter a search term for relevance ranking",
+      "sortFallbackNoticeAriaLabel": "TODO(ig-translations): Sort order notice",
+      "resultsSummary": "TODO(ig-translations): Showing {shown} of {total} {total, plural, one {result} other {results}}",
+      "resultsSummaryUpdating": "TODO(ig-translations): Updating…",
+      "loadMore": "TODO(ig-translations): Load More",
+      "loadingMore": "TODO(ig-translations): Loading…",
+      "endOfResults": "TODO(ig-translations): End of results",
+      "empty": {
+        "filtered": {
+          "title": "TODO(ig-translations): No exact matches — try broadening your search",
+          "body": "TODO(ig-translations): Remove a filter or change your keywords to see more opportunities.",
+          "clearFilters": "TODO(ig-translations): Clear filters",
+          "browseAll": "TODO(ig-translations): Browse all jobs"
+        },
+        "coldStart": {
+          "title": "TODO(ig-translations): New opportunities are being added daily",
+          "body": "TODO(ig-translations): Check back soon — Igbo-community employers are posting new roles weekly."
+        }
+      },
+      "card": {
+        "postingAgeRelative": "TODO(ig-translations): {days, plural, one {# day ago} other {# days ago}}",
+        "postingAgeAbsolute": "TODO(ig-translations): Posted {date}",
+        "deadlineInDays": "TODO(ig-translations): Closes in {days, plural, one {# day} other {# days}}",
+        "deadlineAbsolute": "TODO(ig-translations): Closes {date}",
+        "deadlineToday": "TODO(ig-translations): Closes today",
+        "viewDetails": "TODO(ig-translations): View details",
+        "companyNameAriaLabel": "TODO(ig-translations): Company: {name}"
+      },
+      "errors": {
+        "network": "TODO(ig-translations): We couldn’t load search results. Check your connection and try again.",
+        "loadMore": "TODO(ig-translations): Couldn’t load more results. Try again.",
+        "retry": "TODO(ig-translations): Retry"
       }
     }
   },

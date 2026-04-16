@@ -245,6 +245,7 @@ export async function searchJobs(
       id: row.id,
       title: row.title,
       companyName: row.company_name ?? "",
+      companyId: row.company_id ?? null,
       companyLogoUrl: row.logo_url,
       location: row.location,
       salaryMin: row.salary_min,

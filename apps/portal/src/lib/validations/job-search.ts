@@ -82,6 +82,7 @@ export interface JobSearchResultItem {
   id: string;
   title: string;
   companyName: string;
+  companyId: string | null; // Added in P-4.1B — null when no company profile linked
   companyLogoUrl: string | null;
   location: string | null;
   salaryMin: number | null;

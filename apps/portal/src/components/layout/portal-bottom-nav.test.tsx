@@ -100,13 +100,20 @@ describe("PortalBottomNav", () => {
     expect(jobsLink).toHaveAttribute("href", "/en/jobs");
   });
 
+  it("guest browseAll link points to /en/search (P-4.1B nav update)", () => {
+    process.env.NEXT_PUBLIC_COMMUNITY_URL = "http://localhost:3000";
+    setGuest();
+    render(<PortalBottomNav />);
+    const browseLink = screen.getByText("browseAll").closest("a");
+    expect(browseLink).toHaveAttribute("href", "/en/search");
+  });
+
   it("renders admin tabs for JOB_ADMIN role", () => {
     setSession({ user: { activePortalRole: "JOB_ADMIN", portalRoles: ["JOB_ADMIN"] } });
     render(<PortalBottomNav />);
     expect(screen.getByText("home")).toBeInTheDocument();
     expect(screen.getByText("reviewQueue")).toBeInTheDocument();
     expect(screen.getByText("reports")).toBeInTheDocument();
-    expect(screen.getByText("settings")).toBeInTheDocument();
     expect(screen.queryByText("myApplications")).not.toBeInTheDocument();
     expect(screen.queryByText("dashboard")).not.toBeInTheDocument();
   });
@@ -125,10 +132,10 @@ describe("PortalBottomNav", () => {
     expect(reportsLink).toHaveAttribute("href", "/en/admin/reports");
   });
 
-  it("admin Settings link points to /en/admin/settings", () => {
+  it("does not reference the removed Portal.nav.settings key", () => {
     setSession({ user: { activePortalRole: "JOB_ADMIN", portalRoles: ["JOB_ADMIN"] } });
     render(<PortalBottomNav />);
-    const settingsLink = screen.getByText("settings").closest("a");
-    expect(settingsLink).toHaveAttribute("href", "/en/admin/settings");
+    // Regression: Portal.nav.settings was removed in P-3x.3; bottom nav must not reference it.
+    expect(screen.queryByText("settings")).not.toBeInTheDocument();
   });
 });

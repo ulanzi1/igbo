@@ -48,6 +48,7 @@ const sampleSearchPage = {
       id: "post-1",
       title: "Software Engineer",
       company_name: "TechCorp",
+      company_id: "company-uuid-1",
       logo_url: null,
       location: "Lagos, Nigeria",
       salary_min: 80000,

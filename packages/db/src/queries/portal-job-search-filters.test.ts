@@ -204,6 +204,7 @@ const sampleFilteredRow = {
   id: "post-1",
   title: "Software Engineer",
   company_name: "TechCorp",
+  company_id: "company-uuid-1",
   logo_url: null,
   location: "Lagos, Nigeria",
   salary_min: 50000,
@@ -237,6 +238,22 @@ describe("searchJobPostingsWithFilters — basic call", () => {
     expect(rendered).toContain("LEFT JOIN");
     expect(rendered).toContain("company_name");
     expect(rendered).toContain("logo_url");
+  });
+
+  it("includes company_id in SELECT projection (P-4.1B additive field)", async () => {
+    mockDbExecute.mockResolvedValue([]);
+
+    await searchJobPostingsWithFilters({ query: "engineer", locale: "en" });
+
+    const rendered = flattenSql(mockDbExecute.mock.calls[0]![0]);
+    expect(rendered).toContain("company_id");
+  });
+
+  it("returns company_id from row data", async () => {
+    mockDbExecute.mockResolvedValue([sampleFilteredRow]);
+
+    const { items } = await searchJobPostingsWithFilters({ query: "engineer", locale: "en" });
+    expect(items[0]?.company_id).toBe("company-uuid-1");
   });
 
   it("does NOT include requirements in SELECT (large column excluded per AC #5)", async () => {

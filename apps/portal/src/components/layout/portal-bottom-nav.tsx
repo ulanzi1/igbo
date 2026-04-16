@@ -10,7 +10,6 @@ import {
   LogInIcon,
   ShieldCheckIcon,
   BarChart3Icon,
-  SettingsIcon,
 } from "lucide-react";
 import { useTranslations, useLocale } from "next-intl";
 import { usePathname } from "next/navigation";
@@ -66,17 +65,11 @@ export function PortalBottomNav() {
       icon: ShieldCheckIcon,
     },
     { key: "reports", href: `/${locale}/admin/reports`, label: t("reports"), icon: BarChart3Icon },
-    {
-      key: "settings",
-      href: `/${locale}/admin/settings`,
-      label: t("settings"),
-      icon: SettingsIcon,
-    },
   ];
 
   const guestItems: BottomNavItem[] = [
     { key: "home", href: `/${locale}`, label: t("home"), icon: HomeIcon },
-    { key: "browseAll", href: `/${locale}/jobs`, label: t("browseAll"), icon: BriefcaseIcon },
+    { key: "browseAll", href: `/${locale}/search`, label: t("browseAll"), icon: BriefcaseIcon },
     {
       key: "login",
       href: `${communityUrl}/login?callbackUrl=${encodeURIComponent(`${portalUrl}/${locale}`)}`,

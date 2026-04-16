@@ -434,6 +434,7 @@ export interface FilteredJobSearchResult {
   id: string;
   title: string;
   company_name: string | null;
+  company_id: string | null; // Added in P-4.1B — additive projection of portal_job_postings.company_id
   logo_url: string | null;
   location: string | null;
   salary_min: number | null;
@@ -660,6 +661,7 @@ export async function searchJobPostingsWithFilters({
         pjp.id::text,
         pjp.title,
         cp.name AS company_name,
+        pjp.company_id::text AS company_id,
         cp.logo_url,
         pjp.location,
         pjp.salary_min,
@@ -699,6 +701,7 @@ export async function searchJobPostingsWithFilters({
       pjp.id::text,
       pjp.title,
       cp.name AS company_name,
+      pjp.company_id::text AS company_id,
       cp.logo_url,
       pjp.location,
       pjp.salary_min,
