@@ -47,6 +47,7 @@ Add `// ci-allow-<reason>` above the relevant line, with a justification comment
 | `apps/portal/src/app/api/v1/upload/verification-document/route.ts` | `process-env` | — |
 | `apps/portal/src/app/api/v1/upload/verification-document/route.ts` | `process-env` | const s3PublicUrl = process.env.HETZNER_S3_PUBLIC_URL; // ci-allow-process-env |
 | `apps/portal/src/app/api/v1/upload/verification-document/route.ts` | `process-env` | const s3Bucket = process.env.HETZNER_S3_BUCKET; // ci-allow-process-env |
+| `apps/portal/src/components/domain/job-result-card.tsx` | `unsanitized-html` | className="mt-2 text-sm text-muted-foreground line-clamp-2 [&>mark]:bg-yellow-100 [&>mark]:text-foreground [&>mark]:rounded-sm [&>mark]:px-0.5" |
 | `apps/portal/src/components/flow/job-posting-preview.tsx` | `unsanitized-html` | className="prose prose-sm max-w-none" |
 | `apps/portal/src/lib/api-middleware.ts` | `process-env` | portal has no @/env module; follows @igbo/auth pattern of direct process.env reads |
 | `apps/portal/src/lib/internal-auth.ts` | `process-env` | export function requireInternalAuth(req: Request): void { |
