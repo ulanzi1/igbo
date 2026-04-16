@@ -14,6 +14,9 @@ export const PORTAL_ERRORS = {
   SEEKER_PROFILE_REQUIRED: "PORTAL_ERRORS.SEEKER_PROFILE_REQUIRED",
   INVALID_FILE_TYPE: "PORTAL_ERRORS.INVALID_FILE_TYPE",
   FILE_TOO_LARGE: "PORTAL_ERRORS.FILE_TOO_LARGE",
+  ALREADY_FLAGGED: "PORTAL_ERRORS.ALREADY_FLAGGED",
+  FLAG_NOT_FOUND: "PORTAL_ERRORS.FLAG_NOT_FOUND",
+  INVALID_FLAG_TARGET: "PORTAL_ERRORS.INVALID_FLAG_TARGET",
 } as const;
 
 export type PortalErrorCode = (typeof PORTAL_ERRORS)[keyof typeof PORTAL_ERRORS];
@@ -34,3 +37,13 @@ export const REJECTION_CATEGORIES = [
 ] as const;
 
 export type RejectionCategory = (typeof REJECTION_CATEGORIES)[number];
+
+export const VIOLATION_CATEGORIES = [
+  "misleading_content",
+  "discriminatory_language",
+  "scam_fraud",
+  "terms_of_service_violation",
+  "other",
+] as const;
+
+export type ViolationCategory = (typeof VIOLATION_CATEGORIES)[number];

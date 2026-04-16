@@ -119,6 +119,16 @@ export interface JobReviewedEvent extends BaseEvent {
   fastLane?: boolean;
 }
 
+export interface JobFlaggedEvent extends BaseEvent {
+  jobId: string;
+  flagId: string;
+  adminUserId: string;
+  category: string;
+  severity: string;
+  companyId: string;
+  autoPaused: boolean;
+}
+
 // Portal event map — used by portal EventBus
 export interface PortalEventMap {
   "job.published": JobPublishedEvent;
@@ -132,6 +142,7 @@ export interface PortalEventMap {
   "job.viewed": JobViewedEvent;
   "job.shared_to_community": JobSharedToCommunityEvent;
   "job.reviewed": JobReviewedEvent;
+  "job.flagged": JobFlaggedEvent;
 }
 
 export type PortalEventName = keyof PortalEventMap;

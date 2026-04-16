@@ -5,6 +5,10 @@ import { scanDirectProcessEnv } from "./check-process-env";
 import { scanMissingServerOnly } from "./check-server-only";
 import { scanHardcodedJsxStrings } from "./check-hardcoded-jsx-strings";
 import { scanUnsanitizedHtml } from "./check-unsanitized-html";
+import {
+  scanNextLinkImports,
+  KNOWN_VIOLATIONS as NEXT_LINK_KNOWN_VIOLATIONS,
+} from "./check-next-link-import";
 import type { CheckResult } from "./types";
 
 // All known ci-allow-<reason> tags (existing + new)
@@ -13,6 +17,7 @@ const ALL_ALLOW_REASONS = [
   "no-server-only",
   "literal-jsx",
   "unsanitized-html",
+  "next-link-import",
 ] as const;
 
 const ALLOWLIST_MARKER_REGEX = /\/\/\s*ci-allow-([\w-]+)/;
@@ -201,6 +206,19 @@ function run(): void {
     ? []
     : scanUnsanitizedHtml(rootDir);
 
+  // next-link-import scanner with known-violation filtering
+  const nextLinkAll = disabledChecks.has("next-link-import") ? [] : scanNextLinkImports(rootDir);
+  const knownSet = new Set(NEXT_LINK_KNOWN_VIOLATIONS);
+  const nextLinkNew = nextLinkAll.filter((r) => !knownSet.has(r.file));
+  const nextLinkKnown = nextLinkAll.filter((r) => knownSet.has(r.file));
+
+  // Log known violations as warnings (not hard failures)
+  if (nextLinkKnown.length > 0) {
+    for (const r of nextLinkKnown) {
+      console.warn(`⚠ next-link-import (known): ${r.file}:${r.line}`);
+    }
+  }
+
   // Generate and sync the allowlist registry
   const { content: registryContent, violations: registryViolations } =
     generateAllowlistRegistry(rootDir);
@@ -221,6 +239,7 @@ function run(): void {
     ...serverOnly,
     ...hardcodedJsx,
     ...unsanitizedHtml,
+    ...nextLinkNew,
     ...registryViolations,
   ];
 
@@ -253,6 +272,7 @@ function run(): void {
     "hardcoded-jsx-string",
     "unsanitized-html",
     "unsanitized-html-extraction-failed",
+    "next-link-import",
     "allowlist-registry-drift",
   ];
   for (const check of checkOrder) {
@@ -280,6 +300,7 @@ function run(): void {
     "hardcoded-jsx-string",
     "unsanitized-html",
     "unsanitized-html-extraction-failed",
+    "next-link-import",
     "allowlist-registry-drift",
   ]) {
     const count = allResults.filter((r) => r.check === check).length;

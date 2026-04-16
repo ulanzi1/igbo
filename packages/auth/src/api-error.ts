@@ -39,6 +39,21 @@ export class ApiError extends Error {
     this.extensions = options.extensions;
   }
 
+  /**
+   * Converts this error to an RFC 7807 Problem Details response body.
+   *
+   * **Important:** Extensions are spread flat onto the top-level object,
+   * NOT nested under an `extensions` key. This matches RFC 7807 §3.2.
+   *
+   * @example
+   * // Given: new ApiError({ title: "Conflict", status: 409, extensions: { code: "DUPLICATE" } })
+   * // toProblemDetails() returns:
+   * // { type: "about:blank", title: "Conflict", status: 409, code: "DUPLICATE" }
+   * //
+   * // Client access:
+   * // ✅ body.code          → "DUPLICATE"
+   * // ❌ body.extensions.code → undefined (extensions is not a key in the response)
+   */
   toProblemDetails(): ProblemDetails {
     const result: ProblemDetails = {
       type: this.type,
