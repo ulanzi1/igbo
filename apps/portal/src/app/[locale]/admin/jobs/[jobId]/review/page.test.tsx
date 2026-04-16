@@ -79,6 +79,8 @@ const mockDetail = {
     screeningResultJson: null,
     screeningCheckedAt: null,
     enableCoverLetter: false,
+    searchVector: null,
+    searchVectorIgbo: null,
     createdAt: new Date("2026-01-15"),
     updatedAt: new Date("2026-01-15"),
   },

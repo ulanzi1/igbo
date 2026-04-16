@@ -53,6 +53,8 @@ const makeItem = (overrides: Partial<ReviewQueueItem> = {}): ReviewQueueItem => 
     screeningResultJson: null,
     screeningCheckedAt: null,
     enableCoverLetter: false,
+    searchVector: null,
+    searchVectorIgbo: null,
     createdAt: new Date("2026-01-01"),
     updatedAt: new Date("2026-01-01"),
     employerTotalPostings: 3,
