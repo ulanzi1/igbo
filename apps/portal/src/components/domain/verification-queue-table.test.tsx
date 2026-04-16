@@ -72,9 +72,18 @@ describe("VerificationQueueTable", () => {
 
   it("review link has correct aria-label", () => {
     render(<VerificationQueueTable items={[mockItem]} />);
-    const link = screen.getByRole("link");
-    expect(link.getAttribute("aria-label")).toContain("ACME Ltd");
-    expect(link.getAttribute("href")).toContain("ver-1");
+    const links = screen.getAllByRole("link");
+    const reviewLink = links.find((l) => l.getAttribute("href")?.includes("ver-1"));
+    expect(reviewLink).toBeDefined();
+    expect(reviewLink!.getAttribute("aria-label")).toContain("ACME Ltd");
+  });
+
+  it("company name is a link to filtered postings", () => {
+    render(<VerificationQueueTable items={[mockItem]} />);
+    const link = screen.getByTestId("company-link-ver-1");
+    expect(link.tagName).toBe("A");
+    expect(link.getAttribute("href")).toContain("admin/postings");
+    expect(link.getAttribute("href")).toContain("companyId=company-1");
   });
 
   it("renders document count", () => {

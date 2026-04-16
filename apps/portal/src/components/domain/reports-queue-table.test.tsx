@@ -11,8 +11,18 @@ vi.mock("next-auth/react", () => ({
 }));
 
 vi.mock("@/i18n/navigation", () => ({
-  Link: ({ href, children }: { href: string; children: React.ReactNode }) => (
-    <a href={href}>{children}</a>
+  Link: ({
+    href,
+    children,
+    ...rest
+  }: {
+    href: string;
+    children: React.ReactNode;
+    [k: string]: unknown;
+  }) => (
+    <a href={href} {...rest}>
+      {children}
+    </a>
   ),
 }));
 
@@ -76,6 +86,14 @@ describe("ReportsQueueTable", () => {
       l.getAttribute("href")?.includes("/admin/reports/posting-1"),
     );
     expect(investigateLink).toBeDefined();
+  });
+
+  it("company name is a link to filtered postings", () => {
+    renderWithPortalProviders(<ReportsQueueTable items={ITEMS} />);
+    const link = screen.getByTestId("company-link-posting-1");
+    expect(link.tagName).toBe("A");
+    expect(link.getAttribute("href")).toContain("admin/postings");
+    expect(link.getAttribute("href")).toContain("companyId=company-1");
   });
 
   it("has no accessibility violations", async () => {

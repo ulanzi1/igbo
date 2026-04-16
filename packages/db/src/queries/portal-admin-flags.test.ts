@@ -226,6 +226,71 @@ describe("portal-admin-flags queries", () => {
       expect(result.items).toHaveLength(0);
       expect(result.total).toBe(0);
     });
+
+    it("filters by companyId when provided", async () => {
+      const enrichedFlag = {
+        ...mockFlag,
+        postingTitle: "Software Engineer",
+        companyName: "Tech Corp",
+        companyId: "company-1",
+      };
+      const selectChain = makeSelectChain([enrichedFlag]);
+      const countChain = makeSelectChain([{ total: 1 }]);
+
+      let callCount = 0;
+      vi.mocked(db.select).mockImplementation(() => {
+        callCount++;
+        return (callCount === 1 ? selectChain : countChain) as never;
+      });
+
+      const { listOpenFlags } = await import("./portal-admin-flags");
+      const result = await listOpenFlags({ limit: 20, offset: 0, companyId: "company-1" });
+      expect(result.items).toHaveLength(1);
+      expect(result.items[0]?.companyId).toBe("company-1");
+      expect(result.total).toBe(1);
+    });
+
+    it("returns all violations without companyId filter (backward compatible)", async () => {
+      const flags = [
+        { ...mockFlag, postingTitle: "Job A", companyName: "Co A", companyId: "c-1" },
+        { ...mockFlag, id: "flag-2", postingTitle: "Job B", companyName: "Co B", companyId: "c-2" },
+      ];
+      const selectChain = makeSelectChain(flags);
+      const countChain = makeSelectChain([{ total: 2 }]);
+
+      let callCount = 0;
+      vi.mocked(db.select).mockImplementation(() => {
+        callCount++;
+        return (callCount === 1 ? selectChain : countChain) as never;
+      });
+
+      const { listOpenFlags } = await import("./portal-admin-flags");
+      const result = await listOpenFlags({ limit: 20, offset: 0 });
+      expect(result.items).toHaveLength(2);
+      expect(result.total).toBe(2);
+    });
+
+    it("includes companyName and companyId in result rows", async () => {
+      const enrichedFlag = {
+        ...mockFlag,
+        postingTitle: "Engineering Lead",
+        companyName: "Igbo Tech",
+        companyId: "company-42",
+      };
+      const selectChain = makeSelectChain([enrichedFlag]);
+      const countChain = makeSelectChain([{ total: 1 }]);
+
+      let callCount = 0;
+      vi.mocked(db.select).mockImplementation(() => {
+        callCount++;
+        return (callCount === 1 ? selectChain : countChain) as never;
+      });
+
+      const { listOpenFlags } = await import("./portal-admin-flags");
+      const result = await listOpenFlags({ limit: 10, offset: 0 });
+      expect(result.items[0]?.companyName).toBe("Igbo Tech");
+      expect(result.items[0]?.companyId).toBe("company-42");
+    });
   });
 
   describe("resolveAdminFlag", () => {

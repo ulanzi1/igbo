@@ -89,6 +89,19 @@ so that {{benefit}}.
 - Verified references:
   - `field/path/type` — verified at `source-location` | OR: new, created in Task N
 
+### Story Sizing Check
+
+**Purpose:** Catch oversized stories at planning time — not mid-implementation. Stories touching 3+ system axes tend to be disproportionately large and should be split proactively.
+**Owner:** SM (checks at story creation)
+**Source:** `docs/monorepo-playbook.md` → §11.5 Story Sizing Guardrail
+**Audit rule:** Count the system axes this story touches. If 3+, justify why the story should not be split.
+
+System axes: (1) DB queries/schema, (2) Services, (3) API routes, (4) UI components, (5) Cross-feature integration
+
+- [ ] System axes count: _____ (list which ones)
+- [ ] If 3+ axes: justification for keeping as single story — _______________
+- [ ] **OR** story split into: _______________
+
 ### Agent Model Selection
 
 **Purpose:** Ensure model choice is a conscious story-level decision matching complexity to capability, preventing both over-spending (opus for simple CRUD) and under-powering (sonnet for complex multi-component UIs).

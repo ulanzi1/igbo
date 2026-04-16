@@ -114,6 +114,8 @@ import {
 } from "@igbo/db/queries/portal-posting-reports";
 import { db } from "@igbo/db";
 import { portalEventBus } from "@/services/event-bus";
+import { installMockTransaction } from "@/test/mock-transaction";
+import { jobPostingFactory, companyProfileFactory, adminFlagFactory } from "@/test/factories";
 import {
   getReviewQueue,
   getReviewDetail,
@@ -125,51 +127,27 @@ import {
 } from "./admin-review-service";
 
 const BASE_POSTING = {
-  id: "posting-1",
-  companyId: "company-1",
-  title: "Software Engineer",
-  descriptionHtml: "<p>Great role</p>",
-  requirements: null,
-  salaryMin: null,
-  salaryMax: null,
-  salaryCompetitiveOnly: false,
-  location: "Lagos",
-  employmentType: "full_time" as const,
-  status: "pending_review" as const,
-  culturalContextJson: null,
-  descriptionIgboHtml: null,
-  applicationDeadline: null,
-  expiresAt: null,
-  adminFeedbackComment: null,
-  closedOutcome: null,
-  closedAt: null,
-  archivedAt: null,
-  revisionCount: 0,
-  viewCount: 5,
-  communityPostId: null,
-  screeningStatus: null,
-  screeningResultJson: null,
-  screeningCheckedAt: null,
-  enableCoverLetter: false,
-  createdAt: new Date("2026-01-01"),
-  updatedAt: new Date("2026-01-01"),
+  ...jobPostingFactory({
+    id: "posting-1",
+    companyId: "company-1",
+    title: "Software Engineer",
+    status: "pending_review" as const,
+    viewCount: 5,
+  }),
   employerTotalPostings: 3,
 };
 
-const BASE_COMPANY = {
+const BASE_COMPANY = companyProfileFactory({
   id: "company-1",
   ownerUserId: "user-1",
   name: "Tech Corp",
-  logoUrl: null,
-  description: null,
   industry: "technology",
   companySize: "11-50",
-  cultureInfo: null,
   trustBadge: true,
   onboardingCompletedAt: new Date("2025-12-01"),
   createdAt: new Date("2025-12-01"),
   updatedAt: new Date("2025-12-01"),
-};
+});
 
 const BASE_TRUST_SIGNALS = {
   isVerified: true,
@@ -500,59 +478,12 @@ describe("getDashboardSummary", () => {
 // P-3.2: Decision function tests
 // ---------------------------------------------------------------------------
 
-// Closure-based tx mock — captures insert.values payloads + update.set
-// payloads, and lets each test override what UPDATE … RETURNING yields
-// (so we can simulate the race-condition empty-rowset case).
-type CapturedInsert = { table: unknown; values: unknown };
-type CapturedUpdate = { table: unknown; set: unknown };
-
-interface TxCapture {
-  inserts: CapturedInsert[];
-  updates: CapturedUpdate[];
-  setReturning: (rows: unknown[]) => void;
-}
-
-function installTxMock(): TxCapture {
-  const inserts: CapturedInsert[] = [];
-  const updates: CapturedUpdate[] = [];
-  let returningRows: unknown[] = [{ id: "posting-1" }];
-
-  const tx = {
-    insert: (table: unknown) => ({
-      values: (data: unknown) => {
-        inserts.push({ table, values: data });
-        return Promise.resolve(undefined);
-      },
-    }),
-    update: (table: unknown) => ({
-      set: (data: unknown) => {
-        updates.push({ table, set: data });
-        return {
-          where: () => ({
-            returning: () => Promise.resolve(returningRows),
-          }),
-        };
-      },
-    }),
-  };
-
-  vi.mocked(db.transaction).mockImplementation(async (fn) => fn(tx as never));
-
-  return {
-    inserts,
-    updates,
-    setReturning: (rows: unknown[]) => {
-      returningRows = rows;
-    },
-  };
-}
-
 describe("approvePosting", () => {
-  let cap: TxCapture;
+  let cap: ReturnType<typeof installMockTransaction>;
 
   beforeEach(() => {
     vi.mocked(getJobPostingById).mockResolvedValue(PENDING_POSTING as never);
-    cap = installTxMock();
+    cap = installMockTransaction();
   });
 
   it("approves a pending posting, persists review row, and emits event", async () => {
@@ -564,7 +495,7 @@ describe("approvePosting", () => {
     expect(cap.updates).toHaveLength(1);
     expect(cap.updates[0]?.set).toMatchObject({ status: "active" });
 
-    expect(cap.inserts).toHaveLength(1);
+    expect(cap.inserts).toHaveLength(2);
     expect(cap.inserts[0]?.values).toMatchObject({
       postingId: "posting-1",
       reviewerUserId: "admin-1",
@@ -583,6 +514,30 @@ describe("approvePosting", () => {
     );
   });
 
+  it("writes audit log entry inside transaction", async () => {
+    await approvePosting("posting-1", "admin-1");
+
+    expect(cap.inserts[1]?.values).toMatchObject({
+      actorId: "admin-1",
+      action: "portal.posting.approve",
+      targetType: "portal_job_posting",
+      details: expect.objectContaining({
+        postingId: "posting-1",
+        companyId: "company-1",
+        decision: "approved",
+      }),
+    });
+  });
+
+  it("includes fastLane flag in audit details when metadata.fastLane is true", async () => {
+    await approvePosting("posting-1", "admin-1", { fastLane: true });
+
+    expect(cap.inserts[1]?.values).toMatchObject({
+      action: "portal.posting.approve",
+      details: expect.objectContaining({ fastLane: true }),
+    });
+  });
+
   it("throws 404 when posting not found", async () => {
     vi.mocked(getJobPostingById).mockResolvedValue(null);
 
@@ -599,7 +554,7 @@ describe("approvePosting", () => {
   });
 
   it("throws 409 when concurrent admin already changed the status (RETURNING is empty)", async () => {
-    cap.setReturning([]);
+    cap.setUpdateReturning([]);
 
     await expect(approvePosting("posting-1", "admin-1")).rejects.toMatchObject({ status: 409 });
     // Insert must NOT happen when the guarded UPDATE matches no rows.
@@ -610,11 +565,11 @@ describe("approvePosting", () => {
 });
 
 describe("rejectPosting", () => {
-  let cap: TxCapture;
+  let cap: ReturnType<typeof installMockTransaction>;
 
   beforeEach(() => {
     vi.mocked(getJobPostingById).mockResolvedValue(PENDING_POSTING as never);
-    cap = installTxMock();
+    cap = installMockTransaction();
   });
 
   it("rejects a posting and persists reason on both review row and posting", async () => {
@@ -629,7 +584,7 @@ describe("rejectPosting", () => {
       adminFeedbackComment: reason,
     });
 
-    expect(cap.inserts).toHaveLength(1);
+    expect(cap.inserts).toHaveLength(2);
     expect(cap.inserts[0]?.values).toMatchObject({
       postingId: "posting-1",
       reviewerUserId: "admin-1",
@@ -643,6 +598,24 @@ describe("rejectPosting", () => {
         decision: "rejected",
       }),
     );
+  });
+
+  it("writes audit log entry with reason and category", async () => {
+    const reason = "This posting violates our policy guidelines.";
+    await rejectPosting("posting-1", "admin-1", reason, "policy_violation");
+
+    expect(cap.inserts[1]?.values).toMatchObject({
+      actorId: "admin-1",
+      action: "portal.posting.reject",
+      targetType: "portal_job_posting",
+      details: expect.objectContaining({
+        postingId: "posting-1",
+        companyId: "company-1",
+        decision: "rejected",
+        reason,
+        category: "policy_violation",
+      }),
+    });
   });
 
   it("throws 400 when reason is shorter than 20 chars", async () => {
@@ -687,7 +660,7 @@ describe("rejectPosting", () => {
   });
 
   it("throws 409 on race (RETURNING empty) and skips review insert + event emission", async () => {
-    cap.setReturning([]);
+    cap.setUpdateReturning([]);
 
     await expect(
       rejectPosting("posting-1", "admin-1", "Valid reason text right here.", "other"),
@@ -698,11 +671,11 @@ describe("rejectPosting", () => {
 });
 
 describe("requestChanges", () => {
-  let cap: TxCapture;
+  let cap: ReturnType<typeof installMockTransaction>;
 
   beforeEach(() => {
     vi.mocked(getJobPostingById).mockResolvedValue(PENDING_POSTING as never);
-    cap = installTxMock();
+    cap = installMockTransaction();
   });
 
   it("requests changes — persists feedback, increments revisionCount, emits event", async () => {
@@ -720,7 +693,7 @@ describe("requestChanges", () => {
     // (the mock for `sql` returns `{ sql: true }`).
     expect((cap.updates[0]?.set as Record<string, unknown>).revisionCount).toBeDefined();
 
-    expect(cap.inserts).toHaveLength(1);
+    expect(cap.inserts).toHaveLength(2);
     expect(cap.inserts[0]?.values).toMatchObject({
       postingId: "posting-1",
       reviewerUserId: "admin-1",
@@ -734,6 +707,23 @@ describe("requestChanges", () => {
         decision: "changes_requested",
       }),
     );
+  });
+
+  it("writes audit log entry with feedbackComment", async () => {
+    const feedback = "Please add salary information and improve job description.";
+    await requestChanges("posting-1", "admin-1", feedback);
+
+    expect(cap.inserts[1]?.values).toMatchObject({
+      actorId: "admin-1",
+      action: "portal.posting.request_changes",
+      targetType: "portal_job_posting",
+      details: expect.objectContaining({
+        postingId: "posting-1",
+        companyId: "company-1",
+        decision: "changes_requested",
+        feedbackComment: feedback,
+      }),
+    });
   });
 
   it("throws 400 when feedback is shorter than 20 chars", async () => {
@@ -773,7 +763,7 @@ describe("requestChanges", () => {
   });
 
   it("throws 409 on race (RETURNING empty) and skips review insert + event emission", async () => {
-    cap.setReturning([]);
+    cap.setUpdateReturning([]);
 
     await expect(
       requestChanges("posting-1", "admin-1", "Please improve the description section."),
@@ -863,79 +853,33 @@ import {
 } from "./admin-review-service";
 
 const ACTIVE_POSTING = {
-  ...BASE_POSTING,
-  id: "posting-active",
-  status: "active" as const,
-  companyId: "company-1",
+  ...jobPostingFactory({
+    id: "posting-active",
+    companyId: "company-1",
+    status: "active" as const,
+  }),
+  employerTotalPostings: 3,
 };
 
-const BASE_FLAG = {
+const BASE_FLAG = adminFlagFactory({
   id: "flag-1",
   postingId: "posting-active",
   adminUserId: "admin-1",
-  category: "other" as const,
   severity: "low",
   description: "This posting contains misleading information about the role.",
-  status: "open" as const,
-  autoPaused: false,
-  resolvedAt: null,
-  resolvedByUserId: null,
-  resolutionAction: null,
-  resolutionNote: null,
   createdAt: new Date("2026-04-01"),
-};
-
-// A richer tx mock that supports insert().values().returning()
-function installFlagTxMock() {
-  const inserts: { table: unknown; values: unknown }[] = [];
-  const updates: { table: unknown; set: unknown }[] = [];
-  let insertReturning: unknown[] = [BASE_FLAG];
-  let updateReturning: unknown[] = [{ id: "posting-active" }];
-
-  const tx = {
-    insert: (table: unknown) => ({
-      values: (data: unknown) => {
-        inserts.push({ table, values: data });
-        return {
-          returning: () => Promise.resolve(insertReturning),
-        };
-      },
-    }),
-    update: (table: unknown) => ({
-      set: (data: unknown) => {
-        updates.push({ table, set: data });
-        return {
-          where: () => ({
-            returning: () => Promise.resolve(updateReturning),
-          }),
-        };
-      },
-    }),
-  };
-
-  vi.mocked(db.transaction).mockImplementation(async (fn: (tx: never) => Promise<unknown>) =>
-    fn(tx as never),
-  );
-
-  return {
-    inserts,
-    updates,
-    setInsertReturning: (rows: unknown[]) => {
-      insertReturning = rows;
-    },
-    setUpdateReturning: (rows: unknown[]) => {
-      updateReturning = rows;
-    },
-  };
-}
+});
 
 describe("flagPosting", () => {
-  let cap: ReturnType<typeof installFlagTxMock>;
+  let cap: ReturnType<typeof installMockTransaction>;
 
   beforeEach(() => {
     vi.mocked(getJobPostingById).mockResolvedValue(ACTIVE_POSTING as never);
     vi.mocked(getOpenFlagForPosting).mockResolvedValue(null);
-    cap = installFlagTxMock();
+    cap = installMockTransaction({
+      insertReturning: [BASE_FLAG],
+      updateReturning: [{ id: "posting-active" }],
+    });
   });
 
   it("creates a low-severity flag without pausing the posting", async () => {
@@ -1018,15 +962,12 @@ describe("flagPosting", () => {
 });
 
 describe("resolveFlagWithAction", () => {
-  let cap: ReturnType<typeof installFlagTxMock>;
+  let cap: ReturnType<typeof installMockTransaction>;
 
   beforeEach(() => {
     vi.mocked(getAdminFlagById).mockResolvedValue(BASE_FLAG as never);
     vi.mocked(getJobPostingById).mockResolvedValue(ACTIVE_POSTING as never);
-    cap = installFlagTxMock();
-    // resolveAdminFlag returns the resolved flag
-    cap.setInsertReturning([]);
-    cap.setUpdateReturning([{ id: "flag-1" }]);
+    cap = installMockTransaction({ insertReturning: [], updateReturning: [{ id: "flag-1" }] });
   });
 
   it("resolves flag with request_changes action", async () => {
@@ -1110,13 +1051,14 @@ describe("resolveFlagWithAction", () => {
 });
 
 describe("dismissFlag", () => {
-  let cap: ReturnType<typeof installFlagTxMock>;
+  let cap: ReturnType<typeof installMockTransaction>;
 
   beforeEach(() => {
     vi.mocked(getAdminFlagById).mockResolvedValue(BASE_FLAG as never);
-    cap = installFlagTxMock();
-    cap.setInsertReturning([]);
-    cap.setUpdateReturning([{ ...BASE_FLAG, status: "dismissed", autoPaused: false }]);
+    cap = installMockTransaction({
+      insertReturning: [],
+      updateReturning: [{ ...BASE_FLAG, status: "dismissed", autoPaused: false }],
+    });
   });
 
   it("dismisses an open flag without restoring posting (autoPaused=false)", async () => {

@@ -33,16 +33,14 @@ vi.mock("@/services/posting-report-service", () => ({
 import { auth } from "@igbo/auth";
 import { submitReport } from "@/services/posting-report-service";
 import { POST } from "./route";
+import { postingReportFactory } from "@/test/factories";
 
-const MOCK_REPORT = {
+const MOCK_REPORT = postingReportFactory({
   id: "report-1",
   postingId: "posting-1",
   reporterUserId: "user-1",
-  category: "scam_fraud",
-  description: "This looks like a scam.",
-  status: "open",
   createdAt: new Date("2026-04-10"),
-};
+});
 
 beforeEach(() => {
   vi.clearAllMocks();

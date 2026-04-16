@@ -255,7 +255,17 @@ export function ReviewQueueTable({ initialItems, initialTotal }: ReviewQueueTabl
                       )}
                     </div>
                   </TableCell>
-                  <TableCell>{item.company.name}</TableCell>
+                  <TableCell>
+                    <a
+                      href={`/${locale}/admin/postings?companyId=${item.company.id}`}
+                      onClick={(e) => e.stopPropagation()}
+                      className="text-primary hover:underline"
+                      aria-label={t("viewCompanyPostings", { company: item.company.name })}
+                      data-testid={`company-link-${item.posting.id}`}
+                    >
+                      {item.company.name}
+                    </a>
+                  </TableCell>
                   <TableCell>{item.employerName ?? "—"}</TableCell>
                   <TableCell className="text-sm text-muted-foreground">
                     {format.dateTime(item.posting.createdAt, {

@@ -88,17 +88,16 @@ import {
   rejectVerificationRequest,
   getVerificationStatus,
 } from "./employer-verification-service";
+import { installMockTransaction } from "@/test/mock-transaction";
+import { companyProfileFactory, employerVerificationFactory } from "@/test/factories";
 
-const mockCompany = {
+const mockCompany = companyProfileFactory({
   id: "company-1",
   ownerUserId: "employer-1",
   name: "Acme Corp",
-  trustBadge: false,
-  createdAt: new Date(),
-  updatedAt: new Date(),
-};
+});
 
-const mockVerification = {
+const mockVerification = employerVerificationFactory({
   id: "ver-1",
   companyId: "company-1",
   submittedDocuments: [
@@ -108,13 +107,7 @@ const mockVerification = {
       originalFilename: "reg.pdf",
     },
   ],
-  status: "pending" as const,
-  adminNotes: null,
-  submittedAt: new Date(),
-  reviewedAt: null,
-  reviewedByAdminId: null,
-  createdAt: new Date(),
-};
+});
 
 const mockInsertChain = {
   insert: vi.fn().mockReturnThis(),
@@ -224,22 +217,7 @@ describe("approveVerificationRequest", () => {
   it("approves verification, sets trustBadge=true, sends notification, emits event", async () => {
     vi.mocked(getVerificationById).mockResolvedValue(mockVerification);
     vi.mocked(getCompanyById).mockResolvedValue(mockCompany as never);
-    vi.mocked(db.transaction).mockImplementation(async (cb: (tx: never) => Promise<unknown>) => {
-      const tx = {
-        update: vi.fn().mockReturnThis(),
-        set: vi.fn().mockReturnThis(),
-        where: vi.fn().mockReturnThis(),
-        returning: vi.fn().mockResolvedValue([{ id: "ver-1" }]),
-        insert: vi.fn().mockReturnThis(),
-        values: vi.fn().mockResolvedValue(undefined),
-      };
-      // For chaining: update().set().where().returning() and insert().values()
-      tx.update.mockReturnValue(tx);
-      tx.set.mockReturnValue(tx);
-      tx.where.mockReturnValue(tx);
-      tx.insert.mockReturnValue(tx);
-      return cb(tx as never);
-    });
+    installMockTransaction({ updateReturning: [{ id: "ver-1" }] });
     vi.mocked(createNotification).mockResolvedValue(undefined as never);
 
     await approveVerificationRequest("ver-1", "admin-1");
@@ -273,21 +251,7 @@ describe("approveVerificationRequest", () => {
   it("throws 409 on race condition (tx returns no row)", async () => {
     vi.mocked(getVerificationById).mockResolvedValue(mockVerification);
     vi.mocked(getCompanyById).mockResolvedValue(mockCompany as never);
-    vi.mocked(db.transaction).mockImplementation(async (cb: (tx: never) => Promise<unknown>) => {
-      const tx = {
-        update: vi.fn().mockReturnThis(),
-        set: vi.fn().mockReturnThis(),
-        where: vi.fn().mockReturnThis(),
-        returning: vi.fn().mockResolvedValue([]),
-        insert: vi.fn().mockReturnThis(),
-        values: vi.fn().mockResolvedValue(undefined),
-      };
-      tx.update.mockReturnValue(tx);
-      tx.set.mockReturnValue(tx);
-      tx.where.mockReturnValue(tx);
-      tx.insert.mockReturnValue(tx);
-      return cb(tx as never);
-    });
+    installMockTransaction({ updateReturning: [] });
     await expect(approveVerificationRequest("ver-1", "admin-1")).rejects.toMatchObject({
       status: 409,
     });

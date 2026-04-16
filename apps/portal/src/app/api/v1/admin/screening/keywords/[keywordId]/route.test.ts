@@ -28,20 +28,15 @@ import { getScreeningKeywordById } from "@igbo/db/queries/portal-screening-keywo
 import { db } from "@igbo/db";
 import { ApiError } from "@igbo/auth/api-error";
 import { PATCH, DELETE } from "./route";
+import { installMockTransaction, type MockTransactionHandle } from "@/test/mock-transaction";
+import { screeningKeywordFactory } from "@/test/factories";
 
 const adminSession = { user: { id: "admin-1", activePortalRole: "JOB_ADMIN" } };
 
-const fakeKeyword = {
+const fakeKeyword = screeningKeywordFactory({
   id: "kw-1",
-  phrase: "must be male",
-  category: "discriminatory",
-  severity: "high",
-  notes: null,
   createdByAdminId: "admin-1",
-  createdAt: new Date("2026-01-01"),
-  updatedAt: new Date("2026-01-01"),
-  deletedAt: null,
-};
+});
 
 const BASE_URL = "https://jobs.igbo.com/api/v1/admin/screening/keywords/kw-1";
 
@@ -64,30 +59,16 @@ function makeDelete() {
   });
 }
 
-const mockAuditValues = vi.fn().mockResolvedValue([]);
-
-/** Build a tx stub whose .update(...).set(...).where(...).returning() resolves to `row`. */
-function makeTx(row: unknown) {
-  const returning = vi.fn().mockResolvedValue(row === null ? [] : [row]);
-  const where = vi.fn().mockReturnValue({ returning });
-  const set = vi.fn().mockReturnValue({ where });
-  return {
-    update: vi.fn().mockReturnValue({ set }),
-    insert: vi.fn().mockReturnValue({ values: mockAuditValues }),
-  };
-}
+let txHandle: MockTransactionHandle;
 
 beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(requireJobAdminRole).mockResolvedValue(adminSession as never);
   vi.mocked(getScreeningKeywordById).mockResolvedValue(fakeKeyword as never);
 
-  // Default transaction: PATCH returns updated row, DELETE returns { id }.
-  // Tests that need different rows can override per-test.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  vi.mocked(db.transaction).mockImplementation(async (cb: any) => {
-    const tx = makeTx({ ...fakeKeyword, category: "scam" });
-    return cb(tx);
+  // Default transaction: update returns keyword with category overridden (for PATCH tests)
+  txHandle = installMockTransaction({
+    updateReturning: [{ ...fakeKeyword, category: "scam" }],
   });
 });
 
@@ -120,9 +101,7 @@ describe("PATCH /api/v1/admin/screening/keywords/[keywordId]", () => {
 
   it("writes audit log on success", async () => {
     await PATCH(makePatch({ category: "scam" }));
-    expect(mockAuditValues).toHaveBeenCalledWith(
-      expect.objectContaining({ action: "portal.blocklist.update" }),
-    );
+    expect(txHandle.inserts[0]?.values).toMatchObject({ action: "portal.blocklist.update" });
   });
 
   it("returns 409 on duplicate phrase (pg 23505)", async () => {
@@ -158,8 +137,6 @@ describe("DELETE /api/v1/admin/screening/keywords/[keywordId]", () => {
 
   it("writes audit log on success", async () => {
     await DELETE(makeDelete());
-    expect(mockAuditValues).toHaveBeenCalledWith(
-      expect.objectContaining({ action: "portal.blocklist.delete" }),
-    );
+    expect(txHandle.inserts[0]?.values).toMatchObject({ action: "portal.blocklist.delete" });
   });
 });

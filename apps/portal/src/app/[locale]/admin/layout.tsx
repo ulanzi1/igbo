@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { auth } from "@igbo/auth";
+import { PortalLayout } from "@/components/layout/portal-layout";
 import type { ReactNode } from "react";
 
 interface AdminLayoutProps {
@@ -16,5 +17,5 @@ export default async function AdminLayout({ children, params }: AdminLayoutProps
     redirect(`/${locale}`);
   }
 
-  return <>{children}</>;
+  return <PortalLayout>{children}</PortalLayout>;
 }

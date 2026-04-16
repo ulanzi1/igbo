@@ -153,6 +153,8 @@ export async function listPendingReviewPostings(
       screeningResultJson: (row.screeningResultJson as ScreeningResult | null) ?? null,
       screeningCheckedAt: row.screeningCheckedAt ?? null,
       enableCoverLetter: row.enableCoverLetter,
+      searchVector: null,
+      searchVectorIgbo: null,
       createdAt: row.postingCreatedAt,
       updatedAt: row.postingUpdatedAt,
       employerTotalPostings: row.employerTotalPostings,
@@ -306,6 +308,8 @@ export async function getPostingWithReviewContext(
     screeningResultJson: (row.screeningResultJson as ScreeningResult | null) ?? null,
     screeningCheckedAt: row.screeningCheckedAt ?? null,
     enableCoverLetter: row.enableCoverLetter,
+    searchVector: null,
+    searchVectorIgbo: null,
     createdAt: row.postingCreatedAt,
     updatedAt: row.postingUpdatedAt,
   };

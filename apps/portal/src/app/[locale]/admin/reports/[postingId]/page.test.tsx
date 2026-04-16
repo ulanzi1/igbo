@@ -28,16 +28,16 @@ import { redirect, notFound } from "next/navigation";
 import { getReportsForPosting } from "@igbo/db/queries/portal-posting-reports";
 import { getJobPostingById } from "@igbo/db/queries/portal-job-postings";
 import AdminReportDetailPage from "./page";
+import { jobPostingFactory } from "@/test/factories";
 
 function makeParams(locale = "en", postingId = "posting-1") {
   return Promise.resolve({ locale, postingId });
 }
 
-const MOCK_POSTING = {
+const MOCK_POSTING = jobPostingFactory({
   id: "posting-1",
-  title: "Software Engineer",
   status: "active",
-};
+});
 
 beforeEach(() => {
   vi.clearAllMocks();

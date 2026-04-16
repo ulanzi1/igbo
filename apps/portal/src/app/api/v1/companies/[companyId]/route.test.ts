@@ -15,25 +15,19 @@ import { auth } from "@igbo/auth";
 import { getCompanyById, updateCompanyProfile } from "@igbo/db/queries/portal-companies";
 import { getCommunityTrustSignals } from "@igbo/db/queries/cross-app";
 import { GET, PATCH } from "./route";
+import { companyProfileFactory } from "@/test/factories";
 
 const employerSession = {
   user: { id: "user-123", activePortalRole: "EMPLOYER" },
 };
 
-const mockProfile = {
+const mockProfile = companyProfileFactory({
   id: "company-uuid",
   ownerUserId: "user-123",
   name: "Acme Corp",
-  logoUrl: null,
-  description: null,
   industry: "technology",
   companySize: "11-50",
-  cultureInfo: null,
-  trustBadge: false,
-  onboardingCompletedAt: null,
-  createdAt: new Date(),
-  updatedAt: new Date(),
-};
+});
 
 const mockTrustSignals = {
   isVerified: true,

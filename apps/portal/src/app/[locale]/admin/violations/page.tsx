@@ -7,10 +7,13 @@ import { ViolationsTable } from "@/components/domain/violations-table";
 
 interface PageProps {
   params: Promise<{ locale: string }>;
+  searchParams?: Promise<{ companyId?: string }>;
 }
 
-export default async function ViolationsPage({ params }: PageProps) {
+export default async function ViolationsPage({ params, searchParams }: PageProps) {
   const { locale } = await params;
+  const resolvedSearchParams = searchParams ? await searchParams : {};
+  const companyIdFilter = resolvedSearchParams.companyId;
   setRequestLocale(locale);
 
   const session = await auth();
@@ -23,7 +26,14 @@ export default async function ViolationsPage({ params }: PageProps) {
   const t = await getTranslations("Portal.admin");
 
   // TODO(P-3.4B): Add pagination UI. Current cap is 100 open flags — sufficient for MVP.
-  const { items } = await getViolationsQueue({ limit: 100, offset: 0 });
+  const { items } = await getViolationsQueue({ limit: 100, offset: 0, companyId: companyIdFilter });
+
+  const companyFilter =
+    companyIdFilter && items.length > 0
+      ? { id: companyIdFilter, name: items[0]?.companyName ?? companyIdFilter }
+      : companyIdFilter
+        ? { id: companyIdFilter, name: companyIdFilter }
+        : null;
 
   return (
     <main className="container mx-auto max-w-5xl px-4 py-8" data-testid="violations-page">
@@ -31,7 +41,11 @@ export default async function ViolationsPage({ params }: PageProps) {
         {t("violationsTitle")}
       </h1>
 
-      <ViolationsTable items={items} onResolved={() => {}} />
+      <ViolationsTable
+        items={items}
+        companyFilter={companyFilter}
+        clearFilterHref={companyIdFilter ? `/${locale}/admin/violations` : undefined}
+      />
     </main>
   );
 }

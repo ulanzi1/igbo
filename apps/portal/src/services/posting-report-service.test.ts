@@ -75,41 +75,30 @@ import { createNotification } from "@igbo/db/queries/notifications";
 import { db } from "@igbo/db";
 import { portalEventBus } from "@/services/event-bus";
 import { submitReport, resolveReportsWithAction, dismissReports } from "./posting-report-service";
+import { installMockTransaction } from "@/test/mock-transaction";
+import { jobPostingFactory, companyProfileFactory, postingReportFactory } from "@/test/factories";
 
-const ACTIVE_POSTING = {
+const ACTIVE_POSTING = jobPostingFactory({
   id: "posting-1",
   companyId: "company-1",
-  title: "Software Engineer",
-  status: "active" as const,
-  createdAt: new Date("2026-04-10"),
-  updatedAt: new Date("2026-04-10"),
-};
+  status: "active",
+});
 
 const PAUSED_POSTING = { ...ACTIVE_POSTING, status: "paused" as const };
 
-const ACTIVE_COMPANY = {
+const ACTIVE_COMPANY = companyProfileFactory({
   id: "company-1",
   ownerUserId: "employer-1",
   name: "Tech Corp",
-  trustBadge: false,
-  onboardingCompletedAt: null,
-  createdAt: new Date("2026-01-01"),
-  updatedAt: new Date("2026-01-01"),
-};
+});
 
-const MOCK_REPORT = {
+const MOCK_REPORT = postingReportFactory({
   id: "report-1",
   postingId: "posting-1",
   reporterUserId: "seeker-1",
-  category: "scam_fraud" as const,
+  category: "scam_fraud",
   description: "This looks like a scam.",
-  status: "open" as const,
-  resolutionAction: null,
-  resolvedAt: null,
-  resolvedByUserId: null,
-  resolutionNote: null,
-  createdAt: new Date("2026-04-10"),
-};
+});
 
 function makeInsertChain(returnValue: unknown) {
   const chain: Record<string, unknown> = {};
@@ -138,24 +127,21 @@ function makeUpdateChain(returnValue: unknown = [{ id: "posting-1" }]) {
 }
 
 function installSubmitTxMock(opts: { reportCount: number; postingStatus: string }) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  vi.mocked(db.transaction).mockImplementation(async (cb: any) => {
-    const tx: Record<string, unknown> = {};
-    // insert(...).values(...).returning() → report row
-    const insertChain = makeInsertChain([MOCK_REPORT]);
-    tx["insert"] = vi.fn().mockReturnValue(insertChain);
-    // select count
-    const selectChain = makeSelectChain([{ cnt: opts.reportCount }]);
-    tx["select"] = vi.fn().mockReturnValue(selectChain);
-    // update for auto-pause
-    if (opts.reportCount >= 5 && opts.postingStatus === "active") {
-      const updateChain = makeUpdateChain([{ id: "posting-1" }]);
-      tx["update"] = vi.fn().mockReturnValue(updateChain);
-    } else {
-      tx["update"] = vi.fn();
-    }
-    return cb(tx);
-  });
+  const tx: Record<string, unknown> = {};
+  // insert(...).values(...).returning() → report row
+  const insertChain = makeInsertChain([MOCK_REPORT]);
+  tx["insert"] = vi.fn().mockReturnValue(insertChain);
+  // select count
+  const selectChain = makeSelectChain([{ cnt: opts.reportCount }]);
+  tx["select"] = vi.fn().mockReturnValue(selectChain);
+  // update for auto-pause
+  if (opts.reportCount >= 5 && opts.postingStatus === "active") {
+    const updateChain = makeUpdateChain([{ id: "posting-1" }]);
+    tx["update"] = vi.fn().mockReturnValue(updateChain);
+  } else {
+    tx["update"] = vi.fn();
+  }
+  installMockTransaction({ tx });
 }
 
 function makeDbInsertChain() {

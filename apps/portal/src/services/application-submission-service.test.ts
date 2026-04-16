@@ -31,28 +31,18 @@ import { getRedisClient } from "@/lib/redis";
 import { portalEventBus } from "@/services/event-bus";
 import { submit } from "./application-submission-service";
 import type { PortalApplication } from "@igbo/db/schema/portal-applications";
+import { installMockTransaction } from "@/test/mock-transaction";
+import { seekerProfileFactory, applicationFactory } from "@/test/factories";
 
 // ---------------------------------------------------------------------------
 // Fixtures
 // ---------------------------------------------------------------------------
-const SEEKER_PROFILE = {
+const SEEKER_PROFILE = seekerProfileFactory({
   id: "profile-1",
   userId: "seeker-1",
   headline: "Engineer",
-  summary: null,
-  skills: [],
-  experienceJson: [],
-  educationJson: [],
   visibility: "active",
-  consentMatching: false,
-  consentEmployerView: false,
-  consentMatchingChangedAt: null,
-  consentEmployerViewChangedAt: null,
-  profileViewCount: 0,
-  onboardingCompletedAt: null,
-  createdAt: new Date(),
-  updatedAt: new Date(),
-};
+});
 
 const JOB = {
   id: "jp-1",
@@ -63,21 +53,11 @@ const JOB = {
   employerUserId: "employer-1",
 };
 
-const APPLICATION: PortalApplication = {
+const APPLICATION: PortalApplication = applicationFactory({
   id: "app-1",
   jobId: "jp-1",
   seekerUserId: "seeker-1",
-  status: "submitted",
-  previousStatus: null,
-  transitionedAt: null,
-  transitionedByUserId: null,
-  transitionReason: null,
-  selectedCvId: null,
-  coverLetterText: null,
-  portfolioLinksJson: [],
-  createdAt: new Date("2026-01-01"),
-  updatedAt: new Date("2026-01-01"),
-};
+});
 
 const BASE_INPUT = {
   jobId: "jp-1",
@@ -87,24 +67,6 @@ const BASE_INPUT = {
   portfolioLinks: [],
   idempotencyKey: null,
 };
-
-// ---------------------------------------------------------------------------
-// Transaction helper
-// ---------------------------------------------------------------------------
-function installTxMock(returnRow: PortalApplication | null) {
-  // values() returns an object that is BOTH directly awaitable (for transitions insert)
-  // AND has a .returning() method (for applications insert).
-  const tx = {
-    insert: (_table: unknown) => ({
-      values: (_data: unknown) =>
-        Object.assign(Promise.resolve(undefined), {
-          returning: () => Promise.resolve(returnRow ? [returnRow] : []),
-        }),
-    }),
-  };
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  vi.mocked(db.transaction).mockImplementation(async (fn: any) => fn(tx));
-}
 
 // ---------------------------------------------------------------------------
 // Redis mock helper
@@ -128,7 +90,7 @@ beforeEach(() => {
   vi.mocked(getJobPostingForApply).mockResolvedValue(JOB);
   vi.mocked(listSeekerCvs).mockResolvedValue([]);
   vi.mocked(getExistingActiveApplication).mockResolvedValue(null);
-  installTxMock(APPLICATION);
+  installMockTransaction({ insertReturning: [APPLICATION] });
 });
 
 // ---------------------------------------------------------------------------
@@ -175,11 +137,7 @@ describe("submit — happy path", () => {
         }),
       ),
     });
-    vi.mocked(db.transaction).mockImplementation(
-      async (
-        fn: any, // eslint-disable-line @typescript-eslint/no-explicit-any
-      ) => fn({ insert: insertSpy }),
-    );
+    installMockTransaction({ tx: { insert: insertSpy } });
     await submit(BASE_INPUT);
     // First call: portalApplications; second call: portalApplicationTransitions
     expect(insertSpy).toHaveBeenCalledTimes(2);
@@ -419,7 +377,7 @@ describe("submit — re-apply after withdrawal (AC-8)", () => {
       createdAt: new Date("2026-04-09"),
       updatedAt: new Date("2026-04-09"),
     };
-    installTxMock(freshApplication);
+    installMockTransaction({ insertReturning: [freshApplication] });
 
     const result = await submit(BASE_INPUT);
 
@@ -447,7 +405,7 @@ describe("submit — re-apply after withdrawal (AC-8)", () => {
     // open a new transaction. The replayed branch is reserved for the
     // SET-NX-fail-AND-existing-row case (idempotent retry of the SAME request).
     makeRedisMock(); // SET NX returns "OK" — fresh key
-    installTxMock(APPLICATION);
+    installMockTransaction({ insertReturning: [APPLICATION] });
 
     const result = await submit({ ...BASE_INPUT, idempotencyKey: "key-after-withdraw" });
 
@@ -464,7 +422,7 @@ describe("submit — re-apply after withdrawal (AC-8)", () => {
     // pre-check, this test will fail and force a re-evaluation of the
     // dedup contract.
     makeRedisMock();
-    installTxMock(APPLICATION);
+    installMockTransaction({ insertReturning: [APPLICATION] });
 
     await submit(BASE_INPUT);
 

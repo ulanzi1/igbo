@@ -3,7 +3,7 @@ import { axe, toHaveNoViolations } from "jest-axe";
 import userEvent from "@testing-library/user-event";
 import { renderWithPortalProviders, screen, waitFor } from "@/test-utils/render";
 import { KeywordManager } from "./keyword-manager";
-import type { PortalScreeningKeyword } from "@igbo/db/schema/portal-screening-keywords";
+import { screeningKeywordFactory } from "@/test/factories";
 
 // jsdom doesn't implement pointer capture — required by Radix Select
 Object.assign(Element.prototype, {
@@ -26,17 +26,15 @@ vi.mock("sonner", () => ({
 
 global.fetch = vi.fn();
 
-const MOCK_KEYWORD: PortalScreeningKeyword = {
+const MOCK_KEYWORD = screeningKeywordFactory({
   id: "kw-1",
   phrase: "illegal offer",
   category: "illegal",
-  severity: "high",
   notes: "Common scam pattern",
   createdByAdminId: "admin-1",
   createdAt: new Date("2026-04-01"),
   updatedAt: new Date("2026-04-01"),
-  deletedAt: null,
-};
+});
 
 beforeEach(() => {
   vi.clearAllMocks();

@@ -65,30 +65,14 @@ import {
   editActivePosting,
   renewPosting,
 } from "./job-posting-service";
+import { jobPostingFactory } from "@/test/factories";
 
-const BASE_POSTING = {
+const BASE_POSTING = jobPostingFactory({
   id: "posting-1",
   companyId: "company-1",
-  title: "Software Engineer",
-  descriptionHtml: "<p>Great role</p>",
   requirements: "<p>5 years exp</p>",
-  salaryMin: null,
-  salaryMax: null,
-  salaryCompetitiveOnly: false,
-  location: "Lagos",
-  employmentType: "full_time",
-  status: "draft" as const,
-  culturalContextJson: null,
-  descriptionIgboHtml: null,
-  applicationDeadline: null,
-  expiresAt: null,
-  adminFeedbackComment: null,
-  closedOutcome: null,
-  closedAt: null,
-  archivedAt: null,
-  createdAt: new Date("2026-01-01"),
-  updatedAt: new Date("2026-01-01T00:00:00.000Z"),
-};
+  status: "draft",
+});
 
 beforeEach(() => {
   vi.clearAllMocks();

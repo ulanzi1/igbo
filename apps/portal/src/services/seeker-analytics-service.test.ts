@@ -27,29 +27,19 @@ import {
 } from "@igbo/db/queries/portal-seeker-profiles";
 import { getApplicationCountsByStatusForSeeker } from "@igbo/db/queries/portal-applications";
 import { recordSeekerProfileView, getSeekerAnalytics } from "./seeker-analytics-service";
+import { seekerProfileFactory } from "@/test/factories";
 
 const SEEKER_PROFILE_ID = "sp-1";
 const SEEKER_USER_ID = "seeker-owner";
 const VIEWER_USER_ID = "viewer-1";
 
-const mockProfile = {
+const mockProfile = seekerProfileFactory({
   id: SEEKER_PROFILE_ID,
   userId: SEEKER_USER_ID,
   headline: "Dev",
-  summary: null,
-  skills: [],
-  experienceJson: [],
-  educationJson: [],
-  visibility: "passive",
-  consentMatching: false,
-  consentEmployerView: false,
-  consentMatchingChangedAt: null,
-  consentEmployerViewChangedAt: null,
   profileViewCount: 7,
-  onboardingCompletedAt: new Date(),
-  createdAt: new Date(),
-  updatedAt: new Date(),
-};
+  onboardingCompletedAt: new Date("2026-01-01"),
+});
 
 beforeEach(() => {
   vi.clearAllMocks();

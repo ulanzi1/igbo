@@ -53,6 +53,8 @@ const makeItem = (overrides: Partial<ReviewQueueItem> = {}): ReviewQueueItem => 
     screeningResultJson: null,
     screeningCheckedAt: null,
     enableCoverLetter: false,
+    searchVector: null,
+    searchVectorIgbo: null,
     createdAt: new Date("2026-01-01"),
     updatedAt: new Date("2026-01-01"),
     employerTotalPostings: 3,
@@ -224,6 +226,28 @@ describe("ReviewQueueTable", () => {
     renderWithPortalProviders(<ReviewQueueTable initialItems={[item]} initialTotal={1} />);
 
     expect(screen.getByText("3")).toBeInTheDocument();
+  });
+
+  it("company name is rendered as a clickable link", () => {
+    renderWithPortalProviders(<ReviewQueueTable initialItems={[makeItem()]} initialTotal={1} />);
+    const link = screen.getByTestId("company-link-posting-1");
+    expect(link.tagName).toBe("A");
+    expect(link).toHaveTextContent("Tech Corp");
+  });
+
+  it("company link href includes companyId", () => {
+    renderWithPortalProviders(<ReviewQueueTable initialItems={[makeItem()]} initialTotal={1} />);
+    const link = screen.getByTestId("company-link-posting-1");
+    expect(link.getAttribute("href")).toContain("companyId=company-1");
+    expect(link.getAttribute("href")).toContain("/admin/postings");
+  });
+
+  it("company name click does NOT trigger row navigation (stopPropagation)", async () => {
+    const user = userEvent.setup();
+    renderWithPortalProviders(<ReviewQueueTable initialItems={[makeItem()]} initialTotal={1} />);
+    const link = screen.getByTestId("company-link-posting-1");
+    await user.click(link);
+    expect(mockPush).not.toHaveBeenCalledWith("/en/admin/jobs/posting-1/review");
   });
 
   it("passes accessibility check", async () => {

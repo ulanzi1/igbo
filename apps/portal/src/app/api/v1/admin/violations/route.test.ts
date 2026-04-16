@@ -57,7 +57,7 @@ describe("GET /api/v1/admin/violations", () => {
     const body = await res.json();
     expect(body.data.items).toHaveLength(1);
     expect(body.data.total).toBe(1);
-    expect(getViolationsQueue).toHaveBeenCalledWith({ limit: 50, offset: 0 });
+    expect(getViolationsQueue).toHaveBeenCalledWith({ limit: 50, offset: 0, companyId: undefined });
   });
 
   it("passes custom limit and offset from query params", async () => {
@@ -66,7 +66,11 @@ describe("GET /api/v1/admin/violations", () => {
     const req = makeRequest("?limit=10&offset=20");
     const res = await GET(req);
     expect(res.status).toBe(200);
-    expect(getViolationsQueue).toHaveBeenCalledWith({ limit: 10, offset: 20 });
+    expect(getViolationsQueue).toHaveBeenCalledWith({
+      limit: 10,
+      offset: 20,
+      companyId: undefined,
+    });
   });
 
   it("caps limit at 100", async () => {
@@ -75,7 +79,11 @@ describe("GET /api/v1/admin/violations", () => {
     const req = makeRequest("?limit=999");
     const res = await GET(req);
     expect(res.status).toBe(200);
-    expect(getViolationsQueue).toHaveBeenCalledWith({ limit: 100, offset: 0 });
+    expect(getViolationsQueue).toHaveBeenCalledWith({
+      limit: 100,
+      offset: 0,
+      companyId: undefined,
+    });
   });
 
   it("returns empty list when no open flags", async () => {
@@ -87,6 +95,28 @@ describe("GET /api/v1/admin/violations", () => {
     const body = await res.json();
     expect(body.data.items).toHaveLength(0);
     expect(body.data.total).toBe(0);
+  });
+
+  it("passes companyId query param to getViolationsQueue", async () => {
+    vi.mocked(getViolationsQueue).mockResolvedValue({ items: [mockFlag], total: 1 });
+
+    const req = makeRequest("?companyId=company-1");
+    const res = await GET(req);
+    expect(res.status).toBe(200);
+    expect(getViolationsQueue).toHaveBeenCalledWith({
+      limit: 50,
+      offset: 0,
+      companyId: "company-1",
+    });
+  });
+
+  it("omits companyId when not in query params (backward compatible)", async () => {
+    vi.mocked(getViolationsQueue).mockResolvedValue({ items: [], total: 0 });
+
+    const req = makeRequest();
+    const res = await GET(req);
+    expect(res.status).toBe(200);
+    expect(getViolationsQueue).toHaveBeenCalledWith({ limit: 50, offset: 0, companyId: undefined });
   });
 
   it("returns 403 for non-admin", async () => {
