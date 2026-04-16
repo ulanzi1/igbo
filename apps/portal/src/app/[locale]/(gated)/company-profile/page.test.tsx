@@ -5,6 +5,14 @@ vi.mock("@igbo/auth", () => ({ auth: vi.fn() }));
 vi.mock("@igbo/db/queries/portal-companies", () => ({
   getCompanyByOwnerId: vi.fn(),
 }));
+vi.mock("@/services/employer-verification-service", () => ({
+  getVerificationStatus: vi
+    .fn()
+    .mockResolvedValue({ status: "unverified", latestVerification: null }),
+}));
+vi.mock("@/components/domain/verification-status-section", () => ({
+  VerificationStatusSection: () => <div data-testid="verification-status-section" />,
+}));
 vi.mock("next/navigation", () => ({
   redirect: vi.fn((url: string) => {
     throw new Error(`REDIRECT:${url}`);

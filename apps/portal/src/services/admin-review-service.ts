@@ -17,6 +17,10 @@ import {
   countRecentViolationsForCompany,
   type OpenFlagWithContext,
 } from "@igbo/db/queries/portal-admin-flags";
+import {
+  countActiveReportsForCompanyPostings,
+  countActiveReportsForPosting,
+} from "@igbo/db/queries/portal-posting-reports";
 import { portalCompanyProfiles } from "@igbo/db/schema/portal-company-profiles";
 import { portalJobPostings } from "@igbo/db/schema/portal-job-postings";
 import { portalAdminReviews as adminReviewsTable } from "@igbo/db/schema/portal-admin-reviews";
@@ -115,8 +119,7 @@ async function buildConfidenceIndicator(
   trustBadge: boolean,
   companyId: string,
 ): Promise<ConfidenceIndicatorData> {
-  // reportCount is 0 until P-3.4B adds portal_posting_reports table
-  const reportCount = 0;
+  const reportCount = await countActiveReportsForCompanyPostings(companyId);
   const violationCount = await countOpenViolationsForCompany(companyId);
 
   const signals = await getCommunityTrustSignals(ownerUserId).catch(() => null);
@@ -211,7 +214,7 @@ export async function getReviewDetail(postingId: string): Promise<ReviewDetailRe
     rejectedCount: context.rejectedCount,
     confidenceIndicator,
     screeningResult: (context.posting.screeningResultJson as ScreeningResult | null) ?? null,
-    reportCount: 0,
+    reportCount: await countActiveReportsForPosting(postingId),
     reviewHistory,
     flags,
   };

@@ -161,6 +161,8 @@ describe("ReactionBar", () => {
     fireEvent.click(triggerBtn);
 
     await waitFor(() => screen.getByRole("dialog"));
+    // Flush pending effects so the keydown listener is registered before firing
+    await act(async () => {});
 
     fireEvent.keyDown(document, { key: "Escape" });
 

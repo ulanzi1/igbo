@@ -33,8 +33,8 @@ describe("PORTAL_ERRORS", () => {
     }
   });
 
-  it("has exactly 18 error codes", () => {
-    expect(Object.keys(PORTAL_ERRORS)).toHaveLength(18);
+  it("has exactly 23 error codes", () => {
+    expect(Object.keys(PORTAL_ERRORS)).toHaveLength(23);
   });
 
   it("has DUPLICATE_SEEKER_PROFILE key", () => {
@@ -90,5 +90,17 @@ describe("PORTAL_ERRORS", () => {
 
   it("has INVALID_FLAG_TARGET key", () => {
     expect(PORTAL_ERRORS.INVALID_FLAG_TARGET).toBe("PORTAL_ERRORS.INVALID_FLAG_TARGET");
+  });
+
+  it("has ALREADY_REPORTED key", () => {
+    expect(PORTAL_ERRORS.ALREADY_REPORTED).toBe("PORTAL_ERRORS.ALREADY_REPORTED");
+  });
+
+  it("has REPORT_NOT_FOUND key", () => {
+    expect(PORTAL_ERRORS.REPORT_NOT_FOUND).toBe("PORTAL_ERRORS.REPORT_NOT_FOUND");
+  });
+
+  it("has CANNOT_REPORT_OWN_POSTING key", () => {
+    expect(PORTAL_ERRORS.CANNOT_REPORT_OWN_POSTING).toBe("PORTAL_ERRORS.CANNOT_REPORT_OWN_POSTING");
   });
 });

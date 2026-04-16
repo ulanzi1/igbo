@@ -17,6 +17,11 @@ export const PORTAL_ERRORS = {
   ALREADY_FLAGGED: "PORTAL_ERRORS.ALREADY_FLAGGED",
   FLAG_NOT_FOUND: "PORTAL_ERRORS.FLAG_NOT_FOUND",
   INVALID_FLAG_TARGET: "PORTAL_ERRORS.INVALID_FLAG_TARGET",
+  ALREADY_REPORTED: "PORTAL_ERRORS.ALREADY_REPORTED",
+  REPORT_NOT_FOUND: "PORTAL_ERRORS.REPORT_NOT_FOUND",
+  CANNOT_REPORT_OWN_POSTING: "PORTAL_ERRORS.CANNOT_REPORT_OWN_POSTING",
+  VERIFICATION_ALREADY_PENDING: "PORTAL_ERRORS.VERIFICATION_ALREADY_PENDING",
+  VERIFICATION_NOT_FOUND: "PORTAL_ERRORS.VERIFICATION_NOT_FOUND",
 } as const;
 
 export type PortalErrorCode = (typeof PORTAL_ERRORS)[keyof typeof PORTAL_ERRORS];
@@ -47,3 +52,18 @@ export const VIOLATION_CATEGORIES = [
 ] as const;
 
 export type ViolationCategory = (typeof VIOLATION_CATEGORIES)[number];
+
+export const REPORT_CATEGORIES = [
+  "scam_fraud",
+  "misleading_info",
+  "discriminatory_content",
+  "duplicate_posting",
+  "other",
+] as const;
+
+export type ReportCategory = (typeof REPORT_CATEGORIES)[number];
+
+export const REPORT_PRIORITY_THRESHOLDS = {
+  ELEVATED: 3,
+  URGENT: 5,
+} as const;

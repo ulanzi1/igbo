@@ -129,6 +129,38 @@ export interface JobFlaggedEvent extends BaseEvent {
   autoPaused: boolean;
 }
 
+export interface PostingReportedEvent extends BaseEvent {
+  jobId: string;
+  reportId: string;
+  reporterUserId: string;
+  category: string;
+  reportCount: number;
+  priorityEscalated: boolean;
+  autoPaused: boolean;
+}
+
+export interface EmployerVerificationSubmittedEvent extends BaseEvent {
+  companyId: string;
+  employerUserId: string;
+  verificationId: string;
+  documentCount: number;
+}
+
+export interface EmployerVerificationApprovedEvent extends BaseEvent {
+  companyId: string;
+  employerUserId: string;
+  verificationId: string;
+  approvedByAdminId: string;
+}
+
+export interface EmployerVerificationRejectedEvent extends BaseEvent {
+  companyId: string;
+  employerUserId: string;
+  verificationId: string;
+  rejectedByAdminId: string;
+  reason: string;
+}
+
 // Portal event map — used by portal EventBus
 export interface PortalEventMap {
   "job.published": JobPublishedEvent;
@@ -143,6 +175,10 @@ export interface PortalEventMap {
   "job.shared_to_community": JobSharedToCommunityEvent;
   "job.reviewed": JobReviewedEvent;
   "job.flagged": JobFlaggedEvent;
+  "posting.reported": PostingReportedEvent;
+  "employer.verification_submitted": EmployerVerificationSubmittedEvent;
+  "employer.verification_approved": EmployerVerificationApprovedEvent;
+  "employer.verification_rejected": EmployerVerificationRejectedEvent;
 }
 
 export type PortalEventName = keyof PortalEventMap;

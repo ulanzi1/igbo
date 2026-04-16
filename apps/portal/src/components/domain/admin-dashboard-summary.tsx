@@ -4,19 +4,11 @@ import { useTranslations } from "next-intl";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useDensity, DENSITY_STYLES } from "@/providers/density-context";
 import { cn } from "@/lib/utils";
+import { formatDuration } from "@/lib/format-duration";
 import type { DashboardSummary } from "@/services/admin-review-service";
 
 interface Props {
   summary: DashboardSummary;
-}
-
-function formatDuration(ms: number): string {
-  const minutes = Math.floor(ms / 60000);
-  if (minutes < 60) return `${minutes}m`;
-  const hours = Math.floor(minutes / 60);
-  const remainingMins = minutes % 60;
-  if (remainingMins === 0) return `${hours}h`;
-  return `${hours}h ${remainingMins}m`;
 }
 
 function formatPercent(rate: number): string {

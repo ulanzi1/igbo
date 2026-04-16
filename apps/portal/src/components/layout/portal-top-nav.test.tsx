@@ -95,6 +95,7 @@ describe("PortalTopNav", () => {
       render(<PortalTopNav />);
       expect(screen.getAllByText("reviewQueue").length).toBeGreaterThan(0);
       expect(screen.getAllByText("reports").length).toBeGreaterThan(0);
+      expect(screen.getAllByText("analytics").length).toBeGreaterThan(0);
       expect(screen.getAllByText("settings").length).toBeGreaterThan(0);
     });
 
