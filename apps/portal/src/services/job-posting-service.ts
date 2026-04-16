@@ -15,6 +15,7 @@ import { assertApprovalIntegrity } from "@/lib/approval-integrity";
 import { checkFastLaneEligibility, approvePosting } from "@/services/admin-review-service";
 import { runScreening } from "@/services/screening";
 import { SYSTEM_USER_ID } from "@/lib/portal-constants";
+import { invalidateJobSearchCache } from "@/services/job-search-service";
 
 const VALID_TRANSITIONS: Record<PortalJobStatus, PortalJobStatus[]> = {
   draft: ["pending_review"],
@@ -131,6 +132,20 @@ export async function transitionStatus(
   }
 
   await updateJobPostingStatus(postingId, targetStatus);
+
+  // Invalidate search cache when transitioning to/from active.
+  // Fire-and-forget — see docs/decisions/search-cache-strategy.md §Decision 1.
+  if (targetStatus === "active" || posting.status === "active") {
+    invalidateJobSearchCache().catch((err: Error) => {
+      console.error(
+        JSON.stringify({
+          level: "error",
+          message: "portal.job-posting-service.cache-invalidation-error",
+          error: err.message,
+        }),
+      );
+    });
+  }
 }
 
 /**
@@ -173,6 +188,18 @@ export async function closePosting(
     status: "filled",
     closedOutcome: outcome,
     closedAt: new Date(),
+  });
+
+  // Invalidate search cache — posting is no longer active.
+  // Fire-and-forget — see docs/decisions/search-cache-strategy.md §Decision 1.
+  invalidateJobSearchCache().catch((err: Error) => {
+    console.error(
+      JSON.stringify({
+        level: "error",
+        message: "portal.job-posting-service.cache-invalidation-error",
+        error: err.message,
+      }),
+    );
   });
 }
 
@@ -238,6 +265,18 @@ export async function renewPosting(
       status: "active",
       expiresAt: newExpiry,
       archivedAt: null,
+    });
+
+    // Invalidate search cache — posting is now active again.
+    // Fire-and-forget — see docs/decisions/search-cache-strategy.md §Decision 1.
+    invalidateJobSearchCache().catch((err: Error) => {
+      console.error(
+        JSON.stringify({
+          level: "error",
+          message: "portal.job-posting-service.cache-invalidation-error",
+          error: err.message,
+        }),
+      );
     });
   } else {
     // Edit & Renew — requires re-review

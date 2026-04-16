@@ -308,8 +308,8 @@ development_status:
   portal-epic-3-prep-g-cursor-pagination-poc: done    # Opaque cursor encoding + sort stability (HARD GATE for P-4.1A)
 
   # Portal Epic 4: Search, Discovery & Guest Access
-  portal-epic-4: backlog
-  p-4-1a-full-text-search-backend-api-contract: backlog
+  portal-epic-4: in-progress
+  p-4-1a-full-text-search-backend-api-contract: done
   p-4-1b-search-ui-results-page: backlog
   p-4-2-job-discovery-page-category-browsing: backlog
   p-4-3a-job-detail-page-ssr: backlog

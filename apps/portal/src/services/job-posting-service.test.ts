@@ -47,6 +47,11 @@ vi.mock("@/services/screening", () => ({
   }),
 }));
 
+// Mock job-search-service invalidation — prevents real Redis calls in unit tests
+vi.mock("@/services/job-search-service", () => ({
+  invalidateJobSearchCache: vi.fn().mockResolvedValue(undefined),
+}));
+
 import { db } from "@igbo/db";
 import {
   getJobPostingById,
@@ -65,6 +70,7 @@ import {
   editActivePosting,
   renewPosting,
 } from "./job-posting-service";
+import { invalidateJobSearchCache } from "@/services/job-search-service";
 import { jobPostingFactory } from "@/test/factories";
 
 const BASE_POSTING = jobPostingFactory({
@@ -571,5 +577,96 @@ describe("editActivePosting", () => {
     await expect(
       editActivePosting("posting-1", "wrong-company", { title: "X" }, "2026-01-01T00:00:00.000Z"),
     ).rejects.toMatchObject({ status: 403 });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Cache invalidation wiring
+// ---------------------------------------------------------------------------
+
+describe("cache invalidation — transitionStatus wires invalidateJobSearchCache", () => {
+  it("calls invalidateJobSearchCache when transitioning active → paused", async () => {
+    vi.mocked(getJobPostingById).mockResolvedValue({
+      ...BASE_POSTING,
+      status: "active",
+      companyId: "company-1",
+    } as never);
+    vi.mocked(updateJobPostingStatus).mockResolvedValue(BASE_POSTING as never);
+
+    await transitionStatus("posting-1", "paused", "company-1", "EMPLOYER");
+
+    expect(invalidateJobSearchCache).toHaveBeenCalledOnce();
+  });
+
+  it("calls invalidateJobSearchCache when transitioning to active (expired → active)", async () => {
+    vi.mocked(getJobPostingById).mockResolvedValue({
+      ...BASE_POSTING,
+      status: "paused",
+      companyId: "company-1",
+    } as never);
+    vi.mocked(updateJobPostingStatus).mockResolvedValue(BASE_POSTING as never);
+
+    await transitionStatus("posting-1", "active", "company-1", "EMPLOYER");
+
+    expect(invalidateJobSearchCache).toHaveBeenCalledOnce();
+  });
+
+  it("does NOT call invalidateJobSearchCache for transitions not involving active", async () => {
+    vi.mocked(getJobPostingById).mockResolvedValue({
+      ...BASE_POSTING,
+      status: "draft",
+      companyId: "company-1",
+    } as never);
+    vi.mocked(updateJobPostingStatus).mockResolvedValue(BASE_POSTING as never);
+
+    await transitionStatus("posting-1", "pending_review", "company-1", "EMPLOYER");
+
+    expect(invalidateJobSearchCache).not.toHaveBeenCalled();
+  });
+});
+
+describe("cache invalidation — closePosting calls invalidateJobSearchCache", () => {
+  it("calls invalidateJobSearchCache after successfully closing a posting", async () => {
+    vi.mocked(getJobPostingById).mockResolvedValue({
+      ...BASE_POSTING,
+      status: "active",
+      companyId: "company-1",
+    } as never);
+    vi.mocked(updateJobPosting).mockResolvedValue(BASE_POSTING as never);
+
+    await closePosting("posting-1", "filled_via_portal", "company-1");
+
+    expect(invalidateJobSearchCache).toHaveBeenCalledOnce();
+  });
+});
+
+describe("cache invalidation — renewPosting calls invalidateJobSearchCache", () => {
+  it("calls invalidateJobSearchCache when renewing to active (contentChanged=false)", async () => {
+    vi.mocked(getJobPostingById).mockResolvedValue({
+      ...BASE_POSTING,
+      status: "expired",
+      companyId: "company-1",
+    } as never);
+    vi.mocked(countActivePostingsByCompanyId).mockResolvedValue(0);
+    vi.mocked(updateJobPosting).mockResolvedValue(BASE_POSTING as never);
+
+    const futureDate = new Date(Date.now() + 86400000).toISOString();
+    await renewPosting("posting-1", "company-1", futureDate, false, "EMPLOYER");
+
+    expect(invalidateJobSearchCache).toHaveBeenCalledOnce();
+  });
+
+  it("does NOT call invalidateJobSearchCache when renewing with contentChanged=true (goes to pending_review)", async () => {
+    vi.mocked(getJobPostingById).mockResolvedValue({
+      ...BASE_POSTING,
+      status: "expired",
+      companyId: "company-1",
+    } as never);
+    vi.mocked(updateJobPosting).mockResolvedValue(BASE_POSTING as never);
+
+    const futureDate = new Date(Date.now() + 86400000).toISOString();
+    await renewPosting("posting-1", "company-1", futureDate, true, "EMPLOYER");
+
+    expect(invalidateJobSearchCache).not.toHaveBeenCalled();
   });
 });
