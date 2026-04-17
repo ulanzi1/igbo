@@ -175,7 +175,7 @@ describe("ApplyButton — autoApply prop", () => {
   it("autoApply=true calls router.replace to clean ref param from URL", () => {
     render(<ApplyButton {...BASE_PROPS} autoApply={true} />);
     expect(mockReplace).toHaveBeenCalled();
-    const replaceArg = mockReplace.mock.calls[0][0] as string;
+    const replaceArg = mockReplace.mock.calls[0]![0] as string;
     expect(replaceArg).not.toContain("ref=apply");
   });
 });

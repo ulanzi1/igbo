@@ -466,7 +466,7 @@ describe("JobDetailPageContent", () => {
       );
       const applyButtons = screen.getAllByTestId("apply-button");
       expect(applyButtons.length).toBeGreaterThan(0);
-      expect(applyButtons[0].getAttribute("data-auto-apply")).toBe("true");
+      expect(applyButtons[0]!.getAttribute("data-auto-apply")).toBe("true");
     });
 
     it("ref=unknown (invalid value) — autoApply is false", () => {
@@ -481,7 +481,7 @@ describe("JobDetailPageContent", () => {
         />,
       );
       const applyButtons = screen.getAllByTestId("apply-button");
-      expect(applyButtons[0].getAttribute("data-auto-apply")).toBe("false");
+      expect(applyButtons[0]!.getAttribute("data-auto-apply")).toBe("false");
     });
   });
 
