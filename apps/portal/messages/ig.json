@@ -1316,6 +1316,15 @@
       "recentHeading": "Ntinye Ọrụ Ọhụrụ",
       "recentViewAll": "Lelee ndị ọhụrụ niile",
       "browseAllJobs": "Chọgharịa ọrụ niile"
+    },
+    "match": {
+      "score": "{score}% dakọtara",
+      "strong": "Ijikọ siri ike",
+      "good": "Ijikọ ọma",
+      "fair": "Ijikọ nkịtị",
+      "completeProfilePrompt": "Mejupụta profaịlụ gị ka ị hụ otu i si dakọta",
+      "completeProfileLink": "Mejupụta Profaịlụ",
+      "dismiss": "Kagbuo"
     }
   },
   "Shell": {

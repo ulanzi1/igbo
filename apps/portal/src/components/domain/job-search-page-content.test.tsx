@@ -17,6 +17,9 @@ const mockRouterReplace = vi.fn();
 // Use a real URLSearchParams so parseSearchUrlParams instanceof check works
 const searchParamsRef = { current: new URLSearchParams() };
 
+// Mutable session state — tests can set activePortalRole per-test
+const sessionState: { data: { user?: { activePortalRole?: string } } | null } = { data: null };
+
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace: mockRouterReplace }),
   useSearchParams: () => searchParamsRef.current,
@@ -24,7 +27,10 @@ vi.mock("next/navigation", () => ({
 }));
 
 vi.mock("next-auth/react", () => ({
-  useSession: () => ({ data: null, status: "unauthenticated" }),
+  useSession: () => ({
+    data: sessionState.data,
+    status: sessionState.data ? "authenticated" : "unauthenticated",
+  }),
   SessionProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
@@ -118,6 +124,8 @@ function renderContent(initialParams: Record<string, string | string[]> = {}) {
 beforeEach(() => {
   vi.clearAllMocks();
   setupSearchParams();
+  sessionState.data = null;
+  sessionStorage.clear();
 });
 
 afterEach(() => {
@@ -484,5 +492,70 @@ describe("JobSearchPageContent — stale overlay (VS-2)", () => {
       // Re-render with new params forces useSearchParams to update
       // The stale overlay appears when existing results are shown during refetch
     });
+  });
+});
+
+import type { MatchScoreResult } from "@igbo/config";
+
+const strongMatchScore: MatchScoreResult = {
+  score: 80,
+  tier: "strong",
+  signals: { skillsOverlap: 55, locationMatch: true, employmentTypeMatch: true },
+};
+
+function makeFetchMock(matchScores: Record<string, MatchScoreResult> = {}) {
+  return vi.spyOn(global, "fetch").mockImplementation(async (url) => {
+    const urlStr = typeof url === "string" ? url : (url as URL).toString();
+    if (urlStr.includes("match-scores")) {
+      return {
+        ok: true,
+        json: async () => ({ data: { scores: matchScores } }),
+      } as Response;
+    }
+    return { ok: true, json: async () => makeApiResponse() } as Response;
+  });
+}
+
+describe("JobSearchPageContent — match scores (P-4.5)", () => {
+  it("renders MatchPill on result card when seeker has scores", async () => {
+    sessionState.data = { user: { activePortalRole: "JOB_SEEKER" } };
+    makeFetchMock({ "job-1": strongMatchScore });
+
+    renderContent();
+    await waitFor(() => expect(screen.getByTestId("match-pill")).toBeInTheDocument());
+  });
+
+  it("renders CompleteProfilePrompt when seeker has no scores", async () => {
+    sessionState.data = { user: { activePortalRole: "JOB_SEEKER" } };
+    makeFetchMock({});
+
+    renderContent();
+    await waitFor(() => expect(screen.getByTestId("complete-profile-prompt")).toBeInTheDocument());
+  });
+
+  it("does NOT render MatchPill or CompleteProfilePrompt for guest", async () => {
+    // sessionState.data is null (guest) — set by beforeEach
+    vi.spyOn(global, "fetch").mockResolvedValue({
+      ok: true,
+      json: async () => makeApiResponse(),
+    } as Response);
+
+    renderContent();
+    await waitFor(() => expect(screen.getByTestId("job-result-card")).toBeInTheDocument());
+    expect(screen.queryByTestId("match-pill")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("complete-profile-prompt")).not.toBeInTheDocument();
+  });
+
+  it("does NOT render MatchPill or CompleteProfilePrompt for EMPLOYER role", async () => {
+    sessionState.data = { user: { activePortalRole: "EMPLOYER" } };
+    vi.spyOn(global, "fetch").mockResolvedValue({
+      ok: true,
+      json: async () => makeApiResponse(),
+    } as Response);
+
+    renderContent();
+    await waitFor(() => expect(screen.getByTestId("job-result-card")).toBeInTheDocument());
+    expect(screen.queryByTestId("match-pill")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("complete-profile-prompt")).not.toBeInTheDocument();
   });
 });

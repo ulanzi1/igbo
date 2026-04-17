@@ -729,3 +729,68 @@ describe("cursor pagination — cursor tampering (fail-safe design)", () => {
     expect(rendered).not.toContain("AND (");
   });
 });
+
+// ---------------------------------------------------------------------------
+// P-4.5 — getJobPostingsForMatching
+// ---------------------------------------------------------------------------
+
+import { getJobPostingsForMatching } from "./portal-job-search";
+
+describe("getJobPostingsForMatching", () => {
+  it("returns empty array for empty jobIds", async () => {
+    const result = await getJobPostingsForMatching([]);
+    expect(result).toEqual([]);
+    expect(mockDbExecute).not.toHaveBeenCalled();
+  });
+
+  it("returns minimal projection rows for provided IDs", async () => {
+    const mockRows = [
+      {
+        id: "job-uuid-1",
+        requirements: "JavaScript React",
+        location: "Lagos, Nigeria",
+        employmentType: "full_time",
+      },
+    ];
+    mockDbExecute.mockResolvedValue(mockRows);
+
+    const result = await getJobPostingsForMatching(["job-uuid-1"]);
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject({
+      id: "job-uuid-1",
+      requirements: "JavaScript React",
+      location: "Lagos, Nigeria",
+      employmentType: "full_time",
+    });
+    expect(mockDbExecute).toHaveBeenCalledOnce();
+  });
+
+  it("filters by status = active AND archived_at IS NULL (SQL contains both)", async () => {
+    mockDbExecute.mockResolvedValue([]);
+    await getJobPostingsForMatching(["job-uuid-1"]);
+    const rendered = flattenSql(mockDbExecute.mock.calls[0]![0]);
+    expect(rendered).toContain("active");
+    expect(rendered).toContain("archived_at");
+  });
+
+  it("respects the provided ID list in the query", async () => {
+    mockDbExecute.mockResolvedValue([]);
+    await getJobPostingsForMatching(["uuid-a", "uuid-b"]);
+    const rendered = flattenSql(mockDbExecute.mock.calls[0]![0]);
+    expect(rendered).toContain("uuid-a");
+    expect(rendered).toContain("uuid-b");
+  });
+
+  it("caps at 50 IDs (safety guard)", async () => {
+    const manyIds = Array.from({ length: 60 }, (_, i) => `uuid-${i}`);
+    mockDbExecute.mockResolvedValue([]);
+    await getJobPostingsForMatching(manyIds);
+    // Should still call execute with at most 50 IDs
+    expect(mockDbExecute).toHaveBeenCalledOnce();
+    const rendered = flattenSql(mockDbExecute.mock.calls[0]![0]);
+    // uuid-49 should be present (index 49 = 50th item), uuid-50 should not
+    expect(rendered).toContain("uuid-49");
+    expect(rendered).not.toContain("uuid-50");
+  });
+});

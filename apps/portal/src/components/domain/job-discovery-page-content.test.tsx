@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { describe, it, expect, vi, beforeAll } from "vitest";
+import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from "vitest";
 import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { axe, toHaveNoViolations } from "jest-axe";
@@ -12,15 +12,30 @@ expect.extend(toHaveNoViolations);
 
 const mockRouterPush = vi.fn();
 
+// Mutable session state — tests can set activePortalRole per-test
+const sessionState: { data: { user?: { activePortalRole?: string } } | null } = { data: null };
+
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: mockRouterPush }),
   usePathname: () => "/en/jobs",
 }));
 
 vi.mock("next-auth/react", () => ({
-  useSession: () => ({ data: null, status: "unauthenticated" }),
+  useSession: () => ({
+    data: sessionState.data,
+    status: sessionState.data ? "authenticated" : "unauthenticated",
+  }),
   SessionProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  sessionState.data = null;
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 beforeAll(() => {
   Object.assign(Element.prototype, {
@@ -391,5 +406,43 @@ describe("JobDiscoveryPageContent — Igbo locale", () => {
     const { container } = renderDiscovery({}, "ig");
     const results = await axe(container);
     expect(results).toHaveNoViolations();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Match scores (P-4.5)
+// ---------------------------------------------------------------------------
+
+import type { MatchScoreResult } from "@igbo/config";
+import { waitFor } from "@testing-library/react";
+
+const strongDiscoveryScore: MatchScoreResult = {
+  score: 80,
+  tier: "strong",
+  signals: { skillsOverlap: 55, locationMatch: true, employmentTypeMatch: true },
+};
+
+describe("JobDiscoveryPageContent — match scores (P-4.5)", () => {
+  it("renders MatchPill on featured card when seeker has scores", async () => {
+    sessionState.data = { user: { activePortalRole: "JOB_SEEKER" } };
+    vi.spyOn(global, "fetch").mockResolvedValue({
+      ok: true,
+      json: async () => ({ data: { scores: { "f-1": strongDiscoveryScore } } }),
+    } as Response);
+
+    renderDiscovery();
+    await waitFor(() => expect(screen.getByTestId("match-pill")).toBeInTheDocument());
+  });
+
+  it("does NOT render MatchPill when user is not authenticated (guest)", () => {
+    // sessionState.data is null — no fetch needed
+    renderDiscovery();
+    expect(screen.queryByTestId("match-pill")).not.toBeInTheDocument();
+  });
+
+  it("does NOT render MatchPill for EMPLOYER role", () => {
+    sessionState.data = { user: { activePortalRole: "EMPLOYER" } };
+    renderDiscovery();
+    expect(screen.queryByTestId("match-pill")).not.toBeInTheDocument();
   });
 });

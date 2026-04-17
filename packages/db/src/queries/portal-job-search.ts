@@ -1004,6 +1004,48 @@ export async function getIndustryCategoryCounts(): Promise<IndustryCategoryCount
   return rows;
 }
 
+// ---------------------------------------------------------------------------
+// P-4.5 — Match scoring batch query
+// ---------------------------------------------------------------------------
+
+/**
+ * Minimal projection for match score computation.
+ * Returns only the fields needed by computeMatchScore — no large columns.
+ */
+export interface JobMatchProjection {
+  id: string;
+  requirements: string | null;
+  location: string | null;
+  employmentType: string;
+}
+
+/**
+ * Fetches minimal projections for up to 50 active job IDs.
+ *
+ * Used by GET /api/v1/jobs/match-scores to compute per-user match scores without
+ * loading full job postings. Filters status = 'active' to avoid scoring archived
+ * or inactive jobs.
+ *
+ * Caller is responsible for capping the input list at 50 IDs.
+ */
+export async function getJobPostingsForMatching(jobIds: string[]): Promise<JobMatchProjection[]> {
+  if (jobIds.length === 0) return [];
+  // Cap to 50 as a safety guard (callers should enforce this too)
+  const safeIds = jobIds.slice(0, 50);
+  const rows = (await db.execute(sql`
+    SELECT
+      id::text,
+      requirements,
+      location,
+      employment_type AS "employmentType"
+    FROM portal_job_postings
+    WHERE status = 'active'
+      AND archived_at IS NULL
+      AND id = ANY(${safeIds}::uuid[])
+  `)) as unknown as JobMatchProjection[];
+  return rows;
+}
+
 /**
  * Returns up to `limit` most recently activated active job postings ordered by created_at DESC.
  *

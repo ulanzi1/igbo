@@ -1,13 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations, useLocale } from "next-intl";
 import { SearchIcon, XIcon } from "lucide-react";
+import { useSession } from "next-auth/react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { JobResultCard } from "@/components/domain/job-result-card";
 import { CategoryCard } from "@/components/domain/category-card";
+import { useMatchScores } from "@/hooks/use-match-scores";
 import type { DiscoveryJobResult, IndustryCategoryCount } from "@igbo/db/queries/portal-job-search";
 import type { JobSearchResultItem } from "@/lib/validations/job-search";
 
@@ -51,6 +53,14 @@ export function JobDiscoveryPageContent({
   const locale = useLocale();
   const router = useRouter();
   const [searchValue, setSearchValue] = useState("");
+  const { data: session } = useSession();
+
+  const isSeeker = session?.user?.activePortalRole === "JOB_SEEKER";
+  const allJobIds = useMemo(
+    () => [...featuredJobs, ...recentPostings].map((j) => j.id),
+    [featuredJobs, recentPostings],
+  );
+  const { scores } = useMatchScores(allJobIds, isSeeker);
 
   const allEmpty =
     featuredJobs.length === 0 && categories.length === 0 && recentPostings.length === 0;
@@ -132,7 +142,12 @@ export function JobDiscoveryPageContent({
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {featuredJobs.map((job) => (
-              <JobResultCard key={job.id} item={toResultItem(job)} queryHasValue={false} />
+              <JobResultCard
+                key={job.id}
+                item={toResultItem(job)}
+                queryHasValue={false}
+                matchScore={scores[job.id] ?? null}
+              />
             ))}
           </div>
         </section>
@@ -168,7 +183,12 @@ export function JobDiscoveryPageContent({
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {recentPostings.map((job) => (
-              <JobResultCard key={job.id} item={toResultItem(job)} queryHasValue={false} />
+              <JobResultCard
+                key={job.id}
+                item={toResultItem(job)}
+                queryHasValue={false}
+                matchScore={scores[job.id] ?? null}
+              />
             ))}
           </div>
         </section>

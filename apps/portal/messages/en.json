@@ -1316,6 +1316,15 @@
       "recentHeading": "Recent Postings",
       "recentViewAll": "View all recent",
       "browseAllJobs": "Browse all jobs"
+    },
+    "match": {
+      "score": "{score}% match",
+      "strong": "Strong Match",
+      "good": "Good Match",
+      "fair": "Fair Match",
+      "completeProfilePrompt": "Complete your profile to see how well you match",
+      "completeProfileLink": "Complete Profile",
+      "dismiss": "Dismiss"
     }
   },
   "Shell": {

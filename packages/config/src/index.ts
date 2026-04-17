@@ -9,3 +9,4 @@ export * from "./feed.js";
 export * from "./points.js";
 export * from "./realtime.js";
 export * from "./upload.js";
+export * from "./match.js";

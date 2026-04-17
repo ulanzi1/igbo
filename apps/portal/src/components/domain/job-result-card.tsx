@@ -8,15 +8,19 @@ import { CulturalContextBadges } from "@/components/semantic/cultural-context-ba
 import { formatDeadlineCountdown } from "@/lib/format-deadline-countdown";
 import { formatPostingAge } from "@/lib/format-posting-age";
 import { sanitizeSearchSnippet } from "@/lib/sanitize-search-snippet";
+import { MatchPill } from "@/components/domain/match-pill";
 import type { JobSearchResultItem } from "@/lib/validations/job-search";
+import type { MatchScoreResult } from "@igbo/config";
 
 interface JobResultCardProps {
   item: JobSearchResultItem;
   /** Whether the user has typed a query (controls snippet rendering) */
   queryHasValue: boolean;
+  /** Optional match score — shown inline after meta line when present and tier !== "none" */
+  matchScore?: MatchScoreResult | null;
 }
 
-export function JobResultCard({ item, queryHasValue }: JobResultCardProps) {
+export function JobResultCard({ item, queryHasValue, matchScore }: JobResultCardProps) {
   const t = useTranslations("Portal.search");
   const tPosting = useTranslations("Portal.posting");
   const locale = useLocale();
@@ -115,6 +119,13 @@ export function JobResultCard({ item, queryHasValue }: JobResultCardProps) {
       {/* Cultural context badges */}
       {item.culturalContext && (
         <CulturalContextBadges culturalContext={item.culturalContext as Record<string, boolean>} />
+      )}
+
+      {/* Match pill — only for authenticated seekers with consent (matchScore provided by parent) */}
+      {matchScore && matchScore.tier !== "none" && (
+        <div className="mt-2 min-h-[20px]">
+          <MatchPill matchScore={matchScore} />
+        </div>
       )}
 
       {/* Posting age + deadline */}

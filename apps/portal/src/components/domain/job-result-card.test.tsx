@@ -202,3 +202,45 @@ describe("JobResultCard — accessibility", () => {
     expect(results).toHaveNoViolations();
   });
 });
+
+import type { MatchScoreResult } from "@igbo/config";
+
+const strongScore: MatchScoreResult = {
+  score: 85,
+  tier: "strong",
+  signals: { skillsOverlap: 60, locationMatch: true, employmentTypeMatch: true },
+};
+
+const noneScore: MatchScoreResult = {
+  score: 15,
+  tier: "none",
+  signals: { skillsOverlap: 0, locationMatch: false, employmentTypeMatch: true },
+};
+
+describe("JobResultCard — matchScore prop", () => {
+  it("renders MatchPill when matchScore is provided with tier !== 'none'", () => {
+    renderWithPortalProviders(
+      <JobResultCard item={baseItem} queryHasValue={false} matchScore={strongScore} />,
+    );
+    expect(screen.getByTestId("match-pill")).toBeInTheDocument();
+  });
+
+  it("does NOT render MatchPill when matchScore is null", () => {
+    renderWithPortalProviders(
+      <JobResultCard item={baseItem} queryHasValue={false} matchScore={null} />,
+    );
+    expect(screen.queryByTestId("match-pill")).not.toBeInTheDocument();
+  });
+
+  it("does NOT render MatchPill when matchScore is undefined", () => {
+    renderWithPortalProviders(<JobResultCard item={baseItem} queryHasValue={false} />);
+    expect(screen.queryByTestId("match-pill")).not.toBeInTheDocument();
+  });
+
+  it("does NOT render MatchPill when tier is 'none'", () => {
+    renderWithPortalProviders(
+      <JobResultCard item={baseItem} queryHasValue={false} matchScore={noneScore} />,
+    );
+    expect(screen.queryByTestId("match-pill")).not.toBeInTheDocument();
+  });
+});

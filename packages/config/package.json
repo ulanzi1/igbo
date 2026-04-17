@@ -53,10 +53,15 @@
       "import": "./dist/events.js",
       "default": "./dist/events.js",
       "types": "./dist/events.d.ts"
+    },
+    "./match": {
+      "import": "./dist/match.js",
+      "default": "./dist/match.js",
+      "types": "./dist/match.d.ts"
     }
   },
   "scripts": {
-    "build": "tsup src/index.ts src/env.ts src/redis.ts src/notifications.ts src/chat.ts src/feed.ts src/points.ts src/realtime.ts src/upload.ts src/events.ts --format esm --dts",
+    "build": "tsup src/index.ts src/env.ts src/redis.ts src/notifications.ts src/chat.ts src/feed.ts src/points.ts src/realtime.ts src/upload.ts src/events.ts src/match.ts --format esm --dts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },

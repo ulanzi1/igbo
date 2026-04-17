@@ -3,12 +3,14 @@
 import { useTranslations } from "next-intl";
 import { useState, useId } from "react";
 import { SearchIcon, FilterIcon, LoaderIcon, XIcon } from "lucide-react";
+import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { useJobSearch } from "@/hooks/use-job-search";
+import { useMatchScores } from "@/hooks/use-match-scores";
 import { countActiveFilters } from "@/lib/search-url-params";
 import type { JobSearchUrlState } from "@/lib/search-url-params";
 import { JobSearchFilterPanel, JobSearchFilterPanelSkeleton } from "./job-search-filter-panel";
@@ -16,6 +18,7 @@ import { ActiveFiltersBar } from "./active-filters-bar";
 import { JobResultCard, JobResultCardSkeleton } from "./job-result-card";
 import { JobSearchSortDropdown } from "./job-search-sort-dropdown";
 import { JobSearchEmptyState } from "./job-search-empty-state";
+import { CompleteProfilePrompt } from "./complete-profile-prompt";
 
 interface JobSearchPageContentProps {
   initialParams: Record<string, string | string[] | undefined>;
@@ -37,6 +40,7 @@ export function JobSearchPageContent({ initialParams }: JobSearchPageContentProp
   const t = useTranslations("Portal.search");
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
   const filterSheetTitleId = useId();
+  const { data: session } = useSession();
 
   const {
     state,
@@ -53,6 +57,12 @@ export function JobSearchPageContent({ initialParams }: JobSearchPageContentProp
     clearFilter,
     clearAll,
   } = useJobSearch(initialParams);
+
+  const isSeeker = session?.user?.activePortalRole === "JOB_SEEKER";
+  const jobIds = results.map((item) => item.id);
+  const { scores, isLoading: matchLoading } = useMatchScores(jobIds, isSeeker);
+  const showCompleteProfilePrompt =
+    isSeeker && !matchLoading && Object.keys(scores).length === 0 && results.length > 0;
 
   const activeFilterCount = countActiveFilters(state);
   const queryHasValue = state.q.trim().length > 0;
@@ -184,6 +194,9 @@ export function JobSearchPageContent({ initialParams }: JobSearchPageContentProp
             ) : null}
           </div>
 
+          {/* Complete profile prompt — shown when seeker has no match scores yet */}
+          {showCompleteProfilePrompt && <CompleteProfilePrompt />}
+
           {/* Results grid */}
           {/* AC #8: results remain interactive during stale overlay — opacity only, no pointer-events blocker. */}
           <div
@@ -204,7 +217,12 @@ export function JobSearchPageContent({ initialParams }: JobSearchPageContentProp
               <JobSearchEmptyState variant="cold-start" />
             ) : (
               results.map((item) => (
-                <JobResultCard key={item.id} item={item} queryHasValue={queryHasValue} />
+                <JobResultCard
+                  key={item.id}
+                  item={item}
+                  queryHasValue={queryHasValue}
+                  matchScore={scores[item.id] ?? null}
+                />
               ))
             )}
           </div>
