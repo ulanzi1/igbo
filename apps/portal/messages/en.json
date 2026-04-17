@@ -53,7 +53,13 @@
     },
     "guest": {
       "loginPrompt": "Log in to apply for jobs",
-      "joinPrompt": "Join the community to get started"
+      "joinPrompt": "Join the community to get started",
+      "signInToApply": "Sign in to apply for jobs",
+      "conversionBannerTitle": "Ready to apply?",
+      "conversionBannerDescription": "Join the OBIGBO community to apply for jobs and track your applications",
+      "conversionBannerSignIn": "Sign In",
+      "conversionBannerRegister": "Create Account",
+      "dismissBanner": "Dismiss"
     },
     "meta": {
       "title": "OBIGBO Job Portal",

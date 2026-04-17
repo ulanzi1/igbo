@@ -81,7 +81,20 @@ describe("PortalBottomNav", () => {
     const href = loginLink?.getAttribute("href") ?? "";
     expect(href).toContain("http://localhost:3000/login");
     expect(href).toContain("callbackUrl=");
-    expect(href).toContain(encodeURIComponent("http://localhost:3001/"));
+  });
+
+  it("guest login link callbackUrl reflects current page (dynamic callbackUrl)", () => {
+    process.env.NEXT_PUBLIC_COMMUNITY_URL = "http://localhost:3000";
+    process.env.NEXT_PUBLIC_PORTAL_URL = "http://localhost:3001";
+    setGuest();
+    render(<PortalBottomNav />);
+    const loginLink = screen.getByText("login").closest("a");
+    const href = loginLink?.getAttribute("href") ?? "";
+    expect(href).toContain("http://localhost:3000/login");
+    // Verify the decoded callbackUrl contains the current page (JSDOM default: http://localhost/)
+    const url = new URL(href);
+    const callbackUrl = url.searchParams.get("callbackUrl") ?? "";
+    expect(callbackUrl).toContain("http://localhost");
   });
 
   it("marks active tab based on current pathname", () => {

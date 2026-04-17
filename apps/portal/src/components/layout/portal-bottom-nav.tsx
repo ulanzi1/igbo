@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import {
   HomeIcon,
   BriefcaseIcon,
@@ -14,6 +15,7 @@ import {
 import { useTranslations, useLocale } from "next-intl";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { buildSignInUrl } from "@/lib/guest-utils";
 import { useActivePortalRole } from "@/hooks/use-active-portal-role";
 
 interface BottomNavItem {
@@ -30,6 +32,10 @@ export function PortalBottomNav() {
   const pathname = usePathname();
   const communityUrl = process.env.NEXT_PUBLIC_COMMUNITY_URL ?? "http://localhost:3000";
   const portalUrl = process.env.NEXT_PUBLIC_PORTAL_URL ?? "http://localhost:3001";
+  const [loginCallbackUrl, setLoginCallbackUrl] = useState(`${portalUrl}/${locale}`);
+  useEffect(() => {
+    setLoginCallbackUrl(window.location.href);
+  }, []);
 
   const seekerItems: BottomNavItem[] = [
     { key: "home", href: `/${locale}`, label: t("home"), icon: HomeIcon },
@@ -73,7 +79,7 @@ export function PortalBottomNav() {
     { key: "browseAll", href: `/${locale}/search`, label: t("browseAll"), icon: BriefcaseIcon },
     {
       key: "login",
-      href: `${communityUrl}/login?callbackUrl=${encodeURIComponent(`${portalUrl}/${locale}`)}`,
+      href: buildSignInUrl(communityUrl, loginCallbackUrl),
       label: t("login"),
       icon: LogInIcon,
     },

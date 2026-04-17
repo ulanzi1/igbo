@@ -23,9 +23,11 @@ vi.mock("next-intl", () => ({
   useLocale: mockUseLocale,
 }));
 
+const searchParamsRef = { current: new URLSearchParams() };
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push: vi.fn() }),
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
   usePathname: () => "/en/jobs/posting-uuid",
+  useSearchParams: () => searchParamsRef.current,
 }));
 
 vi.mock("next-auth/react", () => ({
@@ -34,11 +36,12 @@ vi.mock("next-auth/react", () => ({
 }));
 
 vi.mock("@/components/domain/apply-button", () => ({
-  ApplyButton: (props: { jobId: string; hasExistingApplication: boolean }) => (
+  ApplyButton: (props: { jobId: string; hasExistingApplication: boolean; autoApply?: boolean }) => (
     <div
       data-testid="apply-button"
       data-job-id={props.jobId}
       data-has-existing={String(props.hasExistingApplication)}
+      data-auto-apply={String(props.autoApply ?? false)}
     />
   ),
 }));
@@ -65,6 +68,22 @@ vi.mock("@/components/semantic/cultural-context-badges", () => ({
 
 vi.mock("@/components/semantic/salary-display", () => ({
   SalaryDisplay: () => <span data-testid="salary-display" />,
+}));
+
+vi.mock("@/components/domain/guest-conversion-banner", () => ({
+  GuestConversionBanner: ({
+    communityUrl,
+    callbackUrl,
+  }: {
+    communityUrl: string;
+    callbackUrl: string;
+  }) => (
+    <div
+      data-testid="guest-conversion-banner"
+      data-community-url={communityUrl}
+      data-callback-url={callbackUrl}
+    />
+  ),
 }));
 
 // Radix pointer polyfills for jsdom
@@ -137,6 +156,7 @@ describe("JobDetailPageContent", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockUseLocale.mockReturnValue("en");
+    searchParamsRef.current = new URLSearchParams();
   });
 
   describe("header section", () => {
@@ -360,13 +380,15 @@ describe("JobDetailPageContent", () => {
       expect(links.length).toBeGreaterThan(0); // appears in mobile + desktop bars
     });
 
-    it("'Sign In to Apply' links to community auth signin with communityUrl", () => {
+    it("'Sign In to Apply' links to community /login (not /auth/signin) with communityUrl", () => {
       render(<JobDetailPageContent {...makeProps({ isGuest: true })} />);
       const links = screen.getAllByRole("link", { name: "Portal.jobDetail.signInToApply" });
       expect(links.length).toBeGreaterThan(0);
-      // Each link should use the server-provided communityUrl
+      // Each link should use /login, not /auth/signin (Task 8 bug fix)
       links.forEach((link) => {
-        expect(link.getAttribute("href")).toContain("https://community.example.com/auth/signin");
+        const href = link.getAttribute("href") ?? "";
+        expect(href).toContain("https://community.example.com/login");
+        expect(href).not.toContain("/auth/signin");
       });
     });
 
@@ -393,6 +415,73 @@ describe("JobDetailPageContent", () => {
       render(<JobDetailPageContent {...makeProps({ isEmployerOrAdmin: true })} />);
       expect(screen.queryByTestId("apply-button")).toBeNull();
       expect(screen.queryByText("Portal.jobDetail.signInToApply")).toBeNull();
+    });
+  });
+
+  describe("GuestConversionBanner (Task 7)", () => {
+    it("renders GuestConversionBanner for guest on active posting", () => {
+      render(<JobDetailPageContent {...makeProps({ isGuest: true, isExpiredOrFilled: false })} />);
+      expect(screen.getByTestId("guest-conversion-banner")).toBeInTheDocument();
+    });
+
+    it("does NOT render GuestConversionBanner for authenticated seeker", () => {
+      render(
+        <JobDetailPageContent
+          {...makeProps({
+            isGuest: false,
+            isSeeker: true,
+            seekerProfile: { headline: "Engineer", skills: [] },
+          })}
+        />,
+      );
+      expect(screen.queryByTestId("guest-conversion-banner")).not.toBeInTheDocument();
+    });
+
+    it("does NOT render GuestConversionBanner for expired/filled posting", () => {
+      render(<JobDetailPageContent {...makeProps({ isGuest: true, isExpiredOrFilled: true })} />);
+      expect(screen.queryByTestId("guest-conversion-banner")).not.toBeInTheDocument();
+    });
+  });
+
+  describe("ref=apply auto-open (Task 5)", () => {
+    it("ref=apply when guest — no autoApply (still shows sign-in CTA)", () => {
+      searchParamsRef.current = new URLSearchParams("ref=apply");
+      render(<JobDetailPageContent {...makeProps({ isGuest: true, isSeeker: false })} />);
+      const applyButtons = screen.queryAllByTestId("apply-button");
+      // Guest sees sign-in link, not apply button
+      expect(applyButtons.length).toBe(0);
+      expect(screen.getAllByText("Portal.jobDetail.signInToApply").length).toBeGreaterThan(0);
+    });
+
+    it("ref=apply when authenticated seeker — passes autoApply=true to ApplyButton", () => {
+      searchParamsRef.current = new URLSearchParams("ref=apply");
+      render(
+        <JobDetailPageContent
+          {...makeProps({
+            isGuest: false,
+            isSeeker: true,
+            seekerProfile: { headline: "Engineer", skills: [] },
+          })}
+        />,
+      );
+      const applyButtons = screen.getAllByTestId("apply-button");
+      expect(applyButtons.length).toBeGreaterThan(0);
+      expect(applyButtons[0].getAttribute("data-auto-apply")).toBe("true");
+    });
+
+    it("ref=unknown (invalid value) — autoApply is false", () => {
+      searchParamsRef.current = new URLSearchParams("ref=unknown");
+      render(
+        <JobDetailPageContent
+          {...makeProps({
+            isGuest: false,
+            isSeeker: true,
+            seekerProfile: { headline: "Engineer", skills: [] },
+          })}
+        />,
+      );
+      const applyButtons = screen.getAllByTestId("apply-button");
+      expect(applyButtons[0].getAttribute("data-auto-apply")).toBe("false");
     });
   });
 

@@ -18,13 +18,14 @@ Object.assign(Element.prototype, {
 
 // ─── Mocks ──────────────────────────────────────────────────────────────────
 const mockPush = vi.fn();
+const mockReplace = vi.fn();
 const mockPathname = "/en/jobs/jp-1";
 
 vi.mock("next-intl", () => ({
   useTranslations: () => (key: string, _params?: Record<string, unknown>) => key,
 }));
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push: mockPush, refresh: vi.fn() }),
+  useRouter: () => ({ push: mockPush, refresh: vi.fn(), replace: mockReplace }),
   usePathname: () => mockPathname,
 }));
 vi.mock("sonner", () => ({
@@ -131,5 +132,50 @@ describe("ApplyButton — deadline passed", () => {
   it("shows deadline-passed tooltip content", () => {
     render(<ApplyButton {...BASE_PROPS} deadlinePassed={true} />);
     expect(screen.getByTestId("tooltip-content")).toHaveTextContent("button.deadlinePassed");
+  });
+});
+
+describe("ApplyButton — autoApply prop", () => {
+  beforeEach(() => {
+    // Mock window.location.href for URL manipulation
+    Object.defineProperty(window, "location", {
+      value: { href: "http://localhost:3001/en/jobs/jp-1?ref=apply" },
+      writable: true,
+      configurable: true,
+    });
+  });
+
+  it("autoApply=true opens drawer on mount when seeker has profile and no existing application", () => {
+    render(<ApplyButton {...BASE_PROPS} autoApply={true} />);
+    expect(screen.getByTestId("application-drawer")).toBeInTheDocument();
+  });
+
+  it("autoApply=true with existing application — does NOT auto-open drawer", () => {
+    render(<ApplyButton {...BASE_PROPS} autoApply={true} hasExistingApplication={true} />);
+    expect(screen.queryByTestId("application-drawer")).not.toBeInTheDocument();
+  });
+
+  it("autoApply=true with deadline passed — does NOT auto-open drawer", () => {
+    render(<ApplyButton {...BASE_PROPS} autoApply={true} deadlinePassed={true} />);
+    expect(screen.queryByTestId("application-drawer")).not.toBeInTheDocument();
+  });
+
+  it("autoApply=true without profile — redirects to onboarding (no auto-open)", () => {
+    render(<ApplyButton {...BASE_PROPS} autoApply={true} hasProfile={false} />);
+    // hasProfile=false renders complete-profile button, not apply button/drawer
+    expect(screen.queryByTestId("application-drawer")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /button.completeProfile/i })).toBeInTheDocument();
+  });
+
+  it("autoApply=false — drawer stays closed on mount", () => {
+    render(<ApplyButton {...BASE_PROPS} autoApply={false} />);
+    expect(screen.queryByTestId("application-drawer")).not.toBeInTheDocument();
+  });
+
+  it("autoApply=true calls router.replace to clean ref param from URL", () => {
+    render(<ApplyButton {...BASE_PROPS} autoApply={true} />);
+    expect(mockReplace).toHaveBeenCalled();
+    const replaceArg = mockReplace.mock.calls[0][0] as string;
+    expect(replaceArg).not.toContain("ref=apply");
   });
 });

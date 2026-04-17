@@ -1,6 +1,8 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { useTranslations, useLocale } from "next-intl";
+import { useSearchParams } from "next/navigation";
 import { MapPinIcon, BriefcaseIcon, CalendarIcon } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -8,12 +10,14 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { TrustBadge } from "@/components/domain/trust-badge";
 import { ReportPostingButton } from "@/components/domain/report-posting-button";
 import { ApplyButton } from "@/components/domain/apply-button";
+import { GuestConversionBanner } from "@/components/domain/guest-conversion-banner";
 import { ViewTracker } from "@/components/domain/view-tracker";
 import { SalaryDisplay } from "@/components/semantic/salary-display";
 import { CulturalContextBadges } from "@/components/semantic/cultural-context-badges";
 import { formatDeadlineCountdown } from "@/lib/format-deadline-countdown";
 import { formatPostingAge } from "@/lib/format-posting-age";
 import { INDUSTRY_OPTIONS } from "@/lib/validations/company";
+import { buildSignInUrl } from "@/lib/guest-utils";
 import { cn } from "@/lib/utils";
 
 type KnownIndustry = (typeof INDUSTRY_OPTIONS)[number];
@@ -113,13 +117,24 @@ export function JobDetailPageContent({
 
   const showCtaBar = !isExpiredOrFilled && !isEmployerOrAdmin;
 
-  // Sign-in URL for guests: community login with returnTo
-  // communityUrl is passed from the server component so SSR renders correctly.
-  // On the client, append the current page URL as callbackUrl.
-  const signInUrl =
-    typeof window !== "undefined"
-      ? `${communityUrl}/auth/signin?callbackUrl=${encodeURIComponent(window.location.href)}`
-      : `${communityUrl}/auth/signin`;
+  // Sign-in URL for guests: community login with returnTo + ref=apply signal.
+  // Hydration-safe: SSR renders a static fallback; useEffect updates to current page URL.
+  const [signInUrl, setSignInUrl] = useState(`${communityUrl}/login`);
+  useEffect(() => {
+    setSignInUrl(buildSignInUrl(communityUrl, window.location.href, { ref: "apply" }));
+  }, [communityUrl]);
+
+  // ref=apply: auto-open apply drawer when an authenticated seeker lands via post-login redirect
+  const searchParams = useSearchParams();
+  const autoApply = searchParams.get("ref") === "apply" && isSeeker && !isGuest;
+
+  // callbackUrl for GuestConversionBanner (with ref=apply so drawer auto-opens post-login)
+  const [conversionCallbackUrl, setConversionCallbackUrl] = useState("");
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    url.searchParams.set("ref", "apply");
+    setConversionCallbackUrl(url.toString());
+  }, []);
 
   return (
     <>
@@ -389,12 +404,23 @@ export function JobDetailPageContent({
                   profileLocation={profileLocation}
                   deadlinePassed={deadlinePassed}
                   locale={resolvedLocale}
+                  autoApply={autoApply}
                   t={t}
                 />
               </div>
             </div>
           )}
         </div>
+
+        {/* Guest conversion banner — shown between content and mobile CTA */}
+        {isGuest && !isExpiredOrFilled && conversionCallbackUrl && (
+          <div className="mt-6">
+            <GuestConversionBanner
+              communityUrl={communityUrl}
+              callbackUrl={conversionCallbackUrl}
+            />
+          </div>
+        )}
       </div>
 
       {/* Mobile fixed bottom CTA bar */}
@@ -413,6 +439,7 @@ export function JobDetailPageContent({
             profileLocation={profileLocation}
             deadlinePassed={deadlinePassed}
             locale={resolvedLocale}
+            autoApply={autoApply}
             t={t}
           />
         </div>
@@ -438,6 +465,7 @@ interface CtaProps {
   profileLocation: string | null;
   deadlinePassed: boolean;
   locale: string;
+  autoApply: boolean;
   t: ReturnType<typeof useTranslations<"Portal.jobDetail">>;
 }
 
@@ -462,6 +490,7 @@ function CtaContent({
   profileLocation,
   deadlinePassed,
   locale,
+  autoApply,
   t,
 }: CtaProps) {
   if (isGuest) {
@@ -499,6 +528,7 @@ function CtaContent({
           profileSkills={seekerProfile?.skills ?? []}
           profileLocation={profileLocation}
           locale={locale}
+          autoApply={autoApply}
         />
       </div>
     );

@@ -53,7 +53,13 @@
     },
     "guest": {
       "loginPrompt": "Banye iji tinye akwụkwọ maka ọrụ",
-      "joinPrompt": "Sonye obodo ka ịmalite"
+      "joinPrompt": "Sonye obodo ka ịmalite",
+      "signInToApply": "Banye iji tinye akwụkwọ maka ọrụ",
+      "conversionBannerTitle": "Ọ dị njikere isi tinye akwụkwọ?",
+      "conversionBannerDescription": "Sonye obodo OBIGBO iji tinye akwụkwọ maka ọrụ ma soro ngwa gị",
+      "conversionBannerSignIn": "Banye",
+      "conversionBannerRegister": "Mepụta Akaụntụ",
+      "dismissBanner": "Kagbuo"
     },
     "meta": {
       "title": "Ụlọ Ọrụ OBIGBO",

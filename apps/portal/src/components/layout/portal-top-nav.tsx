@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { useActivePortalRole } from "@/hooks/use-active-portal-role";
+import { buildSignInUrl } from "@/lib/guest-utils";
 import { RoleSwitcher } from "./role-switcher";
 
 function getCommunityUrl() {
@@ -30,7 +31,11 @@ export function PortalTopNav({ className }: { className?: string }) {
   const { isSeeker, isEmployer, isAdmin, isAuthenticated } = useActivePortalRole();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [loginCallbackUrl, setLoginCallbackUrl] = useState(`${getPortalUrl()}/${locale}`);
   useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    setLoginCallbackUrl(window.location.href);
+  }, []);
   const communityUrl = getCommunityUrl();
 
   const seekerLinks: NavLink[] = [
@@ -145,7 +150,8 @@ export function PortalTopNav({ className }: { className?: string }) {
             <>
               <Button asChild size="sm" variant="ghost" className="hidden sm:inline-flex">
                 <a
-                  href={`${communityUrl}/login?callbackUrl=${encodeURIComponent(`${getPortalUrl()}/${locale}`)}`}
+                  href={buildSignInUrl(communityUrl, loginCallbackUrl)}
+                  data-testid="desktop-login-link"
                 >
                   {t("login")}
                 </a>
@@ -231,7 +237,8 @@ export function PortalTopNav({ className }: { className?: string }) {
                   {!isAuthenticated && (
                     <>
                       <a
-                        href={`${communityUrl}/login?callbackUrl=${encodeURIComponent(`${getPortalUrl()}/${locale}`)}`}
+                        href={buildSignInUrl(communityUrl, loginCallbackUrl)}
+                        data-testid="mobile-login-link"
                         className="flex items-center min-h-[44px] px-4 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-colors rounded-md"
                       >
                         {t("login")}

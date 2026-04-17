@@ -26,6 +26,7 @@ vi.mock("sonner", () => ({
 }));
 
 import { fireEvent } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { useSession } from "next-auth/react";
 import { PortalTopNav } from "./portal-top-nav";
 
@@ -148,6 +149,29 @@ describe("PortalTopNav", () => {
       render(<PortalTopNav />);
       expect(screen.getByText("login")).toBeInTheDocument();
       expect(screen.getByText("joinNow")).toBeInTheDocument();
+    });
+
+    it("desktop guest login link includes callbackUrl", () => {
+      // JSDOM sets window.location.href; after useEffect the callbackUrl should be updated
+      setGuest();
+      render(<PortalTopNav />);
+      const loginLink = screen.getByTestId("desktop-login-link");
+      const href = loginLink.getAttribute("href") ?? "";
+      expect(href).toContain("http://localhost:3000/login");
+      expect(href).toContain("callbackUrl=");
+    });
+
+    it("mobile Sheet guest login link includes callbackUrl", async () => {
+      const user = userEvent.setup();
+      setGuest();
+      render(<PortalTopNav />);
+      // Open the mobile menu so Sheet content renders in the DOM
+      const menuButton = screen.getByLabelText("Open menu");
+      await user.click(menuButton);
+      const mobileLoginLink = screen.getByTestId("mobile-login-link");
+      const href = mobileLoginLink.getAttribute("href") ?? "";
+      expect(href).toContain("http://localhost:3000/login");
+      expect(href).toContain("callbackUrl=");
     });
 
     it("guest browseAll link points to /en/search (P-4.1B nav update)", () => {
