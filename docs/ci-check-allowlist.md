@@ -36,6 +36,7 @@ Add `// ci-allow-<reason>` above the relevant line, with a justification comment
 | `apps/portal/src/app/[locale]/(gated)/page.tsx` | `process-env` | const communityUrl = process.env.COMMUNITY_URL ?? "http://localhost:3000"; // ci-allow-process-env — portal env.ts not yet created (VD-6) |
 | `apps/portal/src/app/[locale]/(ungated)/choose-role/page.tsx` | `process-env` | if (!session) { |
 | `apps/portal/src/app/[locale]/(ungated)/choose-role/page.tsx` | `process-env` | const communityUrl = process.env.COMMUNITY_URL ?? "http://localhost:3000"; // ci-allow-process-env |
+| `apps/portal/src/app/[locale]/(ungated)/jobs/[jobId]/page.tsx` | `unsanitized-html` | {!isExpiredOrFilled && ( |
 | `apps/portal/src/app/api/v1/seekers/me/cvs/route.ts` | `process-env` | new PutObjectCommand({ |
 | `apps/portal/src/app/api/v1/seekers/me/cvs/route.ts` | `process-env` | Portal CVs have no scanner job — mark ready immediately and store a direct URL |
 | `apps/portal/src/app/api/v1/seekers/me/cvs/route.ts` | `process-env` | const s3Endpoint = process.env.HETZNER_S3_ENDPOINT ?? ""; // ci-allow-process-env |
