@@ -199,6 +199,7 @@ export default async function JobDetailPage({ params }: PageProps) {
         communityUrl={process.env.NEXT_PUBLIC_COMMUNITY_URL ?? ""}
       />
       {!isExpiredOrFilled && (
+        // ci-allow-unsanitized-html — JSON-LD is JSON.stringify output, not user HTML; < escaped as \u003c
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
