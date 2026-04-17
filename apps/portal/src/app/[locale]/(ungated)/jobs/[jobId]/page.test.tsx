@@ -73,7 +73,7 @@ const mockPosting = jobPostingFactory({
 
 beforeEach(() => {
   vi.clearAllMocks();
-  vi.mocked(auth).mockResolvedValue(null);
+  vi.mocked(auth).mockResolvedValue(null as never);
   vi.mocked(getJobPostingWithCompany).mockResolvedValue({
     posting: mockPosting,
     company: mockCompany,

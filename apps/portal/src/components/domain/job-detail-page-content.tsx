@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useTranslations, useLocale } from "next-intl";
 import { MapPinIcon, BriefcaseIcon, CalendarIcon } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -130,12 +129,12 @@ export function JobDetailPageContent({
       {/* Main grid: content left, sticky CTA sidebar on desktop */}
       <div className="container mx-auto max-w-5xl px-4 py-8 pb-24 md:pb-8">
         {/* Back link */}
-        <Link
+        <a
           href={`/${resolvedLocale}/jobs`}
           className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-6"
         >
           ← {t("backToJobs")}
-        </Link>
+        </a>
 
         {/* Status banners */}
         {isExpiredOrFilled && (
@@ -152,19 +151,19 @@ export function JobDetailPageContent({
             {isFilled ? (
               <>
                 {t("filledBanner")}{" "}
-                <Link href={`/${resolvedLocale}/jobs`} className="underline underline-offset-2">
+                <a href={`/${resolvedLocale}/jobs`} className="underline underline-offset-2">
                   {t("filledBrowseLink")}
-                </Link>
+                </a>
               </>
             ) : (
               <>
                 {t("expiredBanner")}{" "}
-                <Link
+                <a
                   href={`/${resolvedLocale}/search?q=${encodeURIComponent(posting.title)}`}
                   className="underline underline-offset-2"
                 >
                   {t("expiredSearchLink")}
-                </Link>
+                </a>
               </>
             )}
           </div>
@@ -191,12 +190,12 @@ export function JobDetailPageContent({
                         {posting.title}
                       </h1>
                       <div className="flex items-center gap-2 mt-1">
-                        <Link
+                        <a
                           href={`/${resolvedLocale}/companies/${company.id}`}
                           className="text-base font-medium text-muted-foreground hover:text-foreground hover:underline"
                         >
                           {company.name}
-                        </Link>
+                        </a>
                         {company.trustBadge && <TrustBadge />}
                       </div>
                     </div>

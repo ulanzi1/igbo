@@ -28,17 +28,6 @@ vi.mock("next/navigation", () => ({
   usePathname: () => "/en/jobs/posting-uuid",
 }));
 
-vi.mock("next/link", () => ({
-  default: ({
-    children,
-    ...rest
-  }: {
-    children: React.ReactNode;
-    href: string;
-    className?: string;
-  }) => <a {...rest}>{children}</a>,
-}));
-
 vi.mock("next-auth/react", () => ({
   useSession: () => ({ data: null }),
   SessionProvider: ({ children }: { children: React.ReactNode }) => children,
