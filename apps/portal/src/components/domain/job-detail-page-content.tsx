@@ -11,7 +11,6 @@ import { ApplyButton } from "@/components/domain/apply-button";
 import { ViewTracker } from "@/components/domain/view-tracker";
 import { SalaryDisplay } from "@/components/semantic/salary-display";
 import { CulturalContextBadges } from "@/components/semantic/cultural-context-badges";
-import { sanitizeHtml } from "@/lib/sanitize";
 import { formatDeadlineCountdown } from "@/lib/format-deadline-countdown";
 import { formatPostingAge } from "@/lib/format-posting-age";
 import { INDUSTRY_OPTIONS } from "@/lib/validations/company";
@@ -291,14 +290,14 @@ export function JobDetailPageContent({
                     >
                       {t("descriptionTab")}
                     </h2>
+                    {/* ci-allow-unsanitized-html — sanitized server-side in page.tsx */}
                     <div
                       className="prose prose-sm max-w-none"
                       dangerouslySetInnerHTML={{
-                        __html: sanitizeHtml(
+                        __html:
                           resolvedLocale === "ig" && posting.descriptionIgboHtml
                             ? posting.descriptionIgboHtml
                             : (posting.descriptionHtml ?? ""),
-                        ),
                       }}
                     />
                   </section>
@@ -311,10 +310,11 @@ export function JobDetailPageContent({
                     >
                       {t("requirements")}
                     </h2>
+                    {/* ci-allow-unsanitized-html — sanitized server-side in page.tsx */}
                     <div
                       className="prose prose-sm max-w-none"
                       dangerouslySetInnerHTML={{
-                        __html: sanitizeHtml(posting.requirements),
+                        __html: posting.requirements,
                       }}
                     />
                   </section>
@@ -352,10 +352,11 @@ export function JobDetailPageContent({
                         <dt className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                           {t("companyCulture")}
                         </dt>
+                        {/* ci-allow-unsanitized-html — sanitized server-side in page.tsx */}
                         <dd
                           className="mt-1 prose prose-sm max-w-none"
                           dangerouslySetInnerHTML={{
-                            __html: sanitizeHtml(company.cultureInfo),
+                            __html: company.cultureInfo,
                           }}
                         />
                       </div>
