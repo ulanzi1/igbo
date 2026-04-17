@@ -66,6 +66,7 @@ export function PortalTopNav({ className }: { className?: string }) {
   ];
 
   const guestLinks: NavLink[] = [
+    { key: "discover", href: `/${locale}/jobs`, label: t("discover") },
     { key: "browseAll", href: `/${locale}/search`, label: t("browseAll") },
     { key: "apprenticeships", href: `/${locale}/apprenticeships`, label: t("apprenticeships") },
   ];

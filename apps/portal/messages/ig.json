@@ -32,7 +32,8 @@
       "auditLog": "Ndekọ nyocha",
       "allPostings": "Ntinye niile",
       "employers": "Ndị Ọrụ Na-enye",
-      "logout": "Pụọ"
+      "logout": "Pụọ",
+      "discover": "Chọpụta Ọrụ"
     },
     "role": {
       "seeker": "Onye Na-achọ Ọrụ",
@@ -374,7 +375,24 @@
       "salaryUpTo": "Ruo ${amount}",
       "salaryRange": "${min} – ${max}",
       "jobDescription": "Nkọwa Ọrụ",
-      "requirements": "Ihe A Chọrọ"
+      "requirements": "Ihe A Chọrọ",
+      "descriptionTab": "Nkọwa",
+      "companyInfoTab": "Ozi Ụlọ Ọrụ",
+      "similarJobsTab": "Ọrụ ndị yiri ya",
+      "expiredBanner": "Ntinye ọrụ a agwụla oge ya",
+      "expiredSearchLink": "Chọọ ọrụ ndị yiri ya",
+      "filledBanner": "Ọrụ a emelawo ka mmadụ",
+      "filledBrowseLink": "Lelee ọrụ ndị ọzọ",
+      "signInToApply": "Banye iji mee arịọ",
+      "appliedOn": "Arịọ emere na {date}",
+      "aboutCompany": "Maka {company}",
+      "companyIndustry": "Ụlọ ọrụ",
+      "companySize": "Ogo ụlọ ọrụ",
+      "companyCulture": "Omenala na Ọnọdụ",
+      "similarJobsPlaceholder": "Ndụmọdụ ọrụ ndị yiri ya ga-abịa n'oge na-adịghị anya",
+      "postedAgo": "Etinyere {time}",
+      "pageTitle": "{title} na {company}",
+      "backToJobs": "Laghachi na ọrụ ndị"
     },
     "admin": {
       "reviewQueue": "Usoro Nyocha",
@@ -1279,6 +1297,19 @@
         "loadMore": "TODO(ig-translations): Couldn’t load more results. Try again.",
         "retry": "TODO(ig-translations): Retry"
       }
+    },
+    "discovery": {
+      "pageTitle": "Chọpụta Ọrụ",
+      "heading": "Chọpụta Ohere",
+      "searchPlaceholder": "Chọọ ọrụ site na aha, ụlọ ọrụ, ma ọ bụ nka…",
+      "searchAriaLabel": "Chọọ ọrụ",
+      "featuredHeading": "Ọrụ Ndị Pụtara Ìhè",
+      "featuredViewAll": "Lelee ọrụ niile",
+      "categoriesHeading": "Lelee site na Ụdị",
+      "categoryJobCount": "{count, plural, one {# ọrụ} other {# ọrụ}}",
+      "recentHeading": "Ntinye Ọrụ Ọhụrụ",
+      "recentViewAll": "Lelee ndị ọhụrụ niile",
+      "browseAllJobs": "Chọgharịa ọrụ niile"
     }
   },
   "Shell": {

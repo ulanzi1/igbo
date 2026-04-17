@@ -157,6 +157,14 @@ describe("PortalTopNav", () => {
       const searchLinks = browseLinks.filter((l) => l?.getAttribute("href")?.includes("/search"));
       expect(searchLinks.length).toBeGreaterThan(0);
     });
+
+    it("guest discover link points to /en/jobs (P-4.2 nav update)", () => {
+      setGuest();
+      render(<PortalTopNav />);
+      const discoverLinks = screen.getAllByText("discover").map((el) => el.closest("a"));
+      const jobsLinks = discoverLinks.filter((l) => l?.getAttribute("href") === "/en/jobs");
+      expect(jobsLinks.length).toBeGreaterThan(0);
+    });
   });
 
   describe("logout button", () => {

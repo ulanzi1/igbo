@@ -924,3 +924,114 @@ export async function getJobSearchTotalCount(
   const result = rows as unknown as { count: number }[];
   return result[0]?.count ?? 0;
 }
+
+// ---------------------------------------------------------------------------
+// P-4.2 — Discovery page queries
+// ---------------------------------------------------------------------------
+
+/**
+ * Discovery job result — same shape as FilteredJobSearchResult minus relevance and snippet.
+ * Used by getFeaturedJobPostings and getRecentJobPostings.
+ */
+export type DiscoveryJobResult = Omit<FilteredJobSearchResult, "relevance" | "snippet">;
+
+/** Industry category with active posting count — returned by getIndustryCategoryCounts */
+export interface IndustryCategoryCount {
+  industry: string;
+  count: number;
+}
+
+/**
+ * Returns up to `limit` featured active job postings ordered by created_at DESC.
+ *
+ * Gate: status = 'active' AND archived_at IS NULL AND is_featured = true
+ *       AND (application_deadline IS NULL OR application_deadline > NOW())
+ *
+ * Uses db.execute() raw SQL — same pattern as searchJobPostingsWithFilters.
+ */
+export async function getFeaturedJobPostings(limit: number): Promise<DiscoveryJobResult[]> {
+  const rows = (await db.execute(sql`
+    SELECT
+      pjp.id::text,
+      pjp.title,
+      cp.name AS company_name,
+      pjp.company_id::text AS company_id,
+      cp.logo_url,
+      pjp.location,
+      pjp.salary_min,
+      pjp.salary_max,
+      pjp.salary_competitive_only,
+      pjp.employment_type,
+      pjp.cultural_context_json,
+      pjp.application_deadline::text,
+      pjp.created_at::text
+    FROM portal_job_postings pjp
+    LEFT JOIN portal_company_profiles cp ON cp.id = pjp.company_id
+    WHERE pjp.status = 'active'
+      AND pjp.archived_at IS NULL
+      AND pjp.is_featured = true
+      AND (pjp.application_deadline IS NULL OR pjp.application_deadline > NOW())
+    ORDER BY pjp.created_at DESC
+    LIMIT ${limit}
+  `)) as unknown as DiscoveryJobResult[];
+  return rows;
+}
+
+/**
+ * Returns industry category counts for active non-archived non-expired postings.
+ *
+ * JOINs to portal_company_profiles to get the industry field (lives on company, not posting).
+ * Excludes categories with zero postings. Sorted by count DESC.
+ *
+ * Status gate is identical to buildFilterPredicate:
+ *   status = 'active' AND archived_at IS NULL AND (application_deadline IS NULL OR application_deadline > NOW())
+ */
+export async function getIndustryCategoryCounts(): Promise<IndustryCategoryCount[]> {
+  const rows = (await db.execute(sql`
+    SELECT
+      cp.industry,
+      COUNT(*)::int AS count
+    FROM portal_job_postings pjp
+    INNER JOIN portal_company_profiles cp ON cp.id = pjp.company_id
+    WHERE pjp.status = 'active'
+      AND pjp.archived_at IS NULL
+      AND (pjp.application_deadline IS NULL OR pjp.application_deadline > NOW())
+      AND cp.industry IS NOT NULL
+    GROUP BY cp.industry
+    HAVING COUNT(*) > 0
+    ORDER BY count DESC
+  `)) as unknown as IndustryCategoryCount[];
+  return rows;
+}
+
+/**
+ * Returns up to `limit` most recently activated active job postings ordered by created_at DESC.
+ *
+ * Same status gate as getFeaturedJobPostings but without the is_featured filter.
+ */
+export async function getRecentJobPostings(limit: number): Promise<DiscoveryJobResult[]> {
+  const rows = (await db.execute(sql`
+    SELECT
+      pjp.id::text,
+      pjp.title,
+      cp.name AS company_name,
+      pjp.company_id::text AS company_id,
+      cp.logo_url,
+      pjp.location,
+      pjp.salary_min,
+      pjp.salary_max,
+      pjp.salary_competitive_only,
+      pjp.employment_type,
+      pjp.cultural_context_json,
+      pjp.application_deadline::text,
+      pjp.created_at::text
+    FROM portal_job_postings pjp
+    LEFT JOIN portal_company_profiles cp ON cp.id = pjp.company_id
+    WHERE pjp.status = 'active'
+      AND pjp.archived_at IS NULL
+      AND (pjp.application_deadline IS NULL OR pjp.application_deadline > NOW())
+    ORDER BY pjp.created_at DESC
+    LIMIT ${limit}
+  `)) as unknown as DiscoveryJobResult[];
+  return rows;
+}

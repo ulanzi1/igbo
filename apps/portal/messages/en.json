@@ -32,7 +32,8 @@
       "auditLog": "Audit log",
       "allPostings": "All postings",
       "employers": "Employers",
-      "logout": "Log Out"
+      "logout": "Log Out",
+      "discover": "Discover Jobs"
     },
     "role": {
       "seeker": "Job Seeker",
@@ -374,7 +375,24 @@
       "salaryUpTo": "Up to ${amount}",
       "salaryRange": "${min} – ${max}",
       "jobDescription": "Job Description",
-      "requirements": "Requirements"
+      "requirements": "Requirements",
+      "descriptionTab": "Description",
+      "companyInfoTab": "Company Info",
+      "similarJobsTab": "Similar Jobs",
+      "expiredBanner": "This job posting has expired",
+      "expiredSearchLink": "Search similar jobs",
+      "filledBanner": "This position has been filled",
+      "filledBrowseLink": "Browse jobs",
+      "signInToApply": "Sign In to Apply",
+      "appliedOn": "Applied on {date}",
+      "aboutCompany": "About {company}",
+      "companyIndustry": "Industry",
+      "companySize": "Company Size",
+      "companyCulture": "Culture & Values",
+      "similarJobsPlaceholder": "Similar job recommendations coming soon",
+      "postedAgo": "Posted {time}",
+      "pageTitle": "{title} at {company}",
+      "backToJobs": "Back to jobs"
     },
     "admin": {
       "reviewQueue": "Review Queue",
@@ -1279,6 +1297,19 @@
         "loadMore": "Couldn’t load more results. Try again.",
         "retry": "Retry"
       }
+    },
+    "discovery": {
+      "pageTitle": "Discover Jobs",
+      "heading": "Discover Opportunities",
+      "searchPlaceholder": "Search jobs by title, company, or skill…",
+      "searchAriaLabel": "Search jobs",
+      "featuredHeading": "Featured Jobs",
+      "featuredViewAll": "View all jobs",
+      "categoriesHeading": "Browse by Category",
+      "categoryJobCount": "{count, plural, one {# job} other {# jobs}}",
+      "recentHeading": "Recent Postings",
+      "recentViewAll": "View all recent",
+      "browseAllJobs": "Browse all jobs"
     }
   },
   "Shell": {

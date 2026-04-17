@@ -69,6 +69,7 @@ export function PortalBottomNav() {
 
   const guestItems: BottomNavItem[] = [
     { key: "home", href: `/${locale}`, label: t("home"), icon: HomeIcon },
+    { key: "discover", href: `/${locale}/jobs`, label: t("discover"), icon: BriefcaseIcon },
     { key: "browseAll", href: `/${locale}/search`, label: t("browseAll"), icon: BriefcaseIcon },
     {
       key: "login",

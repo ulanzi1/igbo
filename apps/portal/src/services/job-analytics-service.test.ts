@@ -76,6 +76,7 @@ const mockPosting = {
   screeningResultJson: null,
   screeningCheckedAt: null,
   enableCoverLetter: false,
+  isFeatured: false,
   searchVector: null,
   searchVectorIgbo: null,
   createdAt: new Date(),

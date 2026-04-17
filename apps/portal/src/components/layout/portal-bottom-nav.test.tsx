@@ -108,6 +108,13 @@ describe("PortalBottomNav", () => {
     expect(browseLink).toHaveAttribute("href", "/en/search");
   });
 
+  it("guest discover link points to /en/jobs (P-4.2 nav update)", () => {
+    setGuest();
+    render(<PortalBottomNav />);
+    const discoverLink = screen.getByText("discover").closest("a");
+    expect(discoverLink).toHaveAttribute("href", "/en/jobs");
+  });
+
   it("renders admin tabs for JOB_ADMIN role", () => {
     setSession({ user: { activePortalRole: "JOB_ADMIN", portalRoles: ["JOB_ADMIN"] } });
     render(<PortalBottomNav />);

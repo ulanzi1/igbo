@@ -311,8 +311,8 @@ development_status:
   portal-epic-4: in-progress
   p-4-1a-full-text-search-backend-api-contract: done
   p-4-1b-search-ui-results-page: done
-  p-4-2-job-discovery-page-category-browsing: ready-for-dev
-  p-4-3a-job-detail-page-ssr: backlog
+  p-4-2-job-discovery-page-category-browsing: done
+  p-4-3a-job-detail-page-ssr: done
   p-4-3b-seo-structured-data-meta-tags-sitemap: backlog
   p-4-4-guest-browsing-conversion-flow: backlog
   p-4-5-match-percentage-in-search-results: backlog

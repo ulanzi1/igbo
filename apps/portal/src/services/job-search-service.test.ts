@@ -26,11 +26,21 @@ const mockGetJobSearchFacets = vi.mocked(
 const mockGetJobSearchTotalCount = vi.mocked(
   (await import("@igbo/db/queries/portal-job-search")).getJobSearchTotalCount,
 );
+const mockGetFeaturedJobPostings = vi.mocked(
+  (await import("@igbo/db/queries/portal-job-search")).getFeaturedJobPostings,
+);
+const mockGetIndustryCategoryCounts = vi.mocked(
+  (await import("@igbo/db/queries/portal-job-search")).getIndustryCategoryCounts,
+);
+const mockGetRecentJobPostings = vi.mocked(
+  (await import("@igbo/db/queries/portal-job-search")).getRecentJobPostings,
+);
 
 import {
   searchJobs,
   normalizeAndHashRequest,
   invalidateJobSearchCache,
+  getDiscoveryPageData,
   _testOnly_awaitInvalidation,
   _testOnly_awaitCacheWrite,
 } from "./job-search-service";
@@ -257,12 +267,23 @@ describe("invalidateJobSearchCache", () => {
     );
   });
 
-  it("does not call del when no keys found", async () => {
+  it("still deletes discovery keys even when no job-search scan keys are found", async () => {
     mockRedisScan.mockResolvedValue(["0", []]);
 
     await invalidateJobSearchCache();
 
-    expect(mockRedisDel).not.toHaveBeenCalled();
+    // Discovery keys are always deleted on invalidation (AC #7 — coarse invalidation).
+    // Both en+ig variants are deleted because the cache is locale-namespaced.
+    expect(mockRedisDel).toHaveBeenCalledWith(
+      "portal:discovery:featured:en",
+      "portal:discovery:featured:ig",
+      "portal:discovery:categories:en",
+      "portal:discovery:categories:ig",
+      "portal:discovery:recent:en",
+      "portal:discovery:recent:ig",
+    );
+    // Only the one del call for discovery keys (no scan-based keys)
+    expect(mockRedisDel).toHaveBeenCalledTimes(1);
   });
 
   it("swallows Redis scan errors (logs but does not throw)", async () => {
@@ -393,5 +414,226 @@ describe("_testOnly_* hooks — production guard", () => {
     resolveSet("OK");
     await written;
     expect(writtenSettled).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Shared sample data for discovery tests
+// ---------------------------------------------------------------------------
+
+const sampleDiscoveryJob = {
+  id: "post-uuid-1",
+  title: "Software Engineer",
+  company_name: "TechCorp",
+  company_id: "company-uuid-1",
+  logo_url: null,
+  location: "Lagos, Nigeria",
+  salary_min: 80000,
+  salary_max: 120000,
+  salary_competitive_only: false,
+  employment_type: "full_time" as const,
+  cultural_context_json: null,
+  application_deadline: null,
+  created_at: "2026-04-01T00:00:00.000Z",
+};
+
+const sampleCategories = [
+  { industry: "technology", count: 42 },
+  { industry: "finance", count: 18 },
+];
+
+// ---------------------------------------------------------------------------
+// getDiscoveryPageData — cache miss path
+// ---------------------------------------------------------------------------
+
+describe("getDiscoveryPageData — cache miss", () => {
+  it("calls all three DB queries on cache miss and returns assembled data", async () => {
+    mockRedisGet.mockResolvedValue(null);
+    mockGetFeaturedJobPostings.mockResolvedValue([sampleDiscoveryJob]);
+    mockGetIndustryCategoryCounts.mockResolvedValue(sampleCategories);
+    mockGetRecentJobPostings.mockResolvedValue([sampleDiscoveryJob]);
+
+    const result = await getDiscoveryPageData("en");
+
+    expect(mockGetFeaturedJobPostings).toHaveBeenCalledWith(6);
+    expect(mockGetIndustryCategoryCounts).toHaveBeenCalledOnce();
+    expect(mockGetRecentJobPostings).toHaveBeenCalledWith(10);
+
+    expect(result.featuredJobs).toHaveLength(1);
+    expect(result.categories).toHaveLength(2);
+    expect(result.recentPostings).toHaveLength(1);
+  });
+
+  it("writes to Redis after DB hit for each query (NX EX)", async () => {
+    mockRedisGet.mockResolvedValue(null);
+    mockGetFeaturedJobPostings.mockResolvedValue([sampleDiscoveryJob]);
+    mockGetIndustryCategoryCounts.mockResolvedValue(sampleCategories);
+    mockGetRecentJobPostings.mockResolvedValue([sampleDiscoveryJob]);
+
+    await getDiscoveryPageData("en");
+
+    await vi.waitFor(() => expect(mockRedisSet).toHaveBeenCalledTimes(3));
+
+    const setCalls = mockRedisSet.mock.calls;
+    const keys = setCalls.map((c) => c[0] as string);
+    // Cache keys are locale-namespaced (HIGH-4 review fix)
+    expect(keys).toContain("portal:discovery:featured:en");
+    expect(keys).toContain("portal:discovery:categories:en");
+    expect(keys).toContain("portal:discovery:recent:en");
+
+    // Verify TTLs
+    const featuredCall = setCalls.find((c) => c[0] === "portal:discovery:featured:en")!;
+    expect(featuredCall[2]).toBe("EX");
+    expect(featuredCall[3]).toBe(60);
+    expect(featuredCall[4]).toBe("NX");
+
+    const categoriesCall = setCalls.find((c) => c[0] === "portal:discovery:categories:en")!;
+    expect(categoriesCall[3]).toBe(300);
+
+    const recentCall = setCalls.find((c) => c[0] === "portal:discovery:recent:en")!;
+    expect(recentCall[3]).toBe(120);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// getDiscoveryPageData — cache hit path
+// ---------------------------------------------------------------------------
+
+describe("getDiscoveryPageData — cache hit", () => {
+  it("returns cached data and skips DB queries on cache hit", async () => {
+    mockRedisGet.mockResolvedValue(JSON.stringify([sampleDiscoveryJob]));
+
+    const result = await getDiscoveryPageData("en");
+
+    expect(mockGetFeaturedJobPostings).not.toHaveBeenCalled();
+    expect(mockGetIndustryCategoryCounts).not.toHaveBeenCalled();
+    expect(mockGetRecentJobPostings).not.toHaveBeenCalled();
+
+    expect(result.featuredJobs).toHaveLength(1);
+    expect(result.categories).toHaveLength(1);
+    expect(result.recentPostings).toHaveLength(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// getDiscoveryPageData — resilience (Promise.allSettled)
+// ---------------------------------------------------------------------------
+
+describe("getDiscoveryPageData — resilience", () => {
+  it("returns empty featuredJobs when getFeaturedJobPostings rejects", async () => {
+    mockRedisGet.mockResolvedValue(null);
+    mockGetFeaturedJobPostings.mockRejectedValue(new Error("DB error"));
+    mockGetIndustryCategoryCounts.mockResolvedValue(sampleCategories);
+    mockGetRecentJobPostings.mockResolvedValue([sampleDiscoveryJob]);
+
+    const result = await getDiscoveryPageData("en");
+
+    expect(result.featuredJobs).toHaveLength(0);
+    expect(result.categories).toHaveLength(2);
+    expect(result.recentPostings).toHaveLength(1);
+  });
+
+  it("returns empty categories when getIndustryCategoryCounts rejects", async () => {
+    mockRedisGet.mockResolvedValue(null);
+    mockGetFeaturedJobPostings.mockResolvedValue([sampleDiscoveryJob]);
+    mockGetIndustryCategoryCounts.mockRejectedValue(new Error("DB timeout"));
+    mockGetRecentJobPostings.mockResolvedValue([sampleDiscoveryJob]);
+
+    const result = await getDiscoveryPageData("en");
+
+    expect(result.featuredJobs).toHaveLength(1);
+    expect(result.categories).toHaveLength(0);
+    expect(result.recentPostings).toHaveLength(1);
+  });
+
+  it("returns empty recentPostings when getRecentJobPostings rejects", async () => {
+    mockRedisGet.mockResolvedValue(null);
+    mockGetFeaturedJobPostings.mockResolvedValue([sampleDiscoveryJob]);
+    mockGetIndustryCategoryCounts.mockResolvedValue(sampleCategories);
+    mockGetRecentJobPostings.mockRejectedValue(new Error("Redis timeout"));
+
+    const result = await getDiscoveryPageData("en");
+
+    expect(result.featuredJobs).toHaveLength(1);
+    expect(result.categories).toHaveLength(2);
+    expect(result.recentPostings).toHaveLength(0);
+  });
+
+  it("does not throw when all three queries reject", async () => {
+    mockRedisGet.mockResolvedValue(null);
+    mockGetFeaturedJobPostings.mockRejectedValue(new Error("error"));
+    mockGetIndustryCategoryCounts.mockRejectedValue(new Error("error"));
+    mockGetRecentJobPostings.mockRejectedValue(new Error("error"));
+
+    await expect(getDiscoveryPageData("en")).resolves.toEqual({
+      featuredJobs: [],
+      categories: [],
+      recentPostings: [],
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// invalidateJobSearchCache — extended to delete discovery keys (AC #7)
+// ---------------------------------------------------------------------------
+
+describe("invalidateJobSearchCache — discovery key invalidation", () => {
+  it("deletes discovery keys (both locales) in addition to job-search scan keys", async () => {
+    mockRedisScan.mockResolvedValue(["0", []]);
+    mockRedisDel.mockResolvedValue(6);
+
+    await invalidateJobSearchCache();
+
+    // Cache is locale-namespaced (HIGH-4 review fix), so both en+ig variants
+    // are invalidated.
+    expect(mockRedisDel).toHaveBeenCalledWith(
+      "portal:discovery:featured:en",
+      "portal:discovery:featured:ig",
+      "portal:discovery:categories:en",
+      "portal:discovery:categories:ig",
+      "portal:discovery:recent:en",
+      "portal:discovery:recent:ig",
+    );
+  });
+
+  it("deletes both scan-found keys and discovery keys when scan returns results", async () => {
+    mockRedisScan.mockResolvedValue(["0", ["portal:job-search:abc"]]);
+    mockRedisDel.mockResolvedValue(1);
+
+    await invalidateJobSearchCache();
+
+    // First del call: the scanned key
+    expect(mockRedisDel).toHaveBeenCalledWith("portal:job-search:abc");
+    // Second del call: discovery keys for both locales
+    expect(mockRedisDel).toHaveBeenCalledWith(
+      "portal:discovery:featured:en",
+      "portal:discovery:featured:ig",
+      "portal:discovery:categories:en",
+      "portal:discovery:categories:ig",
+      "portal:discovery:recent:en",
+      "portal:discovery:recent:ig",
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// getDiscoveryPageData — corrupt cache eviction (review fix HIGH-2)
+// ---------------------------------------------------------------------------
+
+describe("getDiscoveryPageData — corrupt cache entry", () => {
+  it("falls through to DB when a discovery cache entry is malformed JSON, evicts the poisoned key", async () => {
+    // First get returns garbage, subsequent gets return null so other queries miss cleanly.
+    mockRedisGet.mockResolvedValueOnce("not-valid-json{{{").mockResolvedValue(null);
+    mockGetFeaturedJobPostings.mockResolvedValue([sampleDiscoveryJob]);
+    mockGetIndustryCategoryCounts.mockResolvedValue(sampleCategories);
+    mockGetRecentJobPostings.mockResolvedValue([sampleDiscoveryJob]);
+
+    const result = await getDiscoveryPageData("en");
+
+    // DB path was exercised despite cache containing garbage
+    expect(mockGetFeaturedJobPostings).toHaveBeenCalledOnce();
+    expect(result.featuredJobs).toHaveLength(1);
+    // Poisoned key was evicted (best-effort) — at least one del call against a discovery key
+    expect(mockRedisDel).toHaveBeenCalledWith(expect.stringContaining("portal:discovery:"));
   });
 });
