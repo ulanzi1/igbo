@@ -1,5 +1,8 @@
 // @vitest-environment node
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
+
+vi.mock("server-only", () => ({}));
+
 import { computeMatchScore } from "./match-scoring-service";
 
 const baseProfile = { skills: ["JavaScript", "React"] };

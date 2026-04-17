@@ -1,3 +1,4 @@
+import "server-only";
 import { getMatchTier } from "@igbo/config";
 import type { MatchScoreResult } from "@igbo/config";
 
