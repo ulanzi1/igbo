@@ -344,6 +344,7 @@ export async function invalidateJobSearchCache(): Promise<void> {
     }
 
     // Also invalidate discovery page cache keys for both supported locales (AC #7)
+    // and the sitemap cache key (P-4.3B) so posting status changes are reflected promptly.
     await redis.del(
       discoveryFeaturedKey("en"),
       discoveryFeaturedKey("ig"),
@@ -351,6 +352,7 @@ export async function invalidateJobSearchCache(): Promise<void> {
       discoveryCategoriesKey("ig"),
       discoveryRecentKey("en"),
       discoveryRecentKey("ig"),
+      sitemapUrlsKey(),
     );
   } catch (err) {
     console.error(
@@ -375,6 +377,10 @@ export async function invalidateJobSearchCache(): Promise<void> {
 // per locale to avoid serving the wrong content if the projection changes.
 // createRedisKey(app, domain, id) builds `app:domain:id`, so we pack the
 // section + locale into the `id` segment to preserve the colon-namespaced layout.
+function sitemapUrlsKey(): string {
+  return createRedisKey("portal", "sitemap", "urls");
+}
+
 function discoveryFeaturedKey(locale: string): string {
   return createRedisKey("portal", "discovery", `featured:${locale}`);
 }

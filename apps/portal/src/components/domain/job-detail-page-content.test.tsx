@@ -33,10 +33,6 @@ vi.mock("next-auth/react", () => ({
   SessionProvider: ({ children }: { children: React.ReactNode }) => children,
 }));
 
-vi.mock("@/lib/sanitize", () => ({
-  sanitizeHtml: vi.fn((html: string) => html),
-}));
-
 vi.mock("@/components/domain/apply-button", () => ({
   ApplyButton: (props: { jobId: string; hasExistingApplication: boolean }) => (
     <div

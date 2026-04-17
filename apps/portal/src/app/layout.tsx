@@ -13,8 +13,20 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_PORTAL_URL ??
+      process.env.NEXT_PUBLIC_APP_URL ??
+      "http://localhost:3001",
+  ),
   title: "OBIGBO Job Portal",
   description: "Job opportunities for the Igbo diaspora community",
+  openGraph: {
+    siteName: "OBIGBO Job Portal",
+    type: "website",
+  },
+  twitter: {
+    card: "summary",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

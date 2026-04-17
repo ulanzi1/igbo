@@ -274,6 +274,7 @@ describe("invalidateJobSearchCache", () => {
 
     // Discovery keys are always deleted on invalidation (AC #7 — coarse invalidation).
     // Both en+ig variants are deleted because the cache is locale-namespaced.
+    // Also includes the sitemap cache key (P-4.3B).
     expect(mockRedisDel).toHaveBeenCalledWith(
       "portal:discovery:featured:en",
       "portal:discovery:featured:ig",
@@ -281,8 +282,9 @@ describe("invalidateJobSearchCache", () => {
       "portal:discovery:categories:ig",
       "portal:discovery:recent:en",
       "portal:discovery:recent:ig",
+      "portal:sitemap:urls",
     );
-    // Only the one del call for discovery keys (no scan-based keys)
+    // Only the one del call for discovery+sitemap keys (no scan-based keys)
     expect(mockRedisDel).toHaveBeenCalledTimes(1);
   });
 
@@ -585,7 +587,7 @@ describe("invalidateJobSearchCache — discovery key invalidation", () => {
     await invalidateJobSearchCache();
 
     // Cache is locale-namespaced (HIGH-4 review fix), so both en+ig variants
-    // are invalidated.
+    // are invalidated. Also includes sitemap cache key (P-4.3B).
     expect(mockRedisDel).toHaveBeenCalledWith(
       "portal:discovery:featured:en",
       "portal:discovery:featured:ig",
@@ -593,6 +595,7 @@ describe("invalidateJobSearchCache — discovery key invalidation", () => {
       "portal:discovery:categories:ig",
       "portal:discovery:recent:en",
       "portal:discovery:recent:ig",
+      "portal:sitemap:urls",
     );
   });
 
@@ -604,7 +607,7 @@ describe("invalidateJobSearchCache — discovery key invalidation", () => {
 
     // First del call: the scanned key
     expect(mockRedisDel).toHaveBeenCalledWith("portal:job-search:abc");
-    // Second del call: discovery keys for both locales
+    // Second del call: discovery + sitemap keys for both locales
     expect(mockRedisDel).toHaveBeenCalledWith(
       "portal:discovery:featured:en",
       "portal:discovery:featured:ig",
@@ -612,7 +615,19 @@ describe("invalidateJobSearchCache — discovery key invalidation", () => {
       "portal:discovery:categories:ig",
       "portal:discovery:recent:en",
       "portal:discovery:recent:ig",
+      "portal:sitemap:urls",
     );
+  });
+
+  it("includes portal:sitemap:urls key in invalidation (P-4.3B)", async () => {
+    mockRedisScan.mockResolvedValue(["0", []]);
+
+    await invalidateJobSearchCache();
+
+    // The sitemap cache key must be among the keys passed to del
+    const delCalls = (mockRedisDel as ReturnType<typeof vi.fn>).mock.calls;
+    const allDeletedKeys = delCalls.flat();
+    expect(allDeletedKeys).toContain("portal:sitemap:urls");
   });
 });
 
