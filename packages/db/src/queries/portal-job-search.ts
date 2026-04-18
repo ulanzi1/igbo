@@ -504,8 +504,11 @@ export function buildFilterPredicate(
   const parts: ReturnType<typeof sql>[] = [];
 
   // Status gate — always applied
+  // HOTFIX: Deadline predicate duplicated across 5 functions (buildFilterPredicate,
+  // getFeaturedJobPostings, getIndustryCategoryCounts, getRecentJobPostings,
+  // getSimilarJobPostings). Changes must be applied to ALL locations.
   parts.push(
-    sql`pjp.status = 'active' AND pjp.archived_at IS NULL AND (pjp.application_deadline IS NULL OR pjp.application_deadline > NOW())`,
+    sql`pjp.status = 'active' AND pjp.archived_at IS NULL AND (pjp.application_deadline IS NULL OR pjp.application_deadline >= CURRENT_DATE)`,
   );
 
   // Location filter (OR within)
@@ -978,7 +981,10 @@ export async function getFeaturedJobPostings(limit: number): Promise<DiscoveryJo
     WHERE pjp.status = 'active'
       AND pjp.archived_at IS NULL
       AND pjp.is_featured = true
-      AND (pjp.application_deadline IS NULL OR pjp.application_deadline > NOW())
+      -- HOTFIX: Deadline predicate duplicated across 5 functions (buildFilterPredicate,
+      -- getFeaturedJobPostings, getIndustryCategoryCounts, getRecentJobPostings,
+      -- getSimilarJobPostings). Changes must be applied to ALL locations.
+      AND (pjp.application_deadline IS NULL OR pjp.application_deadline >= CURRENT_DATE)
     ORDER BY pjp.created_at DESC
     LIMIT ${limit}
   `)) as unknown as DiscoveryJobResult[];
@@ -992,7 +998,7 @@ export async function getFeaturedJobPostings(limit: number): Promise<DiscoveryJo
  * Excludes categories with zero postings. Sorted by count DESC.
  *
  * Status gate is identical to buildFilterPredicate:
- *   status = 'active' AND archived_at IS NULL AND (application_deadline IS NULL OR application_deadline > NOW())
+ *   status = 'active' AND archived_at IS NULL AND (application_deadline IS NULL OR application_deadline >= CURRENT_DATE)
  */
 export async function getIndustryCategoryCounts(): Promise<IndustryCategoryCount[]> {
   const rows = (await db.execute(sql`
@@ -1003,7 +1009,10 @@ export async function getIndustryCategoryCounts(): Promise<IndustryCategoryCount
     INNER JOIN portal_company_profiles cp ON cp.id = pjp.company_id
     WHERE pjp.status = 'active'
       AND pjp.archived_at IS NULL
-      AND (pjp.application_deadline IS NULL OR pjp.application_deadline > NOW())
+      -- HOTFIX: Deadline predicate duplicated across 5 functions (buildFilterPredicate,
+      -- getFeaturedJobPostings, getIndustryCategoryCounts, getRecentJobPostings,
+      -- getSimilarJobPostings). Changes must be applied to ALL locations.
+      AND (pjp.application_deadline IS NULL OR pjp.application_deadline >= CURRENT_DATE)
       AND cp.industry IS NOT NULL
     GROUP BY cp.industry
     HAVING COUNT(*) > 0
@@ -1079,7 +1088,10 @@ export async function getRecentJobPostings(limit: number): Promise<DiscoveryJobR
     LEFT JOIN portal_company_profiles cp ON cp.id = pjp.company_id
     WHERE pjp.status = 'active'
       AND pjp.archived_at IS NULL
-      AND (pjp.application_deadline IS NULL OR pjp.application_deadline > NOW())
+      -- HOTFIX: Deadline predicate duplicated across 5 functions (buildFilterPredicate,
+      -- getFeaturedJobPostings, getIndustryCategoryCounts, getRecentJobPostings,
+      -- getSimilarJobPostings). Changes must be applied to ALL locations.
+      AND (pjp.application_deadline IS NULL OR pjp.application_deadline >= CURRENT_DATE)
     ORDER BY pjp.created_at DESC
     LIMIT ${limit}
   `)) as unknown as DiscoveryJobResult[];
@@ -1272,7 +1284,10 @@ export async function getSimilarJobPostings(
     WHERE cp.industry = ${companyIndustry}
       AND pjp.status = 'active'
       AND pjp.archived_at IS NULL
-      AND (pjp.application_deadline IS NULL OR pjp.application_deadline > NOW())
+      -- HOTFIX: Deadline predicate duplicated across 5 functions (buildFilterPredicate,
+      -- getFeaturedJobPostings, getIndustryCategoryCounts, getRecentJobPostings,
+      -- getSimilarJobPostings). Changes must be applied to ALL locations.
+      AND (pjp.application_deadline IS NULL OR pjp.application_deadline >= CURRENT_DATE)
       AND pjp.id::text != ${jobId}
     ORDER BY pjp.created_at DESC
     LIMIT ${CANDIDATE_LIMIT}

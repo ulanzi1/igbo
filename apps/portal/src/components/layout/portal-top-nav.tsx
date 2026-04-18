@@ -50,7 +50,6 @@ export function PortalTopNav({ className }: { className?: string }) {
   const employerLinks: NavLink[] = [
     { key: "dashboard", href: `/${locale}/dashboard`, label: t("dashboard") },
     { key: "myJobs", href: `/${locale}/my-jobs`, label: t("myJobs") },
-    { key: "applications", href: `/${locale}/applications`, label: t("applications") },
     { key: "messages", href: `/${locale}/messages`, label: t("messages") },
     { key: "companyProfile", href: `/${locale}/company-profile`, label: t("companyProfile") },
   ];

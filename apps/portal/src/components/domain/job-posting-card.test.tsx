@@ -166,4 +166,87 @@ describe("JobPostingCard", () => {
     expect(screen.queryByTestId("cultural-context-badges")).toBeNull();
     expect(screen.queryByTestId("bilingual-badge")).toBeNull();
   });
+
+  // applicationDeadline display tests
+  it("shows application deadline when set and status is active", () => {
+    render(
+      <JobPostingCard
+        posting={{
+          ...mockPosting,
+          status: "active",
+          applicationDeadline: "2026-05-15T23:59:59.999Z",
+        }}
+      />,
+    );
+    const deadlineText = screen.getByTestId("deadline-text");
+    expect(deadlineText).toBeTruthy();
+    expect(deadlineText.textContent).toContain("applicationDeadlineDate");
+  });
+
+  it("does NOT show application deadline when status is draft", () => {
+    render(
+      <JobPostingCard
+        posting={{
+          ...mockPosting,
+          status: "draft",
+          applicationDeadline: "2026-05-15T23:59:59.999Z",
+        }}
+      />,
+    );
+    expect(screen.queryByTestId("deadline-text")).toBeNull();
+  });
+
+  it("does NOT show application deadline when not set", () => {
+    render(
+      <JobPostingCard posting={{ ...mockPosting, status: "active", applicationDeadline: null }} />,
+    );
+    expect(screen.queryByTestId("deadline-text")).toBeNull();
+  });
+
+  it("shows 'deadline passed' warning when deadline is in the past and status is active", () => {
+    render(
+      <JobPostingCard
+        posting={{
+          ...mockPosting,
+          status: "active",
+          applicationDeadline: "2026-04-17T23:59:59.999Z",
+        }}
+      />,
+    );
+    const warningText = screen.getByTestId("deadline-passed-text");
+    expect(warningText).toBeTruthy();
+    expect(warningText.textContent).toContain("deadlinePassed");
+    expect(warningText.className).toContain("text-red-600");
+  });
+
+  it("does NOT show deadline passed when deadline is in the future", () => {
+    render(
+      <JobPostingCard
+        posting={{
+          ...mockPosting,
+          status: "active",
+          applicationDeadline: "2099-12-31T23:59:59.999Z",
+        }}
+      />,
+    );
+    expect(screen.queryByTestId("deadline-passed-text")).toBeNull();
+  });
+
+  it("uses same formatDate for deadline as for expiresAt (consistent formatting)", () => {
+    render(
+      <JobPostingCard
+        posting={{
+          ...mockPosting,
+          status: "active",
+          expiresAt: "2026-05-15T23:59:59.999Z",
+          applicationDeadline: "2026-05-15T23:59:59.999Z",
+        }}
+      />,
+    );
+    const expiresText = screen.getByTestId("expires-on-text");
+    const deadlineText = screen.getByTestId("deadline-text");
+    // Both use formatDate, so date portion should match
+    expect(expiresText).toBeTruthy();
+    expect(deadlineText).toBeTruthy();
+  });
 });

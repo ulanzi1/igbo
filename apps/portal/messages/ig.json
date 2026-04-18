@@ -195,7 +195,8 @@
         "filled_via_portal": "Juputara Site n'Portal",
         "filled_internally": "Juputara N'ime",
         "cancelled": "Kagbuworo"
-      }
+      },
+      "expiresBeforeDeadlineError": "Ụbọchị mmechi nzipu ọrụ ga-abụ n'ụbọchị ntinye akwụkwọ ma ọ bụ mgbe nke ahụ gasịrị"
     },
     "culturalContext": {
       "title": "Omenala",
@@ -294,7 +295,9 @@
       "extendSuccess": "Agọsaara ntinye ma malitegharịa ya",
       "mustBeFutureDate": "Ụbọchị njedebe ga-abụ n'ọdịnihu",
       "editAndRenew": "Dezie & Malitegharị",
-      "renewRequiresReview": "Idezie ọdịnaya n'oge malitegharị achọrọ nkwado ọzọ n'aka onye nlekọta"
+      "renewRequiresReview": "Idezie ọdịnaya n'oge malitegharị achọrọ nkwado ọzọ n'aka onye nlekọta",
+      "applicationDeadlineDate": "Ntinye akwụkwọ na-emechi {date}",
+      "deadlinePassed": "Oge njedebe agafeela"
     },
     "templates": {
       "useTemplate": "Jiri Ngbanwe",
@@ -782,7 +785,8 @@
       "employersEmptyState": "Ahụghị ụlọ ọrụ ọ bụla",
       "employersEmptyStateDescription": "Ọ dịghị ụlọ ọrụ dabara na nzacha ugbu a.",
       "employersFetchError": "Enweghị ike ibu ndị ọrụ na-enye. Na-egosi data gara aga.",
-      "employersViewPostings": "Lelee ntinye maka {company}"
+      "employersViewPostings": "Lelee ntinye maka {company}",
+      "postingDeadline": "Oge njedebe"
     },
     "verification": {
       "title": "Gosipụta ụlọ ọrụ gị",

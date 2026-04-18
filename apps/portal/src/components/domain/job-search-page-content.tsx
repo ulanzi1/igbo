@@ -17,7 +17,7 @@ import type { JobSearchUrlState } from "@/lib/search-url-params";
 import { JobSearchFilterPanel, JobSearchFilterPanelSkeleton } from "./job-search-filter-panel";
 import { ActiveFiltersBar } from "./active-filters-bar";
 import { JobResultCard, JobResultCardSkeleton } from "./job-result-card";
-import { JobSearchSortDropdown } from "./job-search-sort-dropdown";
+// Sort dropdown now rendered inside filter panel
 import { JobSearchEmptyState } from "./job-search-empty-state";
 import { CompleteProfilePrompt } from "./complete-profile-prompt";
 import { SaveSearchDialog } from "./save-search-dialog";
@@ -105,7 +105,14 @@ export function JobSearchPageContent({ initialParams }: JobSearchPageContentProp
   };
 
   const filterPanel = (
-    <JobSearchFilterPanel facets={facets} filters={state} onChange={handleSetFilter} />
+    <JobSearchFilterPanel
+      facets={facets}
+      filters={state}
+      onChange={handleSetFilter}
+      requestedSort={state.sort}
+      effectiveSort={pagination?.effectiveSort ?? state.sort}
+      onSortChange={setSort}
+    />
   );
 
   return (
@@ -159,7 +166,7 @@ export function JobSearchPageContent({ initialParams }: JobSearchPageContentProp
 
         {/* Results column */}
         <div className="space-y-4">
-          {/* Results header: mobile filter button + sort + summary */}
+          {/* Results header: mobile filter button + save search */}
           <div className="flex flex-wrap items-center gap-3 justify-between">
             {/* Mobile filter trigger */}
             <Button
@@ -185,26 +192,18 @@ export function JobSearchPageContent({ initialParams }: JobSearchPageContentProp
               )}
             </Button>
 
-            {/* Save search + Sort dropdown */}
-            <div className="flex items-center gap-2">
-              {isSeeker && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setSaveDialogOpen(true)}
-                  data-testid="save-search-button"
-                  className="flex items-center gap-1.5"
-                >
-                  <BookmarkIcon className="size-4" aria-hidden="true" />
-                  {tSaved("saveButton")}
-                </Button>
-              )}
-              <JobSearchSortDropdown
-                requestedSort={state.sort}
-                effectiveSort={pagination?.effectiveSort ?? state.sort}
-                onChange={setSort}
-              />
-            </div>
+            {/* Save search — right-aligned with accent background */}
+            {isSeeker && (
+              <Button
+                size="sm"
+                onClick={() => setSaveDialogOpen(true)}
+                data-testid="save-search-button"
+                className="ml-auto flex items-center gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90"
+              >
+                <BookmarkIcon className="size-4" aria-hidden="true" />
+                {tSaved("saveButton")}
+              </Button>
+            )}
           </div>
 
           {/* Results summary (aria-live region) */}

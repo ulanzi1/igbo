@@ -666,6 +666,136 @@ describe("JobPostingForm — expiry date field (Task 12)", () => {
   });
 });
 
+describe("JobPostingForm — end-of-day storage & cross-field validation (hotfix)", () => {
+  it("stores applicationDeadline as end-of-day (T23:59:59.999Z)", async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ data: { id: "posting-uuid" } }),
+    });
+
+    render(<JobPostingForm companyId="company-uuid" />);
+    await userEvent.type(screen.getByLabelText("title"), "Job");
+    fireEvent.change(screen.getByLabelText("employmentType"), { target: { value: "full_time" } });
+    fireEvent.change(screen.getByLabelText("applicationDeadline"), {
+      target: { value: "2026-04-25" },
+    });
+    // Set expiresAt to same or later date to avoid cross-field validation error
+    fireEvent.change(screen.getByTestId("expires-at-input"), {
+      target: { value: "2026-04-30" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "save" }));
+
+    await waitFor(() => {
+      const call = mockFetch.mock.calls[0]!;
+      const body = JSON.parse(call[1].body as string);
+      expect(body.applicationDeadline).toBe("2026-04-25T23:59:59.999Z");
+    });
+  });
+
+  it("stores expiresAt as end-of-day (T23:59:59.999Z)", async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ data: { id: "posting-uuid" } }),
+    });
+
+    render(<JobPostingForm companyId="company-uuid" />);
+    await userEvent.type(screen.getByLabelText("title"), "Job");
+    fireEvent.change(screen.getByLabelText("employmentType"), { target: { value: "full_time" } });
+    fireEvent.change(screen.getByTestId("expires-at-input"), {
+      target: { value: "2026-12-31" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "save" }));
+
+    await waitFor(() => {
+      const call = mockFetch.mock.calls[0]!;
+      const body = JSON.parse(call[1].body as string);
+      expect(body.expiresAt).toBe("2026-12-31T23:59:59.999Z");
+    });
+  });
+
+  it("toDateOnly strips full ISO string to YYYY-MM-DD (edit-mode round-trip)", async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          data: { posting: { id: "posting-uuid" }, company: {} },
+        }),
+    });
+
+    const editData = {
+      id: "posting-uuid",
+      updatedAt: "2026-01-01T00:00:00.000Z",
+      status: "draft" as const,
+      adminFeedbackComment: null,
+      title: "Job",
+      descriptionHtml: "",
+      requirements: "",
+      salaryMin: null,
+      salaryMax: null,
+      salaryCompetitiveOnly: false,
+      location: undefined,
+      employmentType: "full_time" as const,
+      applicationDeadline: "2026-04-25T00:00:00.000Z",
+      expiresAt: "2026-05-01T00:00:00.000Z",
+      descriptionIgboHtml: null,
+      culturalContextJson: null,
+    };
+
+    render(<JobPostingForm companyId="company-uuid" mode="edit" initialData={editData} />);
+    // Submit without changing dates — should still normalize to end-of-day
+    fireEvent.click(screen.getByRole("button", { name: "saveChanges" }));
+
+    await waitFor(() => {
+      const call = mockFetch.mock.calls[0]!;
+      const body = JSON.parse(call[1].body as string);
+      expect(body.applicationDeadline).toBe("2026-04-25T23:59:59.999Z");
+      expect(body.expiresAt).toBe("2026-05-01T23:59:59.999Z");
+    });
+  });
+
+  it("shows validation error when expiresAt is before applicationDeadline", async () => {
+    render(<JobPostingForm companyId="company-uuid" />);
+    await userEvent.type(screen.getByLabelText("title"), "Job");
+    fireEvent.change(screen.getByLabelText("employmentType"), { target: { value: "full_time" } });
+    fireEvent.change(screen.getByLabelText("applicationDeadline"), {
+      target: { value: "2026-04-25" },
+    });
+    fireEvent.change(screen.getByTestId("expires-at-input"), {
+      target: { value: "2026-04-20" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "save" }));
+
+    await waitFor(() => {
+      const alerts = screen.getAllByRole("alert");
+      expect(alerts.some((a) => a.textContent?.includes("expiresBeforeDeadlineError"))).toBe(true);
+    });
+    // fetch should NOT have been called
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it("does NOT show validation error when expiresAt equals applicationDeadline (boundary)", async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ data: { id: "posting-uuid" } }),
+    });
+
+    render(<JobPostingForm companyId="company-uuid" />);
+    await userEvent.type(screen.getByLabelText("title"), "Job");
+    fireEvent.change(screen.getByLabelText("employmentType"), { target: { value: "full_time" } });
+    fireEvent.change(screen.getByLabelText("applicationDeadline"), {
+      target: { value: "2026-04-25" },
+    });
+    fireEvent.change(screen.getByTestId("expires-at-input"), {
+      target: { value: "2026-04-25" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "save" }));
+
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalled();
+    });
+  });
+});
+
 describe("JobPostingForm — template selector (Task 8)", () => {
   it("shows Use Template button in create mode", () => {
     render(<JobPostingForm companyId="company-uuid" />);

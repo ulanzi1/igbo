@@ -195,7 +195,8 @@
         "filled_via_portal": "Filled via Portal",
         "filled_internally": "Filled Internally",
         "cancelled": "Cancelled"
-      }
+      },
+      "expiresBeforeDeadlineError": "Posting expiry date must be on or after the application deadline"
     },
     "culturalContext": {
       "title": "Cultural Context",
@@ -294,7 +295,9 @@
       "extendSuccess": "Posting extended and re-activated",
       "mustBeFutureDate": "Expiry date must be in the future",
       "editAndRenew": "Edit & Renew",
-      "renewRequiresReview": "Editing content during renewal requires admin re-approval"
+      "renewRequiresReview": "Editing content during renewal requires admin re-approval",
+      "applicationDeadlineDate": "Applications close {date}",
+      "deadlinePassed": "Deadline passed"
     },
     "templates": {
       "useTemplate": "Use Template",
@@ -782,7 +785,8 @@
       "employersEmptyState": "No employers found",
       "employersEmptyStateDescription": "No employers match the current filter.",
       "employersFetchError": "Failed to load employers. Showing previous data.",
-      "employersViewPostings": "View postings for {company}"
+      "employersViewPostings": "View postings for {company}",
+      "postingDeadline": "Deadline"
     },
     "verification": {
       "title": "Verify your business",

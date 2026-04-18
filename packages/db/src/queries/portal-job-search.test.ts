@@ -16,6 +16,10 @@ import {
   findNewPostingsForAlert,
   getSimilarJobPostings,
   extractSimilarJobTokens,
+  buildFilterPredicate,
+  getFeaturedJobPostings,
+  getIndustryCategoryCounts,
+  getRecentJobPostings,
 } from "./portal-job-search";
 import type { JobSearchResult, JobSearchCursor } from "./portal-job-search";
 
@@ -1033,5 +1037,68 @@ describe("getSimilarJobPostings", () => {
     mockDbExecute.mockResolvedValue([]);
     const results = await getSimilarJobPostings("post-1", "Technology", null, null);
     expect(results).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// HOTFIX: Deadline predicate uses >= CURRENT_DATE (not > NOW())
+// ---------------------------------------------------------------------------
+
+describe("buildFilterPredicate — deadline predicate uses CURRENT_DATE", () => {
+  it("uses >= CURRENT_DATE instead of > NOW() in status gate", () => {
+    const result = buildFilterPredicate(undefined, "en");
+    const sql = flattenSql(result);
+    expect(sql).toContain("CURRENT_DATE");
+    expect(sql).not.toContain("> NOW()");
+  });
+
+  it("includes IS NULL branch so NULL deadlines pass the filter", () => {
+    const result = buildFilterPredicate(undefined, "en");
+    const sql = flattenSql(result);
+    expect(sql).toContain("application_deadline IS NULL");
+  });
+});
+
+describe("getFeaturedJobPostings — deadline predicate uses CURRENT_DATE", () => {
+  it("SQL contains >= CURRENT_DATE", async () => {
+    mockDbExecute.mockResolvedValue([]);
+    await getFeaturedJobPostings(5);
+    const sqlArg = mockDbExecute.mock.calls[0]![0];
+    const sql = flattenSql(sqlArg);
+    expect(sql).toContain("CURRENT_DATE");
+    expect(sql).not.toContain("> NOW()");
+  });
+});
+
+describe("getIndustryCategoryCounts — deadline predicate uses CURRENT_DATE", () => {
+  it("SQL contains >= CURRENT_DATE", async () => {
+    mockDbExecute.mockResolvedValue([]);
+    await getIndustryCategoryCounts();
+    const sqlArg = mockDbExecute.mock.calls[0]![0];
+    const sql = flattenSql(sqlArg);
+    expect(sql).toContain("CURRENT_DATE");
+    expect(sql).not.toContain("> NOW()");
+  });
+});
+
+describe("getRecentJobPostings — deadline predicate uses CURRENT_DATE", () => {
+  it("SQL contains >= CURRENT_DATE", async () => {
+    mockDbExecute.mockResolvedValue([]);
+    await getRecentJobPostings(10);
+    const sqlArg = mockDbExecute.mock.calls[0]![0];
+    const sql = flattenSql(sqlArg);
+    expect(sql).toContain("CURRENT_DATE");
+    expect(sql).not.toContain("> NOW()");
+  });
+});
+
+describe("getSimilarJobPostings — deadline predicate uses CURRENT_DATE", () => {
+  it("SQL contains >= CURRENT_DATE (independent raw SQL at L1275)", async () => {
+    mockDbExecute.mockResolvedValue([]);
+    await getSimilarJobPostings("post-1", "Technology", null, null);
+    const sqlArg = mockDbExecute.mock.calls[0]![0];
+    const sql = flattenSql(sqlArg);
+    expect(sql).toContain("CURRENT_DATE");
+    expect(sql).not.toContain("> NOW()");
   });
 });

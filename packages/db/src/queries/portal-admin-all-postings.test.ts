@@ -21,6 +21,7 @@ vi.mock("../schema/portal-job-postings", () => ({
     archivedAt: "pjp_archived_at",
     createdAt: "pjp_created_at",
     updatedAt: "pjp_updated_at",
+    applicationDeadline: "pjp_application_deadline",
   },
   portalJobStatusEnum: {
     enumValues: ["draft", "pending_review", "active", "paused", "filled", "expired", "rejected"],
@@ -72,6 +73,7 @@ const BASE_ROW = {
   companyName: "Tech Corp",
   companyTrustBadge: true,
   employerName: "John Doe",
+  applicationDeadline: new Date("2026-05-01T23:59:59.999Z"),
 };
 
 const BASE_ROW_2 = {
@@ -86,6 +88,7 @@ const BASE_ROW_2 = {
   companyName: "Design Studio",
   companyTrustBadge: false,
   employerName: "Jane Smith",
+  applicationDeadline: null,
 };
 
 function setupSelectChain(responses: unknown[]) {
@@ -297,6 +300,22 @@ describe("getCompaniesWithPostings", () => {
     const result = await getCompaniesWithPostings();
 
     expect(result).toHaveLength(0);
+  });
+
+  it("returns applicationDeadline in posting shape", async () => {
+    setupSelectChain([[BASE_ROW], [{ total: 1 }]]);
+
+    const result = await listAllPostingsForAdmin({ page: 1, pageSize: 20 });
+
+    expect(result.postings[0]?.applicationDeadline).toEqual(new Date("2026-05-01T23:59:59.999Z"));
+  });
+
+  it("returns null applicationDeadline when not set", async () => {
+    setupSelectChain([[BASE_ROW_2], [{ total: 1 }]]);
+
+    const result = await listAllPostingsForAdmin({ page: 1, pageSize: 20 });
+
+    expect(result.postings[0]?.applicationDeadline).toBeNull();
   });
 
   it("uses innerJoin so companies without postings are excluded", async () => {

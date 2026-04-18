@@ -48,6 +48,7 @@ const BASE_POSTING: AdminPostingRow = {
   companyName: "Tech Corp",
   companyTrustBadge: false,
   employerName: "John Doe",
+  applicationDeadline: null,
 };
 
 const ARCHIVED_POSTING: AdminPostingRow = {
@@ -62,6 +63,7 @@ const ARCHIVED_POSTING: AdminPostingRow = {
   companyName: "Design Studio",
   companyTrustBadge: true,
   employerName: null,
+  applicationDeadline: null,
 };
 
 const COMPANIES: CompanyForFilter[] = [
@@ -302,5 +304,72 @@ describe("AllPostingsTable", () => {
     );
     const results = await axe(container);
     expect(results).toHaveNoViolations();
+  });
+
+  it("renders Deadline column header", () => {
+    renderWithPortalProviders(
+      <AllPostingsTable initialPostings={[BASE_POSTING]} initialTotal={1} companies={COMPANIES} />,
+    );
+    expect(screen.getByText("Deadline")).toBeInTheDocument();
+  });
+
+  it("shows '—' when applicationDeadline is null", () => {
+    renderWithPortalProviders(
+      <AllPostingsTable initialPostings={[BASE_POSTING]} initialTotal={1} companies={COMPANIES} />,
+    );
+    // BASE_POSTING has applicationDeadline=null → "—" for deadline column
+    const dashes = screen.getAllByText("—");
+    expect(dashes.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("shows formatted deadline date when set", () => {
+    const postingWithDeadline: AdminPostingRow = {
+      ...BASE_POSTING,
+      applicationDeadline: new Date("2026-05-15T23:59:59.999Z"),
+    };
+    renderWithPortalProviders(
+      <AllPostingsTable
+        initialPostings={[postingWithDeadline]}
+        initialTotal={1}
+        companies={COMPANIES}
+      />,
+    );
+    const deadlineCell = screen.getByTestId(`deadline-${BASE_POSTING.id}`);
+    expect(deadlineCell).toBeInTheDocument();
+    expect(deadlineCell.textContent).toBeTruthy();
+  });
+
+  it("shows past deadline in red for active postings", () => {
+    const postingWithPastDeadline: AdminPostingRow = {
+      ...BASE_POSTING,
+      status: "active",
+      applicationDeadline: new Date("2026-04-10T23:59:59.999Z"),
+    };
+    renderWithPortalProviders(
+      <AllPostingsTable
+        initialPostings={[postingWithPastDeadline]}
+        initialTotal={1}
+        companies={COMPANIES}
+      />,
+    );
+    const deadlineCell = screen.getByTestId(`deadline-${BASE_POSTING.id}`);
+    expect(deadlineCell.className).toContain("text-red-600");
+  });
+
+  it("does NOT show red for past deadline on non-active postings", () => {
+    const postingWithPastDeadline: AdminPostingRow = {
+      ...BASE_POSTING,
+      status: "expired",
+      applicationDeadline: new Date("2026-04-10T23:59:59.999Z"),
+    };
+    renderWithPortalProviders(
+      <AllPostingsTable
+        initialPostings={[postingWithPastDeadline]}
+        initialTotal={1}
+        companies={COMPANIES}
+      />,
+    );
+    const deadlineCell = screen.getByTestId(`deadline-${BASE_POSTING.id}`);
+    expect(deadlineCell.className).not.toContain("text-red-600");
   });
 });

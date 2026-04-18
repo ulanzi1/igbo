@@ -81,8 +81,10 @@ describe("PortalTopNav", () => {
       render(<PortalTopNav />);
       expect(screen.getAllByText("dashboard").length).toBeGreaterThan(0);
       expect(screen.getAllByText("myJobs").length).toBeGreaterThan(0);
-      expect(screen.getAllByText("applications").length).toBeGreaterThan(0);
+      expect(screen.getAllByText("messages").length).toBeGreaterThan(0);
       expect(screen.getAllByText("companyProfile").length).toBeGreaterThan(0);
+      // applications link removed (dead link — feature not built yet)
+      expect(screen.queryByText("applications")).not.toBeInTheDocument();
     });
 
     it("shows role switcher for multi-role employer user", () => {

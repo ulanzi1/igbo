@@ -31,6 +31,7 @@ export interface AdminPostingRow {
   companyName: string;
   companyTrustBadge: boolean;
   employerName: string | null;
+  applicationDeadline: Date | null;
 }
 
 export interface AdminPostingsListResult {
@@ -87,6 +88,7 @@ export async function listAllPostingsForAdmin(
       companyName: portalCompanyProfiles.name,
       companyTrustBadge: portalCompanyProfiles.trustBadge,
       employerName: authUsers.name,
+      applicationDeadline: portalJobPostings.applicationDeadline,
     })
     .from(portalJobPostings)
     .leftJoin(portalCompanyProfiles, eq(portalJobPostings.companyId, portalCompanyProfiles.id))
@@ -117,6 +119,7 @@ export async function listAllPostingsForAdmin(
     companyName: row.companyName ?? "",
     companyTrustBadge: row.companyTrustBadge ?? false,
     employerName: row.employerName ?? null,
+    applicationDeadline: row.applicationDeadline ?? null,
   }));
 
   return { postings, total, page, pageSize, totalPages };

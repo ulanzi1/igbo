@@ -308,7 +308,7 @@ development_status:
   portal-epic-3-prep-g-cursor-pagination-poc: done    # Opaque cursor encoding + sort stability (HARD GATE for P-4.1A)
 
   # Portal Epic 4: Search, Discovery & Guest Access
-  portal-epic-4: in-progress
+  portal-epic-4: done
   p-4-1a-full-text-search-backend-api-contract: done
   p-4-1b-search-ui-results-page: done
   p-4-2-job-discovery-page-category-browsing: done
@@ -318,7 +318,18 @@ development_status:
   p-4-5-match-percentage-in-search-results: done
   p-4-6-saved-searches-job-alerts: done
   p-4-7-similar-jobs-recommendations: done
-  portal-epic-4-retrospective: optional
+  portal-epic-4-retrospective: done
+
+  # Portal Epic 4 — Retro Action Items & Prep
+  portal-epic-4-hotfix-1-search-zero-results: pending              # CRITICAL — search/discovery return 0 results despite active postings
+  portal-epic-4-hotfix-2-root-level-pages-missing-nav: pending     # saved-searches, dashboard, messages, apprenticeships, saved-jobs missing PortalLayout
+  portal-epic-4-hotfix-3-employer-applications-dead-link: pending   # Remove "Applications" from employer nav until feature exists
+  portal-epic-4-ai-20-runtime-smoke-test-gate: done                 # SN-6 gate added to story template, dev-story checklist, workflow instructions, and code-review checklist
+  portal-epic-4-ai-21-placeholder-page-policy: pending             # Define and apply policy for placeholder pages
+  portal-epic-4-ai-22-cache-invalidation-registry: pending         # Replace organic invalidation growth with declarative registry
+  portal-epic-4-ai-23-employer-applications-view: pending          # Scope employer application pipeline view (pre-P-5 gate)
+  portal-epic-4-ai-24-match-scoring-transparency: pending          # Explain or simplify match score presentation
+  portal-epic-4-prep-h-cross-app-schema-validation: pending        # Spike: community chat survives portal schema extension (HARD GATE for P-5.1A)
 
   # Portal Epic 5: Portal Messaging
   portal-epic-5: backlog

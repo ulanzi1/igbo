@@ -8,7 +8,9 @@ import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { PORTAL_EMPLOYMENT_TYPES, SALARY_RANGE_BUCKETS } from "@/lib/validations/job-search";
 import type { FacetValue, SalaryRangeFacet } from "@/lib/validations/job-search";
+import { JobSearchSortDropdown } from "./job-search-sort-dropdown";
 import type { JobSearchUrlState } from "@/lib/search-url-params";
+import type { SortValue } from "@/hooks/use-job-search";
 
 interface FilterFacets {
   location: FacetValue[];
@@ -21,6 +23,10 @@ interface JobSearchFilterPanelProps {
   facets: FilterFacets | null;
   filters: JobSearchUrlState;
   onChange: <K extends keyof JobSearchUrlState>(key: K, value: JobSearchUrlState[K]) => void;
+  /** Sort controls — passed through so Sort by appears at top of filter column */
+  requestedSort?: SortValue;
+  effectiveSort?: SortValue;
+  onSortChange?: (sort: SortValue) => void;
 }
 
 // Salary bucket bounds for click-to-filter
@@ -32,7 +38,14 @@ const BUCKET_BOUNDS: Record<string, { min?: number; max?: number; disabled?: boo
   competitive: { disabled: true },
 };
 
-export function JobSearchFilterPanel({ facets, filters, onChange }: JobSearchFilterPanelProps) {
+export function JobSearchFilterPanel({
+  facets,
+  filters,
+  onChange,
+  requestedSort,
+  effectiveSort,
+  onSortChange,
+}: JobSearchFilterPanelProps) {
   const t = useTranslations("Portal.search");
   const tPosting = useTranslations("Portal.posting");
   const tCultural = useTranslations("Portal.culturalContext");
@@ -53,6 +66,18 @@ export function JobSearchFilterPanel({ facets, filters, onChange }: JobSearchFil
 
   return (
     <section aria-label={t("filtersHeading")} className="space-y-5" data-testid="filter-panel">
+      {/* Sort by — shown when sort props are provided */}
+      {requestedSort && effectiveSort && onSortChange && (
+        <>
+          <JobSearchSortDropdown
+            requestedSort={requestedSort}
+            effectiveSort={effectiveSort}
+            onChange={onSortChange}
+          />
+          <Separator />
+        </>
+      )}
+
       {/* Location */}
       <fieldset className="space-y-2">
         <legend className="text-sm font-semibold">{t("filterGroup.location")}</legend>

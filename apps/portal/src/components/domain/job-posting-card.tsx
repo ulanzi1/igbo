@@ -15,6 +15,7 @@ interface Posting {
   salaryCompetitiveOnly: boolean;
   createdAt: Date;
   expiresAt?: Date | string | null;
+  applicationDeadline?: Date | string | null;
   archivedAt?: Date | string | null;
   culturalContextJson?: Record<string, boolean> | null;
   descriptionIgboHtml?: string | null;
@@ -118,6 +119,22 @@ export function JobPostingCard({ posting, actions, trustBadge }: JobPostingCardP
                 {et("expiresOn", { date: formatDate(posting.expiresAt) })}
               </span>
             )}
+            {posting.applicationDeadline && posting.status === "active" && (
+              <span className="text-xs text-muted-foreground" data-testid="deadline-text">
+                {et("applicationDeadlineDate", { date: formatDate(posting.applicationDeadline) })}
+              </span>
+            )}
+            {posting.applicationDeadline &&
+              posting.status === "active" &&
+              new Date(posting.applicationDeadline) < new Date() && (
+                <span
+                  className="text-xs text-red-600"
+                  role="status"
+                  data-testid="deadline-passed-text"
+                >
+                  {et("deadlinePassed")}
+                </span>
+              )}
             {posting.expiresAt && posting.status === "expired" && (
               <span className="text-xs text-red-600" data-testid="expired-on-text">
                 {et("expiredOn", { date: formatDate(posting.expiresAt) })}
