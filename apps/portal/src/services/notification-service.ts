@@ -3,10 +3,17 @@ import { portalEventBus } from "@/services/event-bus";
 import { findUserById } from "@igbo/db/queries/auth-queries";
 import { getJobPostingById } from "@igbo/db/queries/portal-job-postings";
 import { getCompanyById } from "@igbo/db/queries/portal-companies";
+import { getSavedSearchById } from "@igbo/db/queries/portal-saved-searches";
 import { createNotification } from "@igbo/db/queries/notifications";
 import { enqueueEmailJob } from "@/services/email-service";
 import { getRedisClient } from "@/lib/redis";
-import type { ApplicationSubmittedEvent, ApplicationWithdrawnEvent } from "@igbo/config/events";
+import { evaluateInstantAlert, checkInstantAlerts } from "@/services/saved-search-service";
+import type {
+  ApplicationSubmittedEvent,
+  ApplicationWithdrawnEvent,
+  SavedSearchNewResultEvent,
+  JobReviewedEvent,
+} from "@igbo/config/events";
 
 const NOTIF_DEDUP_TTL_SECONDS = 15 * 60; // 15 minutes
 
@@ -283,6 +290,76 @@ if (globalForNotif.__portalNotifHandlersRegistered) {
         }),
       );
       // Error logged — does not propagate (fire-and-forget)
+    }
+  });
+
+  // ── saved_search.new_result handler ──────────────────────────────────────
+  portalEventBus.on("saved_search.new_result", async (payload: SavedSearchNewResultEvent) => {
+    const { savedSearchId, userId, jobId, jobTitle, searchName } = payload;
+
+    const savedSearch = await getSavedSearchById(savedSearchId);
+    if (!savedSearch) {
+      console.info(
+        JSON.stringify({
+          level: "info",
+          message: "portal.notification.saved-search.not-found",
+          savedSearchId,
+        }),
+      );
+      return;
+    }
+
+    const shouldAlert = await evaluateInstantAlert(savedSearch, { id: jobId, title: jobTitle });
+    if (!shouldAlert) return;
+
+    const portalBaseUrl = process.env.NEXT_PUBLIC_PORTAL_URL; // ci-allow-process-env
+    // TODO(P-6.1A): Use user's languagePreference for bilingual notification text.
+    // Currently hardcoded English — same pattern as application.submitted handler.
+    try {
+      await createNotification({
+        userId,
+        type: "system",
+        title: `New match: ${jobTitle}`,
+        body: `Your saved search "${searchName}" has a new result`,
+        link: `${portalBaseUrl ?? ""}/jobs/${jobId}`,
+      });
+      console.info(
+        JSON.stringify({
+          level: "info",
+          message: "portal.notification.saved-search.notification.created",
+          savedSearchId,
+          userId,
+          jobId,
+        }),
+      );
+    } catch (err: unknown) {
+      console.error(
+        JSON.stringify({
+          level: "error",
+          message: "portal.notification.saved-search.notification.error",
+          savedSearchId,
+          userId,
+          jobId,
+          error: String(err),
+        }),
+      );
+    }
+  });
+
+  // ── job.reviewed handler — triggers instant alerts for approved postings ──
+  portalEventBus.on("job.reviewed", async (payload: JobReviewedEvent) => {
+    if (payload.decision !== "approved") return;
+    try {
+      await checkInstantAlerts(payload.jobId);
+    } catch (err: unknown) {
+      console.error(
+        JSON.stringify({
+          level: "error",
+          message: "portal.notification.job-reviewed.check-alerts.error",
+          jobId: payload.jobId,
+          error: String(err),
+        }),
+      );
     }
   });
 }

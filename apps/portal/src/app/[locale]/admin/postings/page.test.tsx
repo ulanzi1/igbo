@@ -59,6 +59,7 @@ const mockPostingsResult = {
       companyName: "Tech Corp",
       companyTrustBadge: false,
       employerName: "John Doe",
+      applicationDeadline: null,
     },
   ],
   total: 1,

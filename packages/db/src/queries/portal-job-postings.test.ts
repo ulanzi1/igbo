@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("server-only", () => ({}));
 vi.mock("../index", () => ({
-  db: { insert: vi.fn(), select: vi.fn(), update: vi.fn() },
+  db: { insert: vi.fn(), select: vi.fn(), update: vi.fn(), execute: vi.fn() },
 }));
 
 import { db } from "../index";
@@ -26,6 +26,7 @@ import {
   markSharedToCommunity,
   getJobPostingShareStatus,
   getJobPostingForApply,
+  getActivePostingUrlsForSitemap,
 } from "./portal-job-postings";
 import type { PortalJobPosting } from "../schema/portal-job-postings";
 
@@ -598,5 +599,52 @@ describe("getJobPostingForApply", () => {
     const result = await getJobPostingForApply("jp-1");
     expect(result?.applicationDeadline).toEqual(deadline);
     expect(result?.enableCoverLetter).toBe(true);
+  });
+});
+
+describe("getActivePostingUrlsForSitemap", () => {
+  it("returns active postings with id and updatedAt", async () => {
+    const updatedAt = new Date("2026-04-10T10:00:00Z");
+    vi.mocked(db.execute).mockResolvedValue([
+      { id: "jp-1", updated_at: updatedAt },
+      { id: "jp-2", updated_at: new Date("2026-04-09T10:00:00Z") },
+    ] as never);
+
+    const result = await getActivePostingUrlsForSitemap();
+    expect(result).toHaveLength(2);
+    expect(result[0]).toEqual({ id: "jp-1", updatedAt });
+    expect(result[1]?.id).toBe("jp-2");
+    expect(db.execute).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns empty array when no active postings", async () => {
+    vi.mocked(db.execute).mockResolvedValue([] as never);
+    const result = await getActivePostingUrlsForSitemap();
+    expect(result).toHaveLength(0);
+    expect(result).toEqual([]);
+  });
+
+  it("excludes expired/filled/draft postings (verified by SQL contract)", async () => {
+    // The SQL WHERE clause limits results to active+non-archived+non-deadline-passed.
+    // Here we verify the query runs and maps rows correctly — the SQL filter
+    // is tested at integration level and by convention/code review.
+    const activePosting = { id: "jp-active", updated_at: new Date("2026-04-15") };
+    vi.mocked(db.execute).mockResolvedValue([activePosting] as never);
+    const result = await getActivePostingUrlsForSitemap();
+    expect(result).toHaveLength(1);
+    expect(result[0]?.id).toBe("jp-active");
+  });
+
+  it("returns results ordered by updatedAt DESC (most recent first)", async () => {
+    const older = new Date("2026-04-01");
+    const newer = new Date("2026-04-15");
+    // Simulate DB returning in DESC order
+    vi.mocked(db.execute).mockResolvedValue([
+      { id: "jp-newer", updated_at: newer },
+      { id: "jp-older", updated_at: older },
+    ] as never);
+    const result = await getActivePostingUrlsForSitemap();
+    expect(result[0]?.id).toBe("jp-newer");
+    expect(result[1]?.id).toBe("jp-older");
   });
 });

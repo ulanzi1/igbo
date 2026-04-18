@@ -306,6 +306,7 @@ export function AllPostingsTable({
                 <TableHead>{t("postingStatus")}</TableHead>
                 <TableHead>{t("postingLocation")}</TableHead>
                 <TableHead>{t("postingType")}</TableHead>
+                <TableHead>{t("postingDeadline")}</TableHead>
                 <TableHead>{t("postingCreatedAt")}</TableHead>
               </TableRow>
             </TableHeader>
@@ -330,6 +331,9 @@ export function AllPostingsTable({
                       </TableCell>
                       <TableCell>
                         <Skeleton className="h-4 w-20" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-4 w-24" />
                       </TableCell>
                       <TableCell>
                         <Skeleton className="h-4 w-24" />
@@ -379,6 +383,26 @@ export function AllPostingsTable({
                       </TableCell>
                       <TableCell>{posting.location ?? "—"}</TableCell>
                       <TableCell>{getEmploymentTypeLabel(posting.employmentType)}</TableCell>
+                      <TableCell>
+                        {posting.applicationDeadline ? (
+                          <span
+                            className={cn(
+                              "text-sm",
+                              posting.status === "active" &&
+                                new Date(posting.applicationDeadline) < new Date()
+                                ? "text-red-600"
+                                : "text-muted-foreground",
+                            )}
+                            data-testid={`deadline-${posting.id}`}
+                          >
+                            {format.dateTime(new Date(posting.applicationDeadline), {
+                              dateStyle: "medium",
+                            })}
+                          </span>
+                        ) : (
+                          <span className="text-sm text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
                         {format.dateTime(new Date(posting.createdAt), { dateStyle: "medium" })}
                       </TableCell>

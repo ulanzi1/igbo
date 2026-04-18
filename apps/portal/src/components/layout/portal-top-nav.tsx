@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { useActivePortalRole } from "@/hooks/use-active-portal-role";
+import { buildSignInUrl } from "@/lib/guest-utils";
 import { RoleSwitcher } from "./role-switcher";
 
 function getCommunityUrl() {
@@ -30,21 +31,25 @@ export function PortalTopNav({ className }: { className?: string }) {
   const { isSeeker, isEmployer, isAdmin, isAuthenticated } = useActivePortalRole();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [loginCallbackUrl, setLoginCallbackUrl] = useState(`${getPortalUrl()}/${locale}`);
   useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    setLoginCallbackUrl(window.location.href);
+  }, []);
   const communityUrl = getCommunityUrl();
 
   const seekerLinks: NavLink[] = [
     { key: "jobs", href: `/${locale}/jobs`, label: t("jobs") },
-    { key: "browseAll", href: `/${locale}/jobs`, label: t("browseAll") },
+    { key: "browseAll", href: `/${locale}/search`, label: t("browseAll") },
     { key: "apprenticeships", href: `/${locale}/apprenticeships`, label: t("apprenticeships") },
     { key: "myApplications", href: `/${locale}/applications`, label: t("myApplications") },
     { key: "savedJobs", href: `/${locale}/saved-jobs`, label: t("savedJobs") },
+    { key: "savedSearches", href: `/${locale}/saved-searches`, label: t("savedSearches") },
   ];
 
   const employerLinks: NavLink[] = [
     { key: "dashboard", href: `/${locale}/dashboard`, label: t("dashboard") },
     { key: "myJobs", href: `/${locale}/my-jobs`, label: t("myJobs") },
-    { key: "applications", href: `/${locale}/applications`, label: t("applications") },
     { key: "messages", href: `/${locale}/messages`, label: t("messages") },
     { key: "companyProfile", href: `/${locale}/company-profile`, label: t("companyProfile") },
   ];
@@ -66,7 +71,8 @@ export function PortalTopNav({ className }: { className?: string }) {
   ];
 
   const guestLinks: NavLink[] = [
-    { key: "browseAll", href: `/${locale}/jobs`, label: t("browseAll") },
+    { key: "discover", href: `/${locale}/jobs`, label: t("discover") },
+    { key: "browseAll", href: `/${locale}/search`, label: t("browseAll") },
     { key: "apprenticeships", href: `/${locale}/apprenticeships`, label: t("apprenticeships") },
   ];
 
@@ -144,7 +150,8 @@ export function PortalTopNav({ className }: { className?: string }) {
             <>
               <Button asChild size="sm" variant="ghost" className="hidden sm:inline-flex">
                 <a
-                  href={`${communityUrl}/login?callbackUrl=${encodeURIComponent(`${getPortalUrl()}/${locale}`)}`}
+                  href={buildSignInUrl(communityUrl, loginCallbackUrl)}
+                  data-testid="desktop-login-link"
                 >
                   {t("login")}
                 </a>
@@ -230,7 +237,8 @@ export function PortalTopNav({ className }: { className?: string }) {
                   {!isAuthenticated && (
                     <>
                       <a
-                        href={`${communityUrl}/login?callbackUrl=${encodeURIComponent(`${getPortalUrl()}/${locale}`)}`}
+                        href={buildSignInUrl(communityUrl, loginCallbackUrl)}
+                        data-testid="mobile-login-link"
                         className="flex items-center min-h-[44px] px-4 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-colors rounded-md"
                       >
                         {t("login")}

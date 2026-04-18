@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import {
   HomeIcon,
   BriefcaseIcon,
@@ -10,11 +11,12 @@ import {
   LogInIcon,
   ShieldCheckIcon,
   BarChart3Icon,
-  SettingsIcon,
+  BookmarkIcon,
 } from "lucide-react";
 import { useTranslations, useLocale } from "next-intl";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { buildSignInUrl } from "@/lib/guest-utils";
 import { useActivePortalRole } from "@/hooks/use-active-portal-role";
 
 interface BottomNavItem {
@@ -31,17 +33,26 @@ export function PortalBottomNav() {
   const pathname = usePathname();
   const communityUrl = process.env.NEXT_PUBLIC_COMMUNITY_URL ?? "http://localhost:3000";
   const portalUrl = process.env.NEXT_PUBLIC_PORTAL_URL ?? "http://localhost:3001";
+  const [loginCallbackUrl, setLoginCallbackUrl] = useState(`${portalUrl}/${locale}`);
+  useEffect(() => {
+    setLoginCallbackUrl(window.location.href);
+  }, []);
 
   const seekerItems: BottomNavItem[] = [
     { key: "home", href: `/${locale}`, label: t("home"), icon: HomeIcon },
     { key: "jobs", href: `/${locale}/jobs`, label: t("jobs"), icon: BriefcaseIcon },
+    {
+      key: "savedSearches",
+      href: `/${locale}/saved-searches`,
+      label: t("savedSearches"),
+      icon: BookmarkIcon,
+    },
     {
       key: "myApplications",
       href: `/${locale}/applications`,
       label: t("myApplications"),
       icon: FileTextIcon,
     },
-    { key: "messages", href: `/${locale}/messages`, label: t("messages"), icon: MessageSquareIcon },
     { key: "profile", href: `/${locale}/profile`, label: t("profile"), icon: UserIcon },
   ];
 
@@ -66,20 +77,15 @@ export function PortalBottomNav() {
       icon: ShieldCheckIcon,
     },
     { key: "reports", href: `/${locale}/admin/reports`, label: t("reports"), icon: BarChart3Icon },
-    {
-      key: "settings",
-      href: `/${locale}/admin/settings`,
-      label: t("settings"),
-      icon: SettingsIcon,
-    },
   ];
 
   const guestItems: BottomNavItem[] = [
     { key: "home", href: `/${locale}`, label: t("home"), icon: HomeIcon },
-    { key: "browseAll", href: `/${locale}/jobs`, label: t("browseAll"), icon: BriefcaseIcon },
+    { key: "discover", href: `/${locale}/jobs`, label: t("discover"), icon: BriefcaseIcon },
+    { key: "browseAll", href: `/${locale}/search`, label: t("browseAll"), icon: BriefcaseIcon },
     {
       key: "login",
-      href: `${communityUrl}/login?callbackUrl=${encodeURIComponent(`${portalUrl}/${locale}`)}`,
+      href: buildSignInUrl(communityUrl, loginCallbackUrl),
       label: t("login"),
       icon: LogInIcon,
     },

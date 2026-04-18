@@ -150,7 +150,10 @@ export default async function ReviewDetailPage({ params }: PageProps) {
                   <p className="mb-1 text-xs font-medium text-muted-foreground">
                     {t("requirementsLabel")}
                   </p>
-                  <p className="text-sm">{posting.requirements}</p>
+                  <div
+                    className="prose prose-sm max-w-none"
+                    dangerouslySetInnerHTML={{ __html: sanitizeHtml(posting.requirements) }}
+                  />
                 </div>
               )}
 
@@ -192,11 +195,7 @@ export default async function ReviewDetailPage({ params }: PageProps) {
                 postingStatus={posting.status}
               />
             </div>
-            <FlagHistoryPanel
-              flags={flags}
-              postingTitle={posting.title}
-              onFlagResolved={() => {}}
-            />
+            <FlagHistoryPanel flags={flags} postingTitle={posting.title} />
           </section>
 
           {/* Review Action Panel — only shown when pending */}

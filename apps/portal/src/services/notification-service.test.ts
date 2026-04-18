@@ -38,10 +38,26 @@ vi.mock("@/lib/redis", () => ({
   getRedisClient: vi.fn(() => ({ set: mockRedisSet })),
 }));
 
+const mockGetSavedSearchById = vi.fn();
+vi.mock("@igbo/db/queries/portal-saved-searches", () => ({
+  getSavedSearchById: mockGetSavedSearchById,
+}));
+
+const mockEvaluateInstantAlert = vi.fn();
+const mockCheckInstantAlerts = vi.fn();
+vi.mock("@/services/saved-search-service", () => ({
+  evaluateInstantAlert: mockEvaluateInstantAlert,
+  checkInstantAlerts: mockCheckInstantAlerts,
+}));
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 async function getHandler(
-  eventName: "application.submitted" | "application.withdrawn" = "application.submitted",
+  eventName:
+    | "application.submitted"
+    | "application.withdrawn"
+    | "saved_search.new_result"
+    | "job.reviewed" = "application.submitted",
 ): Promise<(payload: unknown) => Promise<void>> {
   // Reset HMR guard so the module re-registers
   const global = globalThis as unknown as { __portalNotifHandlersRegistered?: boolean };
@@ -463,5 +479,147 @@ describe("notification-service — application.withdrawn handler", () => {
         body: "Ada Obi withdrew from Unknown Position",
       }),
     );
+  });
+});
+
+// ── saved_search.new_result handler ──────────────────────────────────────────
+
+const SAVED_SEARCH_PAYLOAD = {
+  eventId: "evt-ss-001",
+  version: 1,
+  timestamp: "2026-04-18T10:00:00.000Z",
+  savedSearchId: "ss-abc",
+  userId: "user-123",
+  jobId: "job-456",
+  jobTitle: "Senior Engineer",
+  searchName: "Lagos Engineers",
+};
+
+const MOCK_SAVED_SEARCH = {
+  id: "ss-abc",
+  userId: "user-123",
+  name: "Lagos Engineers",
+  searchParamsJson: {},
+  alertFrequency: "instant" as const,
+  lastAlertedAt: null,
+  createdAt: new Date(),
+  updatedAt: new Date(),
+};
+
+describe("notification-service — saved_search.new_result handler", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+    mockGetSavedSearchById.mockResolvedValue(MOCK_SAVED_SEARCH);
+    mockEvaluateInstantAlert.mockResolvedValue(true);
+    mockCreateNotification.mockResolvedValue({ id: "notif-ss-1" });
+  });
+
+  afterEach(() => {
+    const g = globalThis as unknown as { __portalNotifHandlersRegistered?: boolean };
+    g.__portalNotifHandlersRegistered = false;
+  });
+
+  it("registers handler on saved_search.new_result event", async () => {
+    const g = globalThis as unknown as { __portalNotifHandlersRegistered?: boolean };
+    g.__portalNotifHandlersRegistered = false;
+    vi.resetModules();
+    await import("./notification-service");
+    expect(mockPortalEventBusOn).toHaveBeenCalledWith(
+      "saved_search.new_result",
+      expect.any(Function),
+    );
+  });
+
+  it("creates notification when evaluateInstantAlert returns true", async () => {
+    const handler = await getHandler("saved_search.new_result");
+    await handler(SAVED_SEARCH_PAYLOAD);
+
+    expect(mockGetSavedSearchById).toHaveBeenCalledWith("ss-abc");
+    expect(mockEvaluateInstantAlert).toHaveBeenCalledWith(MOCK_SAVED_SEARCH, {
+      id: "job-456",
+      title: "Senior Engineer",
+    });
+    expect(mockCreateNotification).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: "user-123",
+        type: "system",
+        title: "New match: Senior Engineer",
+      }),
+    );
+  });
+
+  it("skips notification when evaluateInstantAlert returns false", async () => {
+    mockEvaluateInstantAlert.mockResolvedValue(false);
+    const handler = await getHandler("saved_search.new_result");
+    await handler(SAVED_SEARCH_PAYLOAD);
+
+    expect(mockCreateNotification).not.toHaveBeenCalled();
+  });
+
+  it("skips notification when savedSearch not found in DB", async () => {
+    mockGetSavedSearchById.mockResolvedValue(null);
+    const handler = await getHandler("saved_search.new_result");
+    await handler(SAVED_SEARCH_PAYLOAD);
+
+    expect(mockEvaluateInstantAlert).not.toHaveBeenCalled();
+    expect(mockCreateNotification).not.toHaveBeenCalled();
+  });
+
+  it("handles createNotification error gracefully", async () => {
+    mockCreateNotification.mockRejectedValue(new Error("DB error"));
+    const handler = await getHandler("saved_search.new_result");
+    await expect(handler(SAVED_SEARCH_PAYLOAD)).resolves.not.toThrow();
+  });
+});
+
+// ── job.reviewed handler ──────────────────────────────────────────────────────
+
+const JOB_REVIEWED_PAYLOAD = {
+  eventId: "evt-jr-001",
+  version: 1,
+  timestamp: "2026-04-18T10:00:00.000Z",
+  jobId: "job-789",
+  decision: "approved" as const,
+  reviewerId: "admin-1",
+  postingId: "job-789",
+};
+
+describe("notification-service — job.reviewed handler", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+    mockCheckInstantAlerts.mockResolvedValue(undefined);
+  });
+
+  afterEach(() => {
+    const g = globalThis as unknown as { __portalNotifHandlersRegistered?: boolean };
+    g.__portalNotifHandlersRegistered = false;
+  });
+
+  it("registers handler on job.reviewed event", async () => {
+    const g = globalThis as unknown as { __portalNotifHandlersRegistered?: boolean };
+    g.__portalNotifHandlersRegistered = false;
+    vi.resetModules();
+    await import("./notification-service");
+    expect(mockPortalEventBusOn).toHaveBeenCalledWith("job.reviewed", expect.any(Function));
+  });
+
+  it("calls checkInstantAlerts when decision is approved", async () => {
+    const handler = await getHandler("job.reviewed");
+    await handler(JOB_REVIEWED_PAYLOAD);
+
+    expect(mockCheckInstantAlerts).toHaveBeenCalledWith("job-789");
+  });
+
+  it("skips checkInstantAlerts when decision is not approved", async () => {
+    const handler = await getHandler("job.reviewed");
+    await handler({ ...JOB_REVIEWED_PAYLOAD, decision: "rejected" });
+
+    expect(mockCheckInstantAlerts).not.toHaveBeenCalled();
+  });
+
+  it("handles checkInstantAlerts error gracefully", async () => {
+    mockCheckInstantAlerts.mockRejectedValue(new Error("Service error"));
+    const handler = await getHandler("job.reviewed");
+    await expect(handler(JOB_REVIEWED_PAYLOAD)).resolves.not.toThrow();
   });
 });

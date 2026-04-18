@@ -7,6 +7,7 @@
       "apprenticeships": "Apprenticeships",
       "myApplications": "My Applications",
       "savedJobs": "Saved Jobs",
+      "savedSearches": "Saved Searches",
       "dashboard": "Dashboard",
       "myJobs": "My Jobs",
       "applications": "Applications",
@@ -32,7 +33,8 @@
       "auditLog": "Audit log",
       "allPostings": "All postings",
       "employers": "Employers",
-      "logout": "Log Out"
+      "logout": "Log Out",
+      "discover": "Discover Jobs"
     },
     "role": {
       "seeker": "Job Seeker",
@@ -52,7 +54,13 @@
     },
     "guest": {
       "loginPrompt": "Log in to apply for jobs",
-      "joinPrompt": "Join the community to get started"
+      "joinPrompt": "Join the community to get started",
+      "signInToApply": "Sign in to apply for jobs",
+      "conversionBannerTitle": "Ready to apply?",
+      "conversionBannerDescription": "Join the OBIGBO community to apply for jobs and track your applications",
+      "conversionBannerSignIn": "Sign In",
+      "conversionBannerRegister": "Create Account",
+      "dismissBanner": "Dismiss"
     },
     "meta": {
       "title": "OBIGBO Job Portal",
@@ -168,7 +176,8 @@
         "full_time": "Full-time",
         "part_time": "Part-time",
         "contract": "Contract",
-        "internship": "Internship"
+        "internship": "Internship",
+        "apprenticeship": "Apprenticeship"
       },
       "saveChanges": "Save Changes",
       "updated": "Job posting updated",
@@ -186,7 +195,8 @@
         "filled_via_portal": "Filled via Portal",
         "filled_internally": "Filled Internally",
         "cancelled": "Cancelled"
-      }
+      },
+      "expiresBeforeDeadlineError": "Posting expiry date must be on or after the application deadline"
     },
     "culturalContext": {
       "title": "Cultural Context",
@@ -285,7 +295,9 @@
       "extendSuccess": "Posting extended and re-activated",
       "mustBeFutureDate": "Expiry date must be in the future",
       "editAndRenew": "Edit & Renew",
-      "renewRequiresReview": "Editing content during renewal requires admin re-approval"
+      "renewRequiresReview": "Editing content during renewal requires admin re-approval",
+      "applicationDeadlineDate": "Applications close {date}",
+      "deadlinePassed": "Deadline passed"
     },
     "templates": {
       "useTemplate": "Use Template",
@@ -373,7 +385,28 @@
       "salaryUpTo": "Up to ${amount}",
       "salaryRange": "${min} – ${max}",
       "jobDescription": "Job Description",
-      "requirements": "Requirements"
+      "requirements": "Requirements",
+      "descriptionTab": "Description",
+      "companyInfoTab": "Company Info",
+      "similarJobsTab": "Similar Jobs",
+      "expiredBanner": "This job posting has expired",
+      "expiredSearchLink": "Search similar jobs",
+      "filledBanner": "This position has been filled",
+      "filledBrowseLink": "Browse jobs",
+      "signInToApply": "Sign In to Apply",
+      "appliedOn": "Applied on {date}",
+      "aboutCompany": "About {company}",
+      "companyIndustry": "Industry",
+      "companySize": "Company Size",
+      "companyCulture": "Culture & Values",
+      "similarJobsHeading": "Similar Jobs",
+      "similarJobsLoading": "Finding similar jobs...",
+      "similarJobsEmpty": "No similar jobs found right now.",
+      "similarJobsBrowse": "Browse all jobs",
+      "similarJobsError": "Could not load similar jobs. Please try again later.",
+      "postedAgo": "Posted {time}",
+      "pageTitle": "{title} at {company}",
+      "backToJobs": "Back to jobs"
     },
     "admin": {
       "reviewQueue": "Review Queue",
@@ -752,7 +785,8 @@
       "employersEmptyState": "No employers found",
       "employersEmptyStateDescription": "No employers match the current filter.",
       "employersFetchError": "Failed to load employers. Showing previous data.",
-      "employersViewPostings": "View postings for {company}"
+      "employersViewPostings": "View postings for {company}",
+      "postingDeadline": "Deadline"
     },
     "verification": {
       "title": "Verify your business",
@@ -1193,6 +1227,151 @@
         "error": "Failed to export candidates",
         "ariaButton": "Export all candidates as CSV"
       }
+    },
+    "search": {
+      "pageTitle": "Find Jobs",
+      "heading": "Search Jobs",
+      "searchBarPlaceholder": "Search jobs by title, company, or skill…",
+      "searchBarAriaLabel": "Search jobs",
+      "clearSearchAriaLabel": "Clear search",
+      "filtersHeading": "Filters",
+      "openFiltersButton": "Filter",
+      "openFiltersAriaLabel": "Open filters",
+      "closeFiltersAriaLabel": "Close filters",
+      "activeFilterCount": "{count}",
+      "activeFiltersAriaLabel": "Active filters",
+      "clearAll": "Clear all",
+      "removeFilterAriaLabel": "Remove filter {value}",
+      "filterGroup": {
+        "location": "Location",
+        "employmentType": "Employment Type",
+        "industry": "Industry",
+        "salary": "Salary Range",
+        "remote": "Remote",
+        "culturalContext": "Cultural Context"
+      },
+      "facet": {
+        "location": {
+          "zero": "No matches"
+        }
+      },
+      "salary": {
+        "min": "Minimum",
+        "max": "Maximum",
+        "chipMin": "Min ₦{amount}",
+        "chipMax": "Max ₦{amount}",
+        "bucket": {
+          "<50k": "Under ₦50k",
+          "50k-100k": "₦50k – ₦100k",
+          "100k-200k": "₦100k – ₦200k",
+          ">200k": "₦200k+",
+          "competitive": "Competitive"
+        },
+        "competitiveTooltip": "Competitive salary postings (filter coming in a future release)"
+      },
+      "remote": {
+        "label": "Remote only"
+      },
+      "sort": {
+        "label": "Sort by",
+        "relevance": "Relevance",
+        "date": "Newest First",
+        "salary_desc": "Salary: High to Low",
+        "salary_asc": "Salary: Low to High"
+      },
+      "sortFallbackNotice": "Sorted by newest — enter a search term for relevance ranking",
+      "sortFallbackNoticeAriaLabel": "Sort order notice",
+      "resultsSummary": "Showing {shown} of {total} {total, plural, one {result} other {results}}",
+      "resultsSummaryUpdating": "Updating…",
+      "loadMore": "Load More",
+      "loadingMore": "Loading…",
+      "endOfResults": "End of results",
+      "empty": {
+        "filtered": {
+          "title": "No exact matches — try broadening your search",
+          "body": "Remove a filter or change your keywords to see more opportunities.",
+          "clearFilters": "Clear filters",
+          "browseAll": "Browse all jobs"
+        },
+        "coldStart": {
+          "title": "New opportunities are being added daily",
+          "body": "Check back soon — Igbo-community employers are posting new roles weekly."
+        }
+      },
+      "card": {
+        "postingAgeRelative": "{days, plural, one {# day ago} other {# days ago}}",
+        "postingAgeAbsolute": "Posted {date}",
+        "deadlineInDays": "Closes in {days, plural, one {# day} other {# days}}",
+        "deadlineAbsolute": "Closes {date}",
+        "deadlineToday": "Closes today",
+        "viewDetails": "View details",
+        "companyNameAriaLabel": "Company: {name}"
+      },
+      "errors": {
+        "network": "We couldn’t load search results. Check your connection and try again.",
+        "loadMore": "Couldn’t load more results. Try again.",
+        "retry": "Retry"
+      }
+    },
+    "discovery": {
+      "pageTitle": "Discover Jobs",
+      "heading": "Discover Opportunities",
+      "searchPlaceholder": "Search jobs by title, company, or skill…",
+      "searchAriaLabel": "Search jobs",
+      "featuredHeading": "Featured Jobs",
+      "featuredViewAll": "View all jobs",
+      "categoriesHeading": "Browse by Category",
+      "categoryJobCount": "{count, plural, one {# job} other {# jobs}}",
+      "recentHeading": "Recent Postings",
+      "recentViewAll": "View all recent",
+      "browseAllJobs": "Browse all jobs"
+    },
+    "match": {
+      "score": "{score}% match",
+      "strong": "Strong Match",
+      "good": "Good Match",
+      "fair": "Fair Match",
+      "completeProfilePrompt": "Complete your profile to see how well you match",
+      "completeProfileLink": "Complete Profile",
+      "dismiss": "Dismiss"
+    },
+    "savedSearch": {
+      "heading": "My Saved Searches",
+      "saveButton": "Save This Search",
+      "saveButtonDisabled": "Maximum 10 saved searches reached",
+      "dialogTitle": "Save Search",
+      "dialogDescription": "Save your current search to get alerts for new matching jobs",
+      "nameLabel": "Search Name",
+      "namePlaceholder": "e.g., Remote Engineering Jobs in Lagos",
+      "frequencyLabel": "Alert Frequency",
+      "frequencyInstant": "Instant",
+      "frequencyDaily": "Daily Digest",
+      "frequencyOff": "Off",
+      "frequencyInstantDescription": "Get notified as soon as a new match is found (max 5/day)",
+      "frequencyDailyDescription": "Receive a daily email with all new matches",
+      "frequencyOffDescription": "Save for quick access, no alerts",
+      "save": "Save",
+      "cancel": "Cancel",
+      "saved": "Search saved!",
+      "empty": "No saved searches yet",
+      "emptyDescription": "Save a search from the search page to get alerts for new matching jobs",
+      "params": "{query} with {filterCount} filters",
+      "paramsNoQuery": "{filterCount} filters",
+      "paramsQueryOnly": "{query}",
+      "paramsAll": "All jobs",
+      "lastAlerted": "Last alert: {date}",
+      "neverAlerted": "No alerts sent yet",
+      "delete": "Delete",
+      "deleteConfirmTitle": "Delete Saved Search?",
+      "deleteConfirmDescription": "This will also stop all alerts for this search.",
+      "rename": "Rename",
+      "loadSearch": "View Results",
+      "alertNotification": "New job matching \"{name}\": {jobTitle}",
+      "navLink": "Saved Searches",
+      "count": "{count} saved",
+      "autoName": "Search: {summary}",
+      "errorSaving": "Failed to save search",
+      "deleted": "Saved search deleted"
     }
   },
   "Shell": {

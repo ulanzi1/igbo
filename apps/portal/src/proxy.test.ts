@@ -350,6 +350,29 @@ describe("Portal proxy", () => {
       expect(mockDecode).not.toHaveBeenCalled();
     });
 
+    it("passes through /en/search without auth check (guest browsing)", async () => {
+      const req = makeRequest("http://localhost:3001/en/search");
+      const result = await proxy(req as unknown as NextRequest);
+      expect(result.status).not.toBe(307);
+      expect(mockDecode).not.toHaveBeenCalled();
+    });
+
+    it("passes through /ig/search without auth check (guest browsing)", async () => {
+      const req = makeRequest("http://localhost:3001/ig/search");
+      const result = await proxy(req as unknown as NextRequest);
+      expect(result.status).not.toBe(307);
+      expect(mockDecode).not.toHaveBeenCalled();
+    });
+
+    it("passes through /en/search with query params without auth check", async () => {
+      const req = makeRequest(
+        "http://localhost:3001/en/search?q=engineer&employmentType=full_time",
+      );
+      const result = await proxy(req as unknown as NextRequest);
+      expect(result.status).not.toBe(307);
+      expect(mockDecode).not.toHaveBeenCalled();
+    });
+
     it("requires auth for /en/applications (protected path)", async () => {
       const req = makeRequest("http://localhost:3001/en/applications");
       const result = await proxy(req as unknown as NextRequest);

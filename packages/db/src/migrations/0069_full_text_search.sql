@@ -45,16 +45,26 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Trigger with WHEN guard to prevent tsvector regeneration on non-searchable updates
--- (e.g. view_count increments, status transitions, screening_status updates)
--- OLD IS NULL handles INSERT where OLD does not exist.
+-- Triggers: split INSERT vs UPDATE because Postgres forbids OLD references
+-- in a trigger WHEN clause when the trigger also fires on INSERT.
+-- INSERT trigger fires unconditionally (no prior row to diff against).
+-- UPDATE trigger guards against non-searchable column updates (e.g. view_count
+-- increments, status transitions, screening_status updates) to avoid needless
+-- tsvector recomputation.
 -- DROP TRIGGER IF EXISTS keeps the migration re-runnable after a partial failure.
 DROP TRIGGER IF EXISTS trg_portal_job_postings_search_vector ON portal_job_postings;
-CREATE TRIGGER trg_portal_job_postings_search_vector
-  BEFORE INSERT OR UPDATE ON portal_job_postings
+DROP TRIGGER IF EXISTS trg_portal_job_postings_search_vector_ins ON portal_job_postings;
+DROP TRIGGER IF EXISTS trg_portal_job_postings_search_vector_upd ON portal_job_postings;
+
+CREATE TRIGGER trg_portal_job_postings_search_vector_ins
+  BEFORE INSERT ON portal_job_postings
+  FOR EACH ROW
+  EXECUTE FUNCTION portal_job_postings_search_vector_update();
+
+CREATE TRIGGER trg_portal_job_postings_search_vector_upd
+  BEFORE UPDATE ON portal_job_postings
   FOR EACH ROW
   WHEN (
-    OLD IS NULL OR
     OLD.title IS DISTINCT FROM NEW.title OR
     OLD.description_html IS DISTINCT FROM NEW.description_html OR
     OLD.requirements IS DISTINCT FROM NEW.requirements OR

@@ -87,6 +87,8 @@ export const portalJobPostings = pgTable("portal_job_postings", {
   screeningCheckedAt: timestamp("screening_checked_at", { withTimezone: true }),
   // Added in P-2.5A migration 0063 — employer opts in to require cover letter
   enableCoverLetter: boolean("enable_cover_letter").notNull().default(false),
+  // Added in P-4.2 migration 0071 — marks a posting as featured/promoted on the discovery page.
+  isFeatured: boolean("is_featured").notNull().default(false),
   // Added in PREP-F migration 0069 — trigger-maintained tsvector for full-text search.
   // Do NOT include in INSERT/UPDATE payloads — the PL/pgSQL trigger populates these.
   // The text() type is a deliberate lie for Drizzle's benefit; actual DB type is tsvector.

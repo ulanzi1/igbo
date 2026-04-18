@@ -6,8 +6,16 @@ import {
   searchJobPostingsWithFilters,
   getJobSearchFacets,
   getJobSearchTotalCount,
+  getFeaturedJobPostings,
+  getIndustryCategoryCounts,
+  getRecentJobPostings,
+  getSimilarJobPostings,
 } from "@igbo/db/queries/portal-job-search";
-import type { JobSearchFilters } from "@igbo/db/queries/portal-job-search";
+import type {
+  JobSearchFilters,
+  DiscoveryJobResult,
+  IndustryCategoryCount,
+} from "@igbo/db/queries/portal-job-search";
 import type {
   JobSearchRequest,
   JobSearchResponse,
@@ -245,6 +253,7 @@ export async function searchJobs(
       id: row.id,
       title: row.title,
       companyName: row.company_name ?? "",
+      companyId: row.company_id ?? null,
       companyLogoUrl: row.logo_url,
       location: row.location,
       salaryMin: row.salary_min,
@@ -301,6 +310,11 @@ export async function searchJobs(
 
 /**
  * Scans and deletes all `portal:job-search:*` keys from Redis.
+ * Also deletes the locale-namespaced discovery page cache keys for both
+ * supported locales (en + ig):
+ *   portal:discovery:featured:{locale}
+ *   portal:discovery:categories:{locale}
+ *   portal:discovery:recent:{locale}
  *
  * Fire-and-forget: called after any status transition that changes which
  * postings appear in search results (active → filled, draft → active, etc.).
@@ -329,6 +343,40 @@ export async function invalidateJobSearchCache(): Promise<void> {
         await redis.del(...batch);
       }
     }
+
+    // Also invalidate discovery page cache keys for both supported locales (AC #7)
+    // and the sitemap cache key (P-4.3B) so posting status changes are reflected promptly.
+    await redis.del(
+      discoveryFeaturedKey("en"),
+      discoveryFeaturedKey("ig"),
+      discoveryCategoriesKey("en"),
+      discoveryCategoriesKey("ig"),
+      discoveryRecentKey("en"),
+      discoveryRecentKey("ig"),
+      sitemapUrlsKey(),
+    );
+
+    // Invalidate similar jobs cache (portal:discovery:similar:*) — P-4.7
+    // Uses SCAN because the key space includes jobId (many possible values).
+    const similarPattern = createRedisKey("portal", "discovery", "similar:*");
+    let similarCursor = "0";
+    const similarKeysToDelete: string[] = [];
+    do {
+      const [nextCursor, keys] = await redis.scan(
+        similarCursor,
+        "MATCH",
+        similarPattern,
+        "COUNT",
+        100,
+      );
+      similarCursor = nextCursor;
+      similarKeysToDelete.push(...keys);
+    } while (similarCursor !== "0");
+    if (similarKeysToDelete.length > 0) {
+      for (let i = 0; i < similarKeysToDelete.length; i += 100) {
+        await redis.del(...similarKeysToDelete.slice(i, i + 100));
+      }
+    }
   } catch (err) {
     console.error(
       JSON.stringify({
@@ -340,5 +388,179 @@ export async function invalidateJobSearchCache(): Promise<void> {
   } finally {
     // Notify integration test hooks that invalidation is complete (deterministic)
     _notifyInvalidationComplete();
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Discovery page — P-4.2
+// ---------------------------------------------------------------------------
+
+// Locale-namespaced cache keys: data is currently locale-agnostic but discovery
+// rendering may diverge per locale (e.g. localized industry labels), so cache
+// per locale to avoid serving the wrong content if the projection changes.
+// createRedisKey(app, domain, id) builds `app:domain:id`, so we pack the
+// section + locale into the `id` segment to preserve the colon-namespaced layout.
+function sitemapUrlsKey(): string {
+  return createRedisKey("portal", "sitemap", "urls");
+}
+
+function discoveryFeaturedKey(locale: string): string {
+  return createRedisKey("portal", "discovery", `featured:${locale}`);
+}
+function discoveryCategoriesKey(locale: string): string {
+  return createRedisKey("portal", "discovery", `categories:${locale}`);
+}
+function discoveryRecentKey(locale: string): string {
+  return createRedisKey("portal", "discovery", `recent:${locale}`);
+}
+function discoverySimilarKey(jobId: string, locale: string): string {
+  return createRedisKey("portal", "discovery", `similar:${jobId}:${locale}`);
+}
+
+const DISCOVERY_FEATURED_TTL = 60; // 1 minute
+const DISCOVERY_CATEGORIES_TTL = 300; // 5 minutes
+const DISCOVERY_RECENT_TTL = 120; // 2 minutes
+const DISCOVERY_SIMILAR_TTL = 600; // 10 minutes (AC #3)
+
+export interface DiscoveryPageData {
+  featuredJobs: DiscoveryJobResult[];
+  categories: IndustryCategoryCount[];
+  recentPostings: DiscoveryJobResult[];
+}
+
+/**
+ * Shared caching helper for discovery page queries (P-4.2, P-4.7).
+ *
+ * Reads from Redis cache; on miss fetches from DB and writes to cache fire-and-forget.
+ * On JSON.parse failure (corrupted cache), best-effort eviction so the bad key stops
+ * re-poisoning subsequent requests until TTL expires.
+ */
+async function cachedFetch<T>(key: string, ttl: number, fetchFn: () => Promise<T>): Promise<T> {
+  const redis = getRedisClient();
+  const cached = await redis.get(key);
+  if (cached) {
+    try {
+      return JSON.parse(cached) as T;
+    } catch (err) {
+      console.warn(
+        JSON.stringify({
+          level: "warn",
+          message: "portal.job-search-service.discovery-cache-parse-error",
+          key,
+          error: (err as Error).message,
+        }),
+      );
+      // Best-effort eviction so the corrupted key stops re-poisoning.
+      redis.del(key).catch(() => {
+        // Swallow: worst case the key expires within its TTL.
+      });
+      // Fall through to DB path.
+    }
+  }
+  const data = await fetchFn();
+  redis.set(key, JSON.stringify(data), "EX", ttl, "NX").catch((err: Error) => {
+    console.warn(
+      JSON.stringify({
+        level: "warn",
+        message: "portal.job-search-service.discovery-cache-write-error",
+        key,
+        error: err.message,
+      }),
+    );
+  });
+  return data;
+}
+
+/**
+ * Fetches all three discovery page data sets in parallel with per-query Redis caching.
+ *
+ * Uses Promise.allSettled so a failure in one query (e.g. Redis timeout on categories)
+ * does not take down the entire page. Rejected results fall back to empty arrays.
+ * Rejected results are logged at warn level for observability.
+ *
+ * Cache keys are locale-namespaced and TTLs:
+ *   portal:discovery:featured:{locale}   — 60 s
+ *   portal:discovery:categories:{locale} — 300 s
+ *   portal:discovery:recent:{locale}     — 120 s
+ */
+export async function getDiscoveryPageData(locale: string): Promise<DiscoveryPageData> {
+  const [featuredResult, categoriesResult, recentResult] = await Promise.allSettled([
+    cachedFetch(discoveryFeaturedKey(locale), DISCOVERY_FEATURED_TTL, () =>
+      getFeaturedJobPostings(6),
+    ),
+    cachedFetch(discoveryCategoriesKey(locale), DISCOVERY_CATEGORIES_TTL, () =>
+      getIndustryCategoryCounts(),
+    ),
+    cachedFetch(discoveryRecentKey(locale), DISCOVERY_RECENT_TTL, () => getRecentJobPostings(10)),
+  ]);
+
+  if (featuredResult.status === "rejected") {
+    console.warn(
+      JSON.stringify({
+        level: "warn",
+        message: "portal.job-search-service.discovery-featured-error",
+        error: (featuredResult.reason as Error).message,
+      }),
+    );
+  }
+  if (categoriesResult.status === "rejected") {
+    console.warn(
+      JSON.stringify({
+        level: "warn",
+        message: "portal.job-search-service.discovery-categories-error",
+        error: (categoriesResult.reason as Error).message,
+      }),
+    );
+  }
+  if (recentResult.status === "rejected") {
+    console.warn(
+      JSON.stringify({
+        level: "warn",
+        message: "portal.job-search-service.discovery-recent-error",
+        error: (recentResult.reason as Error).message,
+      }),
+    );
+  }
+
+  return {
+    featuredJobs: featuredResult.status === "fulfilled" ? featuredResult.value : [],
+    categories: categoriesResult.status === "fulfilled" ? categoriesResult.value : [],
+    recentPostings: recentResult.status === "fulfilled" ? recentResult.value : [],
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Similar jobs — P-4.7
+// ---------------------------------------------------------------------------
+
+/**
+ * Returns up to 6 similar job postings for the given job, with Redis caching.
+ *
+ * Cache key: portal:discovery:similar:{jobId}:{locale}  (10-minute TTL per AC #3)
+ * Graceful degradation: on Redis error, falls through to DB query (no throw).
+ */
+export async function getSimilarJobs(
+  jobId: string,
+  companyIndustry: string,
+  requirements: string | null,
+  location: string | null,
+  locale: string,
+): Promise<DiscoveryJobResult[]> {
+  const key = discoverySimilarKey(jobId, locale);
+  try {
+    return await cachedFetch(key, DISCOVERY_SIMILAR_TTL, () =>
+      getSimilarJobPostings(jobId, companyIndustry, requirements, location, 6),
+    );
+  } catch (err) {
+    // Graceful degradation: Redis unavailable → fall back to DB query directly
+    console.warn(
+      JSON.stringify({
+        level: "warn",
+        message: "portal.job-search-service.similar-jobs-error",
+        jobId,
+        error: (err as Error).message,
+      }),
+    );
+    return getSimilarJobPostings(jobId, companyIndustry, requirements, location, 6);
   }
 }

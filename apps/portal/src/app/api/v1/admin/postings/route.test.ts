@@ -35,6 +35,7 @@ const mockResult = {
       companyName: "Tech Corp",
       companyTrustBadge: true,
       employerName: "John Doe",
+      applicationDeadline: null,
     },
   ],
   total: 1,

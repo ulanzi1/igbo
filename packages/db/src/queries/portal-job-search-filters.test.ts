@@ -127,22 +127,22 @@ describe("buildFilterPredicate — salary range filter", () => {
   it("emits salary_max >= salaryMin predicate when salaryMin provided", () => {
     const predicate = buildFilterPredicate({ salaryMin: 50000 }, "en");
     const rendered = flattenSql(predicate);
-    expect(rendered).toContain("salary_max IS NULL OR salary_max >=");
+    expect(rendered).toContain("pjp.salary_max IS NULL OR pjp.salary_max >=");
     expect(rendered).toContain("50000");
   });
 
   it("emits salary_min <= salaryMax predicate when salaryMax provided", () => {
     const predicate = buildFilterPredicate({ salaryMax: 100000 }, "en");
     const rendered = flattenSql(predicate);
-    expect(rendered).toContain("salary_min IS NULL OR salary_min <=");
+    expect(rendered).toContain("pjp.salary_min IS NULL OR pjp.salary_min <=");
     expect(rendered).toContain("100000");
   });
 
   it("emits both salary predicates when both salaryMin and salaryMax provided", () => {
     const predicate = buildFilterPredicate({ salaryMin: 50000, salaryMax: 150000 }, "en");
     const rendered = flattenSql(predicate);
-    expect(rendered).toContain("salary_max IS NULL OR salary_max >=");
-    expect(rendered).toContain("salary_min IS NULL OR salary_min <=");
+    expect(rendered).toContain("pjp.salary_max IS NULL OR pjp.salary_max >=");
+    expect(rendered).toContain("pjp.salary_min IS NULL OR pjp.salary_min <=");
   });
 
   it("omits salary predicates when excludeFacet=salaryRange", () => {
@@ -204,6 +204,7 @@ const sampleFilteredRow = {
   id: "post-1",
   title: "Software Engineer",
   company_name: "TechCorp",
+  company_id: "company-uuid-1",
   logo_url: null,
   location: "Lagos, Nigeria",
   salary_min: 50000,
@@ -237,6 +238,22 @@ describe("searchJobPostingsWithFilters — basic call", () => {
     expect(rendered).toContain("LEFT JOIN");
     expect(rendered).toContain("company_name");
     expect(rendered).toContain("logo_url");
+  });
+
+  it("includes company_id in SELECT projection (P-4.1B additive field)", async () => {
+    mockDbExecute.mockResolvedValue([]);
+
+    await searchJobPostingsWithFilters({ query: "engineer", locale: "en" });
+
+    const rendered = flattenSql(mockDbExecute.mock.calls[0]![0]);
+    expect(rendered).toContain("company_id");
+  });
+
+  it("returns company_id from row data", async () => {
+    mockDbExecute.mockResolvedValue([sampleFilteredRow]);
+
+    const { items } = await searchJobPostingsWithFilters({ query: "engineer", locale: "en" });
+    expect(items[0]?.company_id).toBe("company-uuid-1");
   });
 
   it("does NOT include requirements in SELECT (large column excluded per AC #5)", async () => {

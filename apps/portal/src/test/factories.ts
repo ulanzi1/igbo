@@ -84,6 +84,7 @@ export function jobPostingFactory(overrides?: Partial<PortalJobPosting>): Portal
     screeningResultJson: null,
     screeningCheckedAt: null,
     enableCoverLetter: false,
+    isFeatured: false,
     searchVector: null,
     searchVectorIgbo: null,
     createdAt: FIXED_DATE,

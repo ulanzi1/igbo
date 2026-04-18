@@ -126,6 +126,51 @@ System axes: (1) DB queries/schema, (2) Services, (3) API routes, (4) UI compone
    - Expected outcome: [What the user should see/experience]
    - Evidence required: [Screenshot / log output / demonstrated flow]
 
+## Runtime Smoke Test (SN-6 — REQUIRED)
+
+<!--
+  GATE: No story moves to "review" without runtime verification in a browser.
+  Unit tests passing is NECESSARY but NOT SUFFICIENT — bugs often hide in
+  the gap between mocked tests and runtime reality (e.g., missing migrations,
+  stale caches, broken composition).
+
+  SCOPE: ALL stories, not just "UI stories." Backend changes (queries,
+  services, migrations) can break user-facing features. If the story
+  touches any code path that affects what a user sees or does, it needs
+  runtime verification.
+
+  OWNER: The human developer or project lead — not the AI agent. The AI
+  agent cannot open a browser. When the AI dev workflow reaches SN-6, it
+  must HALT and hand off to the human for browser verification. The human
+  documents the evidence below, then the AI (or human) marks the gate passed.
+
+  SN numbering note: SN-1 through SN-5 are defined across multiple
+  workflow files. SN-6 is the runtime smoke test gate added here.
+
+  For each SN-2 validation scenario, document:
+  - What URL(s) you visited
+  - What you saw (screenshot or description)
+  - Whether the feature worked as expected
+  - Any issues discovered and how they were resolved
+-->
+
+### Smoke Test Checklist
+
+- [ ] App started locally and accessible in browser
+- [ ] **Every SN-2 validation scenario** verified in running app (one evidence entry per scenario below)
+- [ ] Evidence documented below (screenshots preferred, descriptions accepted)
+- [ ] Any runtime bugs discovered during smoke test are fixed, retested, and re-verified before moving to review
+- [ ] **OR** \[N/A\] — this story has no observable runtime effect (pure refactor, tooling-only, docs-only). Justification: _______
+
+### Runtime Verification Evidence
+
+<!-- One entry per SN-2 validation scenario. Copy the scenario name exactly. -->
+
+1. **[Scenario name from SN-2]** — Verified: Yes/No
+   - URL visited: [e.g., http://localhost:3000/en/search]
+   - What was observed: [description or screenshot path]
+   - Issues found & resolved: [None / description of fix]
+
 ## Flow Owner (SN-4)
 
 <!-- Who is responsible for verifying the complete end-to-end flow works? -->
@@ -179,6 +224,7 @@ System axes: (1) DB queries/schema, (2) Services, (3) API routes, (4) UI compone
 - [ ] Unit tests written and passing
 - [ ] Integration tests written and passing (SN-3)
 - [ ] Flow owner has verified the complete end-to-end chain
+- [ ] **Runtime Smoke Test (SN-6): feature verified in running browser by human — not just unit tests** (see Runtime Verification Evidence above; OR marked N/A with justification)
 - [ ] No pre-existing test regressions introduced
 - [ ] Dev Completion: all i18n keys in Readiness inventory exist in `en.json` with English copy and render without missing-key warnings
 - [ ] Dev Completion: **Igbo translations added to `ig.json` for every key in the Readiness inventory** (deferred from SN-5 per i18n gate split)

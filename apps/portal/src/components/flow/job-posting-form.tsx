@@ -43,6 +43,9 @@ interface FormErrors {
   [key: string]: string | undefined;
 }
 
+/** Extract YYYY-MM-DD from either "2026-04-25" or "2026-04-25T00:00:00.000Z" */
+const toDateOnly = (v: string) => v.slice(0, 10);
+
 const DEFAULT_CULTURAL_CONTEXT: CulturalContext = {
   diasporaFriendly: false,
   igboLanguagePreferred: false,
@@ -155,6 +158,12 @@ export function JobPostingForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Cross-field validation: expiresAt must be on or after applicationDeadline
+    if (applicationDeadline && expiresAt && expiresAt < applicationDeadline) {
+      setErrors({ expiresAt: t("expiresBeforeDeadlineError") });
+      return;
+    }
+
     const parsed = jobPostingSchema.safeParse({
       title,
       employmentType: employmentType || undefined,
@@ -163,9 +172,11 @@ export function JobPostingForm({
       salaryMax: salaryMax ?? undefined,
       salaryCompetitiveOnly,
       applicationDeadline: applicationDeadline
-        ? new Date(applicationDeadline).toISOString()
+        ? new Date(toDateOnly(applicationDeadline) + "T23:59:59.999Z").toISOString()
         : undefined,
-      expiresAt: expiresAt ? new Date(expiresAt).toISOString() : undefined,
+      expiresAt: expiresAt
+        ? new Date(toDateOnly(expiresAt) + "T23:59:59.999Z").toISOString()
+        : undefined,
       descriptionHtml: descriptionHtml || undefined,
       requirements: requirementsHtml || undefined,
     });
@@ -195,7 +206,9 @@ export function JobPostingForm({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...parsed.data,
-          expiresAt: expiresAt ? new Date(expiresAt).toISOString() : null,
+          expiresAt: expiresAt
+            ? new Date(toDateOnly(expiresAt) + "T23:59:59.999Z").toISOString()
+            : null,
           culturalContextJson,
           descriptionIgboHtml: showIgboEditor && descriptionIgboHtml ? descriptionIgboHtml : null,
           ...(isEdit && { expectedUpdatedAt: initialData.updatedAt }),
@@ -388,6 +401,11 @@ export function JobPostingForm({
           className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
         />
         <p className="text-xs text-muted-foreground">{et("expiryDateHelp")}</p>
+        {errors.expiresAt && (
+          <p role="alert" className="text-xs text-destructive">
+            {errors.expiresAt}
+          </p>
+        )}
       </div>
 
       {/* Description (English Tiptap — lazy loaded) */}

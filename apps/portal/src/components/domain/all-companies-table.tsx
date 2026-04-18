@@ -64,7 +64,10 @@ export function AllCompaniesTable({ initialCompanies, initialTotal }: AllCompani
   const [total, setTotal] = useState(initialTotal);
   const [isLoading, setIsLoading] = useState(false);
   const [fetchError, setFetchError] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const isInitialMount = useRef(true);
+
+  useEffect(() => setMounted(true), []);
 
   const page = parseInt(searchParams.get("page") ?? "1", 10) || 1;
   const pageSize = parseInt(searchParams.get("pageSize") ?? "20", 10) || 20;
@@ -148,27 +151,32 @@ export function AllCompaniesTable({ initialCompanies, initialTotal }: AllCompani
           <label htmlFor="verification-filter" className="text-xs text-muted-foreground">
             {t("employersFilterVerification")}
           </label>
-          <Select
-            value={verificationFilter || "__all__"}
-            onValueChange={(val) =>
-              updateParams({ verification: val === "__all__" ? null : val, page: "1" })
-            }
-          >
-            <SelectTrigger
-              id="verification-filter"
-              className="h-8 w-44 text-xs"
-              aria-label={t("employersFilterVerification")}
+          {/* Client-only to avoid Radix aria-controls hydration mismatch */}
+          {mounted ? (
+            <Select
+              value={verificationFilter || "__all__"}
+              onValueChange={(val) =>
+                updateParams({ verification: val === "__all__" ? null : val, page: "1" })
+              }
             >
-              <SelectValue placeholder={t("employersFilterAll")} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__all__">{t("employersFilterAll")}</SelectItem>
-              <SelectItem value="verified">{t("employersStatusVerified")}</SelectItem>
-              <SelectItem value="pending">{t("employersStatusPending")}</SelectItem>
-              <SelectItem value="rejected">{t("employersStatusRejected")}</SelectItem>
-              <SelectItem value="unverified">{t("employersStatusUnverified")}</SelectItem>
-            </SelectContent>
-          </Select>
+              <SelectTrigger
+                id="verification-filter"
+                className="h-8 w-44 text-xs"
+                aria-label={t("employersFilterVerification")}
+              >
+                <SelectValue placeholder={t("employersFilterAll")} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">{t("employersFilterAll")}</SelectItem>
+                <SelectItem value="verified">{t("employersStatusVerified")}</SelectItem>
+                <SelectItem value="pending">{t("employersStatusPending")}</SelectItem>
+                <SelectItem value="rejected">{t("employersStatusRejected")}</SelectItem>
+                <SelectItem value="unverified">{t("employersStatusUnverified")}</SelectItem>
+              </SelectContent>
+            </Select>
+          ) : (
+            <div className="h-8 w-44 rounded-md border border-input text-xs" />
+          )}
         </div>
 
         {/* Clear filters */}

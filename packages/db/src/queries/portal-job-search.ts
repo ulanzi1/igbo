@@ -136,13 +136,13 @@ function buildOrderBy(
       // ts_rank is re-computed in ORDER BY — PostgreSQL does not expose SELECT
       // aliases in ORDER BY without a subquery. Double-compute is acceptable at
       // PoC scale (GIN index drives the primary filter, not rank computation).
-      return sql`ORDER BY ts_rank(search_vector, ${tsQuery}) DESC, created_at DESC, id::text ASC`;
+      return sql`ORDER BY ts_rank(pjp.search_vector, ${tsQuery}) DESC, pjp.created_at DESC, pjp.id::text ASC`;
     case "date":
-      return sql`ORDER BY created_at DESC, id::text ASC`;
+      return sql`ORDER BY pjp.created_at DESC, pjp.id::text ASC`;
     case "salary_asc":
-      return sql`ORDER BY salary_min ASC NULLS LAST, id::text ASC`;
+      return sql`ORDER BY pjp.salary_min ASC NULLS LAST, pjp.id::text ASC`;
     case "salary_desc":
-      return sql`ORDER BY salary_max DESC NULLS FIRST, id::text ASC`;
+      return sql`ORDER BY pjp.salary_max DESC NULLS FIRST, pjp.id::text ASC`;
   }
 }
 
@@ -153,7 +153,7 @@ function buildOrderByIgbo(
   // Same ORDER BY shapes but referencing search_vector_igbo for relevance sort.
   // date/salary sorts are identical between locales.
   if (sort === "relevance") {
-    return sql`ORDER BY ts_rank(search_vector_igbo, ${tsQuery}) DESC, created_at DESC, id::text ASC`;
+    return sql`ORDER BY ts_rank(pjp.search_vector_igbo, ${tsQuery}) DESC, pjp.created_at DESC, pjp.id::text ASC`;
   }
   return buildOrderBy(sort);
 }
@@ -187,41 +187,41 @@ function buildCursorPredicate(
     case "relevance": {
       const c = cursor as Extract<JobSearchCursor, { s: "relevance" }>;
       return sql`AND (
-        ts_rank(search_vector, ${tsQuery}) < ${c.rank}
-        OR (ts_rank(search_vector, ${tsQuery}) = ${c.rank} AND created_at < ${c.createdAt}::timestamptz)
-        OR (ts_rank(search_vector, ${tsQuery}) = ${c.rank} AND created_at = ${c.createdAt}::timestamptz AND id::text > ${c.id})
+        ts_rank(pjp.search_vector, ${tsQuery}) < ${c.rank}
+        OR (ts_rank(pjp.search_vector, ${tsQuery}) = ${c.rank} AND pjp.created_at < ${c.createdAt}::timestamptz)
+        OR (ts_rank(pjp.search_vector, ${tsQuery}) = ${c.rank} AND pjp.created_at = ${c.createdAt}::timestamptz AND pjp.id::text > ${c.id})
       )`;
     }
     case "date": {
       const c = cursor as Extract<JobSearchCursor, { s: "date" }>;
       return sql`AND (
-        created_at < ${c.createdAt}::timestamptz
-        OR (created_at = ${c.createdAt}::timestamptz AND id::text > ${c.id})
+        pjp.created_at < ${c.createdAt}::timestamptz
+        OR (pjp.created_at = ${c.createdAt}::timestamptz AND pjp.id::text > ${c.id})
       )`;
     }
     case "salary_asc": {
       const c = cursor as Extract<JobSearchCursor, { s: "salary_asc" }>;
       if (c.salaryMin === null) {
         // Case B: cursor is in the NULL tail — only NULL-salary rows remain
-        return sql`AND salary_min IS NULL AND id::text > ${c.id}`;
+        return sql`AND pjp.salary_min IS NULL AND pjp.id::text > ${c.id}`;
       }
       // Case A: cursor is in the non-null head
       return sql`AND (
-        (salary_min IS NOT NULL AND salary_min > ${c.salaryMin})
-        OR (salary_min IS NOT NULL AND salary_min = ${c.salaryMin} AND id::text > ${c.id})
-        OR (salary_min IS NULL)
+        (pjp.salary_min IS NOT NULL AND pjp.salary_min > ${c.salaryMin})
+        OR (pjp.salary_min IS NOT NULL AND pjp.salary_min = ${c.salaryMin} AND pjp.id::text > ${c.id})
+        OR (pjp.salary_min IS NULL)
       )`;
     }
     case "salary_desc": {
       const c = cursor as Extract<JobSearchCursor, { s: "salary_desc" }>;
       if (c.salaryMax === null) {
         // Case A: cursor is in the NULL head (NULLs sort first in DESC NULLS FIRST)
-        return sql`AND salary_max IS NULL AND id::text > ${c.id}`;
+        return sql`AND pjp.salary_max IS NULL AND pjp.id::text > ${c.id}`;
       }
       // Case B: cursor is in the non-null body (past all NULLs)
-      return sql`AND salary_max IS NOT NULL AND (
-        salary_max < ${c.salaryMax}
-        OR (salary_max = ${c.salaryMax} AND id::text > ${c.id})
+      return sql`AND pjp.salary_max IS NOT NULL AND (
+        pjp.salary_max < ${c.salaryMax}
+        OR (pjp.salary_max = ${c.salaryMax} AND pjp.id::text > ${c.id})
       )`;
     }
   }
@@ -242,9 +242,9 @@ function buildCursorPredicateIgbo(
   if (cursor.s !== sort) return sql``;
   const c = cursor as Extract<JobSearchCursor, { s: "relevance" }>;
   return sql`AND (
-    ts_rank(search_vector_igbo, ${tsQuery}) < ${c.rank}
-    OR (ts_rank(search_vector_igbo, ${tsQuery}) = ${c.rank} AND created_at < ${c.createdAt}::timestamptz)
-    OR (ts_rank(search_vector_igbo, ${tsQuery}) = ${c.rank} AND created_at = ${c.createdAt}::timestamptz AND id::text > ${c.id})
+    ts_rank(pjp.search_vector_igbo, ${tsQuery}) < ${c.rank}
+    OR (ts_rank(pjp.search_vector_igbo, ${tsQuery}) = ${c.rank} AND pjp.created_at < ${c.createdAt}::timestamptz)
+    OR (ts_rank(pjp.search_vector_igbo, ${tsQuery}) = ${c.rank} AND pjp.created_at = ${c.createdAt}::timestamptz AND pjp.id::text > ${c.id})
   )`;
 }
 
@@ -348,7 +348,7 @@ export async function searchJobPostings({
         created_at::text,
         ts_rank(search_vector_igbo, ${tsQuery})::text AS relevance,
         ts_headline('simple', ${snippetSource}, ${tsQuery}, ${TS_HEADLINE_OPTIONS}) AS snippet
-      FROM portal_job_postings
+      FROM portal_job_postings pjp
       WHERE status = 'active'
         AND archived_at IS NULL
         AND search_vector_igbo @@ ${tsQuery}
@@ -377,7 +377,7 @@ export async function searchJobPostings({
       created_at::text,
       ts_rank(search_vector, ${tsQuery})::text AS relevance,
       ts_headline('english', ${snippetSource}, ${tsQuery}, ${TS_HEADLINE_OPTIONS}) AS snippet
-    FROM portal_job_postings
+    FROM portal_job_postings pjp
     WHERE status = 'active'
       AND archived_at IS NULL
       AND search_vector @@ ${tsQuery}
@@ -434,6 +434,7 @@ export interface FilteredJobSearchResult {
   id: string;
   title: string;
   company_name: string | null;
+  company_id: string | null; // Added in P-4.1B — additive projection of portal_job_postings.company_id
   logo_url: string | null;
   location: string | null;
   salary_min: number | null;
@@ -503,13 +504,16 @@ export function buildFilterPredicate(
   const parts: ReturnType<typeof sql>[] = [];
 
   // Status gate — always applied
+  // HOTFIX: Deadline predicate duplicated across 5 functions (buildFilterPredicate,
+  // getFeaturedJobPostings, getIndustryCategoryCounts, getRecentJobPostings,
+  // getSimilarJobPostings). Changes must be applied to ALL locations.
   parts.push(
-    sql`status = 'active' AND archived_at IS NULL AND (application_deadline IS NULL OR application_deadline > NOW())`,
+    sql`pjp.status = 'active' AND pjp.archived_at IS NULL AND (pjp.application_deadline IS NULL OR pjp.application_deadline >= CURRENT_DATE)`,
   );
 
   // Location filter (OR within)
   if (excludeFacet !== "location" && Array.isArray(f.location) && f.location.length > 0) {
-    parts.push(sql`AND location = ANY(${f.location})`);
+    parts.push(sql`AND pjp.location = ANY(${f.location})`);
   }
 
   // Employment type filter (OR within, cast to enum)
@@ -518,13 +522,13 @@ export function buildFilterPredicate(
     Array.isArray(f.employmentType) &&
     f.employmentType.length > 0
   ) {
-    parts.push(sql`AND employment_type = ANY(${f.employmentType}::portal_employment_type[])`);
+    parts.push(sql`AND pjp.employment_type = ANY(${f.employmentType}::portal_employment_type[])`);
   }
 
   // Industry filter (OR within, subquery to portal_company_profiles)
   if (excludeFacet !== "industry" && Array.isArray(f.industry) && f.industry.length > 0) {
     parts.push(
-      sql`AND company_id IN (SELECT id FROM portal_company_profiles WHERE industry = ANY(${f.industry}))`,
+      sql`AND pjp.company_id IN (SELECT id FROM portal_company_profiles WHERE industry = ANY(${f.industry}))`,
     );
   }
 
@@ -532,10 +536,10 @@ export function buildFilterPredicate(
   // See docs/decisions/search-cache-strategy.md §Decision 4.
   if (excludeFacet !== "salaryRange") {
     if (f.salaryMin !== undefined && f.salaryMin !== null) {
-      parts.push(sql`AND (salary_max IS NULL OR salary_max >= ${f.salaryMin})`);
+      parts.push(sql`AND (pjp.salary_max IS NULL OR pjp.salary_max >= ${f.salaryMin})`);
     }
     if (f.salaryMax !== undefined && f.salaryMax !== null) {
-      parts.push(sql`AND (salary_min IS NULL OR salary_min <= ${f.salaryMax})`);
+      parts.push(sql`AND (pjp.salary_min IS NULL OR pjp.salary_min <= ${f.salaryMax})`);
     }
   }
 
@@ -544,20 +548,20 @@ export function buildFilterPredicate(
   // stop-gap. See docs/decisions/search-cache-strategy.md §Decision 5.
   if (f.remote === true) {
     parts.push(
-      sql`AND (location ~* 'remote' OR (cultural_context_json->>'diasporaFriendly')::boolean = true)`,
+      sql`AND (pjp.location ~* 'remote' OR (pjp.cultural_context_json->>'diasporaFriendly')::boolean = true)`,
     );
   }
 
   // Cultural context filters (JSONB boolean predicates)
   if (f.culturalContext?.diasporaFriendly === true) {
-    parts.push(sql`AND (cultural_context_json->>'diasporaFriendly')::boolean = true`);
+    parts.push(sql`AND (pjp.cultural_context_json->>'diasporaFriendly')::boolean = true`);
   }
   if (f.culturalContext?.igboPreferred === true) {
     // igboPreferred in request → igboLanguagePreferred in DB JSONB
-    parts.push(sql`AND (cultural_context_json->>'igboLanguagePreferred')::boolean = true`);
+    parts.push(sql`AND (pjp.cultural_context_json->>'igboLanguagePreferred')::boolean = true`);
   }
   if (f.culturalContext?.communityReferred === true) {
-    parts.push(sql`AND (cultural_context_json->>'communityReferred')::boolean = true`);
+    parts.push(sql`AND (pjp.cultural_context_json->>'communityReferred')::boolean = true`);
   }
 
   // Combine with sql join (drizzle-orm doesn't have a join util; inline)
@@ -660,6 +664,7 @@ export async function searchJobPostingsWithFilters({
         pjp.id::text,
         pjp.title,
         cp.name AS company_name,
+        pjp.company_id::text AS company_id,
         cp.logo_url,
         pjp.location,
         pjp.salary_min,
@@ -699,6 +704,7 @@ export async function searchJobPostingsWithFilters({
       pjp.id::text,
       pjp.title,
       cp.name AS company_name,
+      pjp.company_id::text AS company_id,
       cp.logo_url,
       pjp.location,
       pjp.salary_min,
@@ -834,8 +840,16 @@ export async function getJobSearchFacets(
       LEFT JOIN portal_company_profiles cp ON cp.id = pjp.company_id
       WHERE ${buildFilterPredicate(filters, locale, "salaryRange")}
         ${ftsClause()}
-      GROUP BY bucket
-      HAVING bucket IS NOT NULL
+      GROUP BY 1
+      HAVING
+        CASE
+          WHEN pjp.salary_competitive_only = true THEN 'competitive'
+          WHEN pjp.salary_min < 50000 OR (pjp.salary_min IS NULL AND pjp.salary_max < 50000) THEN '<50k'
+          WHEN pjp.salary_min < 100000 OR (pjp.salary_min IS NULL AND pjp.salary_max < 100000) THEN '50k-100k'
+          WHEN pjp.salary_min < 200000 OR (pjp.salary_min IS NULL AND pjp.salary_max < 200000) THEN '100k-200k'
+          WHEN pjp.salary_min >= 200000 THEN '>200k'
+          ELSE NULL
+        END IS NOT NULL
       ORDER BY count DESC
     `),
   ]);
@@ -920,4 +934,395 @@ export async function getJobSearchTotalCount(
 
   const result = rows as unknown as { count: number }[];
   return result[0]?.count ?? 0;
+}
+
+// ---------------------------------------------------------------------------
+// P-4.2 — Discovery page queries
+// ---------------------------------------------------------------------------
+
+/**
+ * Discovery job result — same shape as FilteredJobSearchResult minus relevance and snippet.
+ * Used by getFeaturedJobPostings and getRecentJobPostings.
+ */
+export type DiscoveryJobResult = Omit<FilteredJobSearchResult, "relevance" | "snippet">;
+
+/** Industry category with active posting count — returned by getIndustryCategoryCounts */
+export interface IndustryCategoryCount {
+  industry: string;
+  count: number;
+}
+
+/**
+ * Returns up to `limit` featured active job postings ordered by created_at DESC.
+ *
+ * Gate: status = 'active' AND archived_at IS NULL AND is_featured = true
+ *       AND (application_deadline IS NULL OR application_deadline > NOW())
+ *
+ * Uses db.execute() raw SQL — same pattern as searchJobPostingsWithFilters.
+ */
+export async function getFeaturedJobPostings(limit: number): Promise<DiscoveryJobResult[]> {
+  const rows = (await db.execute(sql`
+    SELECT
+      pjp.id::text,
+      pjp.title,
+      cp.name AS company_name,
+      pjp.company_id::text AS company_id,
+      cp.logo_url,
+      pjp.location,
+      pjp.salary_min,
+      pjp.salary_max,
+      pjp.salary_competitive_only,
+      pjp.employment_type,
+      pjp.cultural_context_json,
+      pjp.application_deadline::text,
+      pjp.created_at::text
+    FROM portal_job_postings pjp
+    LEFT JOIN portal_company_profiles cp ON cp.id = pjp.company_id
+    WHERE pjp.status = 'active'
+      AND pjp.archived_at IS NULL
+      AND pjp.is_featured = true
+      -- HOTFIX: Deadline predicate duplicated across 5 functions (buildFilterPredicate,
+      -- getFeaturedJobPostings, getIndustryCategoryCounts, getRecentJobPostings,
+      -- getSimilarJobPostings). Changes must be applied to ALL locations.
+      AND (pjp.application_deadline IS NULL OR pjp.application_deadline >= CURRENT_DATE)
+    ORDER BY pjp.created_at DESC
+    LIMIT ${limit}
+  `)) as unknown as DiscoveryJobResult[];
+  return rows;
+}
+
+/**
+ * Returns industry category counts for active non-archived non-expired postings.
+ *
+ * JOINs to portal_company_profiles to get the industry field (lives on company, not posting).
+ * Excludes categories with zero postings. Sorted by count DESC.
+ *
+ * Status gate is identical to buildFilterPredicate:
+ *   status = 'active' AND archived_at IS NULL AND (application_deadline IS NULL OR application_deadline >= CURRENT_DATE)
+ */
+export async function getIndustryCategoryCounts(): Promise<IndustryCategoryCount[]> {
+  const rows = (await db.execute(sql`
+    SELECT
+      cp.industry,
+      COUNT(*)::int AS count
+    FROM portal_job_postings pjp
+    INNER JOIN portal_company_profiles cp ON cp.id = pjp.company_id
+    WHERE pjp.status = 'active'
+      AND pjp.archived_at IS NULL
+      -- HOTFIX: Deadline predicate duplicated across 5 functions (buildFilterPredicate,
+      -- getFeaturedJobPostings, getIndustryCategoryCounts, getRecentJobPostings,
+      -- getSimilarJobPostings). Changes must be applied to ALL locations.
+      AND (pjp.application_deadline IS NULL OR pjp.application_deadline >= CURRENT_DATE)
+      AND cp.industry IS NOT NULL
+    GROUP BY cp.industry
+    HAVING COUNT(*) > 0
+    ORDER BY count DESC
+  `)) as unknown as IndustryCategoryCount[];
+  return rows;
+}
+
+// ---------------------------------------------------------------------------
+// P-4.5 — Match scoring batch query
+// ---------------------------------------------------------------------------
+
+/**
+ * Minimal projection for match score computation.
+ * Returns only the fields needed by computeMatchScore — no large columns.
+ */
+export interface JobMatchProjection {
+  id: string;
+  requirements: string | null;
+  location: string | null;
+  employmentType: string;
+}
+
+/**
+ * Fetches minimal projections for up to 50 active job IDs.
+ *
+ * Used by GET /api/v1/jobs/match-scores to compute per-user match scores without
+ * loading full job postings. Filters status = 'active' to avoid scoring archived
+ * or inactive jobs.
+ *
+ * Caller is responsible for capping the input list at 50 IDs.
+ */
+export async function getJobPostingsForMatching(jobIds: string[]): Promise<JobMatchProjection[]> {
+  if (jobIds.length === 0) return [];
+  // Cap to 50 as a safety guard (callers should enforce this too)
+  const safeIds = jobIds.slice(0, 50);
+  const rows = (await db.execute(sql`
+    SELECT
+      id::text,
+      requirements,
+      location,
+      employment_type AS "employmentType"
+    FROM portal_job_postings
+    WHERE status = 'active'
+      AND archived_at IS NULL
+      AND id = ANY(${safeIds}::uuid[])
+  `)) as unknown as JobMatchProjection[];
+  return rows;
+}
+
+/**
+ * Returns up to `limit` most recently activated active job postings ordered by created_at DESC.
+ *
+ * Same status gate as getFeaturedJobPostings but without the is_featured filter.
+ */
+export async function getRecentJobPostings(limit: number): Promise<DiscoveryJobResult[]> {
+  const rows = (await db.execute(sql`
+    SELECT
+      pjp.id::text,
+      pjp.title,
+      cp.name AS company_name,
+      pjp.company_id::text AS company_id,
+      cp.logo_url,
+      pjp.location,
+      pjp.salary_min,
+      pjp.salary_max,
+      pjp.salary_competitive_only,
+      pjp.employment_type,
+      pjp.cultural_context_json,
+      pjp.application_deadline::text,
+      pjp.created_at::text
+    FROM portal_job_postings pjp
+    LEFT JOIN portal_company_profiles cp ON cp.id = pjp.company_id
+    WHERE pjp.status = 'active'
+      AND pjp.archived_at IS NULL
+      -- HOTFIX: Deadline predicate duplicated across 5 functions (buildFilterPredicate,
+      -- getFeaturedJobPostings, getIndustryCategoryCounts, getRecentJobPostings,
+      -- getSimilarJobPostings). Changes must be applied to ALL locations.
+      AND (pjp.application_deadline IS NULL OR pjp.application_deadline >= CURRENT_DATE)
+    ORDER BY pjp.created_at DESC
+    LIMIT ${limit}
+  `)) as unknown as DiscoveryJobResult[];
+  return rows;
+}
+
+// ---------------------------------------------------------------------------
+// findNewPostingsForAlert — digest cron query
+// ---------------------------------------------------------------------------
+
+/** Minimal projection returned by findNewPostingsForAlert */
+export interface AlertJobResult {
+  id: string;
+  title: string;
+  companyName: string | null;
+  location: string | null;
+}
+
+/**
+ * Finds active job postings updated since `sinceTimestamp` that match
+ * the given search params. Used by the daily digest cron to detect new
+ * matches per saved search.
+ *
+ * Key design decisions:
+ * - Uses `updated_at > sinceTimestamp` (NOT created_at) because postings
+ *   may be drafted days before activation; updated_at is set on status
+ *   transition to 'active'.
+ * - Applies the same filter predicates as searchJobPostingsWithFilters.
+ * - Applies FTS via plainto_tsquery when query is present.
+ * - No cursor pagination (batch evaluation; capped at 20 results).
+ * - No Redis cache (one-time evaluation per cron run).
+ */
+export async function findNewPostingsForAlert(
+  searchParams: { query?: string | null; filters?: JobSearchFilters },
+  sinceTimestamp: Date,
+): Promise<AlertJobResult[]> {
+  const ALERT_LIMIT = 20;
+  const trimmedQuery = searchParams.query?.trim() ?? "";
+  const hasQuery = trimmedQuery.length > 0;
+
+  const filterPredicate = buildFilterPredicate(searchParams.filters, "en");
+
+  if (hasQuery) {
+    const tsQuery = sql`plainto_tsquery('english', ${trimmedQuery})`;
+    const rows = (await db.execute(sql`
+      SELECT
+        pjp.id::text,
+        pjp.title,
+        cp.name AS company_name,
+        pjp.location
+      FROM portal_job_postings pjp
+      LEFT JOIN portal_company_profiles cp ON cp.id = pjp.company_id
+      WHERE ${filterPredicate}
+        AND pjp.updated_at > ${sinceTimestamp}
+        AND pjp.search_vector @@ ${tsQuery}
+      ORDER BY pjp.updated_at DESC
+      LIMIT ${ALERT_LIMIT}
+    `)) as unknown as Array<{
+      id: string;
+      title: string;
+      company_name: string | null;
+      location: string | null;
+    }>;
+
+    return rows.map((r) => ({
+      id: r.id,
+      title: r.title,
+      companyName: r.company_name,
+      location: r.location,
+    }));
+  }
+
+  // No query — filter-only match
+  const rows = (await db.execute(sql`
+    SELECT
+      pjp.id::text,
+      pjp.title,
+      cp.name AS company_name,
+      pjp.location
+    FROM portal_job_postings pjp
+    LEFT JOIN portal_company_profiles cp ON cp.id = pjp.company_id
+    WHERE ${filterPredicate}
+      AND pjp.updated_at > ${sinceTimestamp}
+    ORDER BY pjp.updated_at DESC
+    LIMIT ${ALERT_LIMIT}
+  `)) as unknown as Array<{
+    id: string;
+    title: string;
+    company_name: string | null;
+    location: string | null;
+  }>;
+
+  return rows.map((r) => ({
+    id: r.id,
+    title: r.title,
+    companyName: r.company_name,
+    location: r.location,
+  }));
+}
+
+// ---------------------------------------------------------------------------
+// P-4.7 — Similar job postings query
+// ---------------------------------------------------------------------------
+
+/** Internal extended shape — includes requirements for app-side scoring only. */
+type SimilarJobCandidate = DiscoveryJobResult & { requirements: string | null };
+
+/**
+ * Extracts keyword tokens from a requirements string for overlap scoring.
+ * Splits on whitespace, lowercases, strips non-alphanumeric, filters >= 3 chars,
+ * deduplicates, caps at 20 tokens.
+ *
+ * Exported for unit testing.
+ */
+export function extractSimilarJobTokens(text: string | null): string[] {
+  if (!text) return [];
+  const seen = new Set<string>();
+  const tokens: string[] = [];
+  for (const word of text.split(/\s+/)) {
+    const lower = word.toLowerCase().replace(/[^a-z0-9]/g, "");
+    if (lower.length >= 3 && !seen.has(lower)) {
+      seen.add(lower);
+      tokens.push(lower);
+      if (tokens.length >= 20) break;
+    }
+  }
+  return tokens;
+}
+
+/** Counts how many source tokens appear as substrings in the candidate requirements. */
+function scoreKeywordOverlap(tokens: string[], candidateRequirements: string | null): number {
+  if (!candidateRequirements || tokens.length === 0) return 0;
+  const lower = candidateRequirements.toLowerCase();
+  return tokens.filter((t) => lower.includes(t)).length;
+}
+
+/** Returns 2 for exact location match, 1 for city-level match, 0 otherwise. */
+function scoreLocation(sourceLocation: string | null, candidateLocation: string | null): number {
+  if (!sourceLocation || !candidateLocation) return 0;
+  const src = sourceLocation.toLowerCase();
+  const cand = candidateLocation.toLowerCase();
+  if (src === cand) return 2;
+  const city = src.split(",")[0]?.trim();
+  if (city && city.length >= 2 && cand.includes(city)) return 1;
+  return 0;
+}
+
+/**
+ * Returns up to `limit` similar job postings using deterministic criteria:
+ *   (a) same industry category (required — INNER JOIN on company industry)
+ *   (b) keyword overlap from requirements text (scored app-side)
+ *   (c) location proximity (city-level match scored app-side)
+ *
+ * Uses Approach B (app-side scoring): fetches up to 30 candidates matching
+ * industry + status gates, then scores and ranks in TypeScript.
+ *
+ * Status gate: status = 'active' AND archived_at IS NULL
+ *   AND (application_deadline IS NULL OR application_deadline > NOW())
+ * Excludes the current posting (jobId).
+ *
+ * Ranking: keyword_overlap DESC, location_score DESC, created_at DESC.
+ */
+export async function getSimilarJobPostings(
+  jobId: string,
+  companyIndustry: string,
+  requirements: string | null,
+  location: string | null,
+  limit = 6,
+): Promise<DiscoveryJobResult[]> {
+  const CANDIDATE_LIMIT = 30;
+
+  const rows = (await db.execute(sql`
+    SELECT
+      pjp.id::text,
+      pjp.title,
+      cp.name AS company_name,
+      pjp.company_id::text AS company_id,
+      cp.logo_url,
+      pjp.location,
+      pjp.salary_min,
+      pjp.salary_max,
+      pjp.salary_competitive_only,
+      pjp.employment_type,
+      pjp.cultural_context_json,
+      pjp.application_deadline::text,
+      pjp.created_at::text,
+      pjp.requirements
+    FROM portal_job_postings pjp
+    INNER JOIN portal_company_profiles cp ON cp.id = pjp.company_id
+    WHERE cp.industry = ${companyIndustry}
+      AND pjp.status = 'active'
+      AND pjp.archived_at IS NULL
+      -- HOTFIX: Deadline predicate duplicated across 5 functions (buildFilterPredicate,
+      -- getFeaturedJobPostings, getIndustryCategoryCounts, getRecentJobPostings,
+      -- getSimilarJobPostings). Changes must be applied to ALL locations.
+      AND (pjp.application_deadline IS NULL OR pjp.application_deadline >= CURRENT_DATE)
+      AND pjp.id::text != ${jobId}
+    ORDER BY pjp.created_at DESC
+    LIMIT ${CANDIDATE_LIMIT}
+  `)) as unknown as SimilarJobCandidate[];
+
+  // App-side scoring
+  const tokens = extractSimilarJobTokens(requirements);
+
+  const scored = rows.map((row) => ({
+    row,
+    keywordOverlap: scoreKeywordOverlap(tokens, row.requirements),
+    locationScore: scoreLocation(location, row.location),
+  }));
+
+  // Sort: keyword overlap DESC, location score DESC (created_at already DESC from DB)
+  scored.sort((a, b) => {
+    if (b.keywordOverlap !== a.keywordOverlap) return b.keywordOverlap - a.keywordOverlap;
+    if (b.locationScore !== a.locationScore) return b.locationScore - a.locationScore;
+    return 0;
+  });
+
+  // Return top `limit` as DiscoveryJobResult[] (drop requirements — scoring only)
+  return scored.slice(0, limit).map(({ row }) => ({
+    id: row.id,
+    title: row.title,
+    company_name: row.company_name,
+    company_id: row.company_id,
+    logo_url: row.logo_url,
+    location: row.location,
+    salary_min: row.salary_min,
+    salary_max: row.salary_max,
+    salary_competitive_only: row.salary_competitive_only,
+    employment_type: row.employment_type,
+    cultural_context_json: row.cultural_context_json,
+    application_deadline: row.application_deadline,
+    created_at: row.created_at,
+  }));
 }

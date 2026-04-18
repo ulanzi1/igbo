@@ -65,7 +65,6 @@ const DISMISSED_FLAG = {
 
 const BASE_PROPS = {
   postingTitle: "Software Engineer",
-  onFlagResolved: vi.fn(),
 };
 
 beforeEach(() => {

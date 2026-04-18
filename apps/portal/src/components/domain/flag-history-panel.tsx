@@ -11,7 +11,6 @@ import type { PortalAdminFlag } from "@igbo/db/schema/portal-admin-flags";
 interface FlagHistoryPanelProps {
   flags: PortalAdminFlag[];
   postingTitle: string;
-  onFlagResolved: () => void;
 }
 
 function severityBadgeClass(severity: string): string {
@@ -34,7 +33,7 @@ function statusBadgeClass(status: string): string {
   );
 }
 
-export function FlagHistoryPanel({ flags, postingTitle, onFlagResolved }: FlagHistoryPanelProps) {
+export function FlagHistoryPanel({ flags, postingTitle }: FlagHistoryPanelProps) {
   const t = useTranslations("Portal.admin");
   const format = useFormatter();
   const router = useRouter();
@@ -177,7 +176,6 @@ export function FlagHistoryPanel({ flags, postingTitle, onFlagResolved }: FlagHi
           onSuccess={() => {
             setResolveModalOpen(false);
             setSelectedFlagId(null);
-            onFlagResolved();
             router.refresh();
           }}
         />

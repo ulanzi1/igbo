@@ -319,3 +319,29 @@ export async function getJobPostingShareStatus(jobId: string): Promise<string | 
   if (!row) return undefined;
   return row.communityPostId ?? null;
 }
+
+export interface SitemapPostingEntry {
+  id: string;
+  updatedAt: Date;
+}
+
+/**
+ * Returns all active job postings suitable for inclusion in sitemap.xml.
+ *
+ * Gate: status = 'active' AND archived_at IS NULL
+ *       AND (application_deadline IS NULL OR application_deadline > NOW())
+ *
+ * Ordered by updated_at DESC (most recently updated first).
+ * Uses db.execute() raw SQL — same pattern as getFeaturedJobPostings.
+ */
+export async function getActivePostingUrlsForSitemap(): Promise<SitemapPostingEntry[]> {
+  const rows = (await db.execute(sql`
+    SELECT pjp.id::text, pjp.updated_at
+    FROM portal_job_postings pjp
+    WHERE pjp.status = 'active'
+      AND pjp.archived_at IS NULL
+      AND (pjp.application_deadline IS NULL OR pjp.application_deadline > NOW())
+    ORDER BY pjp.updated_at DESC
+  `)) as Array<{ id: string; updated_at: Date }>;
+  return rows.map((r) => ({ id: r.id, updatedAt: r.updated_at }));
+}

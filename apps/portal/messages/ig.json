@@ -7,6 +7,7 @@
       "apprenticeships": "Ọzụzụ Ọrụ",
       "myApplications": "Ngwa M",
       "savedJobs": "Ọrụ Ndị Echekwara",
+      "savedSearches": "Nchọta Ndị Echekwara",
       "dashboard": "Dashibọọdụ",
       "myJobs": "Ọrụ M",
       "applications": "Ngwa",
@@ -32,7 +33,8 @@
       "auditLog": "Ndekọ nyocha",
       "allPostings": "Ntinye niile",
       "employers": "Ndị Ọrụ Na-enye",
-      "logout": "Pụọ"
+      "logout": "Pụọ",
+      "discover": "Chọpụta Ọrụ"
     },
     "role": {
       "seeker": "Onye Na-achọ Ọrụ",
@@ -52,7 +54,13 @@
     },
     "guest": {
       "loginPrompt": "Banye iji tinye akwụkwọ maka ọrụ",
-      "joinPrompt": "Sonye obodo ka ịmalite"
+      "joinPrompt": "Sonye obodo ka ịmalite",
+      "signInToApply": "Banye iji tinye akwụkwọ maka ọrụ",
+      "conversionBannerTitle": "Ọ dị njikere isi tinye akwụkwọ?",
+      "conversionBannerDescription": "Sonye obodo OBIGBO iji tinye akwụkwọ maka ọrụ ma soro ngwa gị",
+      "conversionBannerSignIn": "Banye",
+      "conversionBannerRegister": "Mepụta Akaụntụ",
+      "dismissBanner": "Kagbuo"
     },
     "meta": {
       "title": "Ụlọ Ọrụ OBIGBO",
@@ -168,7 +176,8 @@
         "full_time": "Oge Niile",
         "part_time": "Oge Ụfọdụ",
         "contract": "Nkwekọrịta",
-        "internship": "Ọzụzụ Ọrụ"
+        "internship": "Ọzụzụ Ọrụ",
+        "apprenticeship": "TODO(ig-translations): Apprenticeship"
       },
       "saveChanges": "Chekwaa Mgbanwe",
       "updated": "Edeziri ntinye ọrụ",
@@ -186,7 +195,8 @@
         "filled_via_portal": "Juputara Site n'Portal",
         "filled_internally": "Juputara N'ime",
         "cancelled": "Kagbuworo"
-      }
+      },
+      "expiresBeforeDeadlineError": "Ụbọchị mmechi nzipu ọrụ ga-abụ n'ụbọchị ntinye akwụkwọ ma ọ bụ mgbe nke ahụ gasịrị"
     },
     "culturalContext": {
       "title": "Omenala",
@@ -285,7 +295,9 @@
       "extendSuccess": "Agọsaara ntinye ma malitegharịa ya",
       "mustBeFutureDate": "Ụbọchị njedebe ga-abụ n'ọdịnihu",
       "editAndRenew": "Dezie & Malitegharị",
-      "renewRequiresReview": "Idezie ọdịnaya n'oge malitegharị achọrọ nkwado ọzọ n'aka onye nlekọta"
+      "renewRequiresReview": "Idezie ọdịnaya n'oge malitegharị achọrọ nkwado ọzọ n'aka onye nlekọta",
+      "applicationDeadlineDate": "Ntinye akwụkwọ na-emechi {date}",
+      "deadlinePassed": "Oge njedebe agafeela"
     },
     "templates": {
       "useTemplate": "Jiri Ngbanwe",
@@ -373,7 +385,28 @@
       "salaryUpTo": "Ruo ${amount}",
       "salaryRange": "${min} – ${max}",
       "jobDescription": "Nkọwa Ọrụ",
-      "requirements": "Ihe A Chọrọ"
+      "requirements": "Ihe A Chọrọ",
+      "descriptionTab": "Nkọwa",
+      "companyInfoTab": "Ozi Ụlọ Ọrụ",
+      "similarJobsTab": "Ọrụ ndị yiri ya",
+      "expiredBanner": "Ntinye ọrụ a agwụla oge ya",
+      "expiredSearchLink": "Chọọ ọrụ ndị yiri ya",
+      "filledBanner": "Ọrụ a emelawo ka mmadụ",
+      "filledBrowseLink": "Lelee ọrụ ndị ọzọ",
+      "signInToApply": "Banye iji mee arịọ",
+      "appliedOn": "Arịọ emere na {date}",
+      "aboutCompany": "Maka {company}",
+      "companyIndustry": "Ụlọ ọrụ",
+      "companySize": "Ogo ụlọ ọrụ",
+      "companyCulture": "Omenala na Ọnọdụ",
+      "similarJobsHeading": "Ọrụ ndị yiri ya",
+      "similarJobsLoading": "Na-achọ ọrụ ndị yiri ya...",
+      "similarJobsEmpty": "Enweghị ọrụ ndị yiri ya ugbu a.",
+      "similarJobsBrowse": "Lelee ọrụ niile",
+      "similarJobsError": "Enweghị ike ibugo ọrụ ndị yiri ya. Biko nwaa ọzọ.",
+      "postedAgo": "Etinyere {time}",
+      "pageTitle": "{title} na {company}",
+      "backToJobs": "Laghachi na ọrụ ndị"
     },
     "admin": {
       "reviewQueue": "Usoro Nyocha",
@@ -752,7 +785,8 @@
       "employersEmptyState": "Ahụghị ụlọ ọrụ ọ bụla",
       "employersEmptyStateDescription": "Ọ dịghị ụlọ ọrụ dabara na nzacha ugbu a.",
       "employersFetchError": "Enweghị ike ibu ndị ọrụ na-enye. Na-egosi data gara aga.",
-      "employersViewPostings": "Lelee ntinye maka {company}"
+      "employersViewPostings": "Lelee ntinye maka {company}",
+      "postingDeadline": "Oge njedebe"
     },
     "verification": {
       "title": "Gosipụta ụlọ ọrụ gị",
@@ -1193,6 +1227,151 @@
         "error": "Ọ dajụọ ibupụ ndị na-achọ ọrụ",
         "ariaButton": "Bupụ ndị na-achọ ọrụ niile dị ka CSV"
       }
+    },
+    "search": {
+      "pageTitle": "TODO(ig-translations): Find Jobs",
+      "heading": "TODO(ig-translations): Search Jobs",
+      "searchBarPlaceholder": "TODO(ig-translations): Search jobs by title, company, or skill…",
+      "searchBarAriaLabel": "TODO(ig-translations): Search jobs",
+      "clearSearchAriaLabel": "TODO(ig-translations): Clear search",
+      "filtersHeading": "TODO(ig-translations): Filters",
+      "openFiltersButton": "TODO(ig-translations): Filter",
+      "openFiltersAriaLabel": "TODO(ig-translations): Open filters",
+      "closeFiltersAriaLabel": "TODO(ig-translations): Close filters",
+      "activeFilterCount": "{count}",
+      "activeFiltersAriaLabel": "TODO(ig-translations): Active filters",
+      "clearAll": "TODO(ig-translations): Clear all",
+      "removeFilterAriaLabel": "TODO(ig-translations): Remove filter {value}",
+      "filterGroup": {
+        "location": "TODO(ig-translations): Location",
+        "employmentType": "TODO(ig-translations): Employment Type",
+        "industry": "TODO(ig-translations): Industry",
+        "salary": "TODO(ig-translations): Salary Range",
+        "remote": "TODO(ig-translations): Remote",
+        "culturalContext": "TODO(ig-translations): Cultural Context"
+      },
+      "facet": {
+        "location": {
+          "zero": "TODO(ig-translations): No matches"
+        }
+      },
+      "salary": {
+        "min": "TODO(ig-translations): Minimum",
+        "max": "TODO(ig-translations): Maximum",
+        "chipMin": "TODO(ig-translations): Min ₦{amount}",
+        "chipMax": "TODO(ig-translations): Max ₦{amount}",
+        "bucket": {
+          "<50k": "TODO(ig-translations): Under ₦50k",
+          "50k-100k": "TODO(ig-translations): ₦50k – ₦100k",
+          "100k-200k": "TODO(ig-translations): ₦100k – ₦200k",
+          ">200k": "TODO(ig-translations): ₦200k+",
+          "competitive": "TODO(ig-translations): Competitive"
+        },
+        "competitiveTooltip": "TODO(ig-translations): Competitive salary postings (filter coming in a future release)"
+      },
+      "remote": {
+        "label": "TODO(ig-translations): Remote only"
+      },
+      "sort": {
+        "label": "TODO(ig-translations): Sort by",
+        "relevance": "TODO(ig-translations): Relevance",
+        "date": "TODO(ig-translations): Newest First",
+        "salary_desc": "TODO(ig-translations): Salary: High to Low",
+        "salary_asc": "TODO(ig-translations): Salary: Low to High"
+      },
+      "sortFallbackNotice": "TODO(ig-translations): Sorted by newest — enter a search term for relevance ranking",
+      "sortFallbackNoticeAriaLabel": "TODO(ig-translations): Sort order notice",
+      "resultsSummary": "TODO(ig-translations): Showing {shown} of {total} {total, plural, one {result} other {results}}",
+      "resultsSummaryUpdating": "TODO(ig-translations): Updating…",
+      "loadMore": "TODO(ig-translations): Load More",
+      "loadingMore": "TODO(ig-translations): Loading…",
+      "endOfResults": "TODO(ig-translations): End of results",
+      "empty": {
+        "filtered": {
+          "title": "TODO(ig-translations): No exact matches — try broadening your search",
+          "body": "TODO(ig-translations): Remove a filter or change your keywords to see more opportunities.",
+          "clearFilters": "TODO(ig-translations): Clear filters",
+          "browseAll": "TODO(ig-translations): Browse all jobs"
+        },
+        "coldStart": {
+          "title": "TODO(ig-translations): New opportunities are being added daily",
+          "body": "TODO(ig-translations): Check back soon — Igbo-community employers are posting new roles weekly."
+        }
+      },
+      "card": {
+        "postingAgeRelative": "TODO(ig-translations): {days, plural, one {# day ago} other {# days ago}}",
+        "postingAgeAbsolute": "TODO(ig-translations): Posted {date}",
+        "deadlineInDays": "TODO(ig-translations): Closes in {days, plural, one {# day} other {# days}}",
+        "deadlineAbsolute": "TODO(ig-translations): Closes {date}",
+        "deadlineToday": "TODO(ig-translations): Closes today",
+        "viewDetails": "TODO(ig-translations): View details",
+        "companyNameAriaLabel": "TODO(ig-translations): Company: {name}"
+      },
+      "errors": {
+        "network": "TODO(ig-translations): We couldn’t load search results. Check your connection and try again.",
+        "loadMore": "TODO(ig-translations): Couldn’t load more results. Try again.",
+        "retry": "TODO(ig-translations): Retry"
+      }
+    },
+    "discovery": {
+      "pageTitle": "Chọpụta Ọrụ",
+      "heading": "Chọpụta Ohere",
+      "searchPlaceholder": "Chọọ ọrụ site na aha, ụlọ ọrụ, ma ọ bụ nka…",
+      "searchAriaLabel": "Chọọ ọrụ",
+      "featuredHeading": "Ọrụ Ndị Pụtara Ìhè",
+      "featuredViewAll": "Lelee ọrụ niile",
+      "categoriesHeading": "Lelee site na Ụdị",
+      "categoryJobCount": "{count, plural, one {# ọrụ} other {# ọrụ}}",
+      "recentHeading": "Ntinye Ọrụ Ọhụrụ",
+      "recentViewAll": "Lelee ndị ọhụrụ niile",
+      "browseAllJobs": "Chọgharịa ọrụ niile"
+    },
+    "match": {
+      "score": "{score}% dakọtara",
+      "strong": "Ijikọ siri ike",
+      "good": "Ijikọ ọma",
+      "fair": "Ijikọ nkịtị",
+      "completeProfilePrompt": "Mejupụta profaịlụ gị ka ị hụ otu i si dakọta",
+      "completeProfileLink": "Mejupụta Profaịlụ",
+      "dismiss": "Kagbuo"
+    },
+    "savedSearch": {
+      "heading": "Achọchaa M Ezipụtara",
+      "saveButton": "Chekwa Achọchaa A",
+      "saveButtonDisabled": "Ọ nweela achọchaa 10 ezipụtara",
+      "dialogTitle": "Chekwa Achọchaa",
+      "dialogDescription": "Chekwa achọchaa gị ugbu a ka ị nweta ịkpọ ọkụ maka ọrụ ọhụrụ",
+      "nameLabel": "Aha Achọchaa",
+      "namePlaceholder": "dị ka, Ọrụ Injinia n'ọdọ na Lagos",
+      "frequencyLabel": "Ole Mgbe Ịkpọ Ọkụ",
+      "frequencyInstant": "Ozugbo",
+      "frequencyDaily": "Nchịkọta Kwa Ụbọchị",
+      "frequencyOff": "Gbanyụọ",
+      "frequencyInstantDescription": "Nweta ịkpọ ọkụ ozugbo achọtara ọrụ ọhụrụ (nke ugwu 5/ụbọchị)",
+      "frequencyDailyDescription": "Nweta email kwa ụbọchị nke ọrụ ọhụrụ niile",
+      "frequencyOffDescription": "Chekwa maka ịnweta ngwa ngwa, ọ nweghị ịkpọ ọkụ",
+      "save": "Chekwa",
+      "cancel": "Kagbuo",
+      "saved": "Achekwara achọchaa!",
+      "empty": "Ọ nweghị achọchaa ezipụtara",
+      "emptyDescription": "Chekwa achọchaa na ibe achọọ ọrụ ka ị nweta ịkpọ ọkụ maka ọrụ ọhụrụ",
+      "params": "{query} nke nwere {filterCount} nlere",
+      "paramsNoQuery": "{filterCount} nlere",
+      "paramsQueryOnly": "{query}",
+      "paramsAll": "Ọrụ niile",
+      "lastAlerted": "Ikpọ ọkụ ikpeazụ: {date}",
+      "neverAlerted": "Ezibeghị ịkpọ ọkụ ọ bụla",
+      "delete": "Hichapụ",
+      "deleteConfirmTitle": "Hichapụ Achọchaa Ezipụtara?",
+      "deleteConfirmDescription": "Nke a ga-akwụsị ịkpọ ọkụ niile maka achọchaa a.",
+      "rename": "Kpọgharịa Aha",
+      "loadSearch": "Lelee Nsonaazụ",
+      "alertNotification": "Ọrụ ọhụrụ dakọtara \"{name}\": {jobTitle}",
+      "navLink": "Achọchaa Ezipụtara",
+      "count": "{count} ezipụtara",
+      "autoName": "Achọchaa: {summary}",
+      "errorSaving": "Enweghị ike ịchekwa achọchaa",
+      "deleted": "Ehichapụrụ achọchaa ezip��tara"
     }
   },
   "Shell": {

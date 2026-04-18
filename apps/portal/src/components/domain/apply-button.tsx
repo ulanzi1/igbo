@@ -27,6 +27,7 @@ export interface ApplyButtonProps {
   profileSkills: string[];
   profileLocation: string | null;
   locale: string;
+  autoApply?: boolean;
 }
 
 export function ApplyButton({
@@ -41,6 +42,7 @@ export function ApplyButton({
   profileSkills,
   profileLocation,
   locale,
+  autoApply = false,
 }: ApplyButtonProps) {
   const t = useTranslations("Portal.apply");
   const router = useRouter();
@@ -59,6 +61,17 @@ export function ApplyButton({
       .catch(() => setCvs([]))
       .finally(() => setCvsLoading(false));
   }, [open, hasProfile]);
+
+  // Auto-open drawer when ref=apply is detected post-login (AC #4)
+  useEffect(() => {
+    if (autoApply && hasProfile && !hasExistingApplication && !deadlinePassed) {
+      setOpen(true);
+      // Clean ref param from URL to prevent re-triggering on re-render
+      const url = new URL(window.location.href);
+      url.searchParams.delete("ref");
+      router.replace(url.pathname + (url.search || ""), { scroll: false });
+    }
+  }, [autoApply, hasProfile, hasExistingApplication, deadlinePassed, router]);
 
   if (!hasProfile) {
     return (
