@@ -70,6 +70,12 @@ vi.mock("@/components/semantic/salary-display", () => ({
   SalaryDisplay: () => <span data-testid="salary-display" />,
 }));
 
+vi.mock("@/components/domain/similar-jobs-section", () => ({
+  SimilarJobsSection: ({ jobId, isSeeker }: { jobId: string; isSeeker: boolean }) => (
+    <div data-testid="similar-jobs-section" data-job-id={jobId} data-is-seeker={String(isSeeker)} />
+  ),
+}));
+
 vi.mock("@/components/domain/guest-conversion-banner", () => ({
   GuestConversionBanner: ({
     communityUrl,
@@ -340,11 +346,27 @@ describe("JobDetailPageContent", () => {
       expect(container.innerHTML).toContain("English description");
     });
 
-    it("similar jobs tab shows placeholder message", async () => {
+    it("similar jobs tab renders SimilarJobsSection", async () => {
       const user = userEvent.setup();
       render(<JobDetailPageContent {...makeProps()} />);
       await user.click(screen.getByText("Portal.jobDetail.similarJobsTab"));
-      expect(screen.getByText("Portal.jobDetail.similarJobsPlaceholder")).toBeTruthy();
+      expect(screen.getByTestId("similar-jobs-section")).toBeTruthy();
+    });
+
+    it("SimilarJobsSection receives isSeeker=true for seekers", async () => {
+      const user = userEvent.setup();
+      render(<JobDetailPageContent {...makeProps({ isSeeker: true, isGuest: false })} />);
+      await user.click(screen.getByText("Portal.jobDetail.similarJobsTab"));
+      const section = screen.getByTestId("similar-jobs-section");
+      expect(section.getAttribute("data-is-seeker")).toBe("true");
+    });
+
+    it("SimilarJobsSection receives isSeeker=false for guests", async () => {
+      const user = userEvent.setup();
+      render(<JobDetailPageContent {...makeProps({ isSeeker: false, isGuest: true })} />);
+      await user.click(screen.getByText("Portal.jobDetail.similarJobsTab"));
+      const section = screen.getByTestId("similar-jobs-section");
+      expect(section.getAttribute("data-is-seeker")).toBe("false");
     });
   });
 

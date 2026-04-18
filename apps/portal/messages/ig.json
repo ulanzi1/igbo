@@ -396,7 +396,11 @@
       "companyIndustry": "Ụlọ ọrụ",
       "companySize": "Ogo ụlọ ọrụ",
       "companyCulture": "Omenala na Ọnọdụ",
-      "similarJobsPlaceholder": "Ndụmọdụ ọrụ ndị yiri ya ga-abịa n'oge na-adịghị anya",
+      "similarJobsHeading": "Ọrụ ndị yiri ya",
+      "similarJobsLoading": "Na-achọ ọrụ ndị yiri ya...",
+      "similarJobsEmpty": "Enweghị ọrụ ndị yiri ya ugbu a.",
+      "similarJobsBrowse": "Lelee ọrụ niile",
+      "similarJobsError": "Enweghị ike ibugo ọrụ ndị yiri ya. Biko nwaa ọzọ.",
       "postedAgo": "Etinyere {time}",
       "pageTitle": "{title} na {company}",
       "backToJobs": "Laghachi na ọrụ ndị"

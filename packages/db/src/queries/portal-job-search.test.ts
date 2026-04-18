@@ -14,6 +14,8 @@ import {
   encodeJobSearchCursor,
   decodeJobSearchCursor,
   findNewPostingsForAlert,
+  getSimilarJobPostings,
+  extractSimilarJobTokens,
 } from "./portal-job-search";
 import type { JobSearchResult, JobSearchCursor } from "./portal-job-search";
 
@@ -878,6 +880,158 @@ describe("findNewPostingsForAlert", () => {
   it("returns empty array when no matches", async () => {
     mockDbExecute.mockResolvedValue([]);
     const results = await findNewPostingsForAlert({ query: "nonexistent" }, sinceTimestamp);
+    expect(results).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// extractSimilarJobTokens
+// ---------------------------------------------------------------------------
+
+describe("extractSimilarJobTokens", () => {
+  it("returns empty array for null", () => {
+    expect(extractSimilarJobTokens(null)).toEqual([]);
+  });
+
+  it("returns empty array for empty string", () => {
+    expect(extractSimilarJobTokens("")).toEqual([]);
+  });
+
+  it("filters tokens shorter than 3 chars", () => {
+    expect(extractSimilarJobTokens("a is it React")).toEqual(["react"]);
+  });
+
+  it("lowercases and deduplicates tokens", () => {
+    const tokens = extractSimilarJobTokens("React react REACT TypeScript");
+    expect(tokens).toEqual(["react", "typescript"]);
+  });
+
+  it("strips non-alphanumeric characters", () => {
+    const tokens = extractSimilarJobTokens("React.js (TypeScript)");
+    expect(tokens).toEqual(["reactjs", "typescript"]);
+  });
+
+  it("caps output at 20 tokens", () => {
+    const words = Array.from({ length: 30 }, (_, i) => `word${i}`).join(" ");
+    const tokens = extractSimilarJobTokens(words);
+    expect(tokens.length).toBe(20);
+  });
+
+  it("handles whitespace-only input", () => {
+    expect(extractSimilarJobTokens("   ")).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// getSimilarJobPostings
+// ---------------------------------------------------------------------------
+
+describe("getSimilarJobPostings", () => {
+  const baseCandidate = {
+    id: "post-2",
+    title: "Backend Engineer",
+    company_name: "Acme Corp",
+    company_id: "company-2",
+    logo_url: null,
+    location: "Lagos, Nigeria",
+    salary_min: 60000,
+    salary_max: 90000,
+    salary_competitive_only: false,
+    employment_type: "full_time",
+    cultural_context_json: null,
+    application_deadline: null,
+    created_at: "2026-04-10T00:00:00Z",
+    requirements: "React TypeScript Node.js",
+  };
+
+  it("calls db.execute once and returns DiscoveryJobResult[] shape", async () => {
+    mockDbExecute.mockResolvedValue([baseCandidate]);
+    const results = await getSimilarJobPostings("post-1", "Technology", null, null);
+    expect(mockDbExecute).toHaveBeenCalledOnce();
+    expect(results).toHaveLength(1);
+    expect(results[0]).toMatchObject({
+      id: "post-2",
+      title: "Backend Engineer",
+      company_name: "Acme Corp",
+    });
+    // requirements field must not be in the return shape
+    expect(results[0]).not.toHaveProperty("requirements");
+  });
+
+  it("SQL includes INNER JOIN on company_profiles for industry filter", async () => {
+    mockDbExecute.mockResolvedValue([]);
+    await getSimilarJobPostings("post-1", "Technology", null, null);
+    const rendered = flattenSql(mockDbExecute.mock.calls[0]![0]);
+    expect(rendered).toContain("INNER JOIN portal_company_profiles");
+    expect(rendered).toContain("cp.industry");
+    expect(rendered).toContain("Technology");
+  });
+
+  it("SQL excludes current posting by jobId", async () => {
+    mockDbExecute.mockResolvedValue([]);
+    await getSimilarJobPostings("post-uuid-1", "Technology", null, null);
+    const rendered = flattenSql(mockDbExecute.mock.calls[0]![0]);
+    expect(rendered).toContain("post-uuid-1");
+  });
+
+  it("SQL includes status gate: active, not archived, not expired", async () => {
+    mockDbExecute.mockResolvedValue([]);
+    await getSimilarJobPostings("post-1", "Technology", null, null);
+    const rendered = flattenSql(mockDbExecute.mock.calls[0]![0]);
+    expect(rendered).toContain("active");
+    expect(rendered).toContain("archived_at IS NULL");
+    expect(rendered).toContain("application_deadline IS NULL");
+  });
+
+  it("SQL includes LIMIT of 30 candidates", async () => {
+    mockDbExecute.mockResolvedValue([]);
+    await getSimilarJobPostings("post-1", "Technology", null, null);
+    const rendered = flattenSql(mockDbExecute.mock.calls[0]![0]);
+    expect(rendered).toContain("30");
+  });
+
+  it("respects the limit parameter, returning at most limit results", async () => {
+    const candidates = Array.from({ length: 10 }, (_, i) => ({
+      ...baseCandidate,
+      id: `post-${i + 2}`,
+    }));
+    mockDbExecute.mockResolvedValue(candidates);
+    const results = await getSimilarJobPostings("post-1", "Technology", null, null, 4);
+    expect(results).toHaveLength(4);
+  });
+
+  it("ranks by keyword overlap DESC when source has requirements", async () => {
+    const highOverlap = { ...baseCandidate, id: "high", requirements: "React TypeScript Node.js" };
+    const lowOverlap = { ...baseCandidate, id: "low", requirements: "Python Django Flask" };
+    // DB returns low before high (by created_at), scoring should reorder
+    mockDbExecute.mockResolvedValue([lowOverlap, highOverlap]);
+    const results = await getSimilarJobPostings("post-1", "Technology", "React TypeScript", null);
+    expect(results[0]!.id).toBe("high");
+    expect(results[1]!.id).toBe("low");
+  });
+
+  it("falls back to DB order when requirements is null (no keyword scoring)", async () => {
+    const first = { ...baseCandidate, id: "first", created_at: "2026-04-15T00:00:00Z" };
+    const second = { ...baseCandidate, id: "second", created_at: "2026-04-10T00:00:00Z" };
+    mockDbExecute.mockResolvedValue([first, second]);
+    const results = await getSimilarJobPostings("post-1", "Technology", null, null);
+    // Same keyword overlap (0), same location score (0), so DB order preserved
+    expect(results[0]!.id).toBe("first");
+    expect(results[1]!.id).toBe("second");
+  });
+
+  it("applies location scoring when source location is provided", async () => {
+    const exactMatch = { ...baseCandidate, id: "exact", location: "Lagos, Nigeria" };
+    const noMatch = { ...baseCandidate, id: "none", location: "Nairobi, Kenya" };
+    mockDbExecute.mockResolvedValue([noMatch, exactMatch]);
+    const results = await getSimilarJobPostings("post-1", "Technology", null, "Lagos, Nigeria");
+    expect(results[0]!.id).toBe("exact");
+    expect(results[1]!.id).toBe("none");
+  });
+
+  it("returns empty array when db returns no candidates", async () => {
+    mockDbExecute.mockResolvedValue([]);
+    const results = await getSimilarJobPostings("post-1", "Technology", null, null);
     expect(results).toEqual([]);
   });
 });

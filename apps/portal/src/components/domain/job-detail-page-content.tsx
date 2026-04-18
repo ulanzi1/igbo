@@ -12,6 +12,7 @@ import { ReportPostingButton } from "@/components/domain/report-posting-button";
 import { ApplyButton } from "@/components/domain/apply-button";
 import { GuestConversionBanner } from "@/components/domain/guest-conversion-banner";
 import { ViewTracker } from "@/components/domain/view-tracker";
+import { SimilarJobsSection } from "@/components/domain/similar-jobs-section";
 import { SalaryDisplay } from "@/components/semantic/salary-display";
 import { CulturalContextBadges } from "@/components/semantic/cultural-context-badges";
 import { formatDeadlineCountdown } from "@/lib/format-deadline-countdown";
@@ -380,9 +381,9 @@ export function JobDetailPageContent({
                 </section>
               </TabsContent>
 
-              {/* Similar Jobs tab (placeholder) */}
+              {/* Similar Jobs tab */}
               <TabsContent value="similar">
-                <p className="text-sm text-muted-foreground">{t("similarJobsPlaceholder")}</p>
+                <SimilarJobsSection jobId={jobId} isSeeker={isSeeker} />
               </TabsContent>
             </Tabs>
           </div>

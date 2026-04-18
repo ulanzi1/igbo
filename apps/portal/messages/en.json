@@ -396,7 +396,11 @@
       "companyIndustry": "Industry",
       "companySize": "Company Size",
       "companyCulture": "Culture & Values",
-      "similarJobsPlaceholder": "Similar job recommendations coming soon",
+      "similarJobsHeading": "Similar Jobs",
+      "similarJobsLoading": "Finding similar jobs...",
+      "similarJobsEmpty": "No similar jobs found right now.",
+      "similarJobsBrowse": "Browse all jobs",
+      "similarJobsError": "Could not load similar jobs. Please try again later.",
       "postedAgo": "Posted {time}",
       "pageTitle": "{title} at {company}",
       "backToJobs": "Back to jobs"

@@ -35,12 +35,16 @@ const mockGetIndustryCategoryCounts = vi.mocked(
 const mockGetRecentJobPostings = vi.mocked(
   (await import("@igbo/db/queries/portal-job-search")).getRecentJobPostings,
 );
+const mockGetSimilarJobPostings = vi.mocked(
+  (await import("@igbo/db/queries/portal-job-search")).getSimilarJobPostings,
+);
 
 import {
   searchJobs,
   normalizeAndHashRequest,
   invalidateJobSearchCache,
   getDiscoveryPageData,
+  getSimilarJobs,
   _testOnly_awaitInvalidation,
   _testOnly_awaitCacheWrite,
 } from "./job-search-service";
@@ -298,11 +302,13 @@ describe("invalidateJobSearchCache", () => {
   it("iterates cursor until cursor returns '0'", async () => {
     mockRedisScan
       .mockResolvedValueOnce(["42", ["portal:job-search:key1"]]) // first scan, cursor=42
-      .mockResolvedValueOnce(["0", ["portal:job-search:key2"]]); // second scan, cursor=0 (end)
+      .mockResolvedValueOnce(["0", ["portal:job-search:key2"]]) // second scan, cursor=0 (end)
+      .mockResolvedValueOnce(["0", []]); // third scan: similar:* pattern (empty)
 
     await invalidateJobSearchCache();
 
-    expect(mockRedisScan).toHaveBeenCalledTimes(2);
+    // 3 total SCAN calls: 2 for portal:job-search:* cursor iteration + 1 for similar:*
+    expect(mockRedisScan).toHaveBeenCalledTimes(3);
     expect(mockRedisDel).toHaveBeenCalledWith("portal:job-search:key1", "portal:job-search:key2");
   });
 });
@@ -650,5 +656,107 @@ describe("getDiscoveryPageData — corrupt cache entry", () => {
     expect(result.featuredJobs).toHaveLength(1);
     // Poisoned key was evicted (best-effort) — at least one del call against a discovery key
     expect(mockRedisDel).toHaveBeenCalledWith(expect.stringContaining("portal:discovery:"));
+  });
+});
+
+// ---------------------------------------------------------------------------
+// getSimilarJobs — P-4.7
+// ---------------------------------------------------------------------------
+
+const sampleSimilarJob = {
+  id: "similar-post-1",
+  title: "Frontend Engineer",
+  company_name: "Acme Corp",
+  company_id: "company-1",
+  logo_url: null,
+  location: "Lagos, Nigeria",
+  salary_min: 60000,
+  salary_max: 90000,
+  salary_competitive_only: false,
+  employment_type: "full_time",
+  cultural_context_json: null,
+  application_deadline: null,
+  created_at: "2026-04-10T00:00:00Z",
+};
+
+describe("getSimilarJobs", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockRedisScan.mockResolvedValue(["0", []]);
+    mockRedisDel.mockResolvedValue(1);
+  });
+
+  it("cache miss: calls DB query and writes to Redis cache", async () => {
+    mockRedisGet.mockResolvedValue(null);
+    mockGetSimilarJobPostings.mockResolvedValue([sampleSimilarJob]);
+
+    const result = await getSimilarJobs("job-1", "Technology", "React TypeScript", "Lagos", "en");
+
+    expect(mockGetSimilarJobPostings).toHaveBeenCalledWith(
+      "job-1",
+      "Technology",
+      "React TypeScript",
+      "Lagos",
+      6,
+    );
+    expect(result).toHaveLength(1);
+    expect(result[0]!.id).toBe("similar-post-1");
+    // Cache write (fire-and-forget)
+    expect(mockRedisSet).toHaveBeenCalledWith(
+      expect.stringContaining("similar:job-1:en"),
+      expect.any(String),
+      "EX",
+      600,
+      "NX",
+    );
+  });
+
+  it("cache hit: returns cached data without calling DB", async () => {
+    mockRedisGet.mockResolvedValue(JSON.stringify([sampleSimilarJob]));
+
+    const result = await getSimilarJobs("job-1", "Technology", null, null, "en");
+
+    expect(mockGetSimilarJobPostings).not.toHaveBeenCalled();
+    expect(result).toHaveLength(1);
+    expect(result[0]!.id).toBe("similar-post-1");
+  });
+
+  it("Redis error on get: falls through to DB query without throwing", async () => {
+    mockRedisGet.mockRejectedValue(new Error("Redis connection refused"));
+    mockGetSimilarJobPostings.mockResolvedValue([sampleSimilarJob]);
+
+    const result = await getSimilarJobs("job-1", "Technology", null, null, "en");
+
+    expect(mockGetSimilarJobPostings).toHaveBeenCalledOnce();
+    expect(result).toHaveLength(1);
+  });
+
+  it("returns empty array when DB returns no similar jobs", async () => {
+    mockRedisGet.mockResolvedValue(null);
+    mockGetSimilarJobPostings.mockResolvedValue([]);
+
+    const result = await getSimilarJobs("job-1", "Technology", null, null, "ig");
+
+    expect(result).toEqual([]);
+  });
+});
+
+describe("invalidateJobSearchCache — similar jobs keys", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockRedisDel.mockResolvedValue(1);
+  });
+
+  it("scans and deletes portal:discovery:similar:* keys", async () => {
+    // First SCAN call (job-search:* pattern) returns empty
+    // Second SCAN call (similar:* pattern) returns a similar jobs key
+    mockRedisScan
+      .mockResolvedValueOnce(["0", []])
+      .mockResolvedValueOnce(["0", ["portal:discovery:similar:job-1:en"]]);
+
+    await invalidateJobSearchCache();
+
+    const deletedKeys = mockRedisDel.mock.calls.flat();
+    expect(deletedKeys).toContain("portal:discovery:similar:job-1:en");
   });
 });

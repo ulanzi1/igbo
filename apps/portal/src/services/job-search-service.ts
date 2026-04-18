@@ -9,6 +9,7 @@ import {
   getFeaturedJobPostings,
   getIndustryCategoryCounts,
   getRecentJobPostings,
+  getSimilarJobPostings,
 } from "@igbo/db/queries/portal-job-search";
 import type {
   JobSearchFilters,
@@ -354,6 +355,28 @@ export async function invalidateJobSearchCache(): Promise<void> {
       discoveryRecentKey("ig"),
       sitemapUrlsKey(),
     );
+
+    // Invalidate similar jobs cache (portal:discovery:similar:*) — P-4.7
+    // Uses SCAN because the key space includes jobId (many possible values).
+    const similarPattern = createRedisKey("portal", "discovery", "similar:*");
+    let similarCursor = "0";
+    const similarKeysToDelete: string[] = [];
+    do {
+      const [nextCursor, keys] = await redis.scan(
+        similarCursor,
+        "MATCH",
+        similarPattern,
+        "COUNT",
+        100,
+      );
+      similarCursor = nextCursor;
+      similarKeysToDelete.push(...keys);
+    } while (similarCursor !== "0");
+    if (similarKeysToDelete.length > 0) {
+      for (let i = 0; i < similarKeysToDelete.length; i += 100) {
+        await redis.del(...similarKeysToDelete.slice(i, i + 100));
+      }
+    }
   } catch (err) {
     console.error(
       JSON.stringify({
@@ -390,15 +413,62 @@ function discoveryCategoriesKey(locale: string): string {
 function discoveryRecentKey(locale: string): string {
   return createRedisKey("portal", "discovery", `recent:${locale}`);
 }
+function discoverySimilarKey(jobId: string, locale: string): string {
+  return createRedisKey("portal", "discovery", `similar:${jobId}:${locale}`);
+}
 
 const DISCOVERY_FEATURED_TTL = 60; // 1 minute
 const DISCOVERY_CATEGORIES_TTL = 300; // 5 minutes
 const DISCOVERY_RECENT_TTL = 120; // 2 minutes
+const DISCOVERY_SIMILAR_TTL = 600; // 10 minutes (AC #3)
 
 export interface DiscoveryPageData {
   featuredJobs: DiscoveryJobResult[];
   categories: IndustryCategoryCount[];
   recentPostings: DiscoveryJobResult[];
+}
+
+/**
+ * Shared caching helper for discovery page queries (P-4.2, P-4.7).
+ *
+ * Reads from Redis cache; on miss fetches from DB and writes to cache fire-and-forget.
+ * On JSON.parse failure (corrupted cache), best-effort eviction so the bad key stops
+ * re-poisoning subsequent requests until TTL expires.
+ */
+async function cachedFetch<T>(key: string, ttl: number, fetchFn: () => Promise<T>): Promise<T> {
+  const redis = getRedisClient();
+  const cached = await redis.get(key);
+  if (cached) {
+    try {
+      return JSON.parse(cached) as T;
+    } catch (err) {
+      console.warn(
+        JSON.stringify({
+          level: "warn",
+          message: "portal.job-search-service.discovery-cache-parse-error",
+          key,
+          error: (err as Error).message,
+        }),
+      );
+      // Best-effort eviction so the corrupted key stops re-poisoning.
+      redis.del(key).catch(() => {
+        // Swallow: worst case the key expires within its TTL.
+      });
+      // Fall through to DB path.
+    }
+  }
+  const data = await fetchFn();
+  redis.set(key, JSON.stringify(data), "EX", ttl, "NX").catch((err: Error) => {
+    console.warn(
+      JSON.stringify({
+        level: "warn",
+        message: "portal.job-search-service.discovery-cache-write-error",
+        key,
+        error: err.message,
+      }),
+    );
+  });
+  return data;
 }
 
 /**
@@ -414,47 +484,6 @@ export interface DiscoveryPageData {
  *   portal:discovery:recent:{locale}     — 120 s
  */
 export async function getDiscoveryPageData(locale: string): Promise<DiscoveryPageData> {
-  const redis = getRedisClient();
-
-  // Helper: read from cache; on miss, fetch from DB and populate cache fire-and-forget.
-  // On JSON.parse failure (corrupted cache), best-effort eviction so the bad
-  // key stops re-poisoning subsequent requests until TTL expires (mirrors
-  // searchJobs behavior).
-  async function cachedFetch<T>(key: string, ttl: number, fetchFn: () => Promise<T>): Promise<T> {
-    const cached = await redis.get(key);
-    if (cached) {
-      try {
-        return JSON.parse(cached) as T;
-      } catch (err) {
-        console.warn(
-          JSON.stringify({
-            level: "warn",
-            message: "portal.job-search-service.discovery-cache-parse-error",
-            key,
-            error: (err as Error).message,
-          }),
-        );
-        // Best-effort eviction so the corrupted key stops re-poisoning.
-        redis.del(key).catch(() => {
-          // Swallow: worst case the key expires within its TTL.
-        });
-        // Fall through to DB path.
-      }
-    }
-    const data = await fetchFn();
-    redis.set(key, JSON.stringify(data), "EX", ttl, "NX").catch((err: Error) => {
-      console.warn(
-        JSON.stringify({
-          level: "warn",
-          message: "portal.job-search-service.discovery-cache-write-error",
-          key,
-          error: err.message,
-        }),
-      );
-    });
-    return data;
-  }
-
   const [featuredResult, categoriesResult, recentResult] = await Promise.allSettled([
     cachedFetch(discoveryFeaturedKey(locale), DISCOVERY_FEATURED_TTL, () =>
       getFeaturedJobPostings(6),
@@ -498,4 +527,40 @@ export async function getDiscoveryPageData(locale: string): Promise<DiscoveryPag
     categories: categoriesResult.status === "fulfilled" ? categoriesResult.value : [],
     recentPostings: recentResult.status === "fulfilled" ? recentResult.value : [],
   };
+}
+
+// ---------------------------------------------------------------------------
+// Similar jobs — P-4.7
+// ---------------------------------------------------------------------------
+
+/**
+ * Returns up to 6 similar job postings for the given job, with Redis caching.
+ *
+ * Cache key: portal:discovery:similar:{jobId}:{locale}  (10-minute TTL per AC #3)
+ * Graceful degradation: on Redis error, falls through to DB query (no throw).
+ */
+export async function getSimilarJobs(
+  jobId: string,
+  companyIndustry: string,
+  requirements: string | null,
+  location: string | null,
+  locale: string,
+): Promise<DiscoveryJobResult[]> {
+  const key = discoverySimilarKey(jobId, locale);
+  try {
+    return await cachedFetch(key, DISCOVERY_SIMILAR_TTL, () =>
+      getSimilarJobPostings(jobId, companyIndustry, requirements, location, 6),
+    );
+  } catch (err) {
+    // Graceful degradation: Redis unavailable → fall back to DB query directly
+    console.warn(
+      JSON.stringify({
+        level: "warn",
+        message: "portal.job-search-service.similar-jobs-error",
+        jobId,
+        error: (err as Error).message,
+      }),
+    );
+    return getSimilarJobPostings(jobId, companyIndustry, requirements, location, 6);
+  }
 }

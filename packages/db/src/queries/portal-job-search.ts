@@ -1179,3 +1179,135 @@ export async function findNewPostingsForAlert(
     location: r.location,
   }));
 }
+
+// ---------------------------------------------------------------------------
+// P-4.7 — Similar job postings query
+// ---------------------------------------------------------------------------
+
+/** Internal extended shape — includes requirements for app-side scoring only. */
+type SimilarJobCandidate = DiscoveryJobResult & { requirements: string | null };
+
+/**
+ * Extracts keyword tokens from a requirements string for overlap scoring.
+ * Splits on whitespace, lowercases, strips non-alphanumeric, filters >= 3 chars,
+ * deduplicates, caps at 20 tokens.
+ *
+ * Exported for unit testing.
+ */
+export function extractSimilarJobTokens(text: string | null): string[] {
+  if (!text) return [];
+  const seen = new Set<string>();
+  const tokens: string[] = [];
+  for (const word of text.split(/\s+/)) {
+    const lower = word.toLowerCase().replace(/[^a-z0-9]/g, "");
+    if (lower.length >= 3 && !seen.has(lower)) {
+      seen.add(lower);
+      tokens.push(lower);
+      if (tokens.length >= 20) break;
+    }
+  }
+  return tokens;
+}
+
+/** Counts how many source tokens appear as substrings in the candidate requirements. */
+function scoreKeywordOverlap(tokens: string[], candidateRequirements: string | null): number {
+  if (!candidateRequirements || tokens.length === 0) return 0;
+  const lower = candidateRequirements.toLowerCase();
+  return tokens.filter((t) => lower.includes(t)).length;
+}
+
+/** Returns 2 for exact location match, 1 for city-level match, 0 otherwise. */
+function scoreLocation(sourceLocation: string | null, candidateLocation: string | null): number {
+  if (!sourceLocation || !candidateLocation) return 0;
+  const src = sourceLocation.toLowerCase();
+  const cand = candidateLocation.toLowerCase();
+  if (src === cand) return 2;
+  const city = src.split(",")[0]?.trim();
+  if (city && city.length >= 2 && cand.includes(city)) return 1;
+  return 0;
+}
+
+/**
+ * Returns up to `limit` similar job postings using deterministic criteria:
+ *   (a) same industry category (required — INNER JOIN on company industry)
+ *   (b) keyword overlap from requirements text (scored app-side)
+ *   (c) location proximity (city-level match scored app-side)
+ *
+ * Uses Approach B (app-side scoring): fetches up to 30 candidates matching
+ * industry + status gates, then scores and ranks in TypeScript.
+ *
+ * Status gate: status = 'active' AND archived_at IS NULL
+ *   AND (application_deadline IS NULL OR application_deadline > NOW())
+ * Excludes the current posting (jobId).
+ *
+ * Ranking: keyword_overlap DESC, location_score DESC, created_at DESC.
+ */
+export async function getSimilarJobPostings(
+  jobId: string,
+  companyIndustry: string,
+  requirements: string | null,
+  location: string | null,
+  limit = 6,
+): Promise<DiscoveryJobResult[]> {
+  const CANDIDATE_LIMIT = 30;
+
+  const rows = (await db.execute(sql`
+    SELECT
+      pjp.id::text,
+      pjp.title,
+      cp.name AS company_name,
+      pjp.company_id::text AS company_id,
+      cp.logo_url,
+      pjp.location,
+      pjp.salary_min,
+      pjp.salary_max,
+      pjp.salary_competitive_only,
+      pjp.employment_type,
+      pjp.cultural_context_json,
+      pjp.application_deadline::text,
+      pjp.created_at::text,
+      pjp.requirements
+    FROM portal_job_postings pjp
+    INNER JOIN portal_company_profiles cp ON cp.id = pjp.company_id
+    WHERE cp.industry = ${companyIndustry}
+      AND pjp.status = 'active'
+      AND pjp.archived_at IS NULL
+      AND (pjp.application_deadline IS NULL OR pjp.application_deadline > NOW())
+      AND pjp.id::text != ${jobId}
+    ORDER BY pjp.created_at DESC
+    LIMIT ${CANDIDATE_LIMIT}
+  `)) as unknown as SimilarJobCandidate[];
+
+  // App-side scoring
+  const tokens = extractSimilarJobTokens(requirements);
+
+  const scored = rows.map((row) => ({
+    row,
+    keywordOverlap: scoreKeywordOverlap(tokens, row.requirements),
+    locationScore: scoreLocation(location, row.location),
+  }));
+
+  // Sort: keyword overlap DESC, location score DESC (created_at already DESC from DB)
+  scored.sort((a, b) => {
+    if (b.keywordOverlap !== a.keywordOverlap) return b.keywordOverlap - a.keywordOverlap;
+    if (b.locationScore !== a.locationScore) return b.locationScore - a.locationScore;
+    return 0;
+  });
+
+  // Return top `limit` as DiscoveryJobResult[] (drop requirements — scoring only)
+  return scored.slice(0, limit).map(({ row }) => ({
+    id: row.id,
+    title: row.title,
+    company_name: row.company_name,
+    company_id: row.company_id,
+    logo_url: row.logo_url,
+    location: row.location,
+    salary_min: row.salary_min,
+    salary_max: row.salary_max,
+    salary_competitive_only: row.salary_competitive_only,
+    employment_type: row.employment_type,
+    cultural_context_json: row.cultural_context_json,
+    application_deadline: row.application_deadline,
+    created_at: row.created_at,
+  }));
+}
