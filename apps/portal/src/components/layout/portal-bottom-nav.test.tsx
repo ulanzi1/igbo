@@ -47,8 +47,8 @@ describe("PortalBottomNav", () => {
     render(<PortalBottomNav />);
     expect(screen.getByText("home")).toBeInTheDocument();
     expect(screen.getByText("jobs")).toBeInTheDocument();
+    expect(screen.getByText("savedSearches")).toBeInTheDocument();
     expect(screen.getByText("myApplications")).toBeInTheDocument();
-    expect(screen.getByText("messages")).toBeInTheDocument();
     expect(screen.getByText("profile")).toBeInTheDocument();
   });
 

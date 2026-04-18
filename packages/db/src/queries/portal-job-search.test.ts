@@ -13,6 +13,7 @@ import {
   searchJobPostings,
   encodeJobSearchCursor,
   decodeJobSearchCursor,
+  findNewPostingsForAlert,
 } from "./portal-job-search";
 import type { JobSearchResult, JobSearchCursor } from "./portal-job-search";
 
@@ -438,7 +439,7 @@ describe("cursor pagination — searchJobPostings without cursor", () => {
     const rendered = flattenSql(mockDbExecute.mock.calls[0]![0]);
     expect(rendered).toContain("created_at DESC");
     // ts_rank is always present in the SELECT projection (relevance column) — not in ORDER BY for date sort
-    expect(rendered).toContain("ORDER BY created_at DESC, id::text ASC");
+    expect(rendered).toContain("ORDER BY pjp.created_at DESC, pjp.id::text ASC");
   });
 
   it("emits salary_asc ORDER BY for sort=salary_asc without cursor", async () => {
@@ -495,7 +496,7 @@ describe("cursor pagination — seek predicate SQL structure per sort mode", () 
     expect(rendered).toContain("created_at <");
     expect(rendered).toContain("id::text >");
     // ts_rank appears in SELECT projection (relevance column) but not in ORDER BY for date sort
-    expect(rendered).toContain("ORDER BY created_at DESC, id::text ASC");
+    expect(rendered).toContain("ORDER BY pjp.created_at DESC, pjp.id::text ASC");
   });
 
   it("salary_asc sort (non-null cursor): seek predicate contains salary_min comparisons", async () => {
@@ -658,7 +659,7 @@ describe("cursor pagination — sort-mode mismatch guard", () => {
     const rendered = flattenSql(mockDbExecute.mock.calls[0]![0]);
     // No seek predicate — mismatch treated as no cursor
     expect(rendered).not.toContain("AND (");
-    expect(rendered).toContain("ORDER BY created_at DESC");
+    expect(rendered).toContain("ORDER BY pjp.created_at DESC");
   });
 
   it("ignores salary_asc cursor when requesting salary_desc sort", async () => {
@@ -682,7 +683,7 @@ describe("cursor pagination — sort-mode mismatch guard", () => {
     // salary_min appears in SELECT projection but NOT in a seek predicate AND clause
     expect(rendered).not.toContain("AND (");
     expect(rendered).not.toContain("80000");
-    expect(rendered).toContain("ORDER BY salary_max DESC NULLS FIRST");
+    expect(rendered).toContain("ORDER BY pjp.salary_max DESC NULLS FIRST");
   });
 });
 
@@ -792,5 +793,91 @@ describe("getJobPostingsForMatching", () => {
     // uuid-49 should be present (index 49 = 50th item), uuid-50 should not
     expect(rendered).toContain("uuid-49");
     expect(rendered).not.toContain("uuid-50");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// findNewPostingsForAlert
+// ---------------------------------------------------------------------------
+
+describe("findNewPostingsForAlert", () => {
+  const sinceTimestamp = new Date("2026-04-15T00:00:00Z");
+
+  const sampleAlertRow = {
+    id: "post-1",
+    title: "Software Engineer",
+    company_name: "Acme Corp",
+    location: "Lagos",
+  };
+
+  it("returns mapped results with companyName field", async () => {
+    mockDbExecute.mockResolvedValue([sampleAlertRow]);
+    const results = await findNewPostingsForAlert({ query: "engineer" }, sinceTimestamp);
+    expect(results).toEqual([
+      { id: "post-1", title: "Software Engineer", companyName: "Acme Corp", location: "Lagos" },
+    ]);
+  });
+
+  it("applies FTS query when query is present", async () => {
+    mockDbExecute.mockResolvedValue([]);
+    await findNewPostingsForAlert({ query: "engineer" }, sinceTimestamp);
+    expect(mockDbExecute).toHaveBeenCalledOnce();
+    const rendered = flattenSql(mockDbExecute.mock.calls[0]![0]);
+    expect(rendered).toContain("plainto_tsquery");
+    expect(rendered).toContain("search_vector");
+    expect(rendered).toContain("engineer");
+  });
+
+  it("omits FTS when query is empty", async () => {
+    mockDbExecute.mockResolvedValue([]);
+    await findNewPostingsForAlert({ query: "" }, sinceTimestamp);
+    expect(mockDbExecute).toHaveBeenCalledOnce();
+    const rendered = flattenSql(mockDbExecute.mock.calls[0]![0]);
+    expect(rendered).not.toContain("plainto_tsquery");
+  });
+
+  it("omits FTS when query is whitespace only", async () => {
+    mockDbExecute.mockResolvedValue([]);
+    await findNewPostingsForAlert({ query: "   " }, sinceTimestamp);
+    expect(mockDbExecute).toHaveBeenCalledOnce();
+    const rendered = flattenSql(mockDbExecute.mock.calls[0]![0]);
+    expect(rendered).not.toContain("plainto_tsquery");
+  });
+
+  it("applies filter predicates when filters provided", async () => {
+    mockDbExecute.mockResolvedValue([]);
+    await findNewPostingsForAlert(
+      { query: null, filters: { location: ["Lagos"], employmentType: ["full_time"] } },
+      sinceTimestamp,
+    );
+    const rendered = flattenSql(mockDbExecute.mock.calls[0]![0]);
+    expect(rendered).toContain("Lagos");
+    expect(rendered).toContain("full_time");
+  });
+
+  it("includes updated_at > sinceTimestamp condition", async () => {
+    mockDbExecute.mockResolvedValue([]);
+    await findNewPostingsForAlert({ query: "test" }, sinceTimestamp);
+    const rendered = flattenSql(mockDbExecute.mock.calls[0]![0]);
+    expect(rendered).toContain("updated_at >");
+  });
+
+  it("limits results to 20", async () => {
+    mockDbExecute.mockResolvedValue([]);
+    await findNewPostingsForAlert({}, sinceTimestamp);
+    const rendered = flattenSql(mockDbExecute.mock.calls[0]![0]);
+    expect(rendered).toContain("20");
+  });
+
+  it("handles null company_name in rows", async () => {
+    mockDbExecute.mockResolvedValue([{ ...sampleAlertRow, company_name: null }]);
+    const results = await findNewPostingsForAlert({}, sinceTimestamp);
+    expect(results[0]!.companyName).toBeNull();
+  });
+
+  it("returns empty array when no matches", async () => {
+    mockDbExecute.mockResolvedValue([]);
+    const results = await findNewPostingsForAlert({ query: "nonexistent" }, sinceTimestamp);
+    expect(results).toEqual([]);
   });
 });

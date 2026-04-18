@@ -44,7 +44,7 @@ export function ReviewActionPanel({
 
       if (res.ok) {
         toast.success(t("approveSuccess"));
-        router.push(`/${locale}/admin/jobs`);
+        router.push(`/${locale}/admin/postings`);
       } else {
         toast.error(t("decisionError"));
       }
@@ -56,7 +56,7 @@ export function ReviewActionPanel({
   };
 
   const handleDecisionSuccess = () => {
-    router.push(`/${locale}/admin/jobs`);
+    router.push(`/${locale}/admin/postings`);
   };
 
   if (postingStatus !== "pending_review") {

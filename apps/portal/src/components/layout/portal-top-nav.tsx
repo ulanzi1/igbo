@@ -44,6 +44,7 @@ export function PortalTopNav({ className }: { className?: string }) {
     { key: "apprenticeships", href: `/${locale}/apprenticeships`, label: t("apprenticeships") },
     { key: "myApplications", href: `/${locale}/applications`, label: t("myApplications") },
     { key: "savedJobs", href: `/${locale}/saved-jobs`, label: t("savedJobs") },
+    { key: "savedSearches", href: `/${locale}/saved-searches`, label: t("savedSearches") },
   ];
 
   const employerLinks: NavLink[] = [

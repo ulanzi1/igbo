@@ -505,6 +505,13 @@
       "when": 1708000071000,
       "tag": "0071_job_discovery_featured",
       "breakpoints": true
+    },
+    {
+      "idx": 72,
+      "version": "7",
+      "when": 1708000072000,
+      "tag": "0072_saved_searches",
+      "breakpoints": true
     }
   ]
 }

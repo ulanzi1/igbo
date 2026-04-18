@@ -161,6 +161,14 @@ export interface EmployerVerificationRejectedEvent extends BaseEvent {
   reason: string;
 }
 
+export interface SavedSearchNewResultEvent extends BaseEvent {
+  savedSearchId: string;
+  userId: string;
+  jobId: string;
+  jobTitle: string;
+  searchName: string;
+}
+
 // Portal event map — used by portal EventBus
 export interface PortalEventMap {
   "job.published": JobPublishedEvent;
@@ -179,6 +187,7 @@ export interface PortalEventMap {
   "employer.verification_submitted": EmployerVerificationSubmittedEvent;
   "employer.verification_approved": EmployerVerificationApprovedEvent;
   "employer.verification_rejected": EmployerVerificationRejectedEvent;
+  "saved_search.new_result": SavedSearchNewResultEvent;
 }
 
 export type PortalEventName = keyof PortalEventMap;

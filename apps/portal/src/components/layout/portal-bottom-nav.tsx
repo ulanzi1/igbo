@@ -11,6 +11,7 @@ import {
   LogInIcon,
   ShieldCheckIcon,
   BarChart3Icon,
+  BookmarkIcon,
 } from "lucide-react";
 import { useTranslations, useLocale } from "next-intl";
 import { usePathname } from "next/navigation";
@@ -41,12 +42,17 @@ export function PortalBottomNav() {
     { key: "home", href: `/${locale}`, label: t("home"), icon: HomeIcon },
     { key: "jobs", href: `/${locale}/jobs`, label: t("jobs"), icon: BriefcaseIcon },
     {
+      key: "savedSearches",
+      href: `/${locale}/saved-searches`,
+      label: t("savedSearches"),
+      icon: BookmarkIcon,
+    },
+    {
       key: "myApplications",
       href: `/${locale}/applications`,
       label: t("myApplications"),
       icon: FileTextIcon,
     },
-    { key: "messages", href: `/${locale}/messages`, label: t("messages"), icon: MessageSquareIcon },
     { key: "profile", href: `/${locale}/profile`, label: t("profile"), icon: UserIcon },
   ];
 

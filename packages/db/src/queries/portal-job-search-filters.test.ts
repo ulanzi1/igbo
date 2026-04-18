@@ -127,22 +127,22 @@ describe("buildFilterPredicate — salary range filter", () => {
   it("emits salary_max >= salaryMin predicate when salaryMin provided", () => {
     const predicate = buildFilterPredicate({ salaryMin: 50000 }, "en");
     const rendered = flattenSql(predicate);
-    expect(rendered).toContain("salary_max IS NULL OR salary_max >=");
+    expect(rendered).toContain("pjp.salary_max IS NULL OR pjp.salary_max >=");
     expect(rendered).toContain("50000");
   });
 
   it("emits salary_min <= salaryMax predicate when salaryMax provided", () => {
     const predicate = buildFilterPredicate({ salaryMax: 100000 }, "en");
     const rendered = flattenSql(predicate);
-    expect(rendered).toContain("salary_min IS NULL OR salary_min <=");
+    expect(rendered).toContain("pjp.salary_min IS NULL OR pjp.salary_min <=");
     expect(rendered).toContain("100000");
   });
 
   it("emits both salary predicates when both salaryMin and salaryMax provided", () => {
     const predicate = buildFilterPredicate({ salaryMin: 50000, salaryMax: 150000 }, "en");
     const rendered = flattenSql(predicate);
-    expect(rendered).toContain("salary_max IS NULL OR salary_max >=");
-    expect(rendered).toContain("salary_min IS NULL OR salary_min <=");
+    expect(rendered).toContain("pjp.salary_max IS NULL OR pjp.salary_max >=");
+    expect(rendered).toContain("pjp.salary_min IS NULL OR pjp.salary_min <=");
   });
 
   it("omits salary predicates when excludeFacet=salaryRange", () => {

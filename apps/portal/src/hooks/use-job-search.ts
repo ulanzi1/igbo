@@ -197,7 +197,8 @@ export function useJobSearch(
           return;
         }
 
-        const data = (await response.json()) as JobSearchResponse;
+        const envelope = (await response.json()) as { data: JobSearchResponse };
+        const data = envelope.data;
         if (controller.signal.aborted) return;
 
         // Append or replace results

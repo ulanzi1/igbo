@@ -64,37 +64,39 @@ import { JobSearchPageContent } from "./job-search-page-content";
 
 function makeApiResponse(overrides: Record<string, unknown> = {}) {
   return {
-    results: [
-      {
-        id: "job-1",
-        title: "Software Engineer",
-        companyName: "TechCorp",
-        companyId: "c-1",
-        companyLogoUrl: null,
-        location: "Lagos, Nigeria",
-        employmentType: "full_time",
-        salaryMin: null,
-        salaryMax: null,
-        salaryCompetitiveOnly: false,
-        culturalContext: null,
-        applicationDeadline: null,
-        createdAt: new Date().toISOString(),
-        relevance: 0.9,
-        snippet: null,
+    data: {
+      results: [
+        {
+          id: "job-1",
+          title: "Software Engineer",
+          companyName: "TechCorp",
+          companyId: "c-1",
+          companyLogoUrl: null,
+          location: "Lagos, Nigeria",
+          employmentType: "full_time",
+          salaryMin: null,
+          salaryMax: null,
+          salaryCompetitiveOnly: false,
+          culturalContext: null,
+          applicationDeadline: null,
+          createdAt: new Date().toISOString(),
+          relevance: 0.9,
+          snippet: null,
+        },
+      ],
+      facets: {
+        location: [{ value: "Lagos", count: 1 }],
+        employmentType: [{ value: "full_time", count: 1 }],
+        industry: [],
+        salaryRange: [],
       },
-    ],
-    facets: {
-      location: [{ value: "Lagos", count: 1 }],
-      employmentType: [{ value: "full_time", count: 1 }],
-      industry: [],
-      salaryRange: [],
+      pagination: {
+        nextCursor: null,
+        totalCount: 1,
+        effectiveSort: "relevance",
+      },
+      ...overrides,
     },
-    pagination: {
-      nextCursor: null,
-      totalCount: 1,
-      effectiveSort: "relevance",
-    },
-    ...overrides,
   };
 }
 

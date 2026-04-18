@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useState, useId } from "react";
+import { useState, useEffect, useId } from "react";
 import { SearchIcon, FilterIcon, LoaderIcon, XIcon } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { BookmarkIcon } from "lucide-react";
 import { useJobSearch } from "@/hooks/use-job-search";
 import { useMatchScores } from "@/hooks/use-match-scores";
 import { countActiveFilters } from "@/lib/search-url-params";
@@ -19,6 +20,7 @@ import { JobResultCard, JobResultCardSkeleton } from "./job-result-card";
 import { JobSearchSortDropdown } from "./job-search-sort-dropdown";
 import { JobSearchEmptyState } from "./job-search-empty-state";
 import { CompleteProfilePrompt } from "./complete-profile-prompt";
+import { SaveSearchDialog } from "./save-search-dialog";
 
 interface JobSearchPageContentProps {
   initialParams: Record<string, string | string[] | undefined>;
@@ -38,9 +40,30 @@ interface JobSearchPageContentProps {
  */
 export function JobSearchPageContent({ initialParams }: JobSearchPageContentProps) {
   const t = useTranslations("Portal.search");
+  const tSaved = useTranslations("Portal.savedSearch");
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
+  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
+  const [savedSearchCount, setSavedSearchCount] = useState(0);
   const filterSheetTitleId = useId();
   const { data: session } = useSession();
+
+  // Fetch real saved search count for max-10 enforcement
+  const isSeeker = session?.user?.activePortalRole === "JOB_SEEKER";
+  useEffect(() => {
+    if (!isSeeker) return;
+    const controller = new AbortController();
+    fetch("/api/v1/saved-searches", { signal: controller.signal })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((body) => {
+        if (body?.data?.searches) {
+          setSavedSearchCount((body.data.searches as unknown[]).length);
+        }
+      })
+      .catch(() => {
+        /* ignore — non-critical for UX */
+      });
+    return () => controller.abort();
+  }, [isSeeker]);
 
   const {
     state,
@@ -58,7 +81,6 @@ export function JobSearchPageContent({ initialParams }: JobSearchPageContentProp
     clearAll,
   } = useJobSearch(initialParams);
 
-  const isSeeker = session?.user?.activePortalRole === "JOB_SEEKER";
   const jobIds = results.map((item) => item.id);
   const { scores, isLoading: matchLoading } = useMatchScores(jobIds, isSeeker);
   const showCompleteProfilePrompt =
@@ -163,12 +185,26 @@ export function JobSearchPageContent({ initialParams }: JobSearchPageContentProp
               )}
             </Button>
 
-            {/* Sort dropdown */}
-            <JobSearchSortDropdown
-              requestedSort={state.sort}
-              effectiveSort={pagination?.effectiveSort ?? state.sort}
-              onChange={setSort}
-            />
+            {/* Save search + Sort dropdown */}
+            <div className="flex items-center gap-2">
+              {isSeeker && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSaveDialogOpen(true)}
+                  data-testid="save-search-button"
+                  className="flex items-center gap-1.5"
+                >
+                  <BookmarkIcon className="size-4" aria-hidden="true" />
+                  {tSaved("saveButton")}
+                </Button>
+              )}
+              <JobSearchSortDropdown
+                requestedSort={state.sort}
+                effectiveSort={pagination?.effectiveSort ?? state.sort}
+                onChange={setSort}
+              />
+            </div>
           </div>
 
           {/* Results summary (aria-live region) */}
@@ -268,6 +304,17 @@ export function JobSearchPageContent({ initialParams }: JobSearchPageContentProp
           )}
         </div>
       </div>
+
+      {/* Save search dialog */}
+      {isSeeker && (
+        <SaveSearchDialog
+          open={saveDialogOpen}
+          onOpenChange={setSaveDialogOpen}
+          searchParams={state}
+          onSaved={() => setSavedSearchCount((c) => c + 1)}
+          savedSearchCount={savedSearchCount}
+        />
+      )}
 
       {/* Mobile filter Sheet */}
       <Sheet open={filterSheetOpen} onOpenChange={setFilterSheetOpen}>

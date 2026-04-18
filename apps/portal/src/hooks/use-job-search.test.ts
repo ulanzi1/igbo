@@ -94,7 +94,7 @@ function mockFetchSuccess(response = makeSuccessResponse()) {
     });
     return {
       ok: true,
-      json: async () => response,
+      json: async () => ({ data: response }),
     } as Response;
   });
 }
@@ -399,7 +399,7 @@ describe("useJobSearch — AbortController", () => {
         throw new DOMException("Aborted", "AbortError");
       }
 
-      return { ok: true, json: async () => makeSuccessResponse() } as Response;
+      return { ok: true, json: async () => ({ data: makeSuccessResponse() }) } as Response;
     });
 
     const { result } = renderHook(() => useJobSearch({}));

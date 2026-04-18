@@ -1,11 +1,13 @@
 import "server-only";
 import { render as renderApplicationConfirmation } from "./application-confirmation";
+import { render as renderSavedSearchDigest } from "./saved-search-digest";
 import type { EmailTemplateResult, EmailTemplateRenderer } from "./types";
 
 export type { EmailTemplateResult, EmailTemplateRenderer };
 
 const REGISTRY: Record<string, EmailTemplateRenderer> = {
   "application-confirmation": renderApplicationConfirmation,
+  "saved-search-digest": renderSavedSearchDigest,
 };
 
 export function renderTemplate(
