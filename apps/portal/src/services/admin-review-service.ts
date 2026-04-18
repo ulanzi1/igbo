@@ -41,6 +41,7 @@ import {
   type ViolationCategory,
 } from "@/lib/portal-errors";
 import { portalEventBus } from "@/services/event-bus";
+import { invalidateJobSearchCache } from "@/services/job-search-service";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -298,6 +299,20 @@ export async function approvePosting(
     decision: "approved",
     companyId: posting.companyId,
     ...(metadata?.fastLane ? { fastLane: true } : {}),
+  });
+
+  // Invalidate job search cache — posting entered active state.
+  // Fire-and-forget: cache will expire in 60s if invalidation fails.
+  // See docs/decisions/search-cache-strategy.md §Decision 1.
+  invalidateJobSearchCache().catch((err: Error) => {
+    console.error(
+      JSON.stringify({
+        level: "error",
+        message: "portal.admin-review-service.approve.invalidation-error",
+        postingId,
+        error: err.message,
+      }),
+    );
   });
 }
 

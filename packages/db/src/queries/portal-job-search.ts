@@ -1,3 +1,6 @@
+// TODO(P-4.1-TECHDEBT-1): collapse dual search paths post-P-4.1B once the UI has
+// shipped against the production path (searchJobPostingsWithFilters) and the PoC
+// signature (searchJobPostings) can be safely retired.
 import "server-only";
 import { sql } from "drizzle-orm";
 import { db } from "../index";
@@ -392,4 +395,529 @@ function buildPage(rows: JobSearchResult[], safeLimit: number, sort: JobSearchSo
   const last = items[items.length - 1];
   const nextCursor = hasMore && last ? encodeJobSearchCursor(buildCursorFromRow(last, sort)) : null;
   return { items, nextCursor };
+}
+
+// ---------------------------------------------------------------------------
+// P-4.1A — Extended filter types and query functions
+// ---------------------------------------------------------------------------
+
+/** Facet axis to exclude from filter predicate (for faceted-search semantics) */
+export type FacetExclusion = "location" | "employmentType" | "industry" | "salaryRange";
+
+/** Filter object matching the `GET /api/v1/jobs/search` request contract */
+export interface JobSearchFilters {
+  location?: string[];
+  salaryMin?: number;
+  salaryMax?: number;
+  employmentType?: string[];
+  industry?: string[];
+  remote?: boolean;
+  culturalContext?: {
+    diasporaFriendly?: boolean;
+    igboPreferred?: boolean;
+    communityReferred?: boolean;
+  };
+}
+
+/** Parameters for searchJobPostingsWithFilters */
+export interface FilteredJobSearchParams {
+  query?: string;
+  locale?: "en" | "ig";
+  filters?: JobSearchFilters;
+  sort?: JobSearchSort;
+  cursor?: string;
+  limit?: number;
+}
+
+/** Extended row returned by searchJobPostingsWithFilters (adds company fields) */
+export interface FilteredJobSearchResult {
+  id: string;
+  title: string;
+  company_name: string | null;
+  logo_url: string | null;
+  location: string | null;
+  salary_min: number | null;
+  salary_max: number | null;
+  salary_competitive_only: boolean;
+  employment_type: string;
+  cultural_context_json: Record<string, boolean> | null;
+  application_deadline: string | null;
+  created_at: string;
+  relevance: number | null;
+  snippet: string | null;
+}
+
+export interface FilteredJobSearchPage {
+  items: FilteredJobSearchResult[];
+  nextCursor: string | null;
+  /**
+   * The sort mode actually applied to this page. May differ from the requested
+   * sort when `relevance` is requested with an empty query — the backend falls
+   * back to `date` since there is no FTS rank to sort by. Surfacing this lets
+   * the service and UI detect the fallback instead of silently changing the
+   * semantics.
+   */
+  effectiveSort: JobSearchSort;
+}
+
+/** Facet value with count */
+export interface DbFacetValue {
+  value: string;
+  count: number;
+}
+
+/** Salary range bucket with count */
+export interface DbSalaryRangeFacet {
+  bucket: string;
+  count: number;
+}
+
+/** All facets returned by getJobSearchFacets */
+export interface JobSearchFacets {
+  location: DbFacetValue[];
+  employmentType: DbFacetValue[];
+  industry: DbFacetValue[];
+  salaryRange: DbSalaryRangeFacet[];
+}
+
+// ---------------------------------------------------------------------------
+// Filter predicate builder
+// ---------------------------------------------------------------------------
+
+/**
+ * Builds a SQL fragment (AND clauses) for the given filters.
+ *
+ * The status gate (status = 'active' AND archived_at IS NULL AND deadline check)
+ * is ALWAYS applied; it is not facet-excludable.
+ *
+ * `excludeFacet` omits the self-facet filter so facet counts reflect
+ * "how many results match everything EXCEPT this facet" — standard faceted-search
+ * semantics so clicking a facet never yields zero.
+ */
+export function buildFilterPredicate(
+  filters: JobSearchFilters | undefined,
+  locale: "en" | "ig",
+  excludeFacet?: FacetExclusion,
+): ReturnType<typeof sql> {
+  const f = filters ?? {};
+  const parts: ReturnType<typeof sql>[] = [];
+
+  // Status gate — always applied
+  parts.push(
+    sql`status = 'active' AND archived_at IS NULL AND (application_deadline IS NULL OR application_deadline > NOW())`,
+  );
+
+  // Location filter (OR within)
+  if (excludeFacet !== "location" && Array.isArray(f.location) && f.location.length > 0) {
+    parts.push(sql`AND location = ANY(${f.location})`);
+  }
+
+  // Employment type filter (OR within, cast to enum)
+  if (
+    excludeFacet !== "employmentType" &&
+    Array.isArray(f.employmentType) &&
+    f.employmentType.length > 0
+  ) {
+    parts.push(sql`AND employment_type = ANY(${f.employmentType}::portal_employment_type[])`);
+  }
+
+  // Industry filter (OR within, subquery to portal_company_profiles)
+  if (excludeFacet !== "industry" && Array.isArray(f.industry) && f.industry.length > 0) {
+    parts.push(
+      sql`AND company_id IN (SELECT id FROM portal_company_profiles WHERE industry = ANY(${f.industry}))`,
+    );
+  }
+
+  // Salary range overlap predicate — open-ended NULLs match any bound.
+  // See docs/decisions/search-cache-strategy.md §Decision 4.
+  if (excludeFacet !== "salaryRange") {
+    if (f.salaryMin !== undefined && f.salaryMin !== null) {
+      parts.push(sql`AND (salary_max IS NULL OR salary_max >= ${f.salaryMin})`);
+    }
+    if (f.salaryMax !== undefined && f.salaryMax !== null) {
+      parts.push(sql`AND (salary_min IS NULL OR salary_min <= ${f.salaryMax})`);
+    }
+  }
+
+  // Remote filter — approximation: location matches /remote/i OR diasporaFriendly.
+  // TODO(schema): add is_remote boolean column — this regex+JSONB approximation is a
+  // stop-gap. See docs/decisions/search-cache-strategy.md §Decision 5.
+  if (f.remote === true) {
+    parts.push(
+      sql`AND (location ~* 'remote' OR (cultural_context_json->>'diasporaFriendly')::boolean = true)`,
+    );
+  }
+
+  // Cultural context filters (JSONB boolean predicates)
+  if (f.culturalContext?.diasporaFriendly === true) {
+    parts.push(sql`AND (cultural_context_json->>'diasporaFriendly')::boolean = true`);
+  }
+  if (f.culturalContext?.igboPreferred === true) {
+    // igboPreferred in request → igboLanguagePreferred in DB JSONB
+    parts.push(sql`AND (cultural_context_json->>'igboLanguagePreferred')::boolean = true`);
+  }
+  if (f.culturalContext?.communityReferred === true) {
+    parts.push(sql`AND (cultural_context_json->>'communityReferred')::boolean = true`);
+  }
+
+  // Combine with sql join (drizzle-orm doesn't have a join util; inline)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  void locale; // locale does not affect filter predicate (only FTS vector selection)
+
+  // Build combined predicate by sequentially joining SQL chunks
+  if (parts.length === 0) return sql``;
+  let combined = parts[0]!;
+  for (let i = 1; i < parts.length; i++) {
+    combined = sql`${combined} ${parts[i]!}`;
+  }
+  return combined;
+}
+
+// ---------------------------------------------------------------------------
+// buildFilteredOrderBy / buildFilteredCursorPredicate (locale-aware wrappers)
+// ---------------------------------------------------------------------------
+
+function buildFilteredOrderBy(
+  sort: JobSearchSort,
+  tsQuery?: ReturnType<typeof sql>,
+  locale: "en" | "ig" = "en",
+): ReturnType<typeof sql> {
+  if (locale === "ig") return buildOrderByIgbo(sort, tsQuery);
+  return buildOrderBy(sort, tsQuery);
+}
+
+function buildFilteredCursorPredicate(
+  cursor: JobSearchCursor | null,
+  sort: JobSearchSort,
+  tsQuery?: ReturnType<typeof sql>,
+  locale: "en" | "ig" = "en",
+): ReturnType<typeof sql> {
+  if (locale === "ig") return buildCursorPredicateIgbo(cursor, sort, tsQuery);
+  return buildCursorPredicate(cursor, sort, tsQuery);
+}
+
+// ---------------------------------------------------------------------------
+// searchJobPostingsWithFilters — production search path
+// ---------------------------------------------------------------------------
+
+/**
+ * Cursor-paginated full-text search with filter predicates and company JOIN.
+ *
+ * This is the production path used by the search route. The PoC function
+ * (searchJobPostings) is preserved unchanged for PREP-G test compatibility.
+ * See TODO(P-4.1-TECHDEBT-1) at the top of this file.
+ *
+ * SELECT list projection (AC #5 — no large columns):
+ * id, title, company_name, logo_url, location, salary_min, salary_max,
+ * salary_competitive_only, employment_type, cultural_context_json,
+ * application_deadline, created_at, ts_rank/null, ts_headline/null.
+ * description_html, description_igbo_html, requirements, search_vector are
+ * explicitly excluded.
+ *
+ * SECURITY: ts_headline produces <mark>-only HTML. The StartSel/StopSel options
+ * are hard-coded; no user input reaches the HTML output. Consumer (P-4.1B)
+ * is responsible for sanitizing via sanitizeHtml(snippet, { ALLOWED_TAGS: ['mark'] }).
+ */
+export async function searchJobPostingsWithFilters({
+  query,
+  locale = "en",
+  filters,
+  sort = "relevance",
+  cursor,
+  limit,
+}: FilteredJobSearchParams): Promise<FilteredJobSearchPage> {
+  const DEFAULT_FILTERED_LIMIT = 20;
+  const MAX_FILTERED_LIMIT = 50;
+  const MIN_FILTERED_LIMIT = 1;
+
+  const safeLimit = Math.max(
+    MIN_FILTERED_LIMIT,
+    Math.min(MAX_FILTERED_LIMIT, Math.floor(limit ?? DEFAULT_FILTERED_LIMIT)),
+  );
+
+  const decodedCursor = cursor ? decodeJobSearchCursor(cursor) : null;
+  const trimmedQuery = query?.trim() ?? "";
+  const hasQuery = trimmedQuery.length > 0;
+
+  // When empty query, default sort to "date" (no FTS predicate available)
+  const effectiveSort: JobSearchSort = !hasQuery && sort === "relevance" ? "date" : sort;
+
+  const filterPredicate = buildFilterPredicate(filters, locale);
+
+  if (locale === "ig") {
+    const tsQuery = hasQuery ? sql`plainto_tsquery('simple', ${trimmedQuery})` : sql`NULL::tsquery`;
+    const snippetSource = sql`COALESCE(title, '') || ' ' || regexp_replace(COALESCE(description_igbo_html, ''), '<[^>]+>', ' ', 'g')`;
+    const orderBy = buildFilteredOrderBy(effectiveSort, hasQuery ? tsQuery : undefined, "ig");
+    const cursorPredicate = buildFilteredCursorPredicate(
+      decodedCursor,
+      effectiveSort,
+      hasQuery ? tsQuery : undefined,
+      "ig",
+    );
+
+    const rows = (await db.execute(sql`
+      SELECT
+        pjp.id::text,
+        pjp.title,
+        cp.name AS company_name,
+        cp.logo_url,
+        pjp.location,
+        pjp.salary_min,
+        pjp.salary_max,
+        pjp.salary_competitive_only,
+        pjp.employment_type,
+        pjp.cultural_context_json,
+        pjp.application_deadline::text,
+        pjp.created_at::text,
+        ${hasQuery ? sql`ts_rank(pjp.search_vector_igbo, ${tsQuery})` : sql`NULL::float4`} AS relevance,
+        ${hasQuery ? sql`ts_headline('simple', ${snippetSource}, ${tsQuery}, ${TS_HEADLINE_OPTIONS})` : sql`NULL::text`} AS snippet
+      FROM portal_job_postings pjp
+      LEFT JOIN portal_company_profiles cp ON cp.id = pjp.company_id
+      WHERE ${filterPredicate}
+        ${hasQuery ? sql`AND pjp.search_vector_igbo @@ ${tsQuery}` : sql``}
+        ${cursorPredicate}
+      ${orderBy}
+      LIMIT ${safeLimit + 1}
+    `)) as unknown as FilteredJobSearchResult[];
+
+    return buildFilteredPage(rows, safeLimit, effectiveSort);
+  }
+
+  // Default: English
+  const tsQuery = hasQuery ? sql`plainto_tsquery('english', ${trimmedQuery})` : sql`NULL::tsquery`;
+  const snippetSource = sql`COALESCE(pjp.title, '') || ' ' || regexp_replace(COALESCE(pjp.description_html, ''), '<[^>]+>', ' ', 'g')`;
+  const orderBy = buildFilteredOrderBy(effectiveSort, hasQuery ? tsQuery : undefined, "en");
+  const cursorPredicate = buildFilteredCursorPredicate(
+    decodedCursor,
+    effectiveSort,
+    hasQuery ? tsQuery : undefined,
+    "en",
+  );
+
+  const rows = (await db.execute(sql`
+    SELECT
+      pjp.id::text,
+      pjp.title,
+      cp.name AS company_name,
+      cp.logo_url,
+      pjp.location,
+      pjp.salary_min,
+      pjp.salary_max,
+      pjp.salary_competitive_only,
+      pjp.employment_type,
+      pjp.cultural_context_json,
+      pjp.application_deadline::text,
+      pjp.created_at::text,
+      ${hasQuery ? sql`ts_rank(pjp.search_vector, ${tsQuery})` : sql`NULL::float4`} AS relevance,
+      ${hasQuery ? sql`ts_headline('english', ${snippetSource}, ${tsQuery}, ${TS_HEADLINE_OPTIONS})` : sql`NULL::text`} AS snippet
+    FROM portal_job_postings pjp
+    LEFT JOIN portal_company_profiles cp ON cp.id = pjp.company_id
+    WHERE ${filterPredicate}
+      ${hasQuery ? sql`AND pjp.search_vector @@ ${tsQuery}` : sql``}
+      ${cursorPredicate}
+    ${orderBy}
+    LIMIT ${safeLimit + 1}
+  `)) as unknown as FilteredJobSearchResult[];
+
+  return buildFilteredPage(rows, safeLimit, effectiveSort);
+}
+
+function buildFilteredPage(
+  rows: FilteredJobSearchResult[],
+  safeLimit: number,
+  sort: JobSearchSort,
+): FilteredJobSearchPage {
+  const hasMore = rows.length > safeLimit;
+  const items = rows.slice(0, safeLimit);
+  const last = items[items.length - 1];
+
+  let nextCursor: string | null = null;
+  if (hasMore && last) {
+    // Build cursor from filtered result shape (maps back to JobSearchResult fields)
+    const cursorRow: JobSearchResult = {
+      id: last.id,
+      title: last.title,
+      location: last.location,
+      salary_min: last.salary_min,
+      salary_max: last.salary_max,
+      employment_type: last.employment_type,
+      created_at: last.created_at,
+      relevance: last.relevance !== null ? String(last.relevance) : "0",
+      snippet: last.snippet,
+    };
+    nextCursor = encodeJobSearchCursor(buildCursorFromRow(cursorRow, sort));
+  }
+
+  return { items, nextCursor, effectiveSort: sort };
+}
+
+// ---------------------------------------------------------------------------
+// getJobSearchFacets — facet aggregation (4 parallel queries)
+// ---------------------------------------------------------------------------
+
+/**
+ * Returns facet counts for location, employmentType, industry, and salaryRange.
+ *
+ * Each facet query EXCLUDES the self-facet filter (standard faceted-search semantics
+ * so clicking a facet never yields zero results).
+ *
+ * Per AC #8: facet counts reflect "how many active postings match the search +
+ * all OTHER filters, grouped by this facet's values".
+ */
+export async function getJobSearchFacets(
+  filters: JobSearchFilters | undefined,
+  locale: "en" | "ig",
+  query?: string,
+): Promise<JobSearchFacets> {
+  const trimmedQuery = query?.trim() ?? "";
+  const hasQuery = trimmedQuery.length > 0;
+
+  const tsQueryEn = hasQuery ? sql`plainto_tsquery('english', ${trimmedQuery})` : undefined;
+  const tsQueryIg = hasQuery ? sql`plainto_tsquery('simple', ${trimmedQuery})` : undefined;
+  const tsQuery = locale === "ig" ? tsQueryIg : tsQueryEn;
+  const vectorCol = locale === "ig" ? sql`pjp.search_vector_igbo` : sql`pjp.search_vector`;
+
+  function ftsClause() {
+    if (!hasQuery || !tsQuery) return sql``;
+    return sql`AND ${vectorCol} @@ ${tsQuery}`;
+  }
+
+  const [locationRows, employmentTypeRows, industryRows, salaryRangeRows] = await Promise.all([
+    // Location facet — excludes location filter
+    db.execute(sql`
+      SELECT pjp.location AS value, COUNT(*)::int AS count
+      FROM portal_job_postings pjp
+      LEFT JOIN portal_company_profiles cp ON cp.id = pjp.company_id
+      WHERE ${buildFilterPredicate(filters, locale, "location")}
+        ${ftsClause()}
+        AND pjp.location IS NOT NULL
+      GROUP BY pjp.location
+      ORDER BY count DESC, pjp.location ASC
+    `),
+
+    // EmploymentType facet — excludes employmentType filter
+    db.execute(sql`
+      SELECT pjp.employment_type::text AS value, COUNT(*)::int AS count
+      FROM portal_job_postings pjp
+      LEFT JOIN portal_company_profiles cp ON cp.id = pjp.company_id
+      WHERE ${buildFilterPredicate(filters, locale, "employmentType")}
+        ${ftsClause()}
+      GROUP BY pjp.employment_type
+      ORDER BY count DESC, pjp.employment_type ASC
+    `),
+
+    // Industry facet — excludes industry filter, requires JOIN (industry is on company)
+    db.execute(sql`
+      SELECT cp.industry AS value, COUNT(*)::int AS count
+      FROM portal_job_postings pjp
+      LEFT JOIN portal_company_profiles cp ON cp.id = pjp.company_id
+      WHERE ${buildFilterPredicate(filters, locale, "industry")}
+        ${ftsClause()}
+        AND cp.industry IS NOT NULL
+      GROUP BY cp.industry
+      ORDER BY count DESC, cp.industry ASC
+    `),
+
+    // SalaryRange facet — excludes salaryRange filter (salaryMin/salaryMax overlap predicates)
+    db.execute(sql`
+      SELECT
+        CASE
+          WHEN pjp.salary_competitive_only = true THEN 'competitive'
+          WHEN pjp.salary_min < 50000 OR (pjp.salary_min IS NULL AND pjp.salary_max < 50000) THEN '<50k'
+          WHEN pjp.salary_min < 100000 OR (pjp.salary_min IS NULL AND pjp.salary_max < 100000) THEN '50k-100k'
+          WHEN pjp.salary_min < 200000 OR (pjp.salary_min IS NULL AND pjp.salary_max < 200000) THEN '100k-200k'
+          WHEN pjp.salary_min >= 200000 THEN '>200k'
+          ELSE NULL
+        END AS bucket,
+        COUNT(*)::int AS count
+      FROM portal_job_postings pjp
+      LEFT JOIN portal_company_profiles cp ON cp.id = pjp.company_id
+      WHERE ${buildFilterPredicate(filters, locale, "salaryRange")}
+        ${ftsClause()}
+      GROUP BY bucket
+      HAVING bucket IS NOT NULL
+      ORDER BY count DESC
+    `),
+  ]);
+
+  return {
+    location: (locationRows as unknown as { value: string; count: number }[]).map((r) => ({
+      value: r.value,
+      count: r.count,
+    })),
+    employmentType: (employmentTypeRows as unknown as { value: string; count: number }[]).map(
+      (r) => ({ value: r.value, count: r.count }),
+    ),
+    industry: (industryRows as unknown as { value: string; count: number }[]).map((r) => ({
+      value: r.value,
+      count: r.count,
+    })),
+    salaryRange: (salaryRangeRows as unknown as { bucket: string; count: number }[]).map((r) => ({
+      bucket: r.bucket,
+      count: r.count,
+    })),
+  };
+}
+
+// ---------------------------------------------------------------------------
+// getJobSearchTotalCount
+// ---------------------------------------------------------------------------
+
+/**
+ * Returns the total count of active postings matching the given filters + query.
+ *
+ * Per AC #8: acceptable at current scale. Revisit trigger documented in
+ * docs/decisions/search-cache-strategy.md §Decision 6.
+ */
+export async function getJobSearchTotalCount(
+  filters: JobSearchFilters | undefined,
+  locale: "en" | "ig",
+  query?: string,
+): Promise<number> {
+  const trimmedQuery = query?.trim() ?? "";
+  const hasQuery = trimmedQuery.length > 0;
+
+  const filterPredicate = buildFilterPredicate(filters, locale);
+
+  let rows: unknown;
+  if (locale === "ig") {
+    if (hasQuery) {
+      const tsQuery = sql`plainto_tsquery('simple', ${trimmedQuery})`;
+      rows = await db.execute(sql`
+        SELECT COUNT(*)::int AS count
+        FROM portal_job_postings pjp
+        LEFT JOIN portal_company_profiles cp ON cp.id = pjp.company_id
+        WHERE ${filterPredicate}
+          AND pjp.search_vector_igbo @@ ${tsQuery}
+      `);
+    } else {
+      rows = await db.execute(sql`
+        SELECT COUNT(*)::int AS count
+        FROM portal_job_postings pjp
+        LEFT JOIN portal_company_profiles cp ON cp.id = pjp.company_id
+        WHERE ${filterPredicate}
+      `);
+    }
+  } else {
+    if (hasQuery) {
+      const tsQuery = sql`plainto_tsquery('english', ${trimmedQuery})`;
+      rows = await db.execute(sql`
+        SELECT COUNT(*)::int AS count
+        FROM portal_job_postings pjp
+        LEFT JOIN portal_company_profiles cp ON cp.id = pjp.company_id
+        WHERE ${filterPredicate}
+          AND pjp.search_vector @@ ${tsQuery}
+      `);
+    } else {
+      rows = await db.execute(sql`
+        SELECT COUNT(*)::int AS count
+        FROM portal_job_postings pjp
+        LEFT JOIN portal_company_profiles cp ON cp.id = pjp.company_id
+        WHERE ${filterPredicate}
+      `);
+    }
+  }
+
+  const result = rows as unknown as { count: number }[];
+  return result[0]?.count ?? 0;
 }
