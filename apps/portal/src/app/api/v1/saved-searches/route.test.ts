@@ -53,7 +53,7 @@ function makeRequest(
 
 describe("GET /api/v1/saved-searches", () => {
   it("returns 401 when unauthenticated", async () => {
-    vi.mocked(auth).mockResolvedValue(null);
+    vi.mocked(auth).mockResolvedValue(null as never);
     const res = await GET(makeRequest("GET"));
     expect(res.status).toBe(401);
   });
@@ -87,7 +87,7 @@ describe("GET /api/v1/saved-searches", () => {
 
 describe("POST /api/v1/saved-searches", () => {
   it("returns 401 when unauthenticated", async () => {
-    vi.mocked(auth).mockResolvedValue(null);
+    vi.mocked(auth).mockResolvedValue(null as never);
     const res = await POST(makeRequest("POST", VALID_BODY));
     expect(res.status).toBe(401);
   });

@@ -46,7 +46,7 @@ beforeEach(() => {
 
 describe("PATCH /api/v1/saved-searches/[id]", () => {
   it("returns 401 when unauthenticated", async () => {
-    vi.mocked(auth).mockResolvedValue(null);
+    vi.mocked(auth).mockResolvedValue(null as never);
     const res = await PATCH(makeRequest("PATCH", { name: "New" }));
     expect(res.status).toBe(401);
   });
@@ -111,7 +111,7 @@ describe("PATCH /api/v1/saved-searches/[id]", () => {
 
 describe("DELETE /api/v1/saved-searches/[id]", () => {
   it("returns 401 when unauthenticated", async () => {
-    vi.mocked(auth).mockResolvedValue(null);
+    vi.mocked(auth).mockResolvedValue(null as never);
     const res = await DELETE(makeRequest("DELETE"));
     expect(res.status).toBe(401);
   });

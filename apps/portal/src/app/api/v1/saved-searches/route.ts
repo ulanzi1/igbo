@@ -43,6 +43,7 @@ export const POST = withApiHandler(async (req) => {
   const parsed = createSavedSearchSchema.safeParse(body);
   if (!parsed.success) {
     return errorResponse({
+      type: "validation_error",
       title: "Validation Error",
       status: 400,
       detail: parsed.error.issues[0]?.message ?? "Invalid request body",

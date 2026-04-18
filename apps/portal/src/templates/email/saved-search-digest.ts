@@ -62,7 +62,7 @@ const COPY = {
       return `Ndewo ${String(d.seekerName ?? "")},\n\nỌrụ ọhụrụ dabara n'achọchaa gị:\n\n${sections.join("\n\n")}\n\nBanye iji chịkọta achọchaa gị.`;
     },
   },
-} as const;
+};
 
 function renderJobRow(job: DigestJob, c: (typeof COPY)["en"]): string {
   const title = String(job.title ?? c.noTitle);

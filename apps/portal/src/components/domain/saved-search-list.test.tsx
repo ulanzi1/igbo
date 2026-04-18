@@ -169,7 +169,7 @@ const SEARCH_2 = {
   lastAlertedAt: null,
 };
 
-function makeListResponse(searches: (typeof SEARCH_1)[]) {
+function makeListResponse(searches: Record<string, unknown>[]) {
   return new Response(JSON.stringify({ data: { searches } }), {
     status: 200,
     headers: { "Content-Type": "application/json" },

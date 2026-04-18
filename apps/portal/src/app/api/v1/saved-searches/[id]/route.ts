@@ -25,6 +25,7 @@ export const PATCH = withApiHandler(async (req) => {
   const parsed = updateSavedSearchSchema.safeParse(body);
   if (!parsed.success) {
     return errorResponse({
+      type: "validation_error",
       title: "Validation Error",
       status: 400,
       detail: parsed.error.issues[0]?.message ?? "Invalid request body",
