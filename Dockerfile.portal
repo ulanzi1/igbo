@@ -33,9 +33,11 @@ COPY apps/portal/ ./apps/portal/
 # NEXT_PUBLIC_* vars are baked into the client bundle at build time.
 ARG NEXT_PUBLIC_PORTAL_URL=http://localhost:3001
 ARG NEXT_PUBLIC_APP_URL=http://localhost:3000
+ARG NEXT_PUBLIC_COMMUNITY_URL=http://localhost:3000
 
 ENV NEXT_PUBLIC_PORTAL_URL=$NEXT_PUBLIC_PORTAL_URL
 ENV NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL
+ENV NEXT_PUBLIC_COMMUNITY_URL=$NEXT_PUBLIC_COMMUNITY_URL
 
 # Skip env validation during build — server vars are injected at runtime
 ENV SKIP_ENV_VALIDATION=1

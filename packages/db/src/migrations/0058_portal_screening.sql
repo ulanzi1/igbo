@@ -35,15 +35,16 @@ CREATE INDEX portal_screening_keywords_active_idx
 INSERT INTO auth_users (
   id, email, email_verified, name,
   account_status, role, language_preference,
-  created_at, updated_at
+  consent_given_at, created_at, updated_at
 ) VALUES (
   '00000000-0000-0000-0000-000000000001',
   'system@igbo.local',
   NOW(),
   'System',
-  'ACTIVE',
+  'APPROVED',
   'MEMBER',
   'en',
+  NOW(),
   NOW(),
   NOW()
 ) ON CONFLICT (id) DO NOTHING;
