@@ -47,9 +47,12 @@ vi.mock("@/services/screening", () => ({
   }),
 }));
 
-// Mock job-search-service invalidation — prevents real Redis calls in unit tests
-vi.mock("@/services/job-search-service", () => ({
-  invalidateJobSearchCache: vi.fn().mockResolvedValue(undefined),
+// Mock cache-registry invalidation — prevents real Redis calls in unit tests
+vi.mock("@/lib/cache-registry", () => ({
+  invalidateAll: vi.fn().mockResolvedValue(undefined),
+  registerCacheNamespace: vi.fn(),
+  cachedFetch: vi.fn(),
+  getRegisteredGroups: vi.fn(),
 }));
 
 import { db } from "@igbo/db";
@@ -70,7 +73,7 @@ import {
   editActivePosting,
   renewPosting,
 } from "./job-posting-service";
-import { invalidateJobSearchCache } from "@/services/job-search-service";
+import { invalidateAll } from "@/lib/cache-registry";
 import { jobPostingFactory } from "@/test/factories";
 
 const BASE_POSTING = jobPostingFactory({
@@ -584,8 +587,8 @@ describe("editActivePosting", () => {
 // Cache invalidation wiring
 // ---------------------------------------------------------------------------
 
-describe("cache invalidation — transitionStatus wires invalidateJobSearchCache", () => {
-  it("calls invalidateJobSearchCache when transitioning active → paused", async () => {
+describe("cache invalidation — transitionStatus wires invalidateAll", () => {
+  it("calls invalidateAll when transitioning active → paused", async () => {
     vi.mocked(getJobPostingById).mockResolvedValue({
       ...BASE_POSTING,
       status: "active",
@@ -595,10 +598,10 @@ describe("cache invalidation — transitionStatus wires invalidateJobSearchCache
 
     await transitionStatus("posting-1", "paused", "company-1", "EMPLOYER");
 
-    expect(invalidateJobSearchCache).toHaveBeenCalledOnce();
+    expect(invalidateAll).toHaveBeenCalledOnce();
   });
 
-  it("calls invalidateJobSearchCache when transitioning to active (expired → active)", async () => {
+  it("calls invalidateAll when transitioning to active (expired → active)", async () => {
     vi.mocked(getJobPostingById).mockResolvedValue({
       ...BASE_POSTING,
       status: "paused",
@@ -608,10 +611,10 @@ describe("cache invalidation — transitionStatus wires invalidateJobSearchCache
 
     await transitionStatus("posting-1", "active", "company-1", "EMPLOYER");
 
-    expect(invalidateJobSearchCache).toHaveBeenCalledOnce();
+    expect(invalidateAll).toHaveBeenCalledOnce();
   });
 
-  it("does NOT call invalidateJobSearchCache for transitions not involving active", async () => {
+  it("does NOT call invalidateAll for transitions not involving active", async () => {
     vi.mocked(getJobPostingById).mockResolvedValue({
       ...BASE_POSTING,
       status: "draft",
@@ -621,12 +624,12 @@ describe("cache invalidation — transitionStatus wires invalidateJobSearchCache
 
     await transitionStatus("posting-1", "pending_review", "company-1", "EMPLOYER");
 
-    expect(invalidateJobSearchCache).not.toHaveBeenCalled();
+    expect(invalidateAll).not.toHaveBeenCalled();
   });
 });
 
-describe("cache invalidation — closePosting calls invalidateJobSearchCache", () => {
-  it("calls invalidateJobSearchCache after successfully closing a posting", async () => {
+describe("cache invalidation — closePosting calls invalidateAll", () => {
+  it("calls invalidateAll after successfully closing a posting", async () => {
     vi.mocked(getJobPostingById).mockResolvedValue({
       ...BASE_POSTING,
       status: "active",
@@ -636,12 +639,12 @@ describe("cache invalidation — closePosting calls invalidateJobSearchCache", (
 
     await closePosting("posting-1", "filled_via_portal", "company-1");
 
-    expect(invalidateJobSearchCache).toHaveBeenCalledOnce();
+    expect(invalidateAll).toHaveBeenCalledOnce();
   });
 });
 
-describe("cache invalidation — renewPosting calls invalidateJobSearchCache", () => {
-  it("calls invalidateJobSearchCache when renewing to active (contentChanged=false)", async () => {
+describe("cache invalidation — renewPosting calls invalidateAll", () => {
+  it("calls invalidateAll when renewing to active (contentChanged=false)", async () => {
     vi.mocked(getJobPostingById).mockResolvedValue({
       ...BASE_POSTING,
       status: "expired",
@@ -653,10 +656,10 @@ describe("cache invalidation — renewPosting calls invalidateJobSearchCache", (
     const futureDate = new Date(Date.now() + 86400000).toISOString();
     await renewPosting("posting-1", "company-1", futureDate, false, "EMPLOYER");
 
-    expect(invalidateJobSearchCache).toHaveBeenCalledOnce();
+    expect(invalidateAll).toHaveBeenCalledOnce();
   });
 
-  it("does NOT call invalidateJobSearchCache when renewing with contentChanged=true (goes to pending_review)", async () => {
+  it("does NOT call invalidateAll when renewing with contentChanged=true (goes to pending_review)", async () => {
     vi.mocked(getJobPostingById).mockResolvedValue({
       ...BASE_POSTING,
       status: "expired",
@@ -667,6 +670,6 @@ describe("cache invalidation — renewPosting calls invalidateJobSearchCache", (
     const futureDate = new Date(Date.now() + 86400000).toISOString();
     await renewPosting("posting-1", "company-1", futureDate, true, "EMPLOYER");
 
-    expect(invalidateJobSearchCache).not.toHaveBeenCalled();
+    expect(invalidateAll).not.toHaveBeenCalled();
   });
 });

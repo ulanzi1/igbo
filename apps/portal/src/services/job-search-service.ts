@@ -2,6 +2,7 @@ import "server-only";
 import { createHash } from "node:crypto";
 import { createRedisKey } from "@igbo/config/redis";
 import { getRedisClient } from "@/lib/redis";
+import { registerCacheNamespace, cachedFetch } from "@/lib/cache-registry";
 import {
   searchJobPostingsWithFilters,
   getJobSearchFacets,
@@ -24,38 +25,38 @@ import type {
 } from "@/lib/validations/job-search";
 
 // ---------------------------------------------------------------------------
+// Cache group registrations — auto-registered for invalidation via cache-registry
+// ---------------------------------------------------------------------------
+registerCacheNamespace("search", { patterns: ["portal:job-search:*"] });
+registerCacheNamespace("discovery", {
+  patterns: [
+    "portal:discovery:featured:*",
+    "portal:discovery:categories:*",
+    "portal:discovery:recent:*",
+  ],
+});
+registerCacheNamespace("similar", { patterns: ["portal:discovery:similar:*"] });
+
+// ---------------------------------------------------------------------------
 // Cache TTL — 60 seconds (aligns with Redis EX and CDN s-maxage headers)
 // See docs/decisions/search-cache-strategy.md §Decision 1
 // ---------------------------------------------------------------------------
 const CACHE_TTL_SECONDS = 60;
-const CACHE_KEY_PREFIX = "portal:job-search:";
 
 // ---------------------------------------------------------------------------
-// Cache invalidation / cache-write test-only hooks
-// These EventEmitter-style signals let integration tests await invalidation
-// and fire-and-forget cache writes to complete without setTimeout polling.
+// Cache-write test-only hooks
+// These EventEmitter-style signals let integration tests await
+// fire-and-forget cache writes to complete without setTimeout polling.
 //
-// Runtime guard: both hooks throw when NODE_ENV === "production" to prevent
+// Runtime guard: hook throws when NODE_ENV === "production" to prevent
 // accidental use in production code paths.
 // ---------------------------------------------------------------------------
-let _invalidationResolvers: Array<() => void> = [];
 let _cacheWriteResolvers: Array<() => void> = [];
 
 function _assertNotProduction(name: string) {
   if (process.env.NODE_ENV === "production") {
     throw new Error(`${name}() must not be called in production — it is a test-only hook.`);
   }
-}
-
-/**
- * Test-only hook: resolves when the next invalidateJobSearchCache() completes.
- * Do NOT use in production code — for integration test determinism only.
- */
-export function _testOnly_awaitInvalidation(): Promise<void> {
-  _assertNotProduction("_testOnly_awaitInvalidation");
-  return new Promise((resolve) => {
-    _invalidationResolvers.push(resolve);
-  });
 }
 
 /**
@@ -69,14 +70,6 @@ export function _testOnly_awaitCacheWrite(): Promise<void> {
   return new Promise((resolve) => {
     _cacheWriteResolvers.push(resolve);
   });
-}
-
-function _notifyInvalidationComplete() {
-  const resolvers = _invalidationResolvers;
-  _invalidationResolvers = [];
-  for (const resolve of resolvers) {
-    resolve();
-  }
 }
 
 function _notifyCacheWriteComplete() {
@@ -305,93 +298,6 @@ export async function searchJobs(
 }
 
 // ---------------------------------------------------------------------------
-// Cache invalidation — fire-and-forget
-// ---------------------------------------------------------------------------
-
-/**
- * Scans and deletes all `portal:job-search:*` keys from Redis.
- * Also deletes the locale-namespaced discovery page cache keys for both
- * supported locales (en + ig):
- *   portal:discovery:featured:{locale}
- *   portal:discovery:categories:{locale}
- *   portal:discovery:recent:{locale}
- *
- * Fire-and-forget: called after any status transition that changes which
- * postings appear in search results (active → filled, draft → active, etc.).
- * On Redis errors, logs and no-ops — cache will expire naturally in 60 s.
- *
- * Do NOT await this in callers — it is explicitly fire-and-forget.
- * See docs/decisions/search-cache-strategy.md §Decision 1.
- */
-export async function invalidateJobSearchCache(): Promise<void> {
-  const redis = getRedisClient();
-  try {
-    const pattern = `${CACHE_KEY_PREFIX}*`;
-    let cursor = "0";
-    const keysToDelete: string[] = [];
-
-    do {
-      const [nextCursor, keys] = await redis.scan(cursor, "MATCH", pattern, "COUNT", 100);
-      cursor = nextCursor;
-      keysToDelete.push(...keys);
-    } while (cursor !== "0");
-
-    if (keysToDelete.length > 0) {
-      // Delete in batches of 100 to avoid blocking Redis
-      for (let i = 0; i < keysToDelete.length; i += 100) {
-        const batch = keysToDelete.slice(i, i + 100);
-        await redis.del(...batch);
-      }
-    }
-
-    // Also invalidate discovery page cache keys for both supported locales (AC #7)
-    // and the sitemap cache key (P-4.3B) so posting status changes are reflected promptly.
-    await redis.del(
-      discoveryFeaturedKey("en"),
-      discoveryFeaturedKey("ig"),
-      discoveryCategoriesKey("en"),
-      discoveryCategoriesKey("ig"),
-      discoveryRecentKey("en"),
-      discoveryRecentKey("ig"),
-      sitemapUrlsKey(),
-    );
-
-    // Invalidate similar jobs cache (portal:discovery:similar:*) — P-4.7
-    // Uses SCAN because the key space includes jobId (many possible values).
-    const similarPattern = createRedisKey("portal", "discovery", "similar:*");
-    let similarCursor = "0";
-    const similarKeysToDelete: string[] = [];
-    do {
-      const [nextCursor, keys] = await redis.scan(
-        similarCursor,
-        "MATCH",
-        similarPattern,
-        "COUNT",
-        100,
-      );
-      similarCursor = nextCursor;
-      similarKeysToDelete.push(...keys);
-    } while (similarCursor !== "0");
-    if (similarKeysToDelete.length > 0) {
-      for (let i = 0; i < similarKeysToDelete.length; i += 100) {
-        await redis.del(...similarKeysToDelete.slice(i, i + 100));
-      }
-    }
-  } catch (err) {
-    console.error(
-      JSON.stringify({
-        level: "error",
-        message: "portal.job-search-service.invalidation-error",
-        error: (err as Error).message,
-      }),
-    );
-  } finally {
-    // Notify integration test hooks that invalidation is complete (deterministic)
-    _notifyInvalidationComplete();
-  }
-}
-
-// ---------------------------------------------------------------------------
 // Discovery page — P-4.2
 // ---------------------------------------------------------------------------
 
@@ -400,10 +306,6 @@ export async function invalidateJobSearchCache(): Promise<void> {
 // per locale to avoid serving the wrong content if the projection changes.
 // createRedisKey(app, domain, id) builds `app:domain:id`, so we pack the
 // section + locale into the `id` segment to preserve the colon-namespaced layout.
-function sitemapUrlsKey(): string {
-  return createRedisKey("portal", "sitemap", "urls");
-}
-
 function discoveryFeaturedKey(locale: string): string {
   return createRedisKey("portal", "discovery", `featured:${locale}`);
 }
@@ -429,49 +331,6 @@ export interface DiscoveryPageData {
 }
 
 /**
- * Shared caching helper for discovery page queries (P-4.2, P-4.7).
- *
- * Reads from Redis cache; on miss fetches from DB and writes to cache fire-and-forget.
- * On JSON.parse failure (corrupted cache), best-effort eviction so the bad key stops
- * re-poisoning subsequent requests until TTL expires.
- */
-async function cachedFetch<T>(key: string, ttl: number, fetchFn: () => Promise<T>): Promise<T> {
-  const redis = getRedisClient();
-  const cached = await redis.get(key);
-  if (cached) {
-    try {
-      return JSON.parse(cached) as T;
-    } catch (err) {
-      console.warn(
-        JSON.stringify({
-          level: "warn",
-          message: "portal.job-search-service.discovery-cache-parse-error",
-          key,
-          error: (err as Error).message,
-        }),
-      );
-      // Best-effort eviction so the corrupted key stops re-poisoning.
-      redis.del(key).catch(() => {
-        // Swallow: worst case the key expires within its TTL.
-      });
-      // Fall through to DB path.
-    }
-  }
-  const data = await fetchFn();
-  redis.set(key, JSON.stringify(data), "EX", ttl, "NX").catch((err: Error) => {
-    console.warn(
-      JSON.stringify({
-        level: "warn",
-        message: "portal.job-search-service.discovery-cache-write-error",
-        key,
-        error: err.message,
-      }),
-    );
-  });
-  return data;
-}
-
-/**
  * Fetches all three discovery page data sets in parallel with per-query Redis caching.
  *
  * Uses Promise.allSettled so a failure in one query (e.g. Redis timeout on categories)
@@ -485,13 +344,15 @@ async function cachedFetch<T>(key: string, ttl: number, fetchFn: () => Promise<T
  */
 export async function getDiscoveryPageData(locale: string): Promise<DiscoveryPageData> {
   const [featuredResult, categoriesResult, recentResult] = await Promise.allSettled([
-    cachedFetch(discoveryFeaturedKey(locale), DISCOVERY_FEATURED_TTL, () =>
+    cachedFetch("discovery", discoveryFeaturedKey(locale), DISCOVERY_FEATURED_TTL, () =>
       getFeaturedJobPostings(6),
     ),
-    cachedFetch(discoveryCategoriesKey(locale), DISCOVERY_CATEGORIES_TTL, () =>
+    cachedFetch("discovery", discoveryCategoriesKey(locale), DISCOVERY_CATEGORIES_TTL, () =>
       getIndustryCategoryCounts(),
     ),
-    cachedFetch(discoveryRecentKey(locale), DISCOVERY_RECENT_TTL, () => getRecentJobPostings(10)),
+    cachedFetch("discovery", discoveryRecentKey(locale), DISCOVERY_RECENT_TTL, () =>
+      getRecentJobPostings(10),
+    ),
   ]);
 
   if (featuredResult.status === "rejected") {
@@ -548,7 +409,7 @@ export async function getSimilarJobs(
 ): Promise<DiscoveryJobResult[]> {
   const key = discoverySimilarKey(jobId, locale);
   try {
-    return await cachedFetch(key, DISCOVERY_SIMILAR_TTL, () =>
+    return await cachedFetch("similar", key, DISCOVERY_SIMILAR_TTL, () =>
       getSimilarJobPostings(jobId, companyIndustry, requirements, location, 6),
     );
   } catch (err) {

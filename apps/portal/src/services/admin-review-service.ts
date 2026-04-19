@@ -41,7 +41,7 @@ import {
   type ViolationCategory,
 } from "@/lib/portal-errors";
 import { portalEventBus } from "@/services/event-bus";
-import { invalidateJobSearchCache } from "@/services/job-search-service";
+import { invalidateAll } from "@/lib/cache-registry";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -304,7 +304,7 @@ export async function approvePosting(
   // Invalidate job search cache — posting entered active state.
   // Fire-and-forget: cache will expire in 60s if invalidation fails.
   // See docs/decisions/search-cache-strategy.md §Decision 1.
-  invalidateJobSearchCache().catch((err: Error) => {
+  invalidateAll().catch((err: Error) => {
     console.error(
       JSON.stringify({
         level: "error",
