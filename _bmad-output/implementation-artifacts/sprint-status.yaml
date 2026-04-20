@@ -321,11 +321,11 @@ development_status:
   portal-epic-4-retrospective: done
 
   # Portal Epic 4 — Retro Action Items & Prep
-  portal-epic-4-hotfix-1-search-zero-results: pending              # CRITICAL — search/discovery return 0 results despite active postings
-  portal-epic-4-hotfix-2-root-level-pages-missing-nav: pending     # saved-searches, dashboard, messages, apprenticeships, saved-jobs missing PortalLayout
-  portal-epic-4-hotfix-3-employer-applications-dead-link: pending   # Remove "Applications" from employer nav until feature exists
+  portal-epic-4-hotfix-1-search-zero-results: done              # CRITICAL — search/discovery return 0 results despite active postings
+  portal-epic-4-hotfix-2-root-level-pages-missing-nav: done     # saved-searches, dashboard, messages, apprenticeships, saved-jobs missing PortalLayout
+  portal-epic-4-hotfix-3-employer-applications-dead-link: done   # Remove "Applications" from employer nav until feature exists
   portal-epic-4-ai-20-runtime-smoke-test-gate: done                 # SN-6 gate added to story template, dev-story checklist, workflow instructions, and code-review checklist
-  portal-epic-4-ai-21-placeholder-page-policy: pending             # Define and apply policy for placeholder pages
+  portal-epic-4-ai-21-placeholder-page-policy: done                 # Removed 4 placeholder page nav links + dirs, employer redirect /dashboard→/my-jobs, proxy cleanup
   portal-epic-4-ai-22-cache-invalidation-registry: pending         # Replace organic invalidation growth with declarative registry
   portal-epic-4-ai-23-employer-applications-view: pending          # Scope employer application pipeline view (pre-P-5 gate)
   portal-epic-4-ai-24-match-scoring-transparency: pending          # Explain or simplify match score presentation
