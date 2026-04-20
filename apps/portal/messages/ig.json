@@ -1395,7 +1395,8 @@
       "sortDesc": "Hazie n'ala",
       "unknownApplicant": "Onye a na-amaghị",
       "fetchError": "Enweghị ike ibunye ngwa. Biko nwaa ọzọ.",
-      "pageSize": "Nha peeji"
+      "pageSize": "Nha peeji",
+      "filterLabel": "Nyocha ngwa site na ọnọdụ"
     }
   },
   "Shell": {

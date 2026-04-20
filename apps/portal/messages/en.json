@@ -1395,7 +1395,8 @@
       "sortDesc": "Sort descending",
       "unknownApplicant": "Unknown applicant",
       "fetchError": "Failed to load applications. Please try again.",
-      "pageSize": "Page size"
+      "pageSize": "Page size",
+      "filterLabel": "Filter applications by status"
     }
   },
   "Shell": {

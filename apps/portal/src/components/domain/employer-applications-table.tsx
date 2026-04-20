@@ -143,7 +143,7 @@ export function EmployerApplicationsTable({
   return (
     <div>
       {/* Filter tabs */}
-      <nav aria-label="Filter applications by status" className="mb-6 flex flex-wrap gap-2">
+      <nav aria-label={t("filterLabel")} className="mb-6 flex flex-wrap gap-2">
         {FILTER_TABS.map((tab) => (
           <button
             key={tab}
