@@ -1,38 +1,26 @@
 import type { MetadataRoute } from "next";
 import { getActivePostingUrlsForSitemap } from "@igbo/db/queries/portal-job-postings";
 import { createRedisKey } from "@igbo/config/redis";
-import { getRedisClient } from "@/lib/redis";
+import { registerCacheNamespace, cachedFetch } from "@/lib/cache-registry";
 
 const SITEMAP_CACHE_KEY = createRedisKey("portal", "sitemap", "urls");
 const SITEMAP_TTL = 3600; // 1 hour
 
+// Module-level registration: runs on first import, before any cachedFetch call.
+registerCacheNamespace("sitemap", { patterns: ["portal:sitemap:*"] });
+
 interface SitemapEntry {
   id: string;
-  updatedAt: Date;
+  updatedAt: string | Date; // string on cache hit (JSON parse), Date on cache miss (raw DB)
 }
 
 async function getCachedSitemapUrls(): Promise<SitemapEntry[]> {
-  const redis = getRedisClient();
-  try {
-    const cached = await redis.get(SITEMAP_CACHE_KEY);
-    if (cached) {
-      try {
-        const parsed = JSON.parse(cached) as Array<{ id: string; updatedAt: string }>;
-        return parsed.map((e) => ({ id: e.id, updatedAt: new Date(e.updatedAt) }));
-      } catch {
-        // Corrupted cache — evict and fall through to DB
-        redis.del(SITEMAP_CACHE_KEY).catch(() => {});
-      }
-    }
-  } catch {
-    // Redis unavailable — fall through to DB
-  }
-
-  const urls = await getActivePostingUrlsForSitemap();
-
-  redis.set(SITEMAP_CACHE_KEY, JSON.stringify(urls), "EX", SITEMAP_TTL).catch(() => {});
-
-  return urls;
+  return cachedFetch<SitemapEntry[]>(
+    "sitemap",
+    SITEMAP_CACHE_KEY,
+    SITEMAP_TTL,
+    () => getActivePostingUrlsForSitemap() as Promise<SitemapEntry[]>,
+  );
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
@@ -47,7 +35,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const jobEntries: MetadataRoute.Sitemap = postingUrls.map((entry) => ({
     url: `${portalUrl}/en/jobs/${entry.id}`,
-    lastModified: entry.updatedAt,
+    // Normalize: cachedFetch returns Date on miss (raw fetchFn), string on hit (JSON parse).
+    lastModified: entry.updatedAt instanceof Date ? entry.updatedAt.toISOString() : entry.updatedAt,
     changeFrequency: "daily",
     priority: 0.8,
   }));

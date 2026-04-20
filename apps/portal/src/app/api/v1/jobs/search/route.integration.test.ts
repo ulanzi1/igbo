@@ -21,12 +21,8 @@ import {
   getJobSearchFacets,
   getJobSearchTotalCount,
 } from "@igbo/db/queries/portal-job-search";
-import {
-  searchJobs,
-  invalidateJobSearchCache,
-  _testOnly_awaitInvalidation,
-  _testOnly_awaitCacheWrite,
-} from "@/services/job-search-service";
+import { searchJobs, _testOnly_awaitCacheWrite } from "@/services/job-search-service";
+import { invalidateAll, _testOnly_awaitInvalidation } from "@/lib/cache-registry";
 import { getRedisClient, closeAllRedisConnections } from "@/lib/redis";
 import fs from "node:fs";
 import path from "node:path";
@@ -462,7 +458,7 @@ describe.skipIf(!HAVE_DATABASE)("job search integration", () => {
   // =========================================================================
 
   it.skipIf(!HAVE_REDIS)(
-    "VS-6: cache invalidated after invalidateJobSearchCache — zero keys remain",
+    "VS-6: cache invalidated after invalidateAll — zero keys remain",
     async () => {
       const redis = getRedisClient();
 
@@ -479,7 +475,7 @@ describe.skipIf(!HAVE_DATABASE)("job search integration", () => {
       // Register deterministic completion hook BEFORE firing
       const done = _testOnly_awaitInvalidation();
       // Fire-and-forget invalidation (same pattern as job-posting-service.ts)
-      invalidateJobSearchCache().catch(console.error);
+      invalidateAll().catch(console.error);
 
       // Await deterministic signal — no setTimeout polling
       await done;

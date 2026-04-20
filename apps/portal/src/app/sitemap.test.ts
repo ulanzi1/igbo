@@ -57,7 +57,8 @@ describe("sitemap()", () => {
     const job1 = result.find((e) => e.url === `${PORTAL_URL}/en/jobs/job-1`);
     expect(job1).toBeDefined();
     expect(job1?.priority).toBe(0.8);
-    expect(job1?.lastModified).toEqual(updatedAt);
+    // Normalized to ISO string regardless of cache hit/miss.
+    expect(job1?.lastModified).toBe("2026-04-10T10:00:00.000Z");
     expect(job1?.changeFrequency).toBe("daily");
   });
 
@@ -105,10 +106,11 @@ describe("sitemap()", () => {
     expect(getActivePostingUrlsForSitemap).not.toHaveBeenCalled();
     const cachedEntry = result.find((e) => e.url.includes("cached-job"));
     expect(cachedEntry).toBeDefined();
-    expect(cachedEntry?.lastModified).toEqual(new Date("2026-04-10T10:00:00.000Z"));
+    // cachedFetch returns JSON-parsed data — dates are ISO strings
+    expect(cachedEntry?.lastModified).toBe("2026-04-10T10:00:00.000Z");
   });
 
-  it("falls back to DB query on cache miss and populates cache", async () => {
+  it("falls back to DB query on cache miss and populates cache via cachedFetch (NX)", async () => {
     mockRedis.get.mockResolvedValue(null);
     const updatedAt = new Date("2026-04-12");
     vi.mocked(getActivePostingUrlsForSitemap).mockResolvedValue([{ id: "db-job", updatedAt }]);
@@ -117,11 +119,14 @@ describe("sitemap()", () => {
 
     expect(getActivePostingUrlsForSitemap).toHaveBeenCalledTimes(1);
     expect(result.find((e) => e.url.includes("db-job"))).toBeDefined();
+    // cachedFetch writes with NX to prevent concurrent stomp
+    await vi.waitFor(() => expect(mockRedis.set).toHaveBeenCalledOnce());
     expect(mockRedis.set).toHaveBeenCalledWith(
       expect.stringContaining("sitemap"),
       expect.any(String),
       "EX",
       3600,
+      "NX",
     );
   });
 

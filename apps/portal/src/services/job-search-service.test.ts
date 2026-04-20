@@ -4,16 +4,22 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/redis");
 vi.mock("@igbo/db/queries/portal-job-search");
+vi.mock("@/lib/cache-registry", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/cache-registry")>();
+  return {
+    ...actual,
+    registerCacheNamespace: vi.fn(),
+    cachedFetch: vi.fn(),
+  };
+});
 
 const mockRedisGet = vi.fn();
 const mockRedisSet = vi.fn();
-const mockRedisScan = vi.fn();
 const mockRedisDel = vi.fn();
 
 vi.mocked((await import("@/lib/redis")).getRedisClient).mockReturnValue({
   get: mockRedisGet,
   set: mockRedisSet,
-  scan: mockRedisScan,
   del: mockRedisDel,
 } as never);
 
@@ -39,16 +45,20 @@ const mockGetSimilarJobPostings = vi.mocked(
   (await import("@igbo/db/queries/portal-job-search")).getSimilarJobPostings,
 );
 
+import { registerCacheNamespace, cachedFetch } from "@/lib/cache-registry";
 import {
   searchJobs,
   normalizeAndHashRequest,
-  invalidateJobSearchCache,
   getDiscoveryPageData,
   getSimilarJobs,
-  _testOnly_awaitInvalidation,
   _testOnly_awaitCacheWrite,
 } from "./job-search-service";
 import type { JobSearchRequest } from "@/lib/validations/job-search";
+
+// Mock cachedFetch as a pass-through that invokes the fetchFn argument
+vi.mocked(cachedFetch).mockImplementation(
+  async (_group: string, _key: string, _ttl: number, fetchFn: () => Promise<unknown>) => fetchFn(),
+);
 
 const defaultRequest: JobSearchRequest = {
   query: "engineer",
@@ -90,8 +100,45 @@ const sampleFacets = {
 beforeEach(() => {
   vi.clearAllMocks();
   mockRedisSet.mockResolvedValue("OK");
-  mockRedisScan.mockResolvedValue(["0", []]);
   mockRedisDel.mockResolvedValue(0);
+  // Re-apply the pass-through mock after clearAllMocks
+  vi.mocked(cachedFetch).mockImplementation(
+    async (_group: string, _key: string, _ttl: number, fetchFn: () => Promise<unknown>) =>
+      fetchFn(),
+  );
+});
+
+// ---------------------------------------------------------------------------
+// Module-level registration side effects
+// ---------------------------------------------------------------------------
+
+// Capture registration calls before beforeEach clears them
+const registrationCalls = vi.mocked(registerCacheNamespace).mock.calls.map((c) => [...c]);
+
+describe("cache-registry registrations", () => {
+  it("registers search, discovery, and similar groups at module load time", () => {
+    // Registration happens at module load time (top-level side effect).
+    // We captured the calls before beforeEach's clearAllMocks wipes them.
+    const groupNames = registrationCalls.map((c) => c[0]);
+    expect(groupNames).toContain("search");
+    expect(groupNames).toContain("discovery");
+    expect(groupNames).toContain("similar");
+
+    const searchCall = registrationCalls.find((c) => c[0] === "search");
+    expect(searchCall?.[1]).toEqual({ patterns: ["portal:job-search:*"] });
+
+    const discoveryCall = registrationCalls.find((c) => c[0] === "discovery");
+    expect(discoveryCall?.[1]).toEqual({
+      patterns: [
+        "portal:discovery:featured:*",
+        "portal:discovery:categories:*",
+        "portal:discovery:recent:*",
+      ],
+    });
+
+    const similarCall = registrationCalls.find((c) => c[0] === "similar");
+    expect(similarCall?.[1]).toEqual({ patterns: ["portal:discovery:similar:*"] });
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -251,69 +298,6 @@ describe("normalizeAndHashRequest — hash stability", () => {
 });
 
 // ---------------------------------------------------------------------------
-// invalidateJobSearchCache
-// ---------------------------------------------------------------------------
-
-describe("invalidateJobSearchCache", () => {
-  it("scans for portal:job-search:* keys and deletes them", async () => {
-    mockRedisScan.mockResolvedValue([
-      "0",
-      ["portal:job-search:abc123", "portal:job-search:def456"],
-    ]);
-    mockRedisDel.mockResolvedValue(2);
-
-    await invalidateJobSearchCache();
-
-    expect(mockRedisScan).toHaveBeenCalledWith("0", "MATCH", "portal:job-search:*", "COUNT", 100);
-    expect(mockRedisDel).toHaveBeenCalledWith(
-      "portal:job-search:abc123",
-      "portal:job-search:def456",
-    );
-  });
-
-  it("still deletes discovery keys even when no job-search scan keys are found", async () => {
-    mockRedisScan.mockResolvedValue(["0", []]);
-
-    await invalidateJobSearchCache();
-
-    // Discovery keys are always deleted on invalidation (AC #7 — coarse invalidation).
-    // Both en+ig variants are deleted because the cache is locale-namespaced.
-    // Also includes the sitemap cache key (P-4.3B).
-    expect(mockRedisDel).toHaveBeenCalledWith(
-      "portal:discovery:featured:en",
-      "portal:discovery:featured:ig",
-      "portal:discovery:categories:en",
-      "portal:discovery:categories:ig",
-      "portal:discovery:recent:en",
-      "portal:discovery:recent:ig",
-      "portal:sitemap:urls",
-    );
-    // Only the one del call for discovery+sitemap keys (no scan-based keys)
-    expect(mockRedisDel).toHaveBeenCalledTimes(1);
-  });
-
-  it("swallows Redis scan errors (logs but does not throw)", async () => {
-    mockRedisScan.mockRejectedValue(new Error("Redis scan failed"));
-
-    // Must not throw
-    await expect(invalidateJobSearchCache()).resolves.toBeUndefined();
-  });
-
-  it("iterates cursor until cursor returns '0'", async () => {
-    mockRedisScan
-      .mockResolvedValueOnce(["42", ["portal:job-search:key1"]]) // first scan, cursor=42
-      .mockResolvedValueOnce(["0", ["portal:job-search:key2"]]) // second scan, cursor=0 (end)
-      .mockResolvedValueOnce(["0", []]); // third scan: similar:* pattern (empty)
-
-    await invalidateJobSearchCache();
-
-    // 3 total SCAN calls: 2 for portal:job-search:* cursor iteration + 1 for similar:*
-    expect(mockRedisScan).toHaveBeenCalledTimes(3);
-    expect(mockRedisDel).toHaveBeenCalledWith("portal:job-search:key1", "portal:job-search:key2");
-  });
-});
-
-// ---------------------------------------------------------------------------
 // Review-fix H2 — corrupt cache falls through to DB (never 500s)
 // ---------------------------------------------------------------------------
 
@@ -386,11 +370,6 @@ describe("_testOnly_* hooks — production guard", () => {
     (process.env as Record<string, string | undefined>).NODE_ENV = originalNodeEnv;
   });
 
-  it("_testOnly_awaitInvalidation throws in production", () => {
-    (process.env as Record<string, string | undefined>).NODE_ENV = "production";
-    expect(() => _testOnly_awaitInvalidation()).toThrow(/test-only hook/i);
-  });
-
   it("_testOnly_awaitCacheWrite throws in production", () => {
     (process.env as Record<string, string | undefined>).NODE_ENV = "production";
     expect(() => _testOnly_awaitCacheWrite()).toThrow(/test-only hook/i);
@@ -451,12 +430,11 @@ const sampleCategories = [
 ];
 
 // ---------------------------------------------------------------------------
-// getDiscoveryPageData — cache miss path
+// getDiscoveryPageData — cache miss path (via cachedFetch pass-through)
 // ---------------------------------------------------------------------------
 
 describe("getDiscoveryPageData — cache miss", () => {
   it("calls all three DB queries on cache miss and returns assembled data", async () => {
-    mockRedisGet.mockResolvedValue(null);
     mockGetFeaturedJobPostings.mockResolvedValue([sampleDiscoveryJob]);
     mockGetIndustryCategoryCounts.mockResolvedValue(sampleCategories);
     mockGetRecentJobPostings.mockResolvedValue([sampleDiscoveryJob]);
@@ -472,54 +450,27 @@ describe("getDiscoveryPageData — cache miss", () => {
     expect(result.recentPostings).toHaveLength(1);
   });
 
-  it("writes to Redis after DB hit for each query (NX EX)", async () => {
-    mockRedisGet.mockResolvedValue(null);
+  it("passes correct group and TTL to cachedFetch for each query", async () => {
     mockGetFeaturedJobPostings.mockResolvedValue([sampleDiscoveryJob]);
     mockGetIndustryCategoryCounts.mockResolvedValue(sampleCategories);
     mockGetRecentJobPostings.mockResolvedValue([sampleDiscoveryJob]);
 
     await getDiscoveryPageData("en");
 
-    await vi.waitFor(() => expect(mockRedisSet).toHaveBeenCalledTimes(3));
+    const calls = vi.mocked(cachedFetch).mock.calls;
+    // All three calls should use "discovery" group
+    expect(calls).toHaveLength(3);
+    expect(calls[0]![0]).toBe("discovery");
+    expect(calls[0]![1]).toBe("portal:discovery:featured:en");
+    expect(calls[0]![2]).toBe(60); // DISCOVERY_FEATURED_TTL
 
-    const setCalls = mockRedisSet.mock.calls;
-    const keys = setCalls.map((c) => c[0] as string);
-    // Cache keys are locale-namespaced (HIGH-4 review fix)
-    expect(keys).toContain("portal:discovery:featured:en");
-    expect(keys).toContain("portal:discovery:categories:en");
-    expect(keys).toContain("portal:discovery:recent:en");
+    expect(calls[1]![0]).toBe("discovery");
+    expect(calls[1]![1]).toBe("portal:discovery:categories:en");
+    expect(calls[1]![2]).toBe(300); // DISCOVERY_CATEGORIES_TTL
 
-    // Verify TTLs
-    const featuredCall = setCalls.find((c) => c[0] === "portal:discovery:featured:en")!;
-    expect(featuredCall[2]).toBe("EX");
-    expect(featuredCall[3]).toBe(60);
-    expect(featuredCall[4]).toBe("NX");
-
-    const categoriesCall = setCalls.find((c) => c[0] === "portal:discovery:categories:en")!;
-    expect(categoriesCall[3]).toBe(300);
-
-    const recentCall = setCalls.find((c) => c[0] === "portal:discovery:recent:en")!;
-    expect(recentCall[3]).toBe(120);
-  });
-});
-
-// ---------------------------------------------------------------------------
-// getDiscoveryPageData — cache hit path
-// ---------------------------------------------------------------------------
-
-describe("getDiscoveryPageData — cache hit", () => {
-  it("returns cached data and skips DB queries on cache hit", async () => {
-    mockRedisGet.mockResolvedValue(JSON.stringify([sampleDiscoveryJob]));
-
-    const result = await getDiscoveryPageData("en");
-
-    expect(mockGetFeaturedJobPostings).not.toHaveBeenCalled();
-    expect(mockGetIndustryCategoryCounts).not.toHaveBeenCalled();
-    expect(mockGetRecentJobPostings).not.toHaveBeenCalled();
-
-    expect(result.featuredJobs).toHaveLength(1);
-    expect(result.categories).toHaveLength(1);
-    expect(result.recentPostings).toHaveLength(1);
+    expect(calls[2]![0]).toBe("discovery");
+    expect(calls[2]![1]).toBe("portal:discovery:recent:en");
+    expect(calls[2]![2]).toBe(120); // DISCOVERY_RECENT_TTL
   });
 });
 
@@ -529,7 +480,6 @@ describe("getDiscoveryPageData — cache hit", () => {
 
 describe("getDiscoveryPageData — resilience", () => {
   it("returns empty featuredJobs when getFeaturedJobPostings rejects", async () => {
-    mockRedisGet.mockResolvedValue(null);
     mockGetFeaturedJobPostings.mockRejectedValue(new Error("DB error"));
     mockGetIndustryCategoryCounts.mockResolvedValue(sampleCategories);
     mockGetRecentJobPostings.mockResolvedValue([sampleDiscoveryJob]);
@@ -542,7 +492,6 @@ describe("getDiscoveryPageData — resilience", () => {
   });
 
   it("returns empty categories when getIndustryCategoryCounts rejects", async () => {
-    mockRedisGet.mockResolvedValue(null);
     mockGetFeaturedJobPostings.mockResolvedValue([sampleDiscoveryJob]);
     mockGetIndustryCategoryCounts.mockRejectedValue(new Error("DB timeout"));
     mockGetRecentJobPostings.mockResolvedValue([sampleDiscoveryJob]);
@@ -555,7 +504,6 @@ describe("getDiscoveryPageData — resilience", () => {
   });
 
   it("returns empty recentPostings when getRecentJobPostings rejects", async () => {
-    mockRedisGet.mockResolvedValue(null);
     mockGetFeaturedJobPostings.mockResolvedValue([sampleDiscoveryJob]);
     mockGetIndustryCategoryCounts.mockResolvedValue(sampleCategories);
     mockGetRecentJobPostings.mockRejectedValue(new Error("Redis timeout"));
@@ -568,7 +516,6 @@ describe("getDiscoveryPageData — resilience", () => {
   });
 
   it("does not throw when all three queries reject", async () => {
-    mockRedisGet.mockResolvedValue(null);
     mockGetFeaturedJobPostings.mockRejectedValue(new Error("error"));
     mockGetIndustryCategoryCounts.mockRejectedValue(new Error("error"));
     mockGetRecentJobPostings.mockRejectedValue(new Error("error"));
@@ -578,84 +525,6 @@ describe("getDiscoveryPageData — resilience", () => {
       categories: [],
       recentPostings: [],
     });
-  });
-});
-
-// ---------------------------------------------------------------------------
-// invalidateJobSearchCache — extended to delete discovery keys (AC #7)
-// ---------------------------------------------------------------------------
-
-describe("invalidateJobSearchCache — discovery key invalidation", () => {
-  it("deletes discovery keys (both locales) in addition to job-search scan keys", async () => {
-    mockRedisScan.mockResolvedValue(["0", []]);
-    mockRedisDel.mockResolvedValue(6);
-
-    await invalidateJobSearchCache();
-
-    // Cache is locale-namespaced (HIGH-4 review fix), so both en+ig variants
-    // are invalidated. Also includes sitemap cache key (P-4.3B).
-    expect(mockRedisDel).toHaveBeenCalledWith(
-      "portal:discovery:featured:en",
-      "portal:discovery:featured:ig",
-      "portal:discovery:categories:en",
-      "portal:discovery:categories:ig",
-      "portal:discovery:recent:en",
-      "portal:discovery:recent:ig",
-      "portal:sitemap:urls",
-    );
-  });
-
-  it("deletes both scan-found keys and discovery keys when scan returns results", async () => {
-    mockRedisScan.mockResolvedValue(["0", ["portal:job-search:abc"]]);
-    mockRedisDel.mockResolvedValue(1);
-
-    await invalidateJobSearchCache();
-
-    // First del call: the scanned key
-    expect(mockRedisDel).toHaveBeenCalledWith("portal:job-search:abc");
-    // Second del call: discovery + sitemap keys for both locales
-    expect(mockRedisDel).toHaveBeenCalledWith(
-      "portal:discovery:featured:en",
-      "portal:discovery:featured:ig",
-      "portal:discovery:categories:en",
-      "portal:discovery:categories:ig",
-      "portal:discovery:recent:en",
-      "portal:discovery:recent:ig",
-      "portal:sitemap:urls",
-    );
-  });
-
-  it("includes portal:sitemap:urls key in invalidation (P-4.3B)", async () => {
-    mockRedisScan.mockResolvedValue(["0", []]);
-
-    await invalidateJobSearchCache();
-
-    // The sitemap cache key must be among the keys passed to del
-    const delCalls = (mockRedisDel as ReturnType<typeof vi.fn>).mock.calls;
-    const allDeletedKeys = delCalls.flat();
-    expect(allDeletedKeys).toContain("portal:sitemap:urls");
-  });
-});
-
-// ---------------------------------------------------------------------------
-// getDiscoveryPageData — corrupt cache eviction (review fix HIGH-2)
-// ---------------------------------------------------------------------------
-
-describe("getDiscoveryPageData — corrupt cache entry", () => {
-  it("falls through to DB when a discovery cache entry is malformed JSON, evicts the poisoned key", async () => {
-    // First get returns garbage, subsequent gets return null so other queries miss cleanly.
-    mockRedisGet.mockResolvedValueOnce("not-valid-json{{{").mockResolvedValue(null);
-    mockGetFeaturedJobPostings.mockResolvedValue([sampleDiscoveryJob]);
-    mockGetIndustryCategoryCounts.mockResolvedValue(sampleCategories);
-    mockGetRecentJobPostings.mockResolvedValue([sampleDiscoveryJob]);
-
-    const result = await getDiscoveryPageData("en");
-
-    // DB path was exercised despite cache containing garbage
-    expect(mockGetFeaturedJobPostings).toHaveBeenCalledOnce();
-    expect(result.featuredJobs).toHaveLength(1);
-    // Poisoned key was evicted (best-effort) — at least one del call against a discovery key
-    expect(mockRedisDel).toHaveBeenCalledWith(expect.stringContaining("portal:discovery:"));
   });
 });
 
@@ -680,14 +549,7 @@ const sampleSimilarJob = {
 };
 
 describe("getSimilarJobs", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mockRedisScan.mockResolvedValue(["0", []]);
-    mockRedisDel.mockResolvedValue(1);
-  });
-
-  it("cache miss: calls DB query and writes to Redis cache", async () => {
-    mockRedisGet.mockResolvedValue(null);
+  it("cache miss: calls DB query via cachedFetch pass-through", async () => {
     mockGetSimilarJobPostings.mockResolvedValue([sampleSimilarJob]);
 
     const result = await getSimilarJobs("job-1", "Technology", "React TypeScript", "Lagos", "en");
@@ -701,28 +563,17 @@ describe("getSimilarJobs", () => {
     );
     expect(result).toHaveLength(1);
     expect(result[0]!.id).toBe("similar-post-1");
-    // Cache write (fire-and-forget)
-    expect(mockRedisSet).toHaveBeenCalledWith(
+    // Verify cachedFetch was called with correct group
+    expect(cachedFetch).toHaveBeenCalledWith(
+      "similar",
       expect.stringContaining("similar:job-1:en"),
-      expect.any(String),
-      "EX",
       600,
-      "NX",
+      expect.any(Function),
     );
   });
 
-  it("cache hit: returns cached data without calling DB", async () => {
-    mockRedisGet.mockResolvedValue(JSON.stringify([sampleSimilarJob]));
-
-    const result = await getSimilarJobs("job-1", "Technology", null, null, "en");
-
-    expect(mockGetSimilarJobPostings).not.toHaveBeenCalled();
-    expect(result).toHaveLength(1);
-    expect(result[0]!.id).toBe("similar-post-1");
-  });
-
-  it("Redis error on get: falls through to DB query without throwing", async () => {
-    mockRedisGet.mockRejectedValue(new Error("Redis connection refused"));
+  it("Redis error on cachedFetch: falls through to DB query without throwing", async () => {
+    vi.mocked(cachedFetch).mockRejectedValueOnce(new Error("Redis connection refused"));
     mockGetSimilarJobPostings.mockResolvedValue([sampleSimilarJob]);
 
     const result = await getSimilarJobs("job-1", "Technology", null, null, "en");
@@ -732,31 +583,10 @@ describe("getSimilarJobs", () => {
   });
 
   it("returns empty array when DB returns no similar jobs", async () => {
-    mockRedisGet.mockResolvedValue(null);
     mockGetSimilarJobPostings.mockResolvedValue([]);
 
     const result = await getSimilarJobs("job-1", "Technology", null, null, "ig");
 
     expect(result).toEqual([]);
-  });
-});
-
-describe("invalidateJobSearchCache — similar jobs keys", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mockRedisDel.mockResolvedValue(1);
-  });
-
-  it("scans and deletes portal:discovery:similar:* keys", async () => {
-    // First SCAN call (job-search:* pattern) returns empty
-    // Second SCAN call (similar:* pattern) returns a similar jobs key
-    mockRedisScan
-      .mockResolvedValueOnce(["0", []])
-      .mockResolvedValueOnce(["0", ["portal:discovery:similar:job-1:en"]]);
-
-    await invalidateJobSearchCache();
-
-    const deletedKeys = mockRedisDel.mock.calls.flat();
-    expect(deletedKeys).toContain("portal:discovery:similar:job-1:en");
   });
 });

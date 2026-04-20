@@ -93,8 +93,10 @@ vi.mock("@/services/event-bus", () => ({
   portalEventBus: { emit: vi.fn() },
 }));
 
-vi.mock("@/services/job-search-service", () => ({
-  invalidateJobSearchCache: vi.fn().mockResolvedValue(undefined),
+vi.mock("@/lib/cache-registry", () => ({
+  invalidateAll: vi.fn().mockResolvedValue(undefined),
+  registerCacheNamespace: vi.fn(),
+  cachedFetch: vi.fn(),
 }));
 
 import {
@@ -118,7 +120,7 @@ import {
 } from "@igbo/db/queries/portal-posting-reports";
 import { db } from "@igbo/db";
 import { portalEventBus } from "@/services/event-bus";
-import { invalidateJobSearchCache } from "@/services/job-search-service";
+import { invalidateAll } from "@/lib/cache-registry";
 import { installMockTransaction } from "@/test/mock-transaction";
 import { jobPostingFactory, companyProfileFactory, adminFlagFactory } from "@/test/factories";
 import {
@@ -567,14 +569,14 @@ describe("approvePosting", () => {
     // Event bus must NOT fire on the race loser.
     expect(vi.mocked(portalEventBus.emit)).not.toHaveBeenCalled();
     // Cache invalidation must NOT fire on the race loser (posting never entered active).
-    expect(vi.mocked(invalidateJobSearchCache)).not.toHaveBeenCalled();
+    expect(vi.mocked(invalidateAll)).not.toHaveBeenCalled();
   });
 
   // Review fix H1: approvePosting must invalidate the job search cache —
   // posting transitions pending_review → active and thus enters search results.
   it("invalidates job search cache after a successful approval (review fix H1)", async () => {
     await approvePosting("posting-1", "admin-1");
-    expect(vi.mocked(invalidateJobSearchCache)).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(invalidateAll)).toHaveBeenCalledTimes(1);
   });
 
   it("does NOT invalidate cache when approval fails with 409 (pre-tx status check)", async () => {
@@ -584,11 +586,11 @@ describe("approvePosting", () => {
     } as never);
 
     await expect(approvePosting("posting-1", "admin-1")).rejects.toMatchObject({ status: 409 });
-    expect(vi.mocked(invalidateJobSearchCache)).not.toHaveBeenCalled();
+    expect(vi.mocked(invalidateAll)).not.toHaveBeenCalled();
   });
 
   it("swallows cache invalidation errors (fire-and-forget)", async () => {
-    vi.mocked(invalidateJobSearchCache).mockRejectedValueOnce(new Error("Redis down"));
+    vi.mocked(invalidateAll).mockRejectedValueOnce(new Error("Redis down"));
     // Approval must still succeed even if invalidation rejects.
     await expect(approvePosting("posting-1", "admin-1")).resolves.toBeUndefined();
   });
