@@ -1334,7 +1334,16 @@
       "fair": "Ijikọ nkịtị",
       "completeProfilePrompt": "Mejupụta profaịlụ gị ka ị hụ otu i si dakọta",
       "completeProfileLink": "Mejupụta Profaịlụ",
-      "dismiss": "Kagbuo"
+      "dismiss": "Kagbuo",
+      "hintSkills": "Tinye nkà ndị ọzọ na profaịlụ gị",
+      "hintLocation": "Melite ebe obibi gị nke ị họọrọ",
+      "hintEmploymentType": "Họpụta ụdị ọrụ ị chọrọ",
+      "improveHeading": "Melite ijikọ gị",
+      "howItWorks": "Otu akara a si arụ ọrụ",
+      "signalSkills": "Njikọ nkà",
+      "signalLocation": "Njikọ ebe",
+      "signalEmploymentType": "Njikọ ụdị ọrụ",
+      "infoLabel": "Ozi banyere akara ijikọ"
     },
     "savedSearch": {
       "heading": "Achọchaa M Ezipụtara",

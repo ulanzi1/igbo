@@ -1334,7 +1334,16 @@
       "fair": "Fair Match",
       "completeProfilePrompt": "Complete your profile to see how well you match",
       "completeProfileLink": "Complete Profile",
-      "dismiss": "Dismiss"
+      "dismiss": "Dismiss",
+      "hintSkills": "Add more skills to your profile",
+      "hintLocation": "Update your location preferences",
+      "hintEmploymentType": "Set your preferred work type",
+      "improveHeading": "Improve your match",
+      "howItWorks": "How this score works",
+      "signalSkills": "Skills overlap",
+      "signalLocation": "Location match",
+      "signalEmploymentType": "Work type match",
+      "infoLabel": "Match score info"
     },
     "savedSearch": {
       "heading": "My Saved Searches",
