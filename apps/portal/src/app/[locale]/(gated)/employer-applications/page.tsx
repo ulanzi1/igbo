@@ -40,7 +40,7 @@ export default async function EmployerApplicationsPage({ params, searchParams }:
   const t = await getTranslations("Portal.employerApplications");
 
   // Parse status filter
-  let statusFilter: string[] | undefined;
+  let statusFilter: (typeof EMPLOYER_STATUS_GROUP_MAP)[string] | undefined;
   if (raw.status && raw.status !== "all") {
     const mapped = EMPLOYER_STATUS_GROUP_MAP[raw.status];
     if (mapped) {
