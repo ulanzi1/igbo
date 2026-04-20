@@ -5,13 +5,12 @@ import {
   HomeIcon,
   BriefcaseIcon,
   FileTextIcon,
-  MessageSquareIcon,
   UserIcon,
-  LayoutDashboardIcon,
   LogInIcon,
   ShieldCheckIcon,
   BarChart3Icon,
   BookmarkIcon,
+  InboxIcon,
 } from "lucide-react";
 import { useTranslations, useLocale } from "next-intl";
 import { usePathname } from "next/navigation";
@@ -58,13 +57,13 @@ export function PortalBottomNav() {
 
   const employerItems: BottomNavItem[] = [
     { key: "home", href: `/${locale}`, label: t("home"), icon: HomeIcon },
+    { key: "myJobs", href: `/${locale}/my-jobs`, label: t("myJobs"), icon: BriefcaseIcon },
     {
-      key: "dashboard",
-      href: `/${locale}/dashboard`,
-      label: t("dashboard"),
-      icon: LayoutDashboardIcon,
+      key: "employerApplications",
+      href: `/${locale}/employer-applications`,
+      label: t("employerApplications"),
+      icon: InboxIcon,
     },
-    { key: "messages", href: `/${locale}/messages`, label: t("messages"), icon: MessageSquareIcon },
     { key: "profile", href: `/${locale}/profile`, label: t("profile"), icon: UserIcon },
   ];
 

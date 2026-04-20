@@ -8,8 +8,8 @@ import { routing } from "@/i18n/routing";
 const handleI18nRouting = createIntlMiddleware(routing);
 
 // Locale-aware public path pattern:
-// Matches: /, /en, /ig, /en/jobs, /ig/jobs, /en/jobs/[id], /en/search, /ig/search, /en/apprenticeships, etc.
-const PUBLIC_PATH_PATTERN = /^\/(?:en|ig)(?:\/jobs(?:\/[^/]+)?|\/search|\/apprenticeships)?$/;
+// Matches: /, /en, /ig, /en/jobs, /ig/jobs, /en/jobs/[id], /en/search, /ig/search
+const PUBLIC_PATH_PATTERN = /^\/(?:en|ig)(?:\/jobs(?:\/[^/]+)?|\/search)?$/;
 
 function isPublicPath(pathname: string): boolean {
   if (pathname === "/" || pathname.startsWith("/api/auth/")) return true;

@@ -20,7 +20,7 @@ import type { PortalRole } from "@/hooks/use-active-portal-role";
 /** Maps a portal role to its post-switch redirect path (without locale prefix) */
 const ROLE_REDIRECT: Record<Exclude<PortalRole, null>, string> = {
   JOB_SEEKER: "/jobs",
-  EMPLOYER: "/dashboard",
+  EMPLOYER: "/my-jobs",
   JOB_ADMIN: "/admin",
 };
 

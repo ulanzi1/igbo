@@ -14,7 +14,7 @@ import { portalSeekerCvs } from "../schema/portal-seeker-cvs";
 import { portalSeekerProfiles } from "../schema/portal-seeker-profiles";
 import { authUsers } from "../schema/auth-users";
 import { platformFileUploads } from "../schema/file-uploads";
-import { eq, desc, asc, and, ne, count, inArray } from "drizzle-orm";
+import { eq, desc, asc, and, ne, count, inArray, sql, type SQL } from "drizzle-orm";
 
 export async function createApplication(data: NewPortalApplication): Promise<PortalApplication> {
   const [application] = await db.insert(portalApplications).values(data).returning();
@@ -523,4 +523,82 @@ export async function getApplicationsForExport(
     )
     .where(eq(portalApplications.jobId, jobId))
     .orderBy(asc(portalApplications.createdAt));
+}
+
+// ─── Employer global applications view ───────────────────────────────────────
+
+export interface EmployerApplicationRow {
+  applicationId: string;
+  jobId: string;
+  jobTitle: string | null;
+  seekerUserId: string;
+  applicantName: string | null;
+  status: PortalApplicationStatus;
+  createdAt: Date;
+}
+
+export async function getApplicationsForEmployer(
+  companyId: string,
+  options: {
+    statusFilter?: PortalApplicationStatus[];
+    sortBy?: string;
+    sortOrder?: "asc" | "desc";
+    page?: number;
+    pageSize?: number;
+  } = {},
+): Promise<{ applications: EmployerApplicationRow[]; total: number }> {
+  // Lazy init — avoids module-level `sql` template tag evaluation which breaks
+  // tests that mock drizzle-orm without providing `sql`.
+  const sortMap: Record<string, SQL> = {
+    applicantName: sql`${authUsers.name}`,
+    jobTitle: sql`${portalJobPostings.title}`,
+    status: sql`${portalApplications.status}`,
+    appliedDate: sql`${portalApplications.createdAt}`,
+  };
+  const page = options.page ?? 1;
+  const pageSize = options.pageSize ?? 20;
+  const sortColumn = sortMap[options.sortBy ?? "appliedDate"] ?? sortMap.appliedDate!;
+  const sortDirection = options.sortOrder === "asc" ? asc : desc;
+  const isNameSort = options.sortBy === "applicantName";
+
+  const conditions = [eq(portalJobPostings.companyId, companyId)];
+  if (options.statusFilter && options.statusFilter.length > 0) {
+    conditions.push(inArray(portalApplications.status, options.statusFilter));
+  }
+
+  const orderBy = isNameSort
+    ? sql`${sortColumn} ${sql.raw(options.sortOrder === "asc" ? "ASC" : "DESC")} NULLS LAST`
+    : sortDirection(sortColumn);
+
+  const rows = await db
+    .select({
+      applicationId: portalApplications.id,
+      jobId: portalApplications.jobId,
+      jobTitle: portalJobPostings.title,
+      seekerUserId: portalApplications.seekerUserId,
+      applicantName: authUsers.name,
+      status: portalApplications.status,
+      createdAt: portalApplications.createdAt,
+      totalCount: sql<number>`COUNT(*) OVER()`,
+    })
+    .from(portalApplications)
+    .innerJoin(portalJobPostings, eq(portalApplications.jobId, portalJobPostings.id))
+    .leftJoin(authUsers, eq(portalApplications.seekerUserId, authUsers.id))
+    .where(and(...conditions))
+    .orderBy(orderBy)
+    .limit(pageSize)
+    .offset((page - 1) * pageSize);
+
+  const total = rows.length > 0 ? Number(rows[0]!.totalCount) : 0;
+  const applications: EmployerApplicationRow[] = rows.map((row) => ({
+    applicationId: row.applicationId,
+    jobId: row.jobId,
+    jobTitle: row.jobTitle,
+    seekerUserId: row.seekerUserId,
+    applicantName: row.applicantName,
+    status: row.status,
+    createdAt: row.createdAt,
+  }));
+
+  return { applications, total };
 }

@@ -128,7 +128,7 @@ describe("RoleSwitcher", () => {
     });
   });
 
-  it("redirects to /en/dashboard when switching to EMPLOYER", async () => {
+  it("redirects to /en/my-jobs when switching to EMPLOYER", async () => {
     const user = userEvent.setup();
     mockUpdate.mockResolvedValue(undefined);
     const mockPush = vi.fn();
@@ -144,7 +144,7 @@ describe("RoleSwitcher", () => {
     await user.click(screen.getByText("employer"));
 
     await waitFor(() => {
-      expect(mockPush).toHaveBeenCalledWith("/en/dashboard");
+      expect(mockPush).toHaveBeenCalledWith("/en/my-jobs");
     });
   });
 

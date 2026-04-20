@@ -56,10 +56,17 @@ describe("PortalBottomNav", () => {
     setSession({ user: { activePortalRole: "EMPLOYER", portalRoles: ["EMPLOYER"] } });
     render(<PortalBottomNav />);
     expect(screen.getByText("home")).toBeInTheDocument();
-    expect(screen.getByText("dashboard")).toBeInTheDocument();
-    expect(screen.getByText("messages")).toBeInTheDocument();
+    expect(screen.getByText("myJobs")).toBeInTheDocument();
+    expect(screen.getByText("employerApplications")).toBeInTheDocument();
     expect(screen.getByText("profile")).toBeInTheDocument();
     expect(screen.queryByText("myApplications")).not.toBeInTheDocument();
+  });
+
+  it("employer applications link points to /en/employer-applications", () => {
+    setSession({ user: { activePortalRole: "EMPLOYER", portalRoles: ["EMPLOYER"] } });
+    render(<PortalBottomNav />);
+    const appLink = screen.getByText("employerApplications").closest("a");
+    expect(appLink).toHaveAttribute("href", "/en/employer-applications");
   });
 
   it("renders guest tabs for unauthenticated users", () => {
@@ -135,7 +142,6 @@ describe("PortalBottomNav", () => {
     expect(screen.getByText("reviewQueue")).toBeInTheDocument();
     expect(screen.getByText("reports")).toBeInTheDocument();
     expect(screen.queryByText("myApplications")).not.toBeInTheDocument();
-    expect(screen.queryByText("dashboard")).not.toBeInTheDocument();
   });
 
   it("admin Review Queue link points to /en/admin", () => {
