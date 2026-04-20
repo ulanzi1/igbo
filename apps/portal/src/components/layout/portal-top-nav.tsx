@@ -41,16 +41,17 @@ export function PortalTopNav({ className }: { className?: string }) {
   const seekerLinks: NavLink[] = [
     { key: "jobs", href: `/${locale}/jobs`, label: t("jobs") },
     { key: "browseAll", href: `/${locale}/search`, label: t("browseAll") },
-    { key: "apprenticeships", href: `/${locale}/apprenticeships`, label: t("apprenticeships") },
     { key: "myApplications", href: `/${locale}/applications`, label: t("myApplications") },
-    { key: "savedJobs", href: `/${locale}/saved-jobs`, label: t("savedJobs") },
     { key: "savedSearches", href: `/${locale}/saved-searches`, label: t("savedSearches") },
   ];
 
   const employerLinks: NavLink[] = [
-    { key: "dashboard", href: `/${locale}/dashboard`, label: t("dashboard") },
     { key: "myJobs", href: `/${locale}/my-jobs`, label: t("myJobs") },
-    { key: "messages", href: `/${locale}/messages`, label: t("messages") },
+    {
+      key: "employerApplications",
+      href: `/${locale}/employer-applications`,
+      label: t("employerApplications"),
+    },
     { key: "companyProfile", href: `/${locale}/company-profile`, label: t("companyProfile") },
   ];
 
@@ -73,7 +74,6 @@ export function PortalTopNav({ className }: { className?: string }) {
   const guestLinks: NavLink[] = [
     { key: "discover", href: `/${locale}/jobs`, label: t("discover") },
     { key: "browseAll", href: `/${locale}/search`, label: t("browseAll") },
-    { key: "apprenticeships", href: `/${locale}/apprenticeships`, label: t("apprenticeships") },
   ];
 
   const navLinks = isEmployer

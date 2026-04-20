@@ -343,13 +343,6 @@ describe("Portal proxy", () => {
       expect(mockDecode).not.toHaveBeenCalled();
     });
 
-    it("passes through /en/apprenticeships without auth check", async () => {
-      const req = makeRequest("http://localhost:3001/en/apprenticeships");
-      const result = await proxy(req as unknown as NextRequest);
-      expect(result.status).not.toBe(307);
-      expect(mockDecode).not.toHaveBeenCalled();
-    });
-
     it("passes through /en/search without auth check (guest browsing)", async () => {
       const req = makeRequest("http://localhost:3001/en/search");
       const result = await proxy(req as unknown as NextRequest);

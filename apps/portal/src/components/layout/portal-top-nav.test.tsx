@@ -61,9 +61,7 @@ describe("PortalTopNav", () => {
       render(<PortalTopNav />);
       expect(screen.getAllByText("jobs").length).toBeGreaterThan(0);
       expect(screen.getAllByText("browseAll").length).toBeGreaterThan(0);
-      expect(screen.getAllByText("apprenticeships").length).toBeGreaterThan(0);
       expect(screen.getAllByText("myApplications").length).toBeGreaterThan(0);
-      expect(screen.getAllByText("savedJobs").length).toBeGreaterThan(0);
     });
 
     it("shows role switcher for multi-role seeker user", () => {
@@ -79,12 +77,18 @@ describe("PortalTopNav", () => {
     it("renders employer nav items", () => {
       setSession({ user: { activePortalRole: "EMPLOYER", portalRoles: ["EMPLOYER"] } });
       render(<PortalTopNav />);
-      expect(screen.getAllByText("dashboard").length).toBeGreaterThan(0);
       expect(screen.getAllByText("myJobs").length).toBeGreaterThan(0);
-      expect(screen.getAllByText("messages").length).toBeGreaterThan(0);
       expect(screen.getAllByText("companyProfile").length).toBeGreaterThan(0);
-      // applications link removed (dead link — feature not built yet)
-      expect(screen.queryByText("applications")).not.toBeInTheDocument();
+    });
+
+    it("renders employer applications link pointing to /en/employer-applications", () => {
+      setSession({ user: { activePortalRole: "EMPLOYER", portalRoles: ["EMPLOYER"] } });
+      render(<PortalTopNav />);
+      const links = screen.getAllByText("employerApplications").map((el) => el.closest("a"));
+      const appLinks = links.filter((l) =>
+        l?.getAttribute("href")?.includes("/employer-applications"),
+      );
+      expect(appLinks.length).toBeGreaterThan(0);
     });
 
     it("shows role switcher for multi-role employer user", () => {
@@ -135,12 +139,11 @@ describe("PortalTopNav", () => {
       render(<PortalTopNav />);
       // Admin nav should not have seeker-specific items
       expect(screen.queryByText("myApplications")).not.toBeInTheDocument();
-      expect(screen.queryByText("savedJobs")).not.toBeInTheDocument();
     });
   });
 
   describe("guest", () => {
-    it("renders guest nav items (browse jobs, apprenticeships)", () => {
+    it("renders guest nav items (discover, browse all)", () => {
       setGuest();
       render(<PortalTopNav />);
       expect(screen.getAllByText("browseAll").length).toBeGreaterThan(0);

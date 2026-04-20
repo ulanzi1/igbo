@@ -16,6 +16,7 @@ import {
   insertApplicationWithPayload,
   getExistingActiveApplication,
   getApplicationCountsByStatusForSeeker,
+  getApplicationsForEmployer,
 } from "./portal-applications";
 import type { PortalApplication, PortalApplicationTransition } from "../schema/portal-applications";
 
@@ -921,5 +922,117 @@ describe("getApplicationsByIds (P-2.10)", () => {
     const result = await getApplicationsByIds(["app-1"], "cp-1");
     expect(result).toHaveLength(1);
     expect(result[0]?.id).toBe("app-1");
+  });
+});
+
+// ─── Employer global applications view ────────────────────────────────────────
+
+describe("getApplicationsForEmployer", () => {
+  const EMPLOYER_APP_ROW = {
+    applicationId: "app-1",
+    jobId: "jp-1",
+    jobTitle: "Senior Engineer",
+    seekerUserId: "u-1",
+    applicantName: "Jane Doe",
+    status: "submitted",
+    createdAt: new Date("2026-01-01"),
+    totalCount: "5", // PostgreSQL returns string for COUNT(*) OVER()
+  };
+
+  function makeSelectWithPaginationMock(returnValues: unknown[]) {
+    const offset = vi.fn().mockResolvedValue(returnValues);
+    const limit = vi.fn().mockReturnValue({ offset });
+    const orderBy = vi.fn().mockReturnValue({ limit });
+    const where = vi.fn().mockReturnValue({ orderBy });
+    const leftJoin = vi.fn().mockReturnValue({ where });
+    const innerJoin = vi.fn().mockReturnValue({ leftJoin });
+    const from = vi.fn().mockReturnValue({ innerJoin });
+    vi.mocked(db.select).mockReturnValue({ from } as unknown as ReturnType<typeof db.select>);
+    return { from, innerJoin, leftJoin, where, orderBy, limit, offset };
+  }
+
+  it("returns applications with correct shape for employer's company", async () => {
+    makeSelectWithPaginationMock([EMPLOYER_APP_ROW]);
+    const result = await getApplicationsForEmployer("cp-1");
+    expect(result.applications).toHaveLength(1);
+    expect(result.applications[0]).toEqual({
+      applicationId: "app-1",
+      jobId: "jp-1",
+      jobTitle: "Senior Engineer",
+      seekerUserId: "u-1",
+      applicantName: "Jane Doe",
+      status: "submitted",
+      createdAt: new Date("2026-01-01"),
+    });
+    // totalCount should NOT appear in the mapped output
+    expect(result.applications[0]).not.toHaveProperty("totalCount");
+  });
+
+  it("returns empty applications and total 0 when company has no applications", async () => {
+    makeSelectWithPaginationMock([]);
+    const result = await getApplicationsForEmployer("cp-empty");
+    expect(result.applications).toEqual([]);
+    expect(result.total).toBe(0);
+  });
+
+  it("applies status filter when provided", async () => {
+    const mocks = makeSelectWithPaginationMock([EMPLOYER_APP_ROW]);
+    await getApplicationsForEmployer("cp-1", { statusFilter: ["submitted", "under_review"] });
+    expect(mocks.where).toHaveBeenCalledTimes(1);
+    expect(db.select).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns all statuses when no status filter is provided", async () => {
+    const mocks = makeSelectWithPaginationMock([
+      EMPLOYER_APP_ROW,
+      { ...EMPLOYER_APP_ROW, applicationId: "app-2", status: "under_review", totalCount: "5" },
+    ]);
+    const result = await getApplicationsForEmployer("cp-1");
+    expect(result.applications).toHaveLength(2);
+    expect(result.applications.map((a) => a.status)).toEqual(["submitted", "under_review"]);
+    expect(mocks.where).toHaveBeenCalledTimes(1);
+  });
+
+  it("applies default sort (appliedDate desc) when no sort params given", async () => {
+    const mocks = makeSelectWithPaginationMock([EMPLOYER_APP_ROW]);
+    await getApplicationsForEmployer("cp-1");
+    expect(mocks.orderBy).toHaveBeenCalledTimes(1);
+  });
+
+  it("respects custom sort params (sortBy and sortOrder)", async () => {
+    const mocks = makeSelectWithPaginationMock([EMPLOYER_APP_ROW]);
+    await getApplicationsForEmployer("cp-1", { sortBy: "applicantName", sortOrder: "asc" });
+    expect(mocks.orderBy).toHaveBeenCalledTimes(1);
+  });
+
+  it("applies default pagination (page=1, pageSize=20)", async () => {
+    const mocks = makeSelectWithPaginationMock([EMPLOYER_APP_ROW]);
+    await getApplicationsForEmployer("cp-1");
+    expect(mocks.limit).toHaveBeenCalledWith(20);
+    expect(mocks.offset).toHaveBeenCalledWith(0);
+  });
+
+  it("applies custom page and pageSize", async () => {
+    const mocks = makeSelectWithPaginationMock([EMPLOYER_APP_ROW]);
+    await getApplicationsForEmployer("cp-1", { page: 3, pageSize: 10 });
+    expect(mocks.limit).toHaveBeenCalledWith(10);
+    expect(mocks.offset).toHaveBeenCalledWith(20); // (3 - 1) * 10
+  });
+
+  it("derives total from first row's totalCount via Number cast", async () => {
+    makeSelectWithPaginationMock([
+      { ...EMPLOYER_APP_ROW, totalCount: "42" },
+      { ...EMPLOYER_APP_ROW, applicationId: "app-2", totalCount: "42" },
+    ]);
+    const result = await getApplicationsForEmployer("cp-1");
+    expect(result.total).toBe(42);
+    expect(typeof result.total).toBe("number");
+  });
+
+  it("returns total 0 when result set is empty", async () => {
+    makeSelectWithPaginationMock([]);
+    const result = await getApplicationsForEmployer("cp-1", { statusFilter: ["rejected"] });
+    expect(result.total).toBe(0);
+    expect(result.applications).toEqual([]);
   });
 });

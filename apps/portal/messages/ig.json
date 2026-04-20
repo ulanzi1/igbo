@@ -34,7 +34,8 @@
       "allPostings": "Ntinye niile",
       "employers": "Ndị Ọrụ Na-enye",
       "logout": "Pụọ",
-      "discover": "Chọpụta Ọrụ"
+      "discover": "Chọpụta Ọrụ",
+      "employerApplications": "Ngwa"
     },
     "role": {
       "seeker": "Onye Na-achọ Ọrụ",
@@ -1371,7 +1372,31 @@
       "count": "{count} ezipụtara",
       "autoName": "Achọchaa: {summary}",
       "errorSaving": "Enweghị ike ịchekwa achọchaa",
-      "deleted": "Ehichapụrụ achọchaa ezip��tara"
+      "deleted": "Ehichapụrụ achọchaa ezipụtara"
+    },
+    "employerApplications": {
+      "pageTitle": "Ngwa",
+      "filterAll": "Niile",
+      "filterNew": "Ọhụrụ",
+      "filterInReview": "Na-enyocha",
+      "filterInterview": "Ajụjụ Ọnụ",
+      "filterOffered": "Enyere Onyinye",
+      "filterClosed": "Mechiri",
+      "columnApplicant": "Onye Na-arịọ",
+      "columnJobTitle": "Aha Ọrụ",
+      "columnStatus": "Ọnọdụ",
+      "columnAppliedDate": "Tinye",
+      "emptyTitle": "Enweghị ngwa ọ bụla",
+      "emptyCta": "Kesaa ntinye ọrụ gị iji dọta ndị mmadụ",
+      "showingCount": "Na-egosi {from}-{to} n'ime {total}",
+      "previousPage": "Nke gara aga",
+      "nextPage": "Nke ọzọ",
+      "sortAsc": "Hazie n'elu",
+      "sortDesc": "Hazie n'ala",
+      "unknownApplicant": "Onye a na-amaghị",
+      "fetchError": "Enweghị ike ibunye ngwa. Biko nwaa ọzọ.",
+      "pageSize": "Nha peeji",
+      "filterLabel": "Nyocha ngwa site na ọnọdụ"
     }
   },
   "Shell": {

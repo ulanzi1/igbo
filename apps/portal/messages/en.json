@@ -34,7 +34,8 @@
       "allPostings": "All postings",
       "employers": "Employers",
       "logout": "Log Out",
-      "discover": "Discover Jobs"
+      "discover": "Discover Jobs",
+      "employerApplications": "Applications"
     },
     "role": {
       "seeker": "Job Seeker",
@@ -1372,6 +1373,30 @@
       "autoName": "Search: {summary}",
       "errorSaving": "Failed to save search",
       "deleted": "Saved search deleted"
+    },
+    "employerApplications": {
+      "pageTitle": "Applications",
+      "filterAll": "All",
+      "filterNew": "New",
+      "filterInReview": "In Review",
+      "filterInterview": "Interview",
+      "filterOffered": "Offered",
+      "filterClosed": "Closed",
+      "columnApplicant": "Applicant",
+      "columnJobTitle": "Job Title",
+      "columnStatus": "Status",
+      "columnAppliedDate": "Applied",
+      "emptyTitle": "No applications yet",
+      "emptyCta": "Share your job postings to attract candidates",
+      "showingCount": "Showing {from}-{to} of {total}",
+      "previousPage": "Previous",
+      "nextPage": "Next",
+      "sortAsc": "Sort ascending",
+      "sortDesc": "Sort descending",
+      "unknownApplicant": "Unknown applicant",
+      "fetchError": "Failed to load applications. Please try again.",
+      "pageSize": "Page size",
+      "filterLabel": "Filter applications by status"
     }
   },
   "Shell": {
