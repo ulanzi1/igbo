@@ -220,20 +220,12 @@ describe.skipIf(!DATABASE_URL)("DB: migration + query isolation", () => {
     client: ReturnType<typeof import("postgres").default>,
     upToIndex: number,
   ) {
-    const journalPath = path.resolve(
-      __dirname,
-      "../db/src/migrations/meta/_journal.json",
-    );
+    const journalPath = path.resolve(__dirname, "../db/src/migrations/meta/_journal.json");
     const journal = JSON.parse(fs.readFileSync(journalPath, "utf-8"));
-    const entries = journal.entries.filter(
-      (e: { idx: number }) => e.idx <= upToIndex,
-    );
+    const entries = journal.entries.filter((e: { idx: number }) => e.idx <= upToIndex);
 
     for (const entry of entries) {
-      const sqlPath = path.resolve(
-        __dirname,
-        `../db/src/migrations/${entry.tag}.sql`,
-      );
+      const sqlPath = path.resolve(__dirname, `../db/src/migrations/${entry.tag}.sql`);
       const sqlContent = fs.readFileSync(sqlPath, "utf-8");
       // Split on breakpoint markers and execute each statement
       const statements = sqlContent
@@ -397,7 +389,8 @@ describe.skipIf(!DATABASE_URL)("DB: migration + query isolation", () => {
 
     it("Test 6: INSERT context='portal' with channelId → CHECK fails", async () => {
       // Get the channelId from our channel conversation
-      const [conv] = await pgClient`SELECT channel_id FROM chat_conversations WHERE id = ${channelConvId}`;
+      const [conv] =
+        await pgClient`SELECT channel_id FROM chat_conversations WHERE id = ${channelConvId}`;
       const channelId = conv!.channel_id;
 
       await expect(
