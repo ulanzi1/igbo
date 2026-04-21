@@ -47,7 +47,7 @@ const postHandler = async (request: Request) => {
   }
 
   // Verify requester is a member
-  const isMember = await isConversationMember(conversationId, userId);
+  const isMember = await isConversationMember(conversationId, userId, "community");
   if (!isMember) {
     throw new ApiError({
       title: "Forbidden",
@@ -140,7 +140,7 @@ const deleteHandler = async (request: Request) => {
     throw new ApiError({ title: "Not Found", status: 404, detail: "Conversation not found" });
   }
 
-  const isMember = await isConversationMember(conversationId, userId);
+  const isMember = await isConversationMember(conversationId, userId, "community");
   if (!isMember) {
     throw new ApiError({
       title: "Forbidden",

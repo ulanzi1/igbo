@@ -625,10 +625,10 @@ export type EventName =
   | "post.published"
   | "post.reacted"
   | "post.commented"
-  | "message.sent"
-  | "message.edited"
-  | "message.deleted"
-  | "message.mentioned"
+  | "chat.message.sent"
+  | "chat.message.edited"
+  | "chat.message.deleted"
+  | "chat.message.mentioned"
   | "points.awarded"
   | "points.throttled"
   | "member.banned"
@@ -698,8 +698,8 @@ export type EventName =
   | "conversation.created"
   | "conversation.member_added"
   | "conversation.member_left"
-  | "reaction.added"
-  | "reaction.removed"
+  | "chat.reaction.added"
+  | "chat.reaction.removed"
   | "content.flagged"
   | "content.unflagged"
   | "content.moderated"
@@ -717,10 +717,10 @@ export interface EventMap {
   "post.published": PostPublishedEvent;
   "post.reacted": PostReactedEvent;
   "post.commented": PostCommentedEvent;
-  "message.sent": MessageSentEvent;
-  "message.edited": MessageEditedEvent;
-  "message.deleted": MessageDeletedEvent;
-  "message.mentioned": MessageMentionedEvent;
+  "chat.message.sent": MessageSentEvent;
+  "chat.message.edited": MessageEditedEvent;
+  "chat.message.deleted": MessageDeletedEvent;
+  "chat.message.mentioned": MessageMentionedEvent;
   "points.awarded": PointsAwardedEvent;
   "points.throttled": PointsThrottledEvent;
   "member.banned": MemberBannedEvent;
@@ -790,8 +790,8 @@ export interface EventMap {
   "conversation.created": ConversationCreatedEvent;
   "conversation.member_added": ConversationMemberAddedEvent;
   "conversation.member_left": ConversationMemberLeftEvent;
-  "reaction.added": ReactionAddedEvent;
-  "reaction.removed": ReactionRemovedEvent;
+  "chat.reaction.added": ReactionAddedEvent;
+  "chat.reaction.removed": ReactionRemovedEvent;
   "content.flagged": ContentFlaggedEvent;
   "content.unflagged": ContentUnflaggedEvent;
   "content.moderated": ContentModeratedEvent;

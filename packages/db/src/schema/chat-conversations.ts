@@ -5,13 +5,19 @@ import { communityGroupChannels } from "./community-group-channels";
 
 export const conversationTypeEnum = pgEnum("conversation_type", ["direct", "group", "channel"]);
 export const conversationMemberRoleEnum = pgEnum("conversation_member_role", ["member", "admin"]);
+export const conversationContextEnum = pgEnum("conversation_context", ["community", "portal"]);
 
 export const chatConversations = pgTable("chat_conversations", {
   id: uuid("id").primaryKey().defaultRandom(),
   type: conversationTypeEnum("type").notNull(),
+  context: conversationContextEnum("context").notNull().default("community"),
   channelId: uuid("channel_id").references(() => communityGroupChannels.id, {
     onDelete: "set null",
   }),
+  // Raw UUID — NOT a Drizzle FK reference to portalApplications because that schema
+  // imports "server-only" which crashes the standalone realtime server (plain Node.js).
+  // The FK constraint is enforced in migration 0073 SQL.
+  applicationId: uuid("application_id"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   deletedAt: timestamp("deleted_at", { withTimezone: true }),
@@ -60,3 +66,4 @@ export type ChatConversationMember = typeof chatConversationMembers.$inferSelect
 export type NewChatConversationMember = typeof chatConversationMembers.$inferInsert;
 export type ConversationType = (typeof conversationTypeEnum.enumValues)[number];
 export type ConversationMemberRole = (typeof conversationMemberRoleEnum.enumValues)[number];
+export type ConversationContext = (typeof conversationContextEnum.enumValues)[number];

@@ -512,6 +512,13 @@
       "when": 1708000072000,
       "tag": "0072_saved_searches",
       "breakpoints": true
+    },
+    {
+      "idx": 73,
+      "version": "7",
+      "when": 1708000073000,
+      "tag": "0073_chat_context_column",
+      "breakpoints": true
     }
   ]
 }

@@ -218,7 +218,7 @@ describe("messageService.sendMessage", () => {
     );
   });
 
-  it("emits message.sent event with full payload", async () => {
+  it("emits chat.message.sent event with full payload", async () => {
     mockCreateMessage.mockResolvedValue(mockMessage);
     await messageService.sendMessage({
       conversationId: CONV_ID,
@@ -227,7 +227,7 @@ describe("messageService.sendMessage", () => {
     });
 
     expect(mockEventBusEmit).toHaveBeenCalledWith(
-      "message.sent",
+      "chat.message.sent",
       expect.objectContaining({
         messageId: MSG_ID,
         senderId: USER_ID,
@@ -341,7 +341,7 @@ describe("messageService.sendMessageWithAttachments", () => {
     ).rejects.toThrow(`File upload does not belong to sender: ${UPLOAD_ID}`);
   });
 
-  it("emits message.sent event with attachments payload", async () => {
+  it("emits chat.message.sent event with attachments payload", async () => {
     mockGetFileUploadById.mockResolvedValue(mockReadyUpload);
     mockDbTransaction.mockImplementation(async (fn: (tx: unknown) => Promise<unknown>) => {
       // Shared returning mock so sequential insert().values().returning() calls
@@ -371,7 +371,7 @@ describe("messageService.sendMessageWithAttachments", () => {
     });
 
     expect(mockEventBusEmit).toHaveBeenCalledWith(
-      "message.sent",
+      "chat.message.sent",
       expect.objectContaining({
         messageId: MSG_ID,
         attachments: expect.arrayContaining([
@@ -400,14 +400,14 @@ describe("messageService.sendSystemMessage", () => {
     expect(result.contentType).toBe("system");
   });
 
-  it("emits message.sent event with system contentType", async () => {
+  it("emits chat.message.sent event with system contentType", async () => {
     const sysMsg = { ...mockMessage, contentType: "system" as const };
     mockCreateMessage.mockResolvedValue(sysMsg);
 
     await messageService.sendSystemMessage(CONV_ID, USER_ID, "Ada left");
 
     expect(mockEventBusEmit).toHaveBeenCalledWith(
-      "message.sent",
+      "chat.message.sent",
       expect.objectContaining({
         contentType: "system",
         conversationId: CONV_ID,
@@ -490,7 +490,7 @@ describe("messageService.getMessages", () => {
 });
 
 describe("messageService.addReaction", () => {
-  it("adds reaction and emits reaction.added event", async () => {
+  it("adds reaction and emits chat.reaction.added event", async () => {
     mockDbAddReaction.mockResolvedValue({
       messageId: MSG_ID,
       userId: USER_ID,
@@ -502,7 +502,7 @@ describe("messageService.addReaction", () => {
 
     expect(result).toEqual({ messageId: MSG_ID, userId: USER_ID, emoji: "👍" });
     expect(mockEventBusEmit).toHaveBeenCalledWith(
-      "reaction.added",
+      "chat.reaction.added",
       expect.objectContaining({
         messageId: MSG_ID,
         conversationId: CONV_ID,
@@ -523,14 +523,14 @@ describe("messageService.addReaction", () => {
 });
 
 describe("messageService.removeReaction", () => {
-  it("removes reaction and emits reaction.removed event", async () => {
+  it("removes reaction and emits chat.reaction.removed event", async () => {
     mockDbRemoveReaction.mockResolvedValue(true);
 
     const result = await messageService.removeReaction(MSG_ID, USER_ID, "👍", CONV_ID);
 
     expect(result).toBe(true);
     expect(mockEventBusEmit).toHaveBeenCalledWith(
-      "reaction.removed",
+      "chat.reaction.removed",
       expect.objectContaining({
         messageId: MSG_ID,
         conversationId: CONV_ID,
@@ -567,14 +567,14 @@ describe("messageService.updateMessage", () => {
     expect(mockUpdateMessageContent).toHaveBeenCalledWith(MSG_ID, "Updated content");
   });
 
-  it("emits message.edited event with correct payload", async () => {
+  it("emits chat.message.edited event with correct payload", async () => {
     mockGetMessageByIdUnfiltered.mockResolvedValue(mockMessage);
     mockUpdateMessageContent.mockResolvedValue(updatedMessage);
 
     await messageService.updateMessage(MSG_ID, USER_ID, "Updated content");
 
     expect(mockEventBusEmit).toHaveBeenCalledWith(
-      "message.edited",
+      "chat.message.edited",
       expect.objectContaining({
         messageId: MSG_ID,
         conversationId: CONV_ID,
@@ -617,14 +617,14 @@ describe("messageService.updateMessage", () => {
 });
 
 describe("messageService.deleteMessage", () => {
-  it("soft-deletes message and emits message.deleted event", async () => {
+  it("soft-deletes message and emits chat.message.deleted event", async () => {
     mockGetMessageByIdUnfiltered.mockResolvedValue(mockMessage);
 
     await messageService.deleteMessage(MSG_ID, USER_ID);
 
     expect(mockDbUpdate).toHaveBeenCalled();
     expect(mockEventBusEmit).toHaveBeenCalledWith(
-      "message.deleted",
+      "chat.message.deleted",
       expect.objectContaining({
         messageId: MSG_ID,
         conversationId: CONV_ID,
@@ -730,14 +730,14 @@ describe("messageService.getThreadReplies", () => {
 describe("mention detection (via sendMessage)", () => {
   const MENTIONED_ID = "00000000-0000-4000-8000-000000000099";
 
-  it("emits message.mentioned when content contains a mention token", async () => {
+  it("emits chat.message.mentioned when content contains a mention token", async () => {
     const content = `Hello @[Ada](mention:${MENTIONED_ID})!`;
     mockCreateMessage.mockResolvedValue({ ...mockMessage, content });
 
     await messageService.sendMessage({ conversationId: CONV_ID, senderId: USER_ID, content });
 
     expect(mockEventBusEmit).toHaveBeenCalledWith(
-      "message.mentioned",
+      "chat.message.mentioned",
       expect.objectContaining({
         messageId: MSG_ID,
         conversationId: CONV_ID,
@@ -747,13 +747,15 @@ describe("mention detection (via sendMessage)", () => {
     );
   });
 
-  it("does not emit message.mentioned when sender mentions themselves", async () => {
+  it("does not emit chat.message.mentioned when sender mentions themselves", async () => {
     const content = `@[Me](mention:${USER_ID}) reminding myself`;
     mockCreateMessage.mockResolvedValue({ ...mockMessage, content });
 
     await messageService.sendMessage({ conversationId: CONV_ID, senderId: USER_ID, content });
 
-    const mentionCalls = mockEventBusEmit.mock.calls.filter((c) => c[0] === "message.mentioned");
+    const mentionCalls = mockEventBusEmit.mock.calls.filter(
+      (c) => c[0] === "chat.message.mentioned",
+    );
     expect(mentionCalls).toHaveLength(0);
   });
 
@@ -765,7 +767,7 @@ describe("mention detection (via sendMessage)", () => {
 
     await messageService.sendMessage({ conversationId: CONV_ID, senderId: USER_ID, content });
 
-    const mentionCall = mockEventBusEmit.mock.calls.find((c) => c[0] === "message.mentioned");
+    const mentionCall = mockEventBusEmit.mock.calls.find((c) => c[0] === "chat.message.mentioned");
     expect(mentionCall).toBeTruthy();
     const ids = (mentionCall![1] as { mentionedUserIds: string[] }).mentionedUserIds;
     expect(ids).toHaveLength(2);
@@ -779,12 +781,12 @@ describe("mention detection (via sendMessage)", () => {
 
     await messageService.sendMessage({ conversationId: CONV_ID, senderId: USER_ID, content });
 
-    const mentionCall = mockEventBusEmit.mock.calls.find((c) => c[0] === "message.mentioned");
+    const mentionCall = mockEventBusEmit.mock.calls.find((c) => c[0] === "chat.message.mentioned");
     expect(mentionCall).toBeTruthy();
     expect((mentionCall![1] as { mentionedUserIds: string[] }).mentionedUserIds).toHaveLength(1);
   });
 
-  it("does not emit message.mentioned when content has no mentions", async () => {
+  it("does not emit chat.message.mentioned when content has no mentions", async () => {
     mockCreateMessage.mockResolvedValue(mockMessage);
 
     await messageService.sendMessage({
@@ -793,7 +795,9 @@ describe("mention detection (via sendMessage)", () => {
       content: "Hello world",
     });
 
-    const mentionCalls = mockEventBusEmit.mock.calls.filter((c) => c[0] === "message.mentioned");
+    const mentionCalls = mockEventBusEmit.mock.calls.filter(
+      (c) => c[0] === "chat.message.mentioned",
+    );
     expect(mentionCalls).toHaveLength(0);
   });
 
@@ -803,7 +807,7 @@ describe("mention detection (via sendMessage)", () => {
 
     await messageService.sendMessage({ conversationId: CONV_ID, senderId: USER_ID, content });
 
-    const mentionCall = mockEventBusEmit.mock.calls.find((c) => c[0] === "message.mentioned");
+    const mentionCall = mockEventBusEmit.mock.calls.find((c) => c[0] === "chat.message.mentioned");
     expect((mentionCall![1] as { contentPreview: string }).contentPreview).toBe(content);
   });
 });

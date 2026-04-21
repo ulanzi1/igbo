@@ -25,7 +25,7 @@ const getHandler = async (request: Request) => {
     throw new ApiError({ title: "Not Found", status: 404, detail: "Conversation not found" });
   }
 
-  const isMember = await isConversationMember(conversationId, userId);
+  const isMember = await isConversationMember(conversationId, userId, "community");
   if (!isMember) {
     throw new ApiError({
       title: "Forbidden",
@@ -96,7 +96,7 @@ const patchHandler = async (request: Request) => {
     throw new ApiError({ title: "Bad Request", status: 400, detail: "Missing conversationId" });
   }
 
-  const isMember = await isConversationMember(conversationId, userId);
+  const isMember = await isConversationMember(conversationId, userId, "community");
   if (!isMember) {
     throw new ApiError({
       title: "Forbidden",
