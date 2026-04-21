@@ -261,8 +261,8 @@ describe.skipIf(!DATABASE_URL)("DB: migration + query isolation", () => {
     // Seed users
     for (const uid of [userA, userB, portalUser, employerUser, seekerUser]) {
       await pgClient`
-        INSERT INTO auth_users (id, email, name, account_status, role, consent_privacy, consent_terms)
-        VALUES (${uid}, ${uid + "@test.com"}, ${"User " + uid.slice(0, 4)}, 'active', 'user', true, true)
+        INSERT INTO auth_users (id, email, name, account_status, role, consent_given_at)
+        VALUES (${uid}, ${uid + "@test.com"}, ${"User " + uid.slice(0, 4)}, 'active', 'user', NOW())
       `;
     }
 
