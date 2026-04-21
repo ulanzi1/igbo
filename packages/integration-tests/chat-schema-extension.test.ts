@@ -316,19 +316,19 @@ describe.skipIf(!DATABASE_URL)("DB: migration + query isolation", () => {
     applicationId = crypto.randomUUID();
 
     await pgClient`
-      INSERT INTO portal_company_profiles (id, user_id, company_name, industry, company_size, description)
-      VALUES (${companyId}, ${employerUser}, 'Test Corp', 'Technology', 'small', 'A test company')
+      INSERT INTO portal_company_profiles (id, owner_user_id, name, industry, company_size)
+      VALUES (${companyId}, ${employerUser}, 'Test Corp', 'Technology', 'small')
     `;
     await pgClient`
-      INSERT INTO portal_seeker_profiles (id, user_id, full_name, headline)
-      VALUES (${seekerProfileId}, ${seekerUser}, 'Test Seeker', 'Developer')
+      INSERT INTO portal_seeker_profiles (id, user_id, headline)
+      VALUES (${seekerProfileId}, ${seekerUser}, 'Developer')
     `;
     await pgClient`
-      INSERT INTO portal_job_postings (id, company_id, title, description, employment_type, location_type, status, posted_by_user_id)
-      VALUES (${jobPostingId}, ${companyId}, 'Engineer', 'Build stuff', 'full_time', 'remote', 'active', ${employerUser})
+      INSERT INTO portal_job_postings (id, company_id, title, employment_type, status)
+      VALUES (${jobPostingId}, ${companyId}, 'Engineer', 'full_time', 'active')
     `;
     await pgClient`
-      INSERT INTO portal_applications (id, job_posting_id, user_id, status)
+      INSERT INTO portal_applications (id, job_id, seeker_user_id, status)
       VALUES (${applicationId}, ${jobPostingId}, ${seekerUser}, 'submitted')
     `;
   }, 60000);
