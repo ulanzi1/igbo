@@ -212,6 +212,7 @@ describe.skipIf(!DATABASE_URL)("DB: migration + query isolation", () => {
   let companyId: string;
   let seekerProfileId: string;
   let jobPostingId: string;
+  const tempDbName = "chat_schema_test_" + process.pid;
 
   /**
    * Apply migrations from journal up to a given index (inclusive).
@@ -242,9 +243,14 @@ describe.skipIf(!DATABASE_URL)("DB: migration + query isolation", () => {
     const postgres = (await import("postgres")).default;
     pgClient = postgres(DATABASE_URL!, { max: 1 });
 
-    // Clean slate
-    await pgClient.unsafe("DROP SCHEMA public CASCADE");
-    await pgClient.unsafe("CREATE SCHEMA public");
+    // Clean slate — use a dedicated temporary database to avoid collisions
+    // with other integration test suites (e.g. portal search) sharing the same server
+    await pgClient.unsafe(`DROP DATABASE IF EXISTS ${tempDbName}`);
+    await pgClient.unsafe(`CREATE DATABASE ${tempDbName}`);
+    await pgClient.end();
+    // Reconnect to the temp database
+    const baseUrl = DATABASE_URL!.replace(/\/[^/]+$/, "");
+    pgClient = postgres(`${baseUrl}/${tempDbName}`, { max: 1 });
 
     // Apply base migrations (0000-0072, NOT 0073)
     await applyMigrations(pgClient, 72);
@@ -335,10 +341,12 @@ describe.skipIf(!DATABASE_URL)("DB: migration + query isolation", () => {
 
   afterAll(async () => {
     if (pgClient) {
-      // Clean up
-      await pgClient.unsafe("DROP SCHEMA public CASCADE");
-      await pgClient.unsafe("CREATE SCHEMA public");
       await pgClient.end();
+      // Reconnect to default DB to drop the temp one
+      const postgres = (await import("postgres")).default;
+      const adminClient = postgres(DATABASE_URL!, { max: 1 });
+      await adminClient.unsafe(`DROP DATABASE IF EXISTS ${tempDbName}`);
+      await adminClient.end();
     }
   });
 
