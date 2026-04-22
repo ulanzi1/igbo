@@ -537,8 +537,12 @@ describe.skipIf(!DATABASE_URL)("DB: migration + query isolation", () => {
         RETURNING id
       `;
       expect(newConv).toBeDefined();
-      // Restore for subsequent tests
+      // Restore members so subsequent query-isolation tests can find this conversation
       portalConvId = newConv!.id;
+      await pgClient`
+        INSERT INTO chat_conversation_members (conversation_id, user_id)
+        VALUES (${portalConvId}, ${employerUser}), (${portalConvId}, ${seekerUser})
+      `;
     });
 
     it("JSONB round-trip: portal_context_json survives SELECT without corruption", async () => {
