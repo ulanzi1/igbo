@@ -380,7 +380,12 @@ describe.skipIf(!DATABASE_URL)("DB: migration + query isolation", () => {
 
   describe("write-path correctness", () => {
     it("Test 5/14: portal conversation with context='portal' + applicationId succeeds and is queryable", async () => {
-      const portalCtx = { jobId: "job-1", companyId: "company-1", jobTitle: "Engineer", companyName: "Test Corp" };
+      const portalCtx = {
+        jobId: "job-1",
+        companyId: "company-1",
+        jobTitle: "Engineer",
+        companyName: "Test Corp",
+      };
       const [conv] = await pgClient`
         INSERT INTO chat_conversations (type, context, application_id, portal_context_json)
         VALUES ('direct', 'portal', ${applicationId}, ${pgClient.json(portalCtx)})
@@ -527,7 +532,12 @@ describe.skipIf(!DATABASE_URL)("DB: migration + query isolation", () => {
     });
 
     it("JSONB round-trip: portal_context_json survives SELECT without corruption", async () => {
-      const ctx = { jobId: "job-rt", companyId: "comp-rt", jobTitle: "RT Dev", companyName: "RT Corp" };
+      const ctx = {
+        jobId: "job-rt",
+        companyId: "comp-rt",
+        jobTitle: "RT Dev",
+        companyName: "RT Corp",
+      };
       const rtApplicationId = crypto.randomUUID();
       await pgClient`
         INSERT INTO portal_applications (id, job_id, seeker_user_id, status)
