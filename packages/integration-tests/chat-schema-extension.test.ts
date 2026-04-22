@@ -190,11 +190,6 @@ describe("Socket.IO: namespace isolation", () => {
 
 const DATABASE_URL = process.env.DATABASE_URL;
 
-// CI silent-skip guardrail: fails in CI if DATABASE_URL is missing
-it.skipIf(!process.env.CI)("CI must provide DATABASE_URL for DB integration tests", () => {
-  expect(process.env.DATABASE_URL).toBeDefined();
-});
-
 describe.skipIf(!DATABASE_URL)("DB: migration + query isolation", () => {
   let pgClient: ReturnType<typeof import("postgres").default>;
 

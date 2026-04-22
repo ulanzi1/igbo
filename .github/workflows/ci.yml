@@ -151,7 +151,6 @@ jobs:
         options: --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 3s --health-retries 5
     env:
       REDIS_URL: redis://localhost:6379
-      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/igbo_test
       SKIP_ENV_VALIDATION: "true"
       NEXT_PUBLIC_APP_URL: http://localhost:3000
       NEXT_PUBLIC_REALTIME_URL: http://localhost:3002
@@ -192,6 +191,10 @@ jobs:
             echo "flags=" >> "$GITHUB_OUTPUT"
           fi
       - run: pnpm exec turbo run test ${{ steps.turbo-flags.outputs.flags }} --summarize
+      - name: Integration tests (DB-dependent)
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/igbo_test
+        run: pnpm --filter @igbo/integration-tests test
       - name: Show test summary
         if: always()
         run: |
