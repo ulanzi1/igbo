@@ -302,11 +302,25 @@ describe.skipIf(!DATABASE_URL)("DB: migration + query isolation", () => {
       "../db/src/migrations/0073_chat_context_column.sql",
     );
     const migration0073Sql = fs.readFileSync(migration0073Path, "utf-8");
-    const statements = migration0073Sql
+    const statements0073 = migration0073Sql
       .split("--> statement-breakpoint")
       .map((s: string) => s.trim())
       .filter(Boolean);
-    for (const stmt of statements) {
+    for (const stmt of statements0073) {
+      await pgClient.unsafe(stmt);
+    }
+
+    // Apply migration 0074 (P-5.1A: portal_context_json, participant_role, unique index, CHECKs)
+    const migration0074Path = path.resolve(
+      __dirname,
+      "../db/src/migrations/0074_portal_messaging_extension.sql",
+    );
+    const migration0074Sql = fs.readFileSync(migration0074Path, "utf-8");
+    const statements0074 = migration0074Sql
+      .split("--> statement-breakpoint")
+      .map((s: string) => s.trim())
+      .filter(Boolean);
+    for (const stmt of statements0074) {
       await pgClient.unsafe(stmt);
     }
 
@@ -366,9 +380,10 @@ describe.skipIf(!DATABASE_URL)("DB: migration + query isolation", () => {
 
   describe("write-path correctness", () => {
     it("Test 5/14: portal conversation with context='portal' + applicationId succeeds and is queryable", async () => {
+      const portalCtx = { jobId: "job-1", companyId: "company-1", jobTitle: "Engineer", companyName: "Test Corp" };
       const [conv] = await pgClient`
-        INSERT INTO chat_conversations (type, context, application_id)
-        VALUES ('direct', 'portal', ${applicationId})
+        INSERT INTO chat_conversations (type, context, application_id, portal_context_json)
+        VALUES ('direct', 'portal', ${applicationId}, ${pgClient.json(portalCtx)})
         RETURNING id, context::text
       `;
       portalConvId = conv!.id;
@@ -430,6 +445,137 @@ describe.skipIf(!DATABASE_URL)("DB: migration + query isolation", () => {
           UPDATE chat_conversations SET context = 'portal' WHERE id = ${directConvId}
         `,
       ).rejects.toThrow(/conversation context is immutable/);
+    });
+  });
+
+  describe("migration 0074: portal_context_json + participant_role + unique index + CHECKs", () => {
+    it("existing community members have participant_role = 'community_member' (default)", async () => {
+      const rows = await pgClient`
+        SELECT participant_role::text FROM chat_conversation_members
+        WHERE conversation_id = ${directConvId}
+      `;
+      for (const row of rows) {
+        expect(row.participant_role).toBe("community_member");
+      }
+    });
+
+    it("INSERT portal conversation with portal_context_json succeeds", async () => {
+      const ctx = { jobId: "job-1", companyId: "company-1", jobTitle: "Dev", companyName: "Corp" };
+      const secondApplicationId = crypto.randomUUID();
+      await pgClient`
+        INSERT INTO portal_applications (id, job_id, seeker_user_id, status)
+        VALUES (${secondApplicationId}, ${jobPostingId}, ${seekerUser}, 'submitted')
+      `;
+      const [conv] = await pgClient`
+        INSERT INTO chat_conversations (type, context, application_id, portal_context_json)
+        VALUES ('direct', 'portal', ${secondApplicationId}, ${pgClient.json(ctx)})
+        RETURNING id, portal_context_json
+      `;
+      expect(conv).toBeDefined();
+      expect(conv!.portal_context_json).toMatchObject(ctx);
+    });
+
+    it("INSERT portal conversation without portal_context_json fails (CHECK constraint)", async () => {
+      const thirdApplicationId = crypto.randomUUID();
+      await pgClient`
+        INSERT INTO portal_applications (id, job_id, seeker_user_id, status)
+        VALUES (${thirdApplicationId}, ${jobPostingId}, ${seekerUser}, 'submitted')
+      `;
+      await expect(
+        pgClient`
+          INSERT INTO chat_conversations (type, context, application_id)
+          VALUES ('direct', 'portal', ${thirdApplicationId})
+        `,
+      ).rejects.toThrow(/chk_portal_requires_context_json/);
+    });
+
+    it("INSERT community conversation with portal_context_json fails (CHECK constraint)", async () => {
+      const ctx = { jobId: "j", companyId: "c", jobTitle: "Dev", companyName: "Corp" };
+      await expect(
+        pgClient`
+          INSERT INTO chat_conversations (type, context, portal_context_json)
+          VALUES ('direct', 'community', ${pgClient.json(ctx)})
+        `,
+      ).rejects.toThrow(/chk_community_no_context_json/);
+    });
+
+    it("unique partial index: second portal conversation for same application fails", async () => {
+      const ctx = { jobId: "j", companyId: "c", jobTitle: "Dev", companyName: "Corp" };
+      await expect(
+        pgClient`
+          INSERT INTO chat_conversations (type, context, application_id, portal_context_json)
+          VALUES ('direct', 'portal', ${applicationId}, ${pgClient.json(ctx)})
+        `,
+      ).rejects.toThrow(/unq_chat_conversations_application_id/);
+    });
+
+    it("unique partial index: soft-deleted conversation allows re-creation", async () => {
+      // Soft-delete the existing portal conversation
+      await pgClient`
+        UPDATE chat_conversations SET deleted_at = NOW() WHERE id = ${portalConvId}
+      `;
+      // Now inserting for the same application should succeed (unique index is partial)
+      const ctx = { jobId: "j", companyId: "c", jobTitle: "Dev", companyName: "Corp" };
+      const [newConv] = await pgClient`
+        INSERT INTO chat_conversations (type, context, application_id, portal_context_json)
+        VALUES ('direct', 'portal', ${applicationId}, ${pgClient.json(ctx)})
+        RETURNING id
+      `;
+      expect(newConv).toBeDefined();
+      // Restore for subsequent tests
+      portalConvId = newConv!.id;
+    });
+
+    it("JSONB round-trip: portal_context_json survives SELECT without corruption", async () => {
+      const ctx = { jobId: "job-rt", companyId: "comp-rt", jobTitle: "RT Dev", companyName: "RT Corp" };
+      const rtApplicationId = crypto.randomUUID();
+      await pgClient`
+        INSERT INTO portal_applications (id, job_id, seeker_user_id, status)
+        VALUES (${rtApplicationId}, ${jobPostingId}, ${seekerUser}, 'submitted')
+      `;
+      const [conv] = await pgClient`
+        INSERT INTO chat_conversations (type, context, application_id, portal_context_json)
+        VALUES ('direct', 'portal', ${rtApplicationId}, ${pgClient.json(ctx)})
+        RETURNING id
+      `;
+      const [fetched] = await pgClient`
+        SELECT portal_context_json FROM chat_conversations WHERE id = ${conv!.id}
+      `;
+      // postgres driver returns JSONB as parsed JS object, NOT string
+      expect(typeof fetched!.portal_context_json).toBe("object");
+      expect(fetched!.portal_context_json.jobId).toBe("job-rt");
+      expect(fetched!.portal_context_json.companyName).toBe("RT Corp");
+    });
+
+    it("transaction rollback: FK violation on seekerUserId rolls back entire conversation insert", async () => {
+      const nonExistentUserId = crypto.randomUUID();
+      const appForRollback = crypto.randomUUID();
+      await pgClient`
+        INSERT INTO portal_applications (id, job_id, seeker_user_id, status)
+        VALUES (${appForRollback}, ${jobPostingId}, ${seekerUser}, 'submitted')
+      `;
+      const ctx = { jobId: "j", companyId: "c", jobTitle: "Dev", companyName: "Corp" };
+
+      await expect(async () => {
+        await pgClient.begin(async (tx) => {
+          const [conv] = await tx`
+            INSERT INTO chat_conversations (type, context, application_id, portal_context_json)
+            VALUES ('direct', 'portal', ${appForRollback}, ${tx.json(ctx)})
+            RETURNING id
+          `;
+          // FK violation: nonExistentUserId doesn't exist in auth_users
+          await tx`
+            INSERT INTO chat_conversation_members (conversation_id, user_id, participant_role)
+            VALUES (${conv!.id}, ${nonExistentUserId}::uuid, 'employer')
+          `;
+        });
+      }).rejects.toThrow();
+
+      // Verify: no orphaned conversation row
+      const [orphan] = await pgClient`
+        SELECT id FROM chat_conversations WHERE application_id = ${appForRollback}
+      `;
+      expect(orphan).toBeUndefined();
     });
   });
 

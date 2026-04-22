@@ -12,12 +12,15 @@ export type {
   ConversationType,
   ConversationMemberRole,
   ConversationContext,
+  ParticipantRole,
+  PortalConversationContext,
 } from "../schema/chat-conversations";
 import type {
   ChatConversation,
   ChatConversationMember,
   ConversationType,
   ConversationContext,
+  PortalConversationContext,
 } from "../schema/chat-conversations";
 
 // ── Conversation CRUD ──────────────────────────────────────────────────────────
@@ -85,6 +88,10 @@ export type EnrichedUserConversation = {
   context: ConversationContext;
   createdAt: Date;
   updatedAt: Date;
+  /** Present for portal conversations — null for community conversations */
+  applicationId: string | null;
+  /** Parsed portal_context_json — null for community conversations */
+  portalContext: PortalConversationContext | null;
   otherMember: {
     id: string;
     displayName: string;
@@ -127,6 +134,8 @@ export async function getUserConversations(
       c.id::text,
       c.type::text,
       c.context::text,
+      c.application_id::text,
+      c.portal_context_json,
       c.created_at,
       c.updated_at,
       COALESCE(ccm_other.user_id::text, '') as other_member_id,
@@ -203,6 +212,8 @@ export async function getUserConversations(
     id: string;
     type: string;
     context: string;
+    application_id: string | null;
+    portal_context_json: PortalConversationContext | null;
     created_at: Date;
     updated_at: Date;
     other_member_id: string;
@@ -222,6 +233,9 @@ export async function getUserConversations(
     id: row.id,
     type: row.type as "direct" | "group" | "channel",
     context: row.context as ConversationContext,
+    applicationId: row.application_id ?? null,
+    // postgres driver returns JSONB as parsed JS object — do NOT JSON.parse() it
+    portalContext: row.portal_context_json ?? null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     otherMember: {
@@ -322,6 +336,7 @@ export async function getConversationMembers(
         lastReadAt: chatConversationMembers.lastReadAt,
         notificationPreference: chatConversationMembers.notificationPreference,
         role: chatConversationMembers.role,
+        participantRole: chatConversationMembers.participantRole,
       })
       .from(chatConversationMembers)
       .innerJoin(

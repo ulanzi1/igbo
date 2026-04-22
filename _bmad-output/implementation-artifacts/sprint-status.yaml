@@ -326,14 +326,14 @@ development_status:
   portal-epic-4-hotfix-3-employer-applications-dead-link: done   # Remove "Applications" from employer nav until feature exists
   portal-epic-4-ai-20-runtime-smoke-test-gate: done                 # SN-6 gate added to story template, dev-story checklist, workflow instructions, and code-review checklist
   portal-epic-4-ai-21-placeholder-page-policy: done                 # Removed 4 placeholder page nav links + dirs, employer redirect /dashboard→/my-jobs, proxy cleanup
-  portal-epic-4-ai-22-cache-invalidation-registry: pending         # Replace organic invalidation growth with declarative registry
-  portal-epic-4-ai-23-employer-applications-view: pending          # Scope employer application pipeline view (pre-P-5 gate)
-  portal-epic-4-ai-24-match-scoring-transparency: pending          # Explain or simplify match score presentation
-  portal-epic-4-prep-h-cross-app-schema-validation: pending        # Spike: community chat survives portal schema extension (HARD GATE for P-5.1A)
+  portal-epic-4-ai-22-cache-invalidation-registry: done         # Replace organic invalidation growth with declarative registry
+  portal-epic-4-ai-23-employer-applications-view: done          # Scope employer application pipeline view (pre-P-5 gate)
+  portal-epic-4-ai-24-match-scoring-transparency: done          # Explain or simplify match score presentation
+  portal-epic-4-prep-h-cross-app-schema-validation: done        # Spike: community chat survives portal schema extension (HARD GATE for P-5.1A)
 
   # Portal Epic 5: Portal Messaging
-  portal-epic-5: backlog
-  p-5-1a-messaging-data-model-extension: backlog
+  portal-epic-5: in-progress
+  p-5-1a-messaging-data-model-extension: done
   p-5-1b-conversation-lifecycle-application-integration: backlog
   p-5-2-real-time-messaging-via-socket-io: backlog
   p-5-3-read-receipts-typing-indicators: backlog
