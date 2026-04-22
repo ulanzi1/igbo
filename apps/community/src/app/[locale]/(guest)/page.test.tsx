@@ -33,7 +33,8 @@ describe("SplashPage", () => {
   it("renders the brand header with OBIGBO title", async () => {
     const Page = await SplashPage({ params: Promise.resolve({ locale: "en" }) });
     render(Page);
-    expect(screen.getByText("Splash.title")).toBeInTheDocument();
+    const h1 = screen.getByRole("heading", { level: 1 });
+    expect(h1.textContent).toBe("OBIGBO");
   });
 
   it("renders three CTA options", async () => {
