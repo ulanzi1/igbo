@@ -466,10 +466,15 @@ describe.skipIf(!DATABASE_URL)("DB: migration + query isolation", () => {
 
     it("INSERT portal conversation with portal_context_json succeeds", async () => {
       const ctx = { jobId: "job-1", companyId: "company-1", jobTitle: "Dev", companyName: "Corp" };
+      const localJobId = crypto.randomUUID();
+      await pgClient`
+        INSERT INTO portal_job_postings (id, company_id, title, employment_type, status)
+        VALUES (${localJobId}, ${companyId}, 'Test', 'full_time', 'active')
+      `;
       const secondApplicationId = crypto.randomUUID();
       await pgClient`
         INSERT INTO portal_applications (id, job_id, seeker_user_id, status)
-        VALUES (${secondApplicationId}, ${jobPostingId}, ${seekerUser}, 'submitted')
+        VALUES (${secondApplicationId}, ${localJobId}, ${seekerUser}, 'submitted')
       `;
       const [conv] = await pgClient`
         INSERT INTO chat_conversations (type, context, application_id, portal_context_json)
@@ -481,10 +486,15 @@ describe.skipIf(!DATABASE_URL)("DB: migration + query isolation", () => {
     });
 
     it("INSERT portal conversation without portal_context_json fails (CHECK constraint)", async () => {
+      const localJobId = crypto.randomUUID();
+      await pgClient`
+        INSERT INTO portal_job_postings (id, company_id, title, employment_type, status)
+        VALUES (${localJobId}, ${companyId}, 'Test', 'full_time', 'active')
+      `;
       const thirdApplicationId = crypto.randomUUID();
       await pgClient`
         INSERT INTO portal_applications (id, job_id, seeker_user_id, status)
-        VALUES (${thirdApplicationId}, ${jobPostingId}, ${seekerUser}, 'submitted')
+        VALUES (${thirdApplicationId}, ${localJobId}, ${seekerUser}, 'submitted')
       `;
       await expect(
         pgClient`
@@ -538,10 +548,15 @@ describe.skipIf(!DATABASE_URL)("DB: migration + query isolation", () => {
         jobTitle: "RT Dev",
         companyName: "RT Corp",
       };
+      const rtJobId = crypto.randomUUID();
+      await pgClient`
+        INSERT INTO portal_job_postings (id, company_id, title, employment_type, status)
+        VALUES (${rtJobId}, ${companyId}, 'Test', 'full_time', 'active')
+      `;
       const rtApplicationId = crypto.randomUUID();
       await pgClient`
         INSERT INTO portal_applications (id, job_id, seeker_user_id, status)
-        VALUES (${rtApplicationId}, ${jobPostingId}, ${seekerUser}, 'submitted')
+        VALUES (${rtApplicationId}, ${rtJobId}, ${seekerUser}, 'submitted')
       `;
       const [conv] = await pgClient`
         INSERT INTO chat_conversations (type, context, application_id, portal_context_json)
@@ -559,10 +574,15 @@ describe.skipIf(!DATABASE_URL)("DB: migration + query isolation", () => {
 
     it("transaction rollback: FK violation on seekerUserId rolls back entire conversation insert", async () => {
       const nonExistentUserId = crypto.randomUUID();
+      const rbJobId = crypto.randomUUID();
+      await pgClient`
+        INSERT INTO portal_job_postings (id, company_id, title, employment_type, status)
+        VALUES (${rbJobId}, ${companyId}, 'Test', 'full_time', 'active')
+      `;
       const appForRollback = crypto.randomUUID();
       await pgClient`
         INSERT INTO portal_applications (id, job_id, seeker_user_id, status)
-        VALUES (${appForRollback}, ${jobPostingId}, ${seekerUser}, 'submitted')
+        VALUES (${appForRollback}, ${rbJobId}, ${seekerUser}, 'submitted')
       `;
       const ctx = { jobId: "j", companyId: "c", jobTitle: "Dev", companyName: "Corp" };
 
