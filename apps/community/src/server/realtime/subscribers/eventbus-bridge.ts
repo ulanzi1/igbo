@@ -101,7 +101,8 @@ function routeToNamespace(io: Server, eventName: string, payload: unknown): void
       });
       break;
     }
-    case "message.sent": {
+    // Convention: {app}.{domain}.{action} — community uses chat.*, portal uses portal.*
+    case "chat.message.sent": {
       const msgPayload = payload as MessageSentEvent;
       if (!msgPayload?.conversationId) break;
       chatNs.to(ROOM_CONVERSATION(msgPayload.conversationId)).emit("message:new", {
@@ -117,7 +118,7 @@ function routeToNamespace(io: Server, eventName: string, payload: unknown): void
       });
       break;
     }
-    case "message.edited": {
+    case "chat.message.edited": {
       const editedPayload = payload as MessageEditedEvent;
       if (!editedPayload?.conversationId || !editedPayload?.messageId) break;
       chatNs.to(ROOM_CONVERSATION(editedPayload.conversationId)).emit("message:edited", {
@@ -130,7 +131,7 @@ function routeToNamespace(io: Server, eventName: string, payload: unknown): void
       });
       break;
     }
-    case "message.deleted": {
+    case "chat.message.deleted": {
       const deletedPayload = payload as MessageDeletedEvent;
       if (!deletedPayload?.conversationId || !deletedPayload?.messageId) break;
       chatNs.to(ROOM_CONVERSATION(deletedPayload.conversationId)).emit("message:deleted", {
@@ -141,7 +142,7 @@ function routeToNamespace(io: Server, eventName: string, payload: unknown): void
       });
       break;
     }
-    case "message.mentioned": {
+    case "chat.message.mentioned": {
       const mentionedPayload = payload as MessageMentionedEvent;
       if (!mentionedPayload?.mentionedUserIds?.length) break;
       for (const mentionedUserId of mentionedPayload.mentionedUserIds) {
@@ -155,7 +156,7 @@ function routeToNamespace(io: Server, eventName: string, payload: unknown): void
       }
       break;
     }
-    case "reaction.added": {
+    case "chat.reaction.added": {
       const reactionPayload = payload as ReactionAddedEvent;
       if (!reactionPayload?.conversationId || !reactionPayload?.messageId) break;
       chatNs.to(ROOM_CONVERSATION(reactionPayload.conversationId)).emit("reaction:added", {
@@ -167,7 +168,7 @@ function routeToNamespace(io: Server, eventName: string, payload: unknown): void
       });
       break;
     }
-    case "reaction.removed": {
+    case "chat.reaction.removed": {
       const reactionPayload = payload as ReactionRemovedEvent;
       if (!reactionPayload?.conversationId || !reactionPayload?.messageId) break;
       chatNs.to(ROOM_CONVERSATION(reactionPayload.conversationId)).emit("reaction:removed", {

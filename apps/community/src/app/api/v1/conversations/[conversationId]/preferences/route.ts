@@ -37,7 +37,7 @@ const getHandler = async (request: Request) => {
   const { userId } = await requireAuthenticatedSession();
   const conversationId = extractConversationId(request);
 
-  const isMember = await isConversationMember(conversationId, userId);
+  const isMember = await isConversationMember(conversationId, userId, "community");
   if (!isMember) {
     throw new ApiError({ title: "Forbidden", status: 403, detail: "Not a conversation member" });
   }
@@ -53,7 +53,7 @@ const patchHandler = async (request: Request) => {
   const { userId } = await requireAuthenticatedSession();
   const conversationId = extractConversationId(request);
 
-  const isMember = await isConversationMember(conversationId, userId);
+  const isMember = await isConversationMember(conversationId, userId, "community");
   if (!isMember) {
     throw new ApiError({ title: "Forbidden", status: 403, detail: "Not a conversation member" });
   }

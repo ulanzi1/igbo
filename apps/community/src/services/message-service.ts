@@ -67,7 +67,7 @@ export interface MessageService {
   /**
    * Send a message with file attachments.
    * Validates file uploads (must be ready + owned by sender), creates message + attachments
-   * in a single transaction, and emits message.sent with attachments in the payload.
+   * in a single transaction, and emits chat.message.sent with attachments in the payload.
    * Separate from sendMessage() to preserve backwards-compatible signature for existing callers.
    */
   sendMessageWithAttachments(params: SendMessageWithAttachmentsParams): Promise<ChatMessage>;
@@ -117,7 +117,7 @@ export interface MessageService {
 
 /**
  * Phase 1 implementation — stores plaintext in PostgreSQL via Drizzle queries.
- * Emits `message.sent` EventBus event after persisting so the EventBus bridge
+ * Emits `chat.message.sent` EventBus event after persisting so the EventBus bridge
  * can route the message to the conversation Socket.IO room.
  */
 class PlaintextMessageService implements MessageService {
@@ -169,7 +169,7 @@ class PlaintextMessageService implements MessageService {
       messageCount = Number(countRow?.count ?? 1);
     }
 
-    eventBus.emit("message.sent", {
+    eventBus.emit("chat.message.sent", {
       messageId: message.id,
       senderId: message.senderId,
       conversationId: message.conversationId,
@@ -301,7 +301,7 @@ class PlaintextMessageService implements MessageService {
 
     // Emit with attachments so bridge can include them in message:new without a DB query
     // Note: use ?? null (not ?? undefined) — undefined is dropped by JSON.stringify
-    eventBus.emit("message.sent", {
+    eventBus.emit("chat.message.sent", {
       messageId: message.id,
       senderId: message.senderId,
       conversationId: message.conversationId,
@@ -339,7 +339,7 @@ class PlaintextMessageService implements MessageService {
 
     // Emit so the EventBus bridge broadcasts to the conversation room
     // conversationType: "group" prevents first-DM handler from firing (F4 review fix)
-    eventBus.emit("message.sent", {
+    eventBus.emit("chat.message.sent", {
       messageId: message.id,
       senderId: message.senderId,
       conversationId: message.conversationId,
@@ -413,7 +413,7 @@ class PlaintextMessageService implements MessageService {
     const updated = await updateMessageContent(messageId, content);
     if (!updated) throw new Error("Update returned no row");
 
-    eventBus.emit("message.edited", {
+    eventBus.emit("chat.message.edited", {
       messageId,
       conversationId: message.conversationId,
       senderId: userId,
@@ -448,7 +448,7 @@ class PlaintextMessageService implements MessageService {
       .set({ deletedAt: new Date() })
       .where(eq(chatMessages.id, messageId));
 
-    eventBus.emit("message.deleted", {
+    eventBus.emit("chat.message.deleted", {
       messageId,
       conversationId: message.conversationId,
       senderId: userId,
@@ -507,7 +507,7 @@ class PlaintextMessageService implements MessageService {
     }
     if (userIds.size === 0) return;
 
-    eventBus.emit("message.mentioned", {
+    eventBus.emit("chat.message.mentioned", {
       messageId,
       conversationId,
       senderId,
@@ -526,7 +526,7 @@ class PlaintextMessageService implements MessageService {
     const result = await dbAddReaction(messageId, userId, emoji);
     if (!result) return null; // Already existed
 
-    eventBus.emit("reaction.added", {
+    eventBus.emit("chat.reaction.added", {
       messageId,
       conversationId,
       userId,
@@ -546,7 +546,7 @@ class PlaintextMessageService implements MessageService {
     const deleted = await dbRemoveReaction(messageId, userId, emoji);
     if (!deleted) return false;
 
-    eventBus.emit("reaction.removed", {
+    eventBus.emit("chat.reaction.removed", {
       messageId,
       conversationId,
       userId,

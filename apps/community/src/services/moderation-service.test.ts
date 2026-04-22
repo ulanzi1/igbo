@@ -139,7 +139,7 @@ describe("ModerationService", () => {
     // Handlers are captured in handlerRef.current at module import time (before beforeEach clears mocks)
     expect(handlerRef.current.has("post.published")).toBe(true);
     expect(handlerRef.current.has("article.published")).toBe(true);
-    expect(handlerRef.current.has("message.sent")).toBe(true);
+    expect(handlerRef.current.has("chat.message.sent")).toBe(true);
   });
 
   // ─── handlePostPublished ────────────────────────────────────────────────────

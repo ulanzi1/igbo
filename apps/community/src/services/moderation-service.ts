@@ -540,7 +540,7 @@ if (globalForModeration.__moderationHandlersRegistered) {
     }
   });
 
-  eventBus.on("message.sent", async (payload: MessageSentEvent) => {
+  eventBus.on("chat.message.sent", async (payload: MessageSentEvent) => {
     try {
       await handleMessageScanned(payload);
     } catch (err) {

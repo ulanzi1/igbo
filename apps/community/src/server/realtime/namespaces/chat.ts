@@ -83,7 +83,7 @@ export function setupChatNamespace(ns: Namespace, redis: Redis): void {
           }
 
           // Verify sender is a member
-          const isMember = await isConversationMember(conversationId, userId);
+          const isMember = await isConversationMember(conversationId, userId, "community");
           if (!isMember) {
             if (typeof ack === "function") ack({ error: "Not a member of this conversation" });
             return;
@@ -131,7 +131,7 @@ export function setupChatNamespace(ns: Namespace, redis: Redis): void {
             });
           }
 
-          // message:new is emitted via EventBus bridge (message.sent → message:new)
+          // message:new is emitted via EventBus bridge (chat.message.sent → message:new)
           // Do NOT emit directly here — that would cause duplicate delivery.
 
           if (typeof ack === "function") ack({ messageId: message.id });
@@ -176,7 +176,7 @@ export function setupChatNamespace(ns: Namespace, redis: Redis): void {
             return;
           }
 
-          const isMember = await isConversationMember(conversationId, userId);
+          const isMember = await isConversationMember(conversationId, userId, "community");
           if (!isMember) {
             if (typeof callback === "function")
               callback({ error: "Not a member of this conversation" });
@@ -227,7 +227,7 @@ export function setupChatNamespace(ns: Namespace, redis: Redis): void {
             return;
           }
 
-          const isMember = await isConversationMember(conversationId, userId);
+          const isMember = await isConversationMember(conversationId, userId, "community");
           if (!isMember) {
             if (typeof callback === "function")
               callback({ error: "Not a member of this conversation" });
@@ -269,7 +269,7 @@ export function setupChatNamespace(ns: Namespace, redis: Redis): void {
           if (typeof ack === "function") ack({ error: "Invalid conversationId" });
           return;
         }
-        const isMember = await isConversationMember(conversationId, userId);
+        const isMember = await isConversationMember(conversationId, userId, "community");
         if (!isMember) {
           if (typeof ack === "function") ack({ error: "Not a member" });
           return;
@@ -290,7 +290,7 @@ export function setupChatNamespace(ns: Namespace, redis: Redis): void {
     socket.on("typing:stop", async (payload: { conversationId: string }) => {
       const { conversationId } = payload ?? {};
       if (!conversationId || typeof conversationId !== "string") return;
-      const isMember = await isConversationMember(conversationId, userId);
+      const isMember = await isConversationMember(conversationId, userId, "community");
       if (!isMember) return;
       await redis.del(REDIS_TYPING_KEY(conversationId, userId));
       socket.to(ROOM_CONVERSATION(conversationId)).emit("typing:stop", {
@@ -317,7 +317,7 @@ export function setupChatNamespace(ns: Namespace, redis: Redis): void {
           if (typeof ack === "function") ack({ error: "Invalid payload" });
           return;
         }
-        const isMember = await isConversationMember(conversationId, userId);
+        const isMember = await isConversationMember(conversationId, userId, "community");
         if (!isMember) {
           if (typeof ack === "function") ack({ error: "Not a member" });
           return;
@@ -344,7 +344,7 @@ export function setupChatNamespace(ns: Namespace, redis: Redis): void {
           if (typeof ack === "function") ack({ error: "Invalid conversationId" });
           return;
         }
-        const isMember = await isConversationMember(conversationId, userId);
+        const isMember = await isConversationMember(conversationId, userId, "community");
         if (!isMember) {
           if (typeof ack === "function") ack({ error: "Not a member" });
           return;

@@ -147,7 +147,7 @@ describe("startEventBusBridge", () => {
     );
   });
 
-  it("routes message.sent to conversation room on /chat namespace", async () => {
+  it("routes chat.message.sent to conversation room on /chat namespace", async () => {
     const notifEmit = vi.fn();
     const chatEmit = vi.fn();
     const { subscriber, pmessageCallbacks } = makeSubscriber();
@@ -166,7 +166,7 @@ describe("startEventBusBridge", () => {
       timestamp: ts,
     };
 
-    pmessageCallbacks[0]?.("eventbus:*", "eventbus:message.sent", JSON.stringify(payload));
+    pmessageCallbacks[0]?.("eventbus:*", "eventbus:chat.message.sent", JSON.stringify(payload));
 
     expect(io.of).toHaveBeenCalledWith("/chat");
     expect(chatEmit).toHaveBeenCalledWith(
@@ -213,7 +213,7 @@ describe("startEventBusBridge", () => {
       attachments: mockAttachments,
     };
 
-    pmessageCallbacks[0]?.("eventbus:*", "eventbus:message.sent", JSON.stringify(payload));
+    pmessageCallbacks[0]?.("eventbus:*", "eventbus:chat.message.sent", JSON.stringify(payload));
 
     expect(chatEmit).toHaveBeenCalledWith(
       "message:new",
@@ -224,7 +224,7 @@ describe("startEventBusBridge", () => {
     );
   });
 
-  it("routes reaction.added to conversation room", async () => {
+  it("routes chat.reaction.added to conversation room", async () => {
     const notifEmit = vi.fn();
     const chatEmit = vi.fn();
     const { subscriber, pmessageCallbacks } = makeSubscriber();
@@ -241,7 +241,7 @@ describe("startEventBusBridge", () => {
       timestamp: ts,
     };
 
-    pmessageCallbacks[0]?.("eventbus:*", "eventbus:reaction.added", JSON.stringify(payload));
+    pmessageCallbacks[0]?.("eventbus:*", "eventbus:chat.reaction.added", JSON.stringify(payload));
 
     expect(io.of).toHaveBeenCalledWith("/chat");
     expect(chatEmit).toHaveBeenCalledWith(
@@ -256,7 +256,7 @@ describe("startEventBusBridge", () => {
     );
   });
 
-  it("routes reaction.removed to conversation room", async () => {
+  it("routes chat.reaction.removed to conversation room", async () => {
     const notifEmit = vi.fn();
     const chatEmit = vi.fn();
     const { subscriber, pmessageCallbacks } = makeSubscriber();
@@ -273,7 +273,7 @@ describe("startEventBusBridge", () => {
       timestamp: ts,
     };
 
-    pmessageCallbacks[0]?.("eventbus:*", "eventbus:reaction.removed", JSON.stringify(payload));
+    pmessageCallbacks[0]?.("eventbus:*", "eventbus:chat.reaction.removed", JSON.stringify(payload));
 
     expect(chatEmit).toHaveBeenCalledWith(
       "reaction:removed",
@@ -287,7 +287,7 @@ describe("startEventBusBridge", () => {
     );
   });
 
-  it("ignores reaction.added when conversationId is missing", async () => {
+  it("ignores chat.reaction.added when conversationId is missing", async () => {
     const chatEmit = vi.fn();
     const { subscriber, pmessageCallbacks } = makeSubscriber();
     const io = makeIo(vi.fn(), chatEmit);
@@ -296,14 +296,14 @@ describe("startEventBusBridge", () => {
 
     pmessageCallbacks[0]?.(
       "eventbus:*",
-      "eventbus:reaction.added",
+      "eventbus:chat.reaction.added",
       JSON.stringify({ messageId: MSG_ID, userId: USER_ID, emoji: "👍" }), // no conversationId
     );
 
     expect(chatEmit).not.toHaveBeenCalled();
   });
 
-  it("ignores message.sent when conversationId is missing", async () => {
+  it("ignores chat.message.sent when conversationId is missing", async () => {
     const chatEmit = vi.fn();
     const { subscriber, pmessageCallbacks } = makeSubscriber();
     const io = makeIo(vi.fn(), chatEmit);
@@ -312,7 +312,7 @@ describe("startEventBusBridge", () => {
 
     pmessageCallbacks[0]?.(
       "eventbus:*",
-      "eventbus:message.sent",
+      "eventbus:chat.message.sent",
       JSON.stringify({ messageId: MSG_ID, senderId: USER_ID }), // no conversationId
     );
 
@@ -463,7 +463,7 @@ describe("startEventBusBridge", () => {
     expect(emitMock).not.toHaveBeenCalled();
   });
 
-  it("routes message.edited to conversation room on /chat namespace", async () => {
+  it("routes chat.message.edited to conversation room on /chat namespace", async () => {
     const notifEmit = vi.fn();
     const chatEmit = vi.fn();
     const { subscriber, pmessageCallbacks } = makeSubscriber();
@@ -481,7 +481,7 @@ describe("startEventBusBridge", () => {
       timestamp: ts,
     };
 
-    pmessageCallbacks[0]?.("eventbus:*", "eventbus:message.edited", JSON.stringify(payload));
+    pmessageCallbacks[0]?.("eventbus:*", "eventbus:chat.message.edited", JSON.stringify(payload));
 
     expect(io.of).toHaveBeenCalledWith("/chat");
     expect(chatEmit).toHaveBeenCalledWith(
@@ -495,7 +495,7 @@ describe("startEventBusBridge", () => {
     );
   });
 
-  it("ignores message.edited when conversationId is missing", async () => {
+  it("ignores chat.message.edited when conversationId is missing", async () => {
     const chatEmit = vi.fn();
     const { subscriber, pmessageCallbacks } = makeSubscriber();
     const io = makeIo(vi.fn(), chatEmit);
@@ -504,14 +504,14 @@ describe("startEventBusBridge", () => {
 
     pmessageCallbacks[0]?.(
       "eventbus:*",
-      "eventbus:message.edited",
+      "eventbus:chat.message.edited",
       JSON.stringify({ messageId: MSG_ID, content: "x" }), // no conversationId
     );
 
     expect(chatEmit).not.toHaveBeenCalled();
   });
 
-  it("routes message.deleted to conversation room on /chat namespace", async () => {
+  it("routes chat.message.deleted to conversation room on /chat namespace", async () => {
     const notifEmit = vi.fn();
     const chatEmit = vi.fn();
     const { subscriber, pmessageCallbacks } = makeSubscriber();
@@ -527,7 +527,7 @@ describe("startEventBusBridge", () => {
       timestamp: ts,
     };
 
-    pmessageCallbacks[0]?.("eventbus:*", "eventbus:message.deleted", JSON.stringify(payload));
+    pmessageCallbacks[0]?.("eventbus:*", "eventbus:chat.message.deleted", JSON.stringify(payload));
 
     expect(io.of).toHaveBeenCalledWith("/chat");
     expect(chatEmit).toHaveBeenCalledWith(
@@ -539,7 +539,7 @@ describe("startEventBusBridge", () => {
     );
   });
 
-  it("ignores message.deleted when conversationId is missing", async () => {
+  it("ignores chat.message.deleted when conversationId is missing", async () => {
     const chatEmit = vi.fn();
     const { subscriber, pmessageCallbacks } = makeSubscriber();
     const io = makeIo(vi.fn(), chatEmit);
@@ -548,14 +548,14 @@ describe("startEventBusBridge", () => {
 
     pmessageCallbacks[0]?.(
       "eventbus:*",
-      "eventbus:message.deleted",
+      "eventbus:chat.message.deleted",
       JSON.stringify({ messageId: MSG_ID }), // no conversationId
     );
 
     expect(chatEmit).not.toHaveBeenCalled();
   });
 
-  it("routes message.mentioned to each mentioned user's notifications room", async () => {
+  it("routes chat.message.mentioned to each mentioned user's notifications room", async () => {
     const MENTIONED_ID_1 = "00000000-0000-4000-8000-000000000091";
     const MENTIONED_ID_2 = "00000000-0000-4000-8000-000000000092";
     const notifEmit = vi.fn();
@@ -574,7 +574,11 @@ describe("startEventBusBridge", () => {
       timestamp: ts,
     };
 
-    pmessageCallbacks[0]?.("eventbus:*", "eventbus:message.mentioned", JSON.stringify(payload));
+    pmessageCallbacks[0]?.(
+      "eventbus:*",
+      "eventbus:chat.message.mentioned",
+      JSON.stringify(payload),
+    );
 
     expect(io.of).toHaveBeenCalledWith("/notifications");
     // mention:received emitted for each mentioned user
@@ -606,7 +610,11 @@ describe("startEventBusBridge", () => {
       timestamp: ts,
     };
 
-    pmessageCallbacks[0]?.("eventbus:*", "eventbus:message.mentioned", JSON.stringify(payload));
+    pmessageCallbacks[0]?.(
+      "eventbus:*",
+      "eventbus:chat.message.mentioned",
+      JSON.stringify(payload),
+    );
 
     expect(notifEmit).not.toHaveBeenCalled();
   });
@@ -632,7 +640,7 @@ describe("startEventBusBridge", () => {
       timestamp: ts,
     };
 
-    pmessageCallbacks[0]?.("eventbus:*", "eventbus:message.sent", JSON.stringify(payload));
+    pmessageCallbacks[0]?.("eventbus:*", "eventbus:chat.message.sent", JSON.stringify(payload));
 
     expect(chatEmit).toHaveBeenCalledWith(
       "message:new",

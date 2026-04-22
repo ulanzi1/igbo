@@ -46,7 +46,7 @@ const patchHandler = async (request: Request) => {
   }
 
   // Verify requester is a member
-  const isMember = await isConversationMember(conversationId, userId);
+  const isMember = await isConversationMember(conversationId, userId, "community");
   if (!isMember) {
     throw new ApiError({
       title: "Forbidden",
@@ -107,7 +107,7 @@ const deleteHandler = async (request: Request) => {
   }
 
   // Verify requester is a member
-  const isMember = await isConversationMember(conversationId, userId);
+  const isMember = await isConversationMember(conversationId, userId, "community");
   if (!isMember) {
     throw new ApiError({
       title: "Forbidden",

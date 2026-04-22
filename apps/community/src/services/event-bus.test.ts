@@ -64,9 +64,9 @@ describe("EventBus", () => {
     const bus = await getEventBus();
     const handler = vi.fn();
 
-    bus.on("message.sent", handler);
-    bus.off("message.sent", handler);
-    bus.emit("message.sent", {
+    bus.on("chat.message.sent", handler);
+    bus.off("chat.message.sent", handler);
+    bus.emit("chat.message.sent", {
       messageId: "m1",
       senderId: "s1",
       conversationId: "c1",

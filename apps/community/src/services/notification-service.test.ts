@@ -162,8 +162,8 @@ describe("notification-service module loading", () => {
     expect(handlerRef.current.has("post.commented")).toBe(true);
   });
 
-  it("registers message.sent listener (Story 9.2 — first-DM email)", () => {
-    expect(handlerRef.current.has("message.sent")).toBe(true);
+  it("registers chat.message.sent listener (Story 9.2 — first-DM email)", () => {
+    expect(handlerRef.current.has("chat.message.sent")).toBe(true);
   });
 
   it("registers member.followed listener", () => {
@@ -320,7 +320,7 @@ describe("markAllNotificationsAsRead", () => {
   });
 });
 
-describe("message.mentioned handler (Story 2.7)", () => {
+describe("chat.message.mentioned handler (Story 2.7)", () => {
   const CONV_ID = "00000000-0000-4000-8000-000000000030";
   const SENDER_ID = "00000000-0000-4000-8000-000000000002";
   const RECIPIENT_1 = "00000000-0000-4000-8000-000000000003";
@@ -335,14 +335,14 @@ describe("message.mentioned handler (Story 2.7)", () => {
     timestamp: new Date().toISOString(),
   });
 
-  it("registers message.mentioned listener", () => {
-    expect(handlerRef.current.has("message.mentioned")).toBe(true);
+  it("registers chat.message.mentioned listener", () => {
+    expect(handlerRef.current.has("chat.message.mentioned")).toBe(true);
   });
 
   it("delivers notification for each mentioned user (no preference set — defaults to 'all')", async () => {
     mockGetConversationNotificationPreference.mockResolvedValue("all");
     mockFilterNotificationRecipients.mockResolvedValue([RECIPIENT_1]);
-    const handler = handlerRef.current.get("message.mentioned");
+    const handler = handlerRef.current.get("chat.message.mentioned");
 
     await handler?.(makeMentionPayload([RECIPIENT_1]));
 
@@ -356,7 +356,7 @@ describe("message.mentioned handler (Story 2.7)", () => {
 
   it("suppresses notification when conversation preference is 'muted'", async () => {
     mockGetConversationNotificationPreference.mockResolvedValue("muted");
-    const handler = handlerRef.current.get("message.mentioned");
+    const handler = handlerRef.current.get("chat.message.mentioned");
 
     await handler?.(makeMentionPayload([RECIPIENT_1]));
 
@@ -366,7 +366,7 @@ describe("message.mentioned handler (Story 2.7)", () => {
   it("delivers notification when preference is 'mentions' (it IS a mention)", async () => {
     mockGetConversationNotificationPreference.mockResolvedValue("mentions");
     mockFilterNotificationRecipients.mockResolvedValue([RECIPIENT_1]);
-    const handler = handlerRef.current.get("message.mentioned");
+    const handler = handlerRef.current.get("chat.message.mentioned");
 
     await handler?.(makeMentionPayload([RECIPIENT_1]));
 
@@ -381,7 +381,7 @@ describe("message.mentioned handler (Story 2.7)", () => {
     mockGetConversationNotificationPreference.mockResolvedValue("all");
     mockFilterNotificationRecipients.mockResolvedValue([RECIPIENT_1]);
     mockRedisExists.mockResolvedValue(1); // DnD active
-    const handler = handlerRef.current.get("message.mentioned");
+    const handler = handlerRef.current.get("chat.message.mentioned");
 
     await handler?.(makeMentionPayload([RECIPIENT_1]));
 
@@ -396,7 +396,7 @@ describe("message.mentioned handler (Story 2.7)", () => {
       .mockResolvedValueOnce("muted") // RECIPIENT_1 has muted this conversation
       .mockResolvedValueOnce("all"); // RECIPIENT_2 has no preference
     mockFilterNotificationRecipients.mockResolvedValue([RECIPIENT_2]);
-    const handler = handlerRef.current.get("message.mentioned");
+    const handler = handlerRef.current.get("chat.message.mentioned");
 
     await handler?.(makeMentionPayload([RECIPIENT_1, RECIPIENT_2]));
 
@@ -409,7 +409,7 @@ describe("message.mentioned handler (Story 2.7)", () => {
   it("delivers notification for all mentioned users when none have preferences set", async () => {
     mockGetConversationNotificationPreference.mockResolvedValue("all");
     mockFilterNotificationRecipients.mockResolvedValue([RECIPIENT_1]);
-    const handler = handlerRef.current.get("message.mentioned");
+    const handler = handlerRef.current.get("chat.message.mentioned");
 
     await handler?.(makeMentionPayload([RECIPIENT_1, RECIPIENT_2]));
 
@@ -846,11 +846,11 @@ describe("Story 9.1 regression — NotificationRouter integration", () => {
     timestamp: new Date().toISOString(),
   });
 
-  it("R1. DnD suppresses email but in-app still created for message.mentioned", async () => {
+  it("R1. DnD suppresses email but in-app still created for chat.message.mentioned", async () => {
     mockGetConversationNotificationPreference.mockResolvedValue("all");
     mockFilterNotificationRecipients.mockResolvedValue([RECIPIENT_1]);
     mockRedisExists.mockResolvedValue(1); // DnD active
-    const handler = handlerRef.current.get("message.mentioned");
+    const handler = handlerRef.current.get("chat.message.mentioned");
 
     await handler?.(makeMentionPayload([RECIPIENT_1]));
 
@@ -861,10 +861,10 @@ describe("Story 9.1 regression — NotificationRouter integration", () => {
     expect(mockPublish).toHaveBeenCalledWith("eventbus:notification.created", expect.any(String));
   });
 
-  it("R2. per-conversation 'muted' suppresses in-app AND email for message.mentioned", async () => {
+  it("R2. per-conversation 'muted' suppresses in-app AND email for chat.message.mentioned", async () => {
     mockGetConversationNotificationPreference.mockResolvedValue("muted");
     mockFilterNotificationRecipients.mockResolvedValue([RECIPIENT_1]);
-    const handler = handlerRef.current.get("message.mentioned");
+    const handler = handlerRef.current.get("chat.message.mentioned");
 
     await handler?.(makeMentionPayload([RECIPIENT_1]));
 
@@ -1087,9 +1087,9 @@ describe("Story 9.2 — email dispatch via deliverNotification()", () => {
   });
 });
 
-// ─── Story 9.2: message.sent handler ──────────────────────────────────────────
+// ─── Story 9.2: chat.message.sent handler ─────────────────────────────────────
 
-describe("Story 9.2 — message.sent handler (first-DM email)", () => {
+describe("Story 9.2 — chat.message.sent handler (first-DM email)", () => {
   const SENDER_ID = "00000000-0000-4000-8000-000000000011";
   const RECIPIENT_ID = "00000000-0000-4000-8000-000000000012";
   const CONV_ID = "00000000-0000-4000-8000-000000000020";
@@ -1122,7 +1122,7 @@ describe("Story 9.2 — message.sent handler (first-DM email)", () => {
   });
 
   it("M1. first DM (messageCount===1, conversationType==='direct') triggers deliverNotification with type 'message'", async () => {
-    const handler = handlerRef.current.get("message.sent");
+    const handler = handlerRef.current.get("chat.message.sent");
 
     await handler?.(makeFirstDmPayload());
 
@@ -1138,7 +1138,7 @@ describe("Story 9.2 — message.sent handler (first-DM email)", () => {
   });
 
   it("M2. subsequent messages (messageCount > 1) do NOT trigger deliverNotification", async () => {
-    const handler = handlerRef.current.get("message.sent");
+    const handler = handlerRef.current.get("chat.message.sent");
 
     await handler?.(makeFirstDmPayload({ messageCount: 2 }));
 
@@ -1146,7 +1146,7 @@ describe("Story 9.2 — message.sent handler (first-DM email)", () => {
   });
 
   it("M3. group channel message (conversationType==='channel') does NOT trigger deliverNotification even if messageCount===1", async () => {
-    const handler = handlerRef.current.get("message.sent");
+    const handler = handlerRef.current.get("chat.message.sent");
 
     await handler?.(makeFirstDmPayload({ conversationType: "channel" }));
 
@@ -1154,7 +1154,7 @@ describe("Story 9.2 — message.sent handler (first-DM email)", () => {
   });
 
   it("M4. missing recipientId silently skips delivery", async () => {
-    const handler = handlerRef.current.get("message.sent");
+    const handler = handlerRef.current.get("chat.message.sent");
 
     await handler?.(makeFirstDmPayload({ recipientId: undefined }));
 
@@ -1354,9 +1354,9 @@ describe("B3 email wiring (Story 9.5)", () => {
     });
   });
 
-  it("B3.1: enqueueEmailJob called when message.mentioned fires + user has channelEmail:true", async () => {
+  it("B3.1: enqueueEmailJob called when chat.message.mentioned fires + user has channelEmail:true", async () => {
     vi.mocked(getNotificationPreferences).mockResolvedValue(PREFS_EMAIL_ENABLED_MENTION);
-    const handler = handlerRef.current.get("message.mentioned");
+    const handler = handlerRef.current.get("chat.message.mentioned");
 
     await handler?.({
       conversationId: "conv-001",

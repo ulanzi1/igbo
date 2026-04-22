@@ -45,7 +45,7 @@ const postHandler = async (request: Request) => {
     });
   }
 
-  const isMember = await isConversationMember(conversationId, userId);
+  const isMember = await isConversationMember(conversationId, userId, "community");
   if (!isMember) {
     throw new ApiError({
       title: "Forbidden",
@@ -79,7 +79,7 @@ const postHandler = async (request: Request) => {
   }
 
   // Check if already a member
-  const alreadyMember = await isConversationMember(conversationId, newUserId);
+  const alreadyMember = await isConversationMember(conversationId, newUserId, "community");
   if (alreadyMember) {
     throw new ApiError({ title: "Bad Request", status: 400, detail: "User is already a member" });
   }
@@ -163,7 +163,7 @@ const deleteHandler = async (request: Request) => {
     });
   }
 
-  const isMember = await isConversationMember(conversationId, userId);
+  const isMember = await isConversationMember(conversationId, userId, "community");
   if (!isMember) {
     throw new ApiError({
       title: "Forbidden",

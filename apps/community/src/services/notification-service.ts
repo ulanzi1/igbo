@@ -231,7 +231,7 @@ if (globalForNotif.__notifHandlersRegistered) {
     });
   });
 
-  eventBus.on("message.mentioned", async (payload: MessageMentionedEvent) => {
+  eventBus.on("chat.message.mentioned", async (payload: MessageMentionedEvent) => {
     const { conversationId, senderId, mentionedUserIds, contentPreview } = payload;
 
     for (const recipientId of mentionedUserIds) {
@@ -568,7 +568,7 @@ if (globalForNotif.__notifHandlersRegistered) {
   // No in-app notification — chat already delivers real-time via Socket.IO.
   // Group/channel messages and subsequent messages are filtered out below.
 
-  eventBus.on("message.sent", async (payload: MessageSentEvent) => {
+  eventBus.on("chat.message.sent", async (payload: MessageSentEvent) => {
     if (payload.conversationType !== "direct") return;
     if (payload.messageCount !== 1) return;
     if (!payload.recipientId) return;

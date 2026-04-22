@@ -11,11 +11,13 @@ export type {
   NewChatConversationMember,
   ConversationType,
   ConversationMemberRole,
+  ConversationContext,
 } from "../schema/chat-conversations";
 import type {
   ChatConversation,
   ChatConversationMember,
   ConversationType,
+  ConversationContext,
 } from "../schema/chat-conversations";
 
 // ── Conversation CRUD ──────────────────────────────────────────────────────────
@@ -27,9 +29,14 @@ import type {
 export async function createConversation(
   type: ConversationType,
   memberUserIds: string[],
+  context: ConversationContext = "community",
+  applicationId?: string,
 ): Promise<ChatConversation> {
   return db.transaction(async (tx) => {
-    const [conversation] = await tx.insert(chatConversations).values({ type }).returning();
+    const [conversation] = await tx
+      .insert(chatConversations)
+      .values({ type, context, ...(applicationId && { applicationId }) })
+      .returning();
     if (!conversation) throw new Error("Insert returned no conversation");
 
     if (memberUserIds.length > 0) {
@@ -50,11 +57,18 @@ export async function createConversation(
  */
 export async function getConversationById(
   conversationId: string,
+  context: ConversationContext = "community",
 ): Promise<ChatConversation | null> {
   const [row] = await db
     .select()
     .from(chatConversations)
-    .where(and(eq(chatConversations.id, conversationId), isNull(chatConversations.deletedAt)))
+    .where(
+      and(
+        eq(chatConversations.id, conversationId),
+        eq(chatConversations.context, context),
+        isNull(chatConversations.deletedAt),
+      ),
+    )
     .limit(1);
   return row ?? null;
 }
@@ -68,6 +82,7 @@ export type EnrichedGroupMember = {
 export type EnrichedUserConversation = {
   id: string;
   type: "direct" | "group" | "channel";
+  context: ConversationContext;
   createdAt: Date;
   updatedAt: Date;
   otherMember: {
@@ -96,15 +111,22 @@ export type EnrichedUserConversation = {
  */
 export async function getUserConversations(
   userId: string,
-  options: { limit?: number; cursor?: string; blockedUserIds?: string[] } = {},
+  options: {
+    limit?: number;
+    cursor?: string;
+    blockedUserIds?: string[];
+    context?: ConversationContext;
+  } = {},
 ): Promise<{ conversations: EnrichedUserConversation[]; hasMore: boolean }> {
   const limit = Math.min(options.limit ?? 20, 50);
   const cursorDate = options.cursor ? new Date(options.cursor) : null;
+  const context = options.context ?? "community";
 
   const rows = await db.execute(sql`
     SELECT
       c.id::text,
       c.type::text,
+      c.context::text,
       c.created_at,
       c.updated_at,
       COALESCE(ccm_other.user_id::text, '') as other_member_id,
@@ -162,6 +184,7 @@ export async function getUserConversations(
       LIMIT 1
     ) lm ON true
     WHERE c.deleted_at IS NULL
+    AND c.context = ${context}::conversation_context
     ${cursorDate ? sql`AND c.updated_at < ${cursorDate}` : sql``}
     ${
       (options.blockedUserIds ?? []).length > 0
@@ -179,6 +202,7 @@ export async function getUserConversations(
   const rawRows = rows.slice(0, limit) as Array<{
     id: string;
     type: string;
+    context: string;
     created_at: Date;
     updated_at: Date;
     other_member_id: string;
@@ -197,6 +221,7 @@ export async function getUserConversations(
   const conversations: EnrichedUserConversation[] = rawRows.map((row) => ({
     id: row.id,
     type: row.type as "direct" | "group" | "channel",
+    context: row.context as ConversationContext,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     otherMember: {
@@ -231,7 +256,10 @@ export async function getUserConversations(
 /**
  * Get all conversation IDs a user is a member of (for auto-join on socket connect).
  */
-export async function getUserConversationIds(userId: string): Promise<string[]> {
+export async function getUserConversationIds(
+  userId: string,
+  context: ConversationContext = "community",
+): Promise<string[]> {
   const rows = await db
     .select({ conversationId: chatConversationMembers.conversationId })
     .from(chatConversationMembers)
@@ -239,6 +267,7 @@ export async function getUserConversationIds(userId: string): Promise<string[]> 
       chatConversations,
       and(
         eq(chatConversations.id, chatConversationMembers.conversationId),
+        eq(chatConversations.context, context),
         isNull(chatConversations.deletedAt),
       ),
     )
@@ -247,15 +276,26 @@ export async function getUserConversationIds(userId: string): Promise<string[]> 
 }
 
 /**
- * Check if a user is a member of a conversation.
+ * Check if a user is a member of a conversation within a given context.
+ * `context` is REQUIRED (no default) — this is a security gate.
+ * Omitting context = unfiltered check = potential cross-context authorization bypass.
  */
 export async function isConversationMember(
   conversationId: string,
   userId: string,
+  context: ConversationContext,
 ): Promise<boolean> {
   const [row] = await db
     .select({ conversationId: chatConversationMembers.conversationId })
     .from(chatConversationMembers)
+    .innerJoin(
+      chatConversations,
+      and(
+        eq(chatConversations.id, chatConversationMembers.conversationId),
+        eq(chatConversations.context, context),
+        isNull(chatConversations.deletedAt),
+      ),
+    )
     .where(
       and(
         eq(chatConversationMembers.conversationId, conversationId),
@@ -267,11 +307,32 @@ export async function isConversationMember(
 }
 
 /**
- * Get all members of a conversation.
+ * Get all members of a conversation, optionally filtered by context.
  */
 export async function getConversationMembers(
   conversationId: string,
+  context?: ConversationContext,
 ): Promise<ChatConversationMember[]> {
+  if (context) {
+    return db
+      .select({
+        conversationId: chatConversationMembers.conversationId,
+        userId: chatConversationMembers.userId,
+        joinedAt: chatConversationMembers.joinedAt,
+        lastReadAt: chatConversationMembers.lastReadAt,
+        notificationPreference: chatConversationMembers.notificationPreference,
+        role: chatConversationMembers.role,
+      })
+      .from(chatConversationMembers)
+      .innerJoin(
+        chatConversations,
+        and(
+          eq(chatConversations.id, chatConversationMembers.conversationId),
+          eq(chatConversations.context, context),
+        ),
+      )
+      .where(eq(chatConversationMembers.conversationId, conversationId));
+  }
   return db
     .select()
     .from(chatConversationMembers)
@@ -279,13 +340,16 @@ export async function getConversationMembers(
 }
 
 /**
- * Soft-delete a conversation.
+ * Soft-delete a conversation. Context filter prevents cross-context deletion.
  */
-export async function softDeleteConversation(conversationId: string): Promise<void> {
+export async function softDeleteConversation(
+  conversationId: string,
+  context: ConversationContext = "community",
+): Promise<void> {
   await db
     .update(chatConversations)
     .set({ deletedAt: new Date() })
-    .where(eq(chatConversations.id, conversationId));
+    .where(and(eq(chatConversations.id, conversationId), eq(chatConversations.context, context)));
 }
 
 /**
@@ -295,8 +359,8 @@ export async function softDeleteConversation(conversationId: string): Promise<vo
 export async function findExistingDirectConversation(
   userIdA: string,
   userIdB: string,
+  context: ConversationContext = "community",
 ): Promise<string | null> {
-  // A direct conversation between two users: both are members, type = direct
   const rows = await db.execute(sql`
     SELECT c.id
     FROM chat_conversations c
@@ -304,7 +368,7 @@ export async function findExistingDirectConversation(
       ON ccm_a.conversation_id = c.id AND ccm_a.user_id = ${userIdA}::uuid
     INNER JOIN chat_conversation_members ccm_b
       ON ccm_b.conversation_id = c.id AND ccm_b.user_id = ${userIdB}::uuid
-    WHERE c.type = 'direct' AND c.deleted_at IS NULL
+    WHERE c.type = 'direct' AND c.context = ${context}::conversation_context AND c.deleted_at IS NULL
     LIMIT 1
   `);
   const row = rows[0] as { id: string } | undefined;
@@ -373,11 +437,15 @@ export async function removeConversationMember(
 /**
  * Get the total number of members in a conversation.
  */
-export async function getConversationMemberCount(conversationId: string): Promise<number> {
+export async function getConversationMemberCount(
+  conversationId: string,
+  context?: ConversationContext,
+): Promise<number> {
   const rows = await db.execute(sql`
     SELECT COUNT(*)::int as count
-    FROM chat_conversation_members
-    WHERE conversation_id = ${conversationId}::uuid
+    FROM chat_conversation_members ccm
+    ${context ? sql`INNER JOIN chat_conversations c ON c.id = ccm.conversation_id AND c.context = ${context}::conversation_context` : sql``}
+    WHERE ccm.conversation_id = ${conversationId}::uuid
   `);
   const row = rows[0] as { count: number } | undefined;
   return Number(row?.count ?? 0);
@@ -389,8 +457,10 @@ export async function getConversationMemberCount(conversationId: string): Promis
  */
 export async function getConversationWithMembers(
   conversationId: string,
+  context: ConversationContext = "community",
 ): Promise<ConversationWithMembers | null> {
-  const conversation = await getConversationById(conversationId);
+  // SAFETY: context filtering relies on getConversationById guard above — do not remove
+  const conversation = await getConversationById(conversationId, context);
   if (!conversation) return null;
 
   const rows = await db.execute(sql`
@@ -502,6 +572,7 @@ export async function searchMessages(
   userId: string,
   query: string,
   limit = 20,
+  context: ConversationContext = "community",
 ): Promise<MessageSearchResult[]> {
   const safeLimit = Math.min(Math.max(1, limit), 50);
   const rows = await db.execute(sql`
@@ -523,7 +594,7 @@ export async function searchMessages(
       COALESCE(cp_other.display_name, 'Group')                                  AS conversation_name
     FROM chat_messages cm
     INNER JOIN chat_conversations c
-      ON c.id = cm.conversation_id AND c.deleted_at IS NULL
+      ON c.id = cm.conversation_id AND c.deleted_at IS NULL AND c.context = ${context}::conversation_context
     INNER JOIN chat_conversation_members ccm_me
       ON ccm_me.conversation_id = cm.conversation_id AND ccm_me.user_id = ${userId}::uuid
     LEFT JOIN community_profiles cp_sender
@@ -591,7 +662,28 @@ export async function updateConversationNotificationPreference(
 export async function getConversationNotificationPreference(
   conversationId: string,
   userId: string,
+  context?: ConversationContext,
 ): Promise<NotificationPreference> {
+  if (context) {
+    const [row] = await db
+      .select({ notificationPreference: chatConversationMembers.notificationPreference })
+      .from(chatConversationMembers)
+      .innerJoin(
+        chatConversations,
+        and(
+          eq(chatConversations.id, chatConversationMembers.conversationId),
+          eq(chatConversations.context, context),
+        ),
+      )
+      .where(
+        and(
+          eq(chatConversationMembers.conversationId, conversationId),
+          eq(chatConversationMembers.userId, userId),
+        ),
+      )
+      .limit(1);
+    return (row?.notificationPreference ?? "all") as NotificationPreference;
+  }
   const [row] = await db
     .select({ notificationPreference: chatConversationMembers.notificationPreference })
     .from(chatConversationMembers)

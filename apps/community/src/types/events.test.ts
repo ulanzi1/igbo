@@ -7,7 +7,7 @@ describe("Event type definitions", () => {
     const eventNames: EventName[] = [
       "user.created",
       "post.published",
-      "message.sent",
+      "chat.message.sent",
       "points.awarded",
       "member.banned",
       "member.approved",
@@ -20,7 +20,7 @@ describe("Event type definitions", () => {
       "article.submitted",
       "article.published",
       "article.commented",
-      "message.mentioned",
+      "chat.message.mentioned",
       "group.archived",
       "event.attended",
       "event.rsvp",
@@ -43,7 +43,7 @@ describe("Event type definitions", () => {
     expectTypeOf<EventMap["user.created"]>().toHaveProperty("userId");
     expectTypeOf<EventMap["post.published"]>().toHaveProperty("postId");
     expectTypeOf<EventMap["post.published"]>().toHaveProperty("authorId");
-    expectTypeOf<EventMap["message.sent"]>().toHaveProperty("messageId");
+    expectTypeOf<EventMap["chat.message.sent"]>().toHaveProperty("messageId");
     expectTypeOf<EventMap["points.awarded"]>().toHaveProperty("userId");
     expectTypeOf<EventMap["points.awarded"]>().toHaveProperty("points");
     expectTypeOf<EventMap["member.banned"]>().toHaveProperty("userId");
