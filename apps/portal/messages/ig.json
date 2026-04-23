@@ -1406,6 +1406,28 @@
       "fetchError": "Enweghị ike ibunye ngwa. Biko nwaa ọzọ.",
       "pageSize": "Nha peeji",
       "filterLabel": "Nyocha ngwa site na ọnọdụ"
+    },
+    "messages": {
+      "today": "Taa",
+      "yesterday": "Ụnyaahụ",
+      "empty": "Ọ dịghị ozi ọ bụla ugbu a. Malite mkparịta ụka!",
+      "loading": "Na-ebu ozi…",
+      "threadAriaLabel": "Ozi nkparịta ụka",
+      "readOnlyBanner": "Nkparịta ụka a mechiri.",
+      "newMessageIndicator": "Ozi ọhụrụ ↓",
+      "inputAriaLabel": "Ozi",
+      "inputPlaceholder": "Dee ozi…",
+      "send": "Ziga",
+      "sendAriaLabel": "Ziga ozi",
+      "connectionLost": "Njikọ furu efu. A ga-eziga ozi mgbe ị jikọtara ọzọ.",
+      "reconnecting": "Na-ejikọta ọzọ…",
+      "retryPrompt": "Ezighị ozi. Pịa ka ịnwaa ọzọ.",
+      "status": {
+        "sending": "Na-eziga…",
+        "sent": "Ezigara",
+        "delivered": "Enwetara",
+        "failed": "Ezighị ozi"
+      }
     }
   },
   "Shell": {

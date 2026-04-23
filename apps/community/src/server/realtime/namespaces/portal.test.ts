@@ -4,6 +4,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 vi.mock("@igbo/config/realtime", () => ({
   NAMESPACE_PORTAL: "/portal",
   ROOM_USER: (id: string) => `user:${id}`,
+  ROOM_CONVERSATION: (id: string) => `conversation:${id}`,
+  CHAT_REPLAY_WINDOW_MS: 24 * 60 * 60 * 1000,
   SOCKET_RATE_LIMITS: {
     GLOBAL: { maxEvents: 60, windowMs: 1_000 },
     TYPING_START: { maxEvents: 1, windowMs: 2_000 },
@@ -12,10 +14,24 @@ vi.mock("@igbo/config/realtime", () => ({
   },
 }));
 
+const mockIsConversationMember = vi.hoisted(() => vi.fn());
+vi.mock("@igbo/db/queries/chat-conversations", () => ({
+  isConversationMember: mockIsConversationMember,
+}));
+
+const mockGetMessagesSince = vi.hoisted(() => vi.fn());
+vi.mock("@igbo/db/queries/chat-messages", () => ({
+  getMessagesSince: mockGetMessagesSince,
+}));
+
+const mockGetPortalConversationIdsForUser = vi.hoisted(() => vi.fn());
+vi.mock("@igbo/db/queries/portal-conversations", () => ({
+  getPortalConversationIdsForUser: mockGetPortalConversationIdsForUser,
+}));
+
 const { mockAuthMiddleware } = vi.hoisted(() => ({
   mockAuthMiddleware: vi.fn((_socket: unknown, next: (err?: Error) => void) => next()),
 }));
-
 vi.mock("../middleware/auth", () => ({
   authMiddleware: mockAuthMiddleware,
 }));
@@ -26,107 +42,437 @@ vi.mock("../middleware/rate-limiter", () => ({
 }));
 
 import { setupPortalNamespace } from "./portal";
-import type { Server, Socket, Namespace } from "socket.io";
+import type { Socket, Namespace } from "socket.io";
+import type Redis from "ioredis";
 
 const USER_ID = "00000000-0000-4000-8000-000000000001";
+const CONV_ID = "00000000-0000-4000-8000-000000000002";
+const MSG_ID = "00000000-0000-4000-8000-000000000003";
 
-function makeNamespace(): {
-  nsp: Namespace;
-  useCallbacks: ((socket: unknown, next: (err?: Error) => void) => void)[];
-  connectionHandlers: ((socket: Socket) => void)[];
-} {
-  const useCallbacks: ((socket: unknown, next: (err?: Error) => void) => void)[] = [];
-  const connectionHandlers: ((socket: Socket) => void)[] = [];
+// ── Mock helpers ────────────────────────────────────────────────────────────
 
-  const nsp = {
-    use: vi.fn((cb: (socket: unknown, next: (err?: Error) => void) => void) => {
-      useCallbacks.push(cb);
+type EventHandler = (...args: unknown[]) => void;
+
+function makeSocket(userId = USER_ID) {
+  const rooms: string[] = [];
+  const handlers: Record<string, EventHandler[]> = {};
+  const emitted: Array<{ event: string; data: unknown }> = [];
+
+  const toChain = {
+    emit: vi.fn((event: string, data: unknown) => {
+      emitted.push({ event: `to.${event}`, data });
     }),
-    on: vi.fn((event: string, handler: (socket: Socket) => void) => {
-      if (event === "connection") connectionHandlers.push(handler);
+  };
+
+  const socket = {
+    data: { userId },
+    join: vi.fn(async (room: string) => {
+      rooms.push(room);
+    }),
+    on: vi.fn((event: string, handler: EventHandler) => {
+      handlers[event] = [...(handlers[event] ?? []), handler];
+    }),
+    emit: vi.fn((event: string, data: unknown) => {
+      emitted.push({ event, data });
+    }),
+    to: vi.fn().mockReturnValue(toChain),
+    _rooms: rooms,
+    _handlers: handlers,
+    _emitted: emitted,
+    _toChain: toChain,
+    _trigger: (event: string, ...args: unknown[]) => {
+      (handlers[event] ?? []).forEach((h) => h(...args));
+    },
+  };
+
+  return socket;
+}
+
+function makeRedis() {
+  return {
+    set: vi.fn().mockResolvedValue("OK"),
+    get: vi.fn().mockResolvedValue(null),
+  } as unknown as Redis;
+}
+
+/** Sets up namespace, triggers a connection, and returns handles for testing */
+function setupAndConnect(userId = USER_ID) {
+  let capturedHandler: (socket: ReturnType<typeof makeSocket>) => void = () => {};
+
+  const useCallbacks: ((s: unknown, next: (err?: Error) => void) => void)[] = [];
+  const nsp = {
+    use: vi.fn((cb: (s: unknown, next: (err?: Error) => void) => void) => useCallbacks.push(cb)),
+    on: vi.fn((event: string, handler: (s: ReturnType<typeof makeSocket>) => void) => {
+      if (event === "connection") capturedHandler = handler;
     }),
   } as unknown as Namespace;
 
-  return { nsp, useCallbacks, connectionHandlers };
-}
+  const io = { of: vi.fn().mockReturnValue(nsp) };
+  const redis = makeRedis();
+  setupPortalNamespace(io, redis);
 
-function makeServer(nsp: Namespace): Server {
-  return {
-    of: vi.fn().mockReturnValue(nsp),
-  } as unknown as Server;
-}
+  const socket = makeSocket(userId);
+  capturedHandler(socket);
 
-function makeSocket(userId = USER_ID): Socket {
-  return {
-    data: { userId },
-    join: vi.fn(),
-    on: vi.fn(),
-  } as unknown as Socket;
+  return { socket, redis, nsp, io };
 }
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mockAuthMiddleware.mockImplementation((_socket, next) => next());
-  mockRateLimiter.mockImplementation((_socket, next) => next());
+  mockAuthMiddleware.mockImplementation((_s: unknown, next: (err?: Error) => void) => next());
+  mockRateLimiter.mockImplementation((_s: unknown, next: (err?: Error) => void) => next());
+  mockGetPortalConversationIdsForUser.mockResolvedValue([]);
+  mockIsConversationMember.mockResolvedValue(true);
+  mockGetMessagesSince.mockResolvedValue([]);
 });
 
-describe("setupPortalNamespace", () => {
-  it("creates /portal namespace on the Socket.IO server", () => {
-    const { nsp } = makeNamespace();
-    const io = makeServer(nsp);
-    setupPortalNamespace(io);
+// ── Basic namespace setup ────────────────────────────────────────────────────
+
+describe("setupPortalNamespace — namespace setup", () => {
+  it("creates /portal namespace", () => {
+    const io = { of: vi.fn().mockReturnValue({ use: vi.fn(), on: vi.fn() }) };
+    setupPortalNamespace(io, makeRedis());
     expect(io.of).toHaveBeenCalledWith("/portal");
   });
 
   it("attaches auth middleware", () => {
-    const { nsp, useCallbacks } = makeNamespace();
-    const io = makeServer(nsp);
-    setupPortalNamespace(io);
-
-    // useCallbacks should include auth middleware
-    expect(useCallbacks.length).toBeGreaterThanOrEqual(1);
-    // Verify auth middleware is one of the registered use callbacks
+    const nsp = { use: vi.fn(), on: vi.fn() } as unknown as Namespace;
+    const io = { of: vi.fn().mockReturnValue(nsp) };
+    setupPortalNamespace(io, makeRedis());
     expect(nsp.use).toHaveBeenCalledWith(mockAuthMiddleware);
   });
 
   it("attaches rate limiter middleware", () => {
-    const { nsp } = makeNamespace();
-    const io = makeServer(nsp);
-    setupPortalNamespace(io);
+    const nsp = { use: vi.fn(), on: vi.fn() } as unknown as Namespace;
+    const io = { of: vi.fn().mockReturnValue(nsp) };
+    setupPortalNamespace(io, makeRedis());
     expect(nsp.use).toHaveBeenCalledWith(mockRateLimiter);
   });
 
-  it("registers connection event handler", () => {
-    const { nsp, connectionHandlers } = makeNamespace();
-    const io = makeServer(nsp);
-    setupPortalNamespace(io);
+  it("registers connection handler", () => {
+    const connectionHandlers: ((socket: Socket) => void)[] = [];
+    const nsp = {
+      use: vi.fn(),
+      on: vi.fn((event: string, handler: (s: Socket) => void) => {
+        if (event === "connection") connectionHandlers.push(handler);
+      }),
+    } as unknown as Namespace;
+    const io = { of: vi.fn().mockReturnValue(nsp) };
+    setupPortalNamespace(io, makeRedis());
     expect(connectionHandlers.length).toBe(1);
   });
 
-  it("connected user joins user:{userId} room", () => {
-    const { nsp, connectionHandlers } = makeNamespace();
-    const io = makeServer(nsp);
-    setupPortalNamespace(io);
+  it("connection with rejected auth calls next(error)", () => {
+    const nsp = { use: vi.fn(), on: vi.fn() } as unknown as Namespace;
+    const io = { of: vi.fn().mockReturnValue(nsp) };
+    mockAuthMiddleware.mockImplementationOnce((_s: unknown, next: (err?: Error) => void) =>
+      next(new Error("UNAUTHORIZED")),
+    );
+    setupPortalNamespace(io, makeRedis());
+    expect(nsp.use).toHaveBeenCalledWith(mockAuthMiddleware);
+  });
+});
 
-    const socket = makeSocket(USER_ID);
-    connectionHandlers[0]?.(socket);
+// ── Auto-join on connect ─────────────────────────────────────────────────────
 
-    expect(socket.join).toHaveBeenCalledWith(`user:${USER_ID}`);
+describe("setupPortalNamespace — auto-join on connect", () => {
+  it("joins ROOM_USER on connect", async () => {
+    const { socket } = setupAndConnect();
+    await vi.waitFor(() => expect(socket.join).toHaveBeenCalledWith(`user:${USER_ID}`));
   });
 
-  it("connection with invalid JWT is rejected (auth middleware calls next(error))", () => {
-    const { nsp } = makeNamespace();
-    const io = makeServer(nsp);
+  it("joins portal conversation rooms on connect", async () => {
+    mockGetPortalConversationIdsForUser.mockResolvedValue([CONV_ID]);
+    const { socket } = setupAndConnect();
+    await vi.waitFor(() => expect(socket.join).toHaveBeenCalledWith(`conversation:${CONV_ID}`));
+  });
 
-    // Override auth middleware to reject
-    mockAuthMiddleware.mockImplementationOnce((_socket, next) => {
-      next(new Error("UNAUTHORIZED: missing session token"));
+  it("emits conversation:joined for each portal conversation", async () => {
+    mockGetPortalConversationIdsForUser.mockResolvedValue([CONV_ID]);
+    const { socket } = setupAndConnect();
+    await vi.waitFor(() =>
+      expect(socket._emitted).toContainEqual({
+        event: "conversation:joined",
+        data: { conversationId: CONV_ID },
+      }),
+    );
+  });
+
+  it("does not throw when auto-join fails", async () => {
+    mockGetPortalConversationIdsForUser.mockRejectedValue(new Error("DB failure"));
+    expect(() => setupAndConnect()).not.toThrow();
+    // Give the async auto-join a chance to run and fail gracefully
+    await new Promise((r) => setTimeout(r, 10));
+  });
+
+  it("calls getPortalConversationIdsForUser (NOT getUserConversationIds)", async () => {
+    const { socket } = setupAndConnect();
+    await vi.waitFor(() =>
+      expect(socket.on).toHaveBeenCalledWith("message:delivered", expect.any(Function)),
+    );
+    expect(mockGetPortalConversationIdsForUser).toHaveBeenCalledWith(USER_ID);
+  });
+});
+
+// ── message:delivered handler ────────────────────────────────────────────────
+
+describe("setupPortalNamespace — message:delivered", () => {
+  it("stores delivery in Redis with 24h TTL", async () => {
+    const { socket, redis } = setupAndConnect();
+    await vi.waitFor(() =>
+      expect(socket.on).toHaveBeenCalledWith("message:delivered", expect.any(Function)),
+    );
+
+    const ack = vi.fn();
+    socket._trigger("message:delivered", { messageId: MSG_ID, conversationId: CONV_ID }, ack);
+
+    await vi.waitFor(() =>
+      expect(redis.set).toHaveBeenCalledWith(
+        `delivered:portal:${MSG_ID}:${USER_ID}`,
+        "1",
+        "EX",
+        86_400,
+        "NX",
+      ),
+    );
+  });
+
+  it("broadcasts message:delivered to conversation room excluding sender", async () => {
+    const { socket } = setupAndConnect();
+    await vi.waitFor(() =>
+      expect(socket.on).toHaveBeenCalledWith("message:delivered", expect.any(Function)),
+    );
+
+    socket._trigger("message:delivered", { messageId: MSG_ID, conversationId: CONV_ID }, vi.fn());
+
+    await vi.waitFor(() => expect(socket.to).toHaveBeenCalledWith(`conversation:${CONV_ID}`));
+    await vi.waitFor(() =>
+      expect(socket._toChain.emit).toHaveBeenCalledWith(
+        "message:delivered",
+        expect.objectContaining({
+          messageId: MSG_ID,
+          conversationId: CONV_ID,
+          deliveredBy: USER_ID,
+        }),
+      ),
+    );
+  });
+
+  it("acks with ok:true on success", async () => {
+    const { socket } = setupAndConnect();
+    await vi.waitFor(() =>
+      expect(socket.on).toHaveBeenCalledWith("message:delivered", expect.any(Function)),
+    );
+
+    const ack = vi.fn();
+    socket._trigger("message:delivered", { messageId: MSG_ID, conversationId: CONV_ID }, ack);
+
+    await vi.waitFor(() => expect(ack).toHaveBeenCalledWith({ ok: true }));
+  });
+
+  it("acks error when not a member", async () => {
+    mockIsConversationMember.mockResolvedValue(false);
+    const { socket } = setupAndConnect();
+    await vi.waitFor(() =>
+      expect(socket.on).toHaveBeenCalledWith("message:delivered", expect.any(Function)),
+    );
+
+    const ack = vi.fn();
+    socket._trigger("message:delivered", { messageId: MSG_ID, conversationId: CONV_ID }, ack);
+
+    await vi.waitFor(() => expect(ack).toHaveBeenCalledWith({ error: "Not a member" }));
+  });
+
+  it("acks error on missing messageId", async () => {
+    const { socket } = setupAndConnect();
+    await vi.waitFor(() =>
+      expect(socket.on).toHaveBeenCalledWith("message:delivered", expect.any(Function)),
+    );
+
+    const ack = vi.fn();
+    socket._trigger("message:delivered", { conversationId: CONV_ID }, ack);
+
+    await vi.waitFor(() => expect(ack).toHaveBeenCalledWith({ error: "Invalid payload" }));
+  });
+
+  it("acks error on missing conversationId", async () => {
+    const { socket } = setupAndConnect();
+    await vi.waitFor(() =>
+      expect(socket.on).toHaveBeenCalledWith("message:delivered", expect.any(Function)),
+    );
+
+    const ack = vi.fn();
+    socket._trigger("message:delivered", { messageId: MSG_ID }, ack);
+
+    await vi.waitFor(() => expect(ack).toHaveBeenCalledWith({ error: "Invalid payload" }));
+  });
+
+  it("validates membership with context='portal'", async () => {
+    const { socket } = setupAndConnect();
+    await vi.waitFor(() =>
+      expect(socket.on).toHaveBeenCalledWith("message:delivered", expect.any(Function)),
+    );
+
+    socket._trigger("message:delivered", { messageId: MSG_ID, conversationId: CONV_ID }, vi.fn());
+
+    await vi.waitFor(() =>
+      expect(mockIsConversationMember).toHaveBeenCalledWith(CONV_ID, USER_ID, "portal"),
+    );
+  });
+});
+
+// ── sync:request handler ─────────────────────────────────────────────────────
+
+describe("setupPortalNamespace — sync:request", () => {
+  it("emits sync:full_refresh when no lastReceivedAt provided", async () => {
+    const { socket } = setupAndConnect();
+    await vi.waitFor(() =>
+      expect(socket.on).toHaveBeenCalledWith("sync:request", expect.any(Function)),
+    );
+
+    socket._trigger("sync:request", {});
+
+    await vi.waitFor(() =>
+      expect(socket._emitted).toContainEqual(
+        expect.objectContaining({ event: "sync:full_refresh" }),
+      ),
+    );
+  });
+
+  it("emits sync:full_refresh when gap > 24h", async () => {
+    const { socket } = setupAndConnect();
+    await vi.waitFor(() =>
+      expect(socket.on).toHaveBeenCalledWith("sync:request", expect.any(Function)),
+    );
+
+    const oldTs = new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString();
+    socket._trigger("sync:request", { lastReceivedAt: oldTs });
+
+    await vi.waitFor(() =>
+      expect(socket._emitted).toContainEqual(
+        expect.objectContaining({ event: "sync:full_refresh" }),
+      ),
+    );
+  });
+
+  it("replays missed messages within 24h window", async () => {
+    const recentTs = new Date(Date.now() - 60_000).toISOString();
+    mockGetPortalConversationIdsForUser.mockResolvedValue([CONV_ID]);
+    const now = new Date();
+    mockGetMessagesSince.mockResolvedValue([
+      {
+        id: MSG_ID,
+        conversationId: CONV_ID,
+        senderId: USER_ID,
+        content: "Hello",
+        contentType: "text",
+        createdAt: now,
+        parentMessageId: null,
+        editedAt: null,
+        deletedAt: null,
+      },
+    ]);
+
+    const { socket } = setupAndConnect();
+    await vi.waitFor(() =>
+      expect(socket.on).toHaveBeenCalledWith("sync:request", expect.any(Function)),
+    );
+
+    socket._trigger("sync:request", { lastReceivedAt: recentTs });
+
+    await vi.waitFor(() =>
+      expect(socket._emitted).toContainEqual(
+        expect.objectContaining({
+          event: "sync:replay",
+          data: expect.objectContaining({
+            messages: expect.arrayContaining([
+              expect.objectContaining({ messageId: MSG_ID, content: "Hello" }),
+            ]),
+          }),
+        }),
+      ),
+    );
+  });
+
+  it("blanks content for soft-deleted messages in replay", async () => {
+    const recentTs = new Date(Date.now() - 60_000).toISOString();
+    mockGetPortalConversationIdsForUser.mockResolvedValue([CONV_ID]);
+    const now = new Date();
+    mockGetMessagesSince.mockResolvedValue([
+      {
+        id: MSG_ID,
+        conversationId: CONV_ID,
+        senderId: USER_ID,
+        content: "Deleted",
+        contentType: "text",
+        createdAt: now,
+        parentMessageId: null,
+        editedAt: null,
+        deletedAt: now,
+      },
+    ]);
+
+    const { socket } = setupAndConnect();
+    await vi.waitFor(() =>
+      expect(socket.on).toHaveBeenCalledWith("sync:request", expect.any(Function)),
+    );
+    socket._trigger("sync:request", { lastReceivedAt: recentTs });
+
+    await vi.waitFor(() => {
+      const replay = socket._emitted.find((e) => e.event === "sync:replay");
+      const msgs = (replay?.data as { messages: Array<{ content: string }> })?.messages;
+      expect(msgs?.[0]?.content).toBe("");
     });
+  });
 
-    setupPortalNamespace(io);
+  it("emits sync:full_refresh on DB error", async () => {
+    const recentTs = new Date(Date.now() - 60_000).toISOString();
+    mockGetPortalConversationIdsForUser.mockRejectedValue(new Error("DB error"));
 
-    // Verify auth middleware is attached and would reject — the rejection occurs
-    // when the middleware calls next(error), which Socket.IO handles by refusing connection
-    expect(nsp.use).toHaveBeenCalledWith(mockAuthMiddleware);
+    const { socket } = setupAndConnect();
+    await vi.waitFor(() =>
+      expect(socket.on).toHaveBeenCalledWith("sync:request", expect.any(Function)),
+    );
+    socket._trigger("sync:request", { lastReceivedAt: recentTs });
+
+    await vi.waitFor(() =>
+      expect(socket._emitted).toContainEqual(
+        expect.objectContaining({ event: "sync:full_refresh" }),
+      ),
+    );
+  });
+
+  it("skips replay when user has no portal conversations", async () => {
+    const recentTs = new Date(Date.now() - 60_000).toISOString();
+    mockGetPortalConversationIdsForUser.mockResolvedValue([]);
+
+    const { socket } = setupAndConnect();
+    await vi.waitFor(() =>
+      expect(socket.on).toHaveBeenCalledWith("sync:request", expect.any(Function)),
+    );
+    socket._trigger("sync:request", { lastReceivedAt: recentTs });
+
+    await vi.waitFor(() => expect(mockGetMessagesSince).not.toHaveBeenCalled());
+  });
+});
+
+// ── disconnect handler ───────────────────────────────────────────────────────
+
+describe("setupPortalNamespace — disconnect", () => {
+  it("logs disconnect event with reason", async () => {
+    const consoleSpy = vi.spyOn(console, "info").mockImplementation(() => {});
+    const { socket } = setupAndConnect();
+    await vi.waitFor(() =>
+      expect(socket.on).toHaveBeenCalledWith("disconnect", expect.any(Function)),
+    );
+
+    socket._trigger("disconnect", "transport close");
+
+    await vi.waitFor(() =>
+      expect(consoleSpy).toHaveBeenCalledWith(
+        expect.stringContaining("portal.socket.disconnected"),
+      ),
+    );
+    consoleSpy.mockRestore();
   });
 });

@@ -1406,6 +1406,28 @@
       "fetchError": "Failed to load applications. Please try again.",
       "pageSize": "Page size",
       "filterLabel": "Filter applications by status"
+    },
+    "messages": {
+      "today": "Today",
+      "yesterday": "Yesterday",
+      "empty": "No messages yet. Start the conversation!",
+      "loading": "Loading messages…",
+      "threadAriaLabel": "Conversation messages",
+      "readOnlyBanner": "This conversation is closed.",
+      "newMessageIndicator": "New message ↓",
+      "inputAriaLabel": "Message",
+      "inputPlaceholder": "Type a message…",
+      "send": "Send",
+      "sendAriaLabel": "Send message",
+      "connectionLost": "Connection lost. Messages will be delivered when you reconnect.",
+      "reconnecting": "Reconnecting…",
+      "retryPrompt": "Failed to send. Tap to retry.",
+      "status": {
+        "sending": "Sending…",
+        "sent": "Sent",
+        "delivered": "Delivered",
+        "failed": "Failed to send"
+      }
     }
   },
   "Shell": {

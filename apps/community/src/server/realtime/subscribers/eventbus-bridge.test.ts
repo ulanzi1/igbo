@@ -7,6 +7,7 @@ vi.mock("@igbo/config/realtime", () => ({
   ROOM_EVENT: (id: string) => `event:${id}`,
   NAMESPACE_NOTIFICATIONS: "/notifications",
   NAMESPACE_CHAT: "/chat",
+  NAMESPACE_PORTAL: "/portal",
 }));
 
 vi.mock("@igbo/db/queries/group-channels", () => ({
@@ -898,7 +899,7 @@ describe("portal event isolation", () => {
     expect(chatEmit).not.toHaveBeenCalled();
   });
 
-  it("community events still route correctly after portal events are processed (no regression)", async () => {
+  it("community events still route correctly after portal events are processed (no regression) [existing test]", async () => {
     const notifEmit = vi.fn();
     const chatEmit = vi.fn();
     const { subscriber, pmessageCallbacks } = makeSubscriber();
@@ -939,5 +940,235 @@ describe("portal event isolation", () => {
       expect.objectContaining({ userId: USER_ID }),
     );
     expect(chatEmit).not.toHaveBeenCalled();
+  });
+});
+
+// ── Portal message routing tests ─────────────────────────────────────────────
+
+const SENDER_ID = "00000000-0000-4000-8000-000000000020";
+const RECIPIENT_ID = "00000000-0000-4000-8000-000000000021";
+const APP_ID = "00000000-0000-4000-8000-000000000022";
+
+function makeIoWithPortal() {
+  const portalEmit = vi.fn();
+  const socketsJoin = vi.fn();
+  const inChain = { socketsJoin };
+
+  const io = {
+    of: vi.fn().mockImplementation((namespace: string) => {
+      if (namespace === "/portal") {
+        return {
+          to: vi.fn().mockReturnValue({ emit: portalEmit }),
+          in: vi.fn().mockReturnValue(inChain),
+        };
+      }
+      return {
+        to: vi.fn().mockReturnValue({ emit: vi.fn() }),
+        in: vi.fn().mockReturnValue({ socketsJoin: vi.fn() }),
+      };
+    }),
+  } as unknown as Server;
+
+  return { io, portalEmit, socketsJoin };
+}
+
+function makePortalMessageSentPayload(overrides: Record<string, unknown> = {}) {
+  return {
+    eventId: "evt-1",
+    version: 1,
+    timestamp: new Date().toISOString(),
+    messageId: MSG_ID,
+    senderId: SENDER_ID,
+    recipientId: RECIPIENT_ID,
+    conversationId: CONV_ID,
+    applicationId: APP_ID,
+    jobId: "job-1",
+    companyId: "company-1",
+    jobTitle: "Engineer",
+    companyName: "Acme",
+    content: "Hello there",
+    contentType: "text",
+    createdAt: new Date().toISOString(),
+    parentMessageId: null,
+    senderRole: "employer",
+    ...overrides,
+  };
+}
+
+describe("eventbus-bridge — portal.message.sent routing", () => {
+  it("emits message:new to ROOM_CONVERSATION on /portal namespace", async () => {
+    const { subscriber, pmessageCallbacks } = makeSubscriber();
+    const { io, portalEmit } = makeIoWithPortal();
+
+    await startEventBusBridge(io, subscriber);
+
+    pmessageCallbacks[0]?.(
+      "eventbus:*",
+      "eventbus:portal.message.sent",
+      JSON.stringify(makePortalMessageSentPayload()),
+    );
+
+    expect(portalEmit).toHaveBeenCalledWith(
+      "message:new",
+      expect.objectContaining({
+        messageId: MSG_ID,
+        conversationId: CONV_ID,
+        senderId: SENDER_ID,
+        content: "Hello there",
+        contentType: "text",
+        applicationId: APP_ID,
+        senderRole: "employer",
+      }),
+    );
+  });
+
+  it("auto-joins sender sockets to conversation room via ROOM_USER", async () => {
+    const { subscriber, pmessageCallbacks } = makeSubscriber();
+    const { io, socketsJoin } = makeIoWithPortal();
+
+    await startEventBusBridge(io, subscriber);
+
+    pmessageCallbacks[0]?.(
+      "eventbus:*",
+      "eventbus:portal.message.sent",
+      JSON.stringify(makePortalMessageSentPayload()),
+    );
+
+    expect(socketsJoin).toHaveBeenCalledWith(`conversation:${CONV_ID}`);
+  });
+
+  it("does NOT route portal.message.sent to /chat namespace", async () => {
+    const chatEmit = vi.fn();
+    const { subscriber, pmessageCallbacks } = makeSubscriber();
+    const io = {
+      of: vi.fn().mockImplementation((namespace: string) => {
+        if (namespace === "/portal") {
+          return {
+            to: vi.fn().mockReturnValue({ emit: vi.fn() }),
+            in: vi.fn().mockReturnValue({ socketsJoin: vi.fn() }),
+          };
+        }
+        if (namespace === "/chat") {
+          return { to: vi.fn().mockReturnValue({ emit: chatEmit }) };
+        }
+        return { to: vi.fn().mockReturnValue({ emit: vi.fn() }) };
+      }),
+    } as unknown as Server;
+
+    await startEventBusBridge(io, subscriber);
+
+    pmessageCallbacks[0]?.(
+      "eventbus:*",
+      "eventbus:portal.message.sent",
+      JSON.stringify(makePortalMessageSentPayload()),
+    );
+
+    expect(chatEmit).not.toHaveBeenCalled();
+  });
+
+  it("skips routing when conversationId is missing", async () => {
+    const { subscriber, pmessageCallbacks } = makeSubscriber();
+    const { io, portalEmit } = makeIoWithPortal();
+
+    await startEventBusBridge(io, subscriber);
+
+    const payload = makePortalMessageSentPayload({ conversationId: undefined });
+    pmessageCallbacks[0]?.("eventbus:*", "eventbus:portal.message.sent", JSON.stringify(payload));
+
+    expect(portalEmit).not.toHaveBeenCalled();
+  });
+
+  it("includes parentMessageId (null when absent)", async () => {
+    const { subscriber, pmessageCallbacks } = makeSubscriber();
+    const { io, portalEmit } = makeIoWithPortal();
+
+    await startEventBusBridge(io, subscriber);
+
+    pmessageCallbacks[0]?.(
+      "eventbus:*",
+      "eventbus:portal.message.sent",
+      JSON.stringify(makePortalMessageSentPayload({ parentMessageId: null })),
+    );
+
+    expect(portalEmit).toHaveBeenCalledWith(
+      "message:new",
+      expect.objectContaining({ parentMessageId: null }),
+    );
+  });
+});
+
+describe("eventbus-bridge — portal.message.edited routing", () => {
+  it("emits message:edited to ROOM_CONVERSATION on /portal namespace", async () => {
+    const { subscriber, pmessageCallbacks } = makeSubscriber();
+    const { io, portalEmit } = makeIoWithPortal();
+
+    await startEventBusBridge(io, subscriber);
+
+    const editPayload = {
+      eventId: "evt-2",
+      version: 1,
+      timestamp: new Date().toISOString(),
+      messageId: MSG_ID,
+      conversationId: CONV_ID,
+      applicationId: APP_ID,
+      senderId: SENDER_ID,
+      content: "Edited content",
+      editedAt: new Date().toISOString(),
+    };
+    pmessageCallbacks[0]?.(
+      "eventbus:*",
+      "eventbus:portal.message.edited",
+      JSON.stringify(editPayload),
+    );
+
+    expect(portalEmit).toHaveBeenCalledWith(
+      "message:edited",
+      expect.objectContaining({ messageId: MSG_ID, conversationId: CONV_ID }),
+    );
+  });
+
+  it("skips routing portal.message.edited when conversationId is missing", async () => {
+    const { subscriber, pmessageCallbacks } = makeSubscriber();
+    const { io, portalEmit } = makeIoWithPortal();
+
+    await startEventBusBridge(io, subscriber);
+
+    pmessageCallbacks[0]?.(
+      "eventbus:*",
+      "eventbus:portal.message.edited",
+      JSON.stringify({ messageId: MSG_ID }), // missing conversationId
+    );
+
+    expect(portalEmit).not.toHaveBeenCalled();
+  });
+});
+
+describe("eventbus-bridge — portal.message.deleted routing", () => {
+  it("emits message:deleted to ROOM_CONVERSATION on /portal namespace", async () => {
+    const { subscriber, pmessageCallbacks } = makeSubscriber();
+    const { io, portalEmit } = makeIoWithPortal();
+
+    await startEventBusBridge(io, subscriber);
+
+    const deletePayload = {
+      eventId: "evt-3",
+      version: 1,
+      timestamp: new Date().toISOString(),
+      messageId: MSG_ID,
+      conversationId: CONV_ID,
+      applicationId: APP_ID,
+      senderId: SENDER_ID,
+      deletedAt: new Date().toISOString(),
+    };
+    pmessageCallbacks[0]?.(
+      "eventbus:*",
+      "eventbus:portal.message.deleted",
+      JSON.stringify(deletePayload),
+    );
+
+    expect(portalEmit).toHaveBeenCalledWith(
+      "message:deleted",
+      expect.objectContaining({ messageId: MSG_ID, conversationId: CONV_ID }),
+    );
   });
 });
