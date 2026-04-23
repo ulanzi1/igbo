@@ -17,6 +17,7 @@ import {
   REALTIME_CORS_ORIGINS,
   NAMESPACE_NOTIFICATIONS,
   NAMESPACE_CHAT,
+  NAMESPACE_PORTAL,
 } from "@igbo/config/realtime";
 
 // Prometheus metrics for the realtime server (separate registry — no Next.js deps)
@@ -142,9 +143,29 @@ async function main(): Promise<void> {
     });
   });
 
-  // /portal namespace — proof-of-concept for portal Socket.IO support (P-0.6)
-  // Full handlers added in Epic 5+; no Prometheus metrics wired yet.
-  setupPortalNamespace(io);
+  // /portal namespace — real-time messaging for portal app (P-5.2+)
+  setupPortalNamespace(io, redisPresence);
+  // F11: Prometheus metrics for portal namespace (parity with /chat and /notifications)
+  const portalNs = io.of(NAMESPACE_PORTAL);
+  portalNs.on("connection", (socket) => {
+    const connectionTraceId = randomUUID();
+    socket.data.traceId = connectionTraceId;
+    wsActiveConnections.inc({ namespace: NAMESPACE_PORTAL });
+    realtimeLogger.info("ws.connection", {
+      namespace: NAMESPACE_PORTAL,
+      traceId: connectionTraceId,
+    });
+    socket.on("disconnect", () => {
+      wsActiveConnections.dec({ namespace: NAMESPACE_PORTAL });
+      realtimeLogger.info("ws.disconnect", {
+        namespace: NAMESPACE_PORTAL,
+        traceId: connectionTraceId,
+      });
+    });
+    socket.onAny((event: string) => {
+      wsMessagesTotal.inc({ namespace: NAMESPACE_PORTAL, event });
+    });
+  });
 
   // Start EventBus bridge
   await startEventBusBridge(io, bridgeSubscriber);

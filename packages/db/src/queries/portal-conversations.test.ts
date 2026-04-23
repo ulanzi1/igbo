@@ -40,6 +40,7 @@ import {
   getPortalConversationsForUser,
   isPortalConversationReadOnly,
   getPortalConversationParticipantRole,
+  getPortalConversationIdsForUser,
 } from "./portal-conversations";
 import { getUserConversations } from "./chat-conversations";
 
@@ -402,5 +403,34 @@ describe("getPortalConversationParticipantRole", () => {
 
     const result = await getPortalConversationParticipantRole(CONV_ID, USER_ID);
     expect(result).toBeNull();
+  });
+});
+
+// ── getPortalConversationIdsForUser ────────────────────────────────────────────
+
+describe("getPortalConversationIdsForUser", () => {
+  it("returns conversation IDs for a user's portal conversations", async () => {
+    const CONV_ID_2 = "00000000-0000-4000-8000-000000000020";
+    mockDb.execute.mockResolvedValue([{ id: CONV_ID }, { id: CONV_ID_2 }]);
+
+    const result = await getPortalConversationIdsForUser(USER_ID);
+
+    expect(result).toEqual([CONV_ID, CONV_ID_2]);
+  });
+
+  it("returns empty array when user has no portal conversations", async () => {
+    mockDb.execute.mockResolvedValue([]);
+
+    const result = await getPortalConversationIdsForUser(USER_ID);
+
+    expect(result).toEqual([]);
+  });
+
+  it("calls db.execute with raw SQL (no server-only import)", async () => {
+    mockDb.execute.mockResolvedValue([{ id: CONV_ID }]);
+
+    await getPortalConversationIdsForUser(USER_ID);
+
+    expect(mockDb.execute).toHaveBeenCalledTimes(1);
   });
 });
