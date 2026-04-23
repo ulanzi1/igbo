@@ -42,16 +42,20 @@ const TERMINAL_STATES = ["hired", "rejected", "withdrawn"] as const;
  * enforces one active conversation per application at the DB level. If called twice for the
  * same application, the insert throws a unique constraint violation.
  */
-export async function createPortalConversation(params: {
-  applicationId: string;
-  employerUserId: string;
-  seekerUserId: string;
-  portalContext: PortalConversationContext;
-}): Promise<ChatConversation> {
+export async function createPortalConversation(
+  params: {
+    applicationId: string;
+    employerUserId: string;
+    seekerUserId: string;
+    portalContext: PortalConversationContext;
+  },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  tx?: any,
+): Promise<ChatConversation> {
   const { applicationId, employerUserId, seekerUserId, portalContext } = params;
 
-  return db.transaction(async (tx) => {
-    const [conversation] = await tx
+  const doCreate = async (executor: typeof db | NonNullable<typeof tx>) => {
+    const [conversation] = await executor
       .insert(chatConversations)
       .values({
         type: "direct",
@@ -63,7 +67,7 @@ export async function createPortalConversation(params: {
 
     if (!conversation) throw new Error("createPortalConversation: insert returned no conversation");
 
-    await tx.insert(chatConversationMembers).values([
+    await executor.insert(chatConversationMembers).values([
       {
         conversationId: conversation.id,
         userId: employerUserId,
@@ -77,7 +81,12 @@ export async function createPortalConversation(params: {
     ]);
 
     return conversation;
-  });
+  };
+
+  if (tx) {
+    return doCreate(tx);
+  }
+  return db.transaction((innerTx) => doCreate(innerTx));
 }
 
 /**

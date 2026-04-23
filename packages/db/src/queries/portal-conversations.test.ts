@@ -211,6 +211,61 @@ describe("createPortalConversation", () => {
       }),
     ).rejects.toThrow(/duplicate key/);
   });
+
+  it("uses provided tx instead of db.transaction when tx is given", async () => {
+    let insertCallCount = 0;
+    const mockTx = {
+      insert: vi.fn().mockImplementation(() => ({
+        values: vi.fn().mockImplementation(() => {
+          insertCallCount++;
+          if (insertCallCount === 1) {
+            return { returning: vi.fn().mockResolvedValue([mockConversation]) };
+          }
+          return Promise.resolve();
+        }),
+      })),
+    };
+
+    const result = await createPortalConversation(
+      {
+        applicationId: APP_ID,
+        employerUserId: EMPLOYER_ID,
+        seekerUserId: SEEKER_ID,
+        portalContext,
+      },
+      mockTx,
+    );
+
+    // db.transaction should NOT be called — the provided tx is used directly
+    expect(mockDb.transaction).not.toHaveBeenCalled();
+    expect(mockTx.insert).toHaveBeenCalled();
+    expect(result.id).toBe(CONV_ID);
+  });
+
+  it("falls back to db.transaction when no tx is provided (backward compatible)", async () => {
+    let callCount = 0;
+    const txChain = {
+      insert: vi.fn().mockImplementation(() => ({
+        values: vi.fn().mockImplementation(() => {
+          callCount++;
+          if (callCount === 1) {
+            return { returning: vi.fn().mockResolvedValue([mockConversation]) };
+          }
+          return Promise.resolve();
+        }),
+      })),
+    };
+    mockDb.transaction.mockImplementation(async (cb: any) => cb(txChain));
+
+    await createPortalConversation({
+      applicationId: APP_ID,
+      employerUserId: EMPLOYER_ID,
+      seekerUserId: SEEKER_ID,
+      portalContext,
+    });
+
+    expect(mockDb.transaction).toHaveBeenCalledOnce();
+  });
 });
 
 // ── getPortalConversationByApplicationId ──────────────────────────────────────
