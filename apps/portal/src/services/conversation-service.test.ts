@@ -81,6 +81,7 @@ const mockConversation = {
   type: "direct" as const,
   context: "portal" as const,
   applicationId: APP_ID,
+  channelId: null,
   portalContextJson: {
     jobId: JOB_ID,
     companyId: COMPANY_ID,

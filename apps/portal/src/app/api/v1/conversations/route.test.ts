@@ -41,7 +41,7 @@ beforeEach(() => {
     employerSession as ReturnType<typeof auth> extends Promise<infer T> ? T : never,
   );
   vi.mocked(conversationService.listUserConversations).mockResolvedValue({
-    conversations: [mockConversation] as unknown,
+    conversations: [mockConversation] as never,
     hasMore: false,
   });
 });
@@ -55,7 +55,7 @@ describe("GET /api/v1/conversations", () => {
   });
 
   it("returns 401 without auth", async () => {
-    vi.mocked(auth).mockResolvedValue(null as unknown);
+    vi.mocked(auth).mockResolvedValue(null as never);
     const res = await GET(makeGetRequest());
     expect(res.status).toBe(401);
   });

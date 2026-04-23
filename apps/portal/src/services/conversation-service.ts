@@ -11,7 +11,7 @@ import {
 } from "@igbo/db/queries/chat-messages";
 import { isConversationMember } from "@igbo/db/queries/chat-conversations";
 import type { EnrichedUserConversation } from "@igbo/db/queries/chat-conversations";
-import type { ChatMessage } from "@igbo/db";
+import type { ChatMessage } from "@igbo/db/queries/chat-messages";
 import { sql } from "drizzle-orm";
 import { portalEventBus } from "@/services/event-bus";
 import { ApiError } from "@/lib/api-error";

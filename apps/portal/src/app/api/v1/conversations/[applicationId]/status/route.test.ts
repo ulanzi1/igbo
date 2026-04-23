@@ -45,7 +45,7 @@ describe("GET /api/v1/conversations/[applicationId]/status", () => {
   });
 
   it("returns 401 without auth", async () => {
-    vi.mocked(auth).mockResolvedValue(null as unknown);
+    vi.mocked(auth).mockResolvedValue(null as never);
     const res = await GET(makeGetRequest(APP_ID));
     expect(res.status).toBe(401);
   });

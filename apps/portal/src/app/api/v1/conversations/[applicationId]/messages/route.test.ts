@@ -76,11 +76,11 @@ beforeEach(() => {
   );
   vi.mocked(conversationService.sendMessage).mockResolvedValue({
     conversationId: CONV_ID,
-    message: mockMessage as unknown,
+    message: mockMessage as never,
     conversationCreated: true,
   });
   vi.mocked(conversationService.getPortalConversationMessages).mockResolvedValue({
-    messages: [mockMessage as unknown],
+    messages: [mockMessage as never],
     hasMore: false,
   });
 });
@@ -96,7 +96,7 @@ describe("POST /api/v1/conversations/[applicationId]/messages", () => {
   });
 
   it("returns 401 without auth", async () => {
-    vi.mocked(auth).mockResolvedValue(null as unknown);
+    vi.mocked(auth).mockResolvedValue(null as never);
     const res = await POST(makePostRequest(APP_ID));
     expect(res.status).toBe(401);
   });
@@ -178,7 +178,7 @@ describe("GET /api/v1/conversations/[applicationId]/messages", () => {
   });
 
   it("returns 401 without auth", async () => {
-    vi.mocked(auth).mockResolvedValue(null as unknown);
+    vi.mocked(auth).mockResolvedValue(null as never);
     const res = await GET(makeGetRequest(APP_ID));
     expect(res.status).toBe(401);
   });
