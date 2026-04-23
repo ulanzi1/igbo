@@ -1,6 +1,7 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { GlobeIcon, UsersIcon, HeartIcon } from "lucide-react";
+import { BannerSlider } from "@/components/banner-slider";
 
 export const revalidate = 60;
 
@@ -65,6 +66,8 @@ export default async function SplashPage({ params }: { params: Promise<{ locale:
           __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c"),
         }}
       />
+
+      <BannerSlider />
 
       {/* Hero section */}
       <section className="flex flex-col items-center justify-center gap-6 px-4 py-16 md:py-24 text-center">
