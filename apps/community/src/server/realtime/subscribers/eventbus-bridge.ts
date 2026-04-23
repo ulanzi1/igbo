@@ -7,6 +7,7 @@ import {
   ROOM_EVENT,
   NAMESPACE_NOTIFICATIONS,
   NAMESPACE_CHAT,
+  NAMESPACE_PORTAL,
 } from "@igbo/config/realtime";
 import { db } from "@igbo/db";
 import { chatMessages } from "@igbo/db/schema/chat-messages";
@@ -33,6 +34,11 @@ import type {
   ContentFlaggedEvent,
   ContentModeratedEvent,
 } from "@/types/events";
+import type {
+  PortalMessageSentEvent,
+  PortalMessageEditedEvent,
+  PortalMessageDeletedEvent,
+} from "@igbo/config/events";
 
 const CHANNEL_PREFIX = "eventbus:";
 
@@ -67,6 +73,7 @@ export async function stopEventBusBridge(subscriber: Redis): Promise<void> {
 function routeToNamespace(io: Server, eventName: string, payload: unknown): void {
   const notificationsNs = io.of(NAMESPACE_NOTIFICATIONS);
   const chatNs = io.of(NAMESPACE_CHAT);
+  const portalNs = io.of(NAMESPACE_PORTAL);
 
   switch (eventName) {
     case "notification.created": {
@@ -363,16 +370,66 @@ function routeToNamespace(io: Server, eventName: string, payload: unknown): void
       })();
       break;
     }
-    // Portal events — recognized but NOT routed to community namespaces (namespace isolation).
-    // Community recognizes these events to prevent log spam if a warning default is ever added.
-    // Routing to /portal namespace for real-time UI updates added in Epic 1+.
+    // Portal messaging events — routed to /portal namespace (P-5.2)
+    case "portal.message.sent": {
+      const portalMsgPayload = payload as PortalMessageSentEvent;
+      if (!portalMsgPayload?.conversationId) break;
+      // Auto-join both participants to the conversation room.
+      // Critical for first-message case: sockets may not be in the room yet.
+      if (portalMsgPayload.senderId) {
+        portalNs
+          .in(ROOM_USER(portalMsgPayload.senderId))
+          .socketsJoin(ROOM_CONVERSATION(portalMsgPayload.conversationId));
+      }
+      if (portalMsgPayload.recipientId) {
+        portalNs
+          .in(ROOM_USER(portalMsgPayload.recipientId))
+          .socketsJoin(ROOM_CONVERSATION(portalMsgPayload.conversationId));
+      }
+      portalNs.to(ROOM_CONVERSATION(portalMsgPayload.conversationId)).emit("message:new", {
+        messageId: portalMsgPayload.messageId,
+        conversationId: portalMsgPayload.conversationId,
+        senderId: portalMsgPayload.senderId,
+        content: portalMsgPayload.content,
+        contentType: portalMsgPayload.contentType,
+        createdAt: portalMsgPayload.createdAt,
+        parentMessageId: portalMsgPayload.parentMessageId ?? null,
+        applicationId: portalMsgPayload.applicationId,
+        senderRole: portalMsgPayload.senderRole,
+      });
+      break;
+    }
+    case "portal.message.edited": {
+      const editedPayload = payload as PortalMessageEditedEvent;
+      if (!editedPayload?.conversationId || !editedPayload?.messageId) break;
+      portalNs.to(ROOM_CONVERSATION(editedPayload.conversationId)).emit("message:edited", {
+        messageId: editedPayload.messageId,
+        conversationId: editedPayload.conversationId,
+        senderId: editedPayload.senderId,
+        content: editedPayload.content,
+        editedAt: editedPayload.editedAt,
+      });
+      break;
+    }
+    case "portal.message.deleted": {
+      const deletedPayload = payload as PortalMessageDeletedEvent;
+      if (!deletedPayload?.conversationId || !deletedPayload?.messageId) break;
+      portalNs.to(ROOM_CONVERSATION(deletedPayload.conversationId)).emit("message:deleted", {
+        messageId: deletedPayload.messageId,
+        conversationId: deletedPayload.conversationId,
+        senderId: deletedPayload.senderId,
+        deletedAt: deletedPayload.deletedAt,
+      });
+      break;
+    }
+    // Other portal domain events — no-op in realtime server (namespace isolation).
     case "job.published":
     case "job.updated":
     case "job.closed":
     case "application.submitted":
     case "application.status_changed":
     case "application.withdrawn":
-      break; // No-op for now — portal namespace handlers added in Epic 1+
+      break; // Not routed to community namespaces
     default:
       // Other events not routed in this story
       break;

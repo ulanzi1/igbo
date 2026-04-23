@@ -157,6 +157,21 @@ export async function isPortalConversationReadOnly(applicationId: string): Promi
 }
 
 /**
+ * Get IDs of all active portal conversations the user participates in.
+ * Lightweight query (IDs only) used on every socket connect — avoids over-fetching.
+ */
+export async function getPortalConversationIdsForUser(userId: string): Promise<string[]> {
+  const rows = await db.execute(sql`
+    SELECT c.id FROM chat_conversations c
+    INNER JOIN chat_conversation_members m ON m.conversation_id = c.id
+    WHERE m.user_id = ${userId}::uuid
+      AND c.context = 'portal'
+      AND c.deleted_at IS NULL
+  `);
+  return (rows as unknown as Array<{ id: string }>).map((r) => r.id);
+}
+
+/**
  * Get the participant_role for a user in a portal conversation.
  * Returns null if the user is not a member of the conversation.
  */

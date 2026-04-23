@@ -8,6 +8,7 @@ import { auth } from "@igbo/auth";
 import { SkipLink } from "@/components/layout/skip-link";
 import { Toaster } from "@/components/ui/sonner";
 import { DensityProvider, ROLE_DENSITY_DEFAULTS } from "@/providers/density-context";
+import { SocketProvider } from "@/providers/SocketProvider";
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
@@ -36,11 +37,13 @@ export default async function LocaleLayout({
   return (
     <SessionProvider session={session}>
       <DensityProvider defaultDensity={defaultDensity}>
-        <NextIntlClientProvider>
-          <SkipLink href="#main-content" />
-          {children}
-          <Toaster />
-        </NextIntlClientProvider>
+        <SocketProvider>
+          <NextIntlClientProvider>
+            <SkipLink href="#main-content" />
+            {children}
+            <Toaster />
+          </NextIntlClientProvider>
+        </SocketProvider>
       </DensityProvider>
     </SessionProvider>
   );

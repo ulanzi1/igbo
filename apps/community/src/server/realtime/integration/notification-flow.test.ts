@@ -56,6 +56,7 @@ vi.mock("@igbo/config/realtime", () => ({
   REPLAY_WINDOW_MS: 3_600_000,
   NAMESPACE_NOTIFICATIONS: "/notifications",
   NAMESPACE_CHAT: "/chat",
+  NAMESPACE_PORTAL: "/portal",
 }));
 
 // ── DB query mock ──────────────────────────────────────────────────────────────

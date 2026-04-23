@@ -25,6 +25,10 @@ vi.mock("@/components/ui/sonner", () => ({
 }));
 vi.mock("next-auth/react", () => ({
   SessionProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  useSession: () => ({ status: "unauthenticated", data: null }),
+}));
+vi.mock("@/providers/SocketProvider", () => ({
+  SocketProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
 // Capture DensityProvider props for assertion
