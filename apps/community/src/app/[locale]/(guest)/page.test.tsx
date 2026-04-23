@@ -7,6 +7,10 @@ vi.mock("next-intl/server", () => ({
   setRequestLocale: vi.fn(),
 }));
 
+vi.mock("@/components/banner-slider", () => ({
+  BannerSlider: () => null,
+}));
+
 vi.mock("@/i18n/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
   usePathname: () => "/",
