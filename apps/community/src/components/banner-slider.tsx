@@ -4,8 +4,8 @@ import Image from "next/image";
 import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
 
-// Add "/obigbo-slider11.<ext>" here when the 11th banner is ready
 const SLIDES = [
+  "/obigbo-slider10.jpeg",
   "/obigbo-slider1.jpg",
   "/obigbo-slider2.jpg",
   "/obigbo-slider3.jpg",
@@ -15,7 +15,7 @@ const SLIDES = [
   "/obigbo-slider7.jpg",
   "/obigbo-slider8.jpg",
   "/obigbo-slider9.jpg",
-  "/obigbo-slider10.jpeg",
+  "/obigbo-slider11.jpg",
 ];
 
 const INTERVAL_MS = 8000;

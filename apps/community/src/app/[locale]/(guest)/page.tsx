@@ -72,7 +72,7 @@ export default async function SplashPage({ params }: { params: Promise<{ locale:
       {/* Hero section */}
       <section className="flex flex-col items-center justify-center gap-6 px-4 py-16 md:py-24 text-center">
         <h1 className="text-4xl md:text-5xl font-bold text-primary">
-          OB<span className="bg-secondary text-secondary-foreground px-1 rounded">IG</span>BO
+          OB<span className="text-accent">IG</span>BO
         </h1>
         <p className="text-xl md:text-2xl font-medium text-foreground">{t("subtitle")}</p>
         <p className="text-base md:text-lg text-muted-foreground max-w-2xl">{t("tagline")}</p>
@@ -81,7 +81,7 @@ export default async function SplashPage({ params }: { params: Promise<{ locale:
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mt-8 w-full max-w-3xl">
           <Link
             href="/articles"
-            className="flex items-center justify-center min-h-[44px] px-6 py-4 rounded-xl bg-secondary text-secondary-foreground font-medium text-base hover:opacity-90 transition-opacity text-center"
+            className="flex items-center justify-center min-h-[44px] px-6 py-4 rounded-xl bg-primary text-primary-foreground font-medium text-base hover:opacity-90 transition-opacity text-center"
           >
             {t("exploreGuest")}
           </Link>

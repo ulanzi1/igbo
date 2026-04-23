@@ -23,7 +23,10 @@ export default async function LoginPage({ params, searchParams }: Props) {
   setRequestLocale(locale);
 
   return (
-    <div className="flex min-h-screen items-center justify-center px-4">
+    <div
+      className="flex min-h-screen items-center justify-center px-4 bg-cover bg-center bg-no-repeat"
+      style={{ backgroundImage: "url('/login-background.jpg')" }}
+    >
       <div className="w-full max-w-md">
         <LoginForm callbackUrl={callbackUrl} banned={banned === "true"} />
       </div>
