@@ -81,7 +81,10 @@
     "stat1": "Obodo Igbo na-eto eto n'ụwa nile",
     "stat2": "Na-ejikọta ndị otu n'obodo 15+",
     "stat3": "Na-echebe omenala, na-ewu ihe nkwado",
-    "socialProofHeading": "Obodo anyị"
+    "socialProofHeading": "Obodo anyị",
+    "sliderAriaLabel": "Ihe nkiri foto obodo",
+    "sliderDotsAriaLabel": "Nchọgharị ihe nkiri",
+    "sliderBannerAlt": "Ihe nkiri obodo OBIGBO {index}"
   },
   "Articles": {
     "title": "Akụkọ",

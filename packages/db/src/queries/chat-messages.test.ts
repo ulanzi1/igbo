@@ -109,6 +109,50 @@ describe("createMessage", () => {
     expect(result).toEqual(mockMessage);
     expect(mockDb.transaction).toHaveBeenCalled();
   });
+
+  it("uses provided tx directly without wrapping in db.transaction", async () => {
+    const txChain = chainable([mockMessage]);
+    const mockTx = {
+      insert: vi.fn().mockReturnValue(txChain),
+      update: vi.fn().mockReturnValue(txChain),
+    };
+
+    const result = await createMessage(
+      {
+        conversationId: CONV_ID,
+        senderId: USER_ID,
+        content: "Hello world",
+        contentType: "text",
+      },
+      mockTx,
+    );
+
+    expect(result).toEqual(mockMessage);
+    // db.transaction should NOT have been called — the provided tx is used
+    expect(mockDb.transaction).not.toHaveBeenCalled();
+    expect(mockTx.insert).toHaveBeenCalled();
+    expect(mockTx.update).toHaveBeenCalled();
+  });
+
+  it("maintains backward compatibility when no tx is provided", async () => {
+    mockDb.transaction.mockImplementation(async (cb: (tx: typeof mockDb) => Promise<unknown>) => {
+      const txChain = chainable([mockMessage]);
+      const tx = {
+        insert: vi.fn().mockReturnValue(txChain),
+        update: vi.fn().mockReturnValue(txChain),
+      };
+      return cb(tx as unknown as typeof mockDb);
+    });
+
+    await createMessage({
+      conversationId: CONV_ID,
+      senderId: USER_ID,
+      content: "Hello world",
+      contentType: "text",
+    });
+
+    expect(mockDb.transaction).toHaveBeenCalledOnce();
+  });
 });
 
 describe("getConversationMessages", () => {

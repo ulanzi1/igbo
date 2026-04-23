@@ -169,6 +169,46 @@ export interface SavedSearchNewResultEvent extends BaseEvent {
   searchName: string;
 }
 
+// --- Portal Message Events ---
+// Portal events include denormalized data (jobTitle, companyName, senderRole) to avoid
+// DB lookups in notification handlers (P-5.6). senderRole distinguishes employer vs seeker
+// for notification routing.
+
+export interface PortalMessageSentEvent extends BaseEvent {
+  messageId: string;
+  senderId: string;
+  conversationId: string;
+  applicationId: string;
+  jobId: string;
+  companyId: string;
+  jobTitle: string;
+  companyName: string;
+  content: string;
+  contentType: string;
+  createdAt: string; // ISO 8601
+  parentMessageId?: string | null;
+  recipientId: string;
+  senderName?: string;
+  senderRole: "employer" | "seeker";
+}
+
+export interface PortalMessageEditedEvent extends BaseEvent {
+  messageId: string;
+  conversationId: string;
+  applicationId: string;
+  senderId: string;
+  content: string;
+  editedAt: string; // ISO 8601
+}
+
+export interface PortalMessageDeletedEvent extends BaseEvent {
+  messageId: string;
+  conversationId: string;
+  applicationId: string;
+  senderId: string;
+  deletedAt: string; // ISO 8601
+}
+
 // Portal event map — used by portal EventBus
 export interface PortalEventMap {
   "job.published": JobPublishedEvent;
@@ -188,6 +228,9 @@ export interface PortalEventMap {
   "employer.verification_approved": EmployerVerificationApprovedEvent;
   "employer.verification_rejected": EmployerVerificationRejectedEvent;
   "saved_search.new_result": SavedSearchNewResultEvent;
+  "portal.message.sent": PortalMessageSentEvent;
+  "portal.message.edited": PortalMessageEditedEvent;
+  "portal.message.deleted": PortalMessageDeletedEvent;
 }
 
 export type PortalEventName = keyof PortalEventMap;

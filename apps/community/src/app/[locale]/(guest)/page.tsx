@@ -1,6 +1,7 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { GlobeIcon, UsersIcon, HeartIcon } from "lucide-react";
+import { BannerSlider } from "@/components/banner-slider";
 
 export const revalidate = 60;
 
@@ -66,10 +67,12 @@ export default async function SplashPage({ params }: { params: Promise<{ locale:
         }}
       />
 
+      <BannerSlider />
+
       {/* Hero section */}
       <section className="flex flex-col items-center justify-center gap-6 px-4 py-16 md:py-24 text-center">
         <h1 className="text-4xl md:text-5xl font-bold text-primary">
-          OB<span className="bg-secondary text-white px-1 rounded">IG</span>BO
+          OB<span className="bg-secondary text-secondary-foreground px-1 rounded">IG</span>BO
         </h1>
         <p className="text-xl md:text-2xl font-medium text-foreground">{t("subtitle")}</p>
         <p className="text-base md:text-lg text-muted-foreground max-w-2xl">{t("tagline")}</p>

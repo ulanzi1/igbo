@@ -137,6 +137,46 @@ export interface MessageMentionedEvent extends BaseEvent {
   contentPreview: string;
 }
 
+// --- Portal Message Events ---
+// Portal events include denormalized data (jobTitle, companyName, senderRole) to avoid
+// DB lookups in notification handlers (P-5.6). senderRole distinguishes employer vs seeker
+// for notification routing. These events are distinct from chat.message.* community events.
+
+export interface PortalMessageSentEvent extends BaseEvent {
+  messageId: string;
+  senderId: string;
+  conversationId: string;
+  applicationId: string;
+  jobId: string;
+  companyId: string;
+  jobTitle: string;
+  companyName: string;
+  content: string;
+  contentType: string;
+  createdAt: string; // ISO 8601
+  parentMessageId?: string | null;
+  recipientId: string;
+  senderName?: string;
+  senderRole: "employer" | "seeker";
+}
+
+export interface PortalMessageEditedEvent extends BaseEvent {
+  messageId: string;
+  conversationId: string;
+  applicationId: string;
+  senderId: string;
+  content: string;
+  editedAt: string; // ISO 8601
+}
+
+export interface PortalMessageDeletedEvent extends BaseEvent {
+  messageId: string;
+  conversationId: string;
+  applicationId: string;
+  senderId: string;
+  deletedAt: string; // ISO 8601
+}
+
 // --- Points Events ---
 
 export interface PointsAwardedEvent extends BaseEvent {
@@ -706,7 +746,10 @@ export type EventName =
   | "report.created"
   | "moderation.keyword_added"
   | "account.discipline_issued"
-  | "account.discipline_lifted";
+  | "account.discipline_lifted"
+  | "portal.message.sent"
+  | "portal.message.edited"
+  | "portal.message.deleted";
 
 // --- Event Map ---
 
@@ -799,4 +842,7 @@ export interface EventMap {
   "moderation.keyword_added": KeywordAddedEvent;
   "account.discipline_issued": AccountDisciplineIssuedEvent;
   "account.discipline_lifted": AccountDisciplineLiftedEvent;
+  "portal.message.sent": PortalMessageSentEvent;
+  "portal.message.edited": PortalMessageEditedEvent;
+  "portal.message.deleted": PortalMessageDeletedEvent;
 }

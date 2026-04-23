@@ -519,6 +519,13 @@
       "when": 1708000073000,
       "tag": "0073_chat_context_column",
       "breakpoints": true
+    },
+    {
+      "idx": 74,
+      "version": "7",
+      "when": 1708000074000,
+      "tag": "0074_portal_messaging_extension",
+      "breakpoints": true
     }
   ]
 }

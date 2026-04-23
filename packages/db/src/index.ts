@@ -143,3 +143,4 @@ export const db = new Proxy({} as ReturnType<typeof createDb>, {
 export type Database = ReturnType<typeof createDb>;
 
 export { portalJobSearchQueries };
+export * from "./queries/portal-conversations";

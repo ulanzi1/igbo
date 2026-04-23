@@ -33,8 +33,8 @@ describe("PORTAL_ERRORS", () => {
     }
   });
 
-  it("has exactly 23 error codes", () => {
-    expect(Object.keys(PORTAL_ERRORS)).toHaveLength(23);
+  it("has exactly 26 error codes", () => {
+    expect(Object.keys(PORTAL_ERRORS)).toHaveLength(26);
   });
 
   it("has DUPLICATE_SEEKER_PROFILE key", () => {
@@ -102,5 +102,19 @@ describe("PORTAL_ERRORS", () => {
 
   it("has CANNOT_REPORT_OWN_POSTING key", () => {
     expect(PORTAL_ERRORS.CANNOT_REPORT_OWN_POSTING).toBe("PORTAL_ERRORS.CANNOT_REPORT_OWN_POSTING");
+  });
+
+  it("has CONVERSATION_READ_ONLY key", () => {
+    expect(PORTAL_ERRORS.CONVERSATION_READ_ONLY).toBe("PORTAL_ERRORS.CONVERSATION_READ_ONLY");
+  });
+
+  it("has SEEKER_CANNOT_INITIATE key", () => {
+    expect(PORTAL_ERRORS.SEEKER_CANNOT_INITIATE).toBe("PORTAL_ERRORS.SEEKER_CANNOT_INITIATE");
+  });
+
+  it("has MESSAGING_APPLICATION_NOT_FOUND key", () => {
+    expect(PORTAL_ERRORS.MESSAGING_APPLICATION_NOT_FOUND).toBe(
+      "PORTAL_ERRORS.MESSAGING_APPLICATION_NOT_FOUND",
+    );
   });
 });

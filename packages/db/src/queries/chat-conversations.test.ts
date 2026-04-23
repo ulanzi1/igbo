@@ -163,6 +163,58 @@ describe("getUserConversations", () => {
     expect(result.conversations[0]?.lastMessage?.content).toBe("Hello there");
     expect(result.conversations[0]?.unreadCount).toBe(2);
   });
+
+  it("includes applicationId and portalContext when present (portal conversation)", async () => {
+    const portalContext = {
+      jobId: "job-1",
+      companyId: "company-1",
+      jobTitle: "Software Engineer",
+      companyName: "Tech Corp",
+    };
+    const mockRow = {
+      id: CONV_ID,
+      type: "direct",
+      context: "portal",
+      application_id: "app-123",
+      portal_context_json: portalContext,
+      created_at: new Date("2026-02-01T00:00:00Z"),
+      updated_at: new Date("2026-02-01T00:00:00Z"),
+      other_member_id: OTHER_ID,
+      other_member_display_name: "Ada",
+      other_member_photo_url: null,
+      last_message_content: null,
+      last_message_sender_id: null,
+      last_message_created_at: null,
+      unread_count: 0,
+    };
+    mockDb.execute.mockResolvedValue([mockRow]);
+    const result = await getUserConversations(USER_ID, { context: "portal" });
+    expect(result.conversations[0]?.applicationId).toBe("app-123");
+    expect(result.conversations[0]?.portalContext).toEqual(portalContext);
+  });
+
+  it("sets applicationId and portalContext to null for community conversations", async () => {
+    const mockRow = {
+      id: CONV_ID,
+      type: "direct",
+      context: "community",
+      application_id: null,
+      portal_context_json: null,
+      created_at: new Date("2026-02-01T00:00:00Z"),
+      updated_at: new Date("2026-02-01T00:00:00Z"),
+      other_member_id: OTHER_ID,
+      other_member_display_name: "Ada",
+      other_member_photo_url: null,
+      last_message_content: null,
+      last_message_sender_id: null,
+      last_message_created_at: null,
+      unread_count: 0,
+    };
+    mockDb.execute.mockResolvedValue([mockRow]);
+    const result = await getUserConversations(USER_ID);
+    expect(result.conversations[0]?.applicationId).toBeNull();
+    expect(result.conversations[0]?.portalContext).toBeNull();
+  });
 });
 
 describe("getUserConversationIds", () => {

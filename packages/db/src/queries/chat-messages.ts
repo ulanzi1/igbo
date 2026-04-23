@@ -15,14 +15,30 @@ const MAX_PAGE_SIZE = 100;
 /**
  * Create a new message and update the conversation's updated_at in one transaction.
  * The updated_at on chat_conversations drives conversation list ordering by recency.
+ *
+ * @param tx - Optional outer transaction. When provided, operations run within it (for atomic
+ *             first-message creation in ConversationService). When omitted, wraps in own
+ *             transaction (backward compatible).
  */
-export async function createMessage(data: NewChatMessage): Promise<ChatMessage> {
-  return db.transaction(async (tx) => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function createMessage(data: NewChatMessage, tx?: any): Promise<ChatMessage> {
+  if (tx) {
+    // Called within an outer transaction — use provided tx directly
     const [message] = await tx.insert(chatMessages).values(data).returning();
+    if (!message) throw new Error("Insert returned no message");
+    await tx
+      .update(chatConversations)
+      .set({ updatedAt: new Date() })
+      .where(eq(chatConversations.id, data.conversationId));
+    return message;
+  }
+  // No outer tx — wrap in own transaction (backward compatible)
+  return db.transaction(async (innerTx) => {
+    const [message] = await innerTx.insert(chatMessages).values(data).returning();
     if (!message) throw new Error("Insert returned no message");
 
     // Update conversation updated_at for recency ordering (Story 2.2 list)
-    await tx
+    await innerTx
       .update(chatConversations)
       .set({ updatedAt: new Date() })
       .where(eq(chatConversations.id, data.conversationId));
