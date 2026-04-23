@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useState, useEffect } from "react";
+import { useTranslations } from "next-intl";
 
 // Add "/obigbo-slider11.<ext>" here when the 11th banner is ready
 const SLIDES = [
@@ -20,6 +21,7 @@ const SLIDES = [
 const INTERVAL_MS = 8000;
 
 export function BannerSlider() {
+  const t = useTranslations("Splash");
   const [current, setCurrent] = useState(0);
   // Seed with slides 0 + 1 so the second slide is ready before the first transition
   const [loaded, setLoaded] = useState<Set<number>>(new Set([0, 1]));
@@ -51,7 +53,7 @@ export function BannerSlider() {
   };
 
   return (
-    <section aria-label="Community photo slideshow" className="relative w-full overflow-hidden">
+    <section aria-label={t("sliderAriaLabel")} className="relative w-full overflow-hidden">
       {/* aspect-[4/3] on mobile, wide panoramic on md+ */}
       <div className="relative aspect-[4/3] md:aspect-[21/7] w-full bg-muted">
         {SLIDES.map((src, i) => (
@@ -65,7 +67,7 @@ export function BannerSlider() {
             {loaded.has(i) && (
               <Image
                 src={src}
-                alt={`OBIGBO community banner ${i + 1}`}
+                alt={t("sliderBannerAlt", { index: i + 1 })}
                 fill
                 className="object-cover"
                 priority={i === 0}
@@ -80,7 +82,7 @@ export function BannerSlider() {
       <div
         className="absolute bottom-3 left-0 right-0 flex justify-center gap-2"
         role="tablist"
-        aria-label="Slide navigation"
+        aria-label={t("sliderDotsAriaLabel")}
       >
         {SLIDES.map((_, i) => (
           <button

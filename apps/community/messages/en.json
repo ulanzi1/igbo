@@ -81,7 +81,10 @@
     "stat1": "Growing community of Igbo people worldwide",
     "stat2": "Connecting members across 15+ countries",
     "stat3": "Preserving traditions, building bridges",
-    "socialProofHeading": "Our Community"
+    "socialProofHeading": "Our Community",
+    "sliderAriaLabel": "Community photo slideshow",
+    "sliderDotsAriaLabel": "Slide navigation",
+    "sliderBannerAlt": "OBIGBO community banner {index}"
   },
   "Articles": {
     "title": "Articles",
