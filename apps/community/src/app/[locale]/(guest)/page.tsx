@@ -72,7 +72,7 @@ export default async function SplashPage({ params }: { params: Promise<{ locale:
       {/* Hero section */}
       <section className="flex flex-col items-center justify-center gap-6 px-4 py-16 md:py-24 text-center">
         <h1 className="text-4xl md:text-5xl font-bold text-primary">
-          OB<span className="text-secondary">IG</span>BO
+          OB<span className="text-accent">IG</span>BO
         </h1>
         <p className="text-xl md:text-2xl font-medium text-foreground">{t("subtitle")}</p>
         <p className="text-base md:text-lg text-muted-foreground max-w-2xl">{t("tagline")}</p>
