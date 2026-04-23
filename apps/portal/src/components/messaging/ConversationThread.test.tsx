@@ -15,7 +15,8 @@ vi.mock("next-auth/react", () => ({
 
 // ── i18n mock ─────────────────────────────────────────────────────────────────
 vi.mock("next-intl", () => ({
-  useTranslations: () => (key: string) => {
+  useTranslations: () => (key: string, params?: Record<string, string>) => {
+    if (key === "typing" && params?.name) return `${params.name} is typing...`;
     const map: Record<string, string> = {
       "Portal.messages.today": "Today",
       "Portal.messages.empty": "No messages yet",
@@ -41,6 +42,7 @@ vi.mock("next-intl", () => ({
       connectionLost: "Connection lost.",
       reconnecting: "Reconnecting…",
       retryPrompt: "Failed to send. Tap to retry.",
+      typingUnknown: "Typing...",
     };
     return map[key] ?? key;
   },
@@ -54,9 +56,12 @@ vi.mock("@/providers/density-context", () => ({
 }));
 
 // ── usePortalSocket mock ─────────────────────────────────────────────────────
+const mockSocketEmit = vi.fn();
+const socketState = { socket: null as { emit: typeof mockSocketEmit } | null };
+
 vi.mock("@/providers/SocketProvider", () => ({
   usePortalSocket: () => ({
-    portalSocket: null,
+    portalSocket: socketState.socket,
     isConnected: true,
     connectionPhase: "connected",
   }),
@@ -78,6 +83,19 @@ vi.mock("@/hooks/use-portal-messages", () => ({
     loadOlder: mockLoadOlder,
     sendMessage: mockSendMessage,
     retryMessage: vi.fn(),
+  }),
+}));
+
+// ── useTypingIndicator mock ───────────────────────────────────────────────────
+const typingState: { typingUserId: string | null } = { typingUserId: null };
+const mockEmitTypingStart = vi.fn();
+const mockEmitTypingStop = vi.fn();
+
+vi.mock("@/hooks/use-typing-indicator", () => ({
+  useTypingIndicator: () => ({
+    typingUserId: typingState.typingUserId,
+    emitTypingStart: mockEmitTypingStart,
+    emitTypingStop: mockEmitTypingStop,
   }),
 }));
 
@@ -103,6 +121,11 @@ beforeEach(() => {
   messagesState.isLoading = false;
   messagesState.hasMore = false;
   sessionState.data = { user: { id: "user-1" } };
+  socketState.socket = null;
+  mockSocketEmit.mockReset();
+  typingState.typingUserId = null;
+  mockEmitTypingStart.mockReset();
+  mockEmitTypingStop.mockReset();
 });
 
 describe("ConversationThread", () => {
@@ -180,5 +203,72 @@ describe("ConversationThread", () => {
     const { getAllByRole } = render(<ConversationThread applicationId={APP_ID} />);
     // There should be 2 date separators (one for each day)
     expect(getAllByRole("separator")).toHaveLength(2);
+  });
+
+  it("emits message:read when mounted with messages from other participant", async () => {
+    socketState.socket = { emit: mockSocketEmit };
+    messagesState.messages = [makeMsg("msg-1", "Hi from other", "user-2")];
+
+    render(<ConversationThread applicationId={APP_ID} conversationId="conv-1" />);
+
+    await waitFor(() =>
+      expect(mockSocketEmit).toHaveBeenCalledWith("message:read", { conversationId: "conv-1" }),
+    );
+  });
+
+  it("does NOT emit message:read when all messages are from self", async () => {
+    socketState.socket = { emit: mockSocketEmit };
+    // All messages from "user-1" (the current user from sessionState)
+    messagesState.messages = [makeMsg("msg-1", "My message", "user-1")];
+
+    render(<ConversationThread applicationId={APP_ID} conversationId="conv-1" />);
+
+    // Give effect time to run
+    await new Promise((r) => setTimeout(r, 20));
+    const readCalls = mockSocketEmit.mock.calls.filter(
+      (call: unknown[]) => call[0] === "message:read",
+    );
+    expect(readCalls).toHaveLength(0);
+  });
+
+  it("does NOT emit message:read when socket is null", async () => {
+    socketState.socket = null;
+    messagesState.messages = [makeMsg("msg-1", "Hi from other", "user-2")];
+
+    render(<ConversationThread applicationId={APP_ID} conversationId="conv-1" />);
+
+    await new Promise((r) => setTimeout(r, 20));
+    expect(mockSocketEmit).not.toHaveBeenCalled();
+  });
+
+  it("shows typing indicator when typingUserId is set", () => {
+    typingState.typingUserId = "user-2";
+    const { getByTestId } = render(
+      <ConversationThread applicationId={APP_ID} otherParticipantName="Bob" />,
+    );
+    expect(getByTestId("typing-indicator")).toBeDefined();
+  });
+
+  it("does NOT show typing indicator when typingUserId is null", () => {
+    typingState.typingUserId = null;
+    const { queryByTestId } = render(<ConversationThread applicationId={APP_ID} />);
+    expect(queryByTestId("typing-indicator")).toBeNull();
+  });
+
+  it("does NOT show typing indicator when readOnly is true", () => {
+    typingState.typingUserId = "user-2";
+    const { queryByTestId } = render(<ConversationThread applicationId={APP_ID} readOnly={true} />);
+    expect(queryByTestId("typing-indicator")).toBeNull();
+  });
+
+  it("emitTypingStop is called when user sends a message", async () => {
+    mockSendMessage.mockResolvedValue(undefined);
+    const { getByRole } = render(<ConversationThread applicationId={APP_ID} />);
+
+    const textarea = getByRole("textbox", { name: "Message" });
+    fireEvent.change(textarea, { target: { value: "Hello" } });
+    fireEvent.keyDown(textarea, { key: "Enter", shiftKey: false });
+
+    await waitFor(() => expect(mockEmitTypingStop).toHaveBeenCalled());
   });
 });

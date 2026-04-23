@@ -7,9 +7,19 @@ interface MessageInputProps {
   onSend: (content: string) => void;
   disabled?: boolean;
   isSending?: boolean;
+  /** Called on every keystroke — throttling is handled by the caller */
+  onTyping?: () => void;
+  /** Called immediately when message is sent */
+  onTypingStop?: () => void;
 }
 
-export function MessageInput({ onSend, disabled = false, isSending = false }: MessageInputProps) {
+export function MessageInput({
+  onSend,
+  disabled = false,
+  isSending = false,
+  onTyping,
+  onTypingStop,
+}: MessageInputProps) {
   const t = useTranslations("Portal.messages");
   const [value, setValue] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -24,11 +34,13 @@ export function MessageInput({ onSend, disabled = false, isSending = false }: Me
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setValue(e.target.value);
     requestAnimationFrame(resetHeight);
+    onTyping?.();
   };
 
   const submit = useCallback(() => {
     const trimmed = value.trim();
     if (!trimmed || disabled || isSending) return;
+    onTypingStop?.();
     onSend(trimmed);
     setValue("");
     // Reset height on next tick
@@ -37,7 +49,7 @@ export function MessageInput({ onSend, disabled = false, isSending = false }: Me
         textareaRef.current.style.height = "auto";
       }
     });
-  }, [value, disabled, isSending, onSend]);
+  }, [value, disabled, isSending, onSend, onTypingStop]);
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {

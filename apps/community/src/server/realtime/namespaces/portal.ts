@@ -6,8 +6,10 @@ import {
   ROOM_USER,
   ROOM_CONVERSATION,
   CHAT_REPLAY_WINDOW_MS,
+  REDIS_TYPING_KEY,
+  TYPING_EXPIRE_SECONDS,
 } from "@igbo/config/realtime";
-import { isConversationMember } from "@igbo/db/queries/chat-conversations";
+import { isConversationMember, markConversationRead } from "@igbo/db/queries/chat-conversations";
 import { getMessagesSince } from "@igbo/db/queries/chat-messages";
 import { getPortalConversationIdsForUser } from "@igbo/db/queries/portal-conversations";
 import { authMiddleware } from "../middleware/auth";
@@ -82,6 +84,113 @@ export function setupPortalNamespace(io: Server, redis: Redis): void {
         });
 
         if (typeof ack === "function") ack({ ok: true });
+      },
+    );
+
+    // typing:start — store in Redis and broadcast to room (excluding sender)
+    socket.on(
+      "typing:start",
+      async (payload: { conversationId: string }, ack?: (r: unknown) => void) => {
+        try {
+          const { conversationId } = payload ?? {};
+          if (!conversationId || typeof conversationId !== "string") {
+            if (typeof ack === "function") ack({ error: "Invalid conversationId" });
+            return;
+          }
+          const isMember = await isConversationMember(conversationId, userId, "portal");
+          if (!isMember) {
+            if (typeof ack === "function") ack({ error: "Not a member" });
+            return;
+          }
+          // Store typing state in Redis with auto-expire (idempotent SET EX — NOT NX)
+          await redis.set(
+            REDIS_TYPING_KEY(conversationId, userId),
+            "1",
+            "EX",
+            TYPING_EXPIRE_SECONDS,
+          );
+          // Broadcast to room EXCLUDING sender
+          socket.to(ROOM_CONVERSATION(conversationId)).emit("typing:start", {
+            userId,
+            conversationId,
+            timestamp: new Date().toISOString(),
+          });
+          if (typeof ack === "function") ack({ ok: true });
+        } catch (err: unknown) {
+          console.error(
+            JSON.stringify({
+              level: "error",
+              message: "portal.typing_start.failed",
+              userId,
+              error: String(err),
+            }),
+          );
+          if (typeof ack === "function") ack({ error: "Internal error" });
+        }
+      },
+    );
+
+    // typing:stop — delete Redis key and broadcast to room (excluding sender)
+    socket.on("typing:stop", async (payload: { conversationId: string }) => {
+      try {
+        const { conversationId } = payload ?? {};
+        if (!conversationId || typeof conversationId !== "string") return;
+        const isMember = await isConversationMember(conversationId, userId, "portal");
+        if (!isMember) return;
+        await redis.del(REDIS_TYPING_KEY(conversationId, userId));
+        socket.to(ROOM_CONVERSATION(conversationId)).emit("typing:stop", {
+          userId,
+          conversationId,
+          timestamp: new Date().toISOString(),
+        });
+      } catch (err: unknown) {
+        console.error(
+          JSON.stringify({
+            level: "error",
+            message: "portal.typing_stop.failed",
+            userId,
+            error: String(err),
+          }),
+        );
+      }
+    });
+
+    // message:read — update last_read_at in DB and broadcast to ALL room members (including self)
+    socket.on(
+      "message:read",
+      async (payload: { conversationId: string }, ack?: (r: unknown) => void) => {
+        try {
+          const { conversationId } = payload ?? {};
+          if (!conversationId || typeof conversationId !== "string") {
+            if (typeof ack === "function") ack({ error: "Invalid conversationId" });
+            return;
+          }
+          const isMember = await isConversationMember(conversationId, userId, "portal");
+          if (!isMember) {
+            if (typeof ack === "function") ack({ error: "Not a member" });
+            return;
+          }
+          const now = new Date();
+          await markConversationRead(conversationId, userId);
+          // Broadcast to ALL members in the room (including sender — for other tabs / unread count)
+          portalNsp.to(ROOM_CONVERSATION(conversationId)).emit("message:read", {
+            conversationId,
+            readerId: userId,
+            lastReadAt: now.toISOString(),
+            timestamp: now.toISOString(),
+          });
+          if (typeof ack === "function") ack({ ok: true });
+        } catch (err: unknown) {
+          console.error(
+            JSON.stringify({
+              level: "error",
+              message: "portal.message_read.failed",
+              userId,
+              error: String(err),
+            }),
+          );
+          if (typeof ack === "function") ack({ error: "Internal error" });
+        }
       },
     );
 

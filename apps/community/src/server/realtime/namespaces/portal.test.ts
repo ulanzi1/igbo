@@ -6,6 +6,8 @@ vi.mock("@igbo/config/realtime", () => ({
   ROOM_USER: (id: string) => `user:${id}`,
   ROOM_CONVERSATION: (id: string) => `conversation:${id}`,
   CHAT_REPLAY_WINDOW_MS: 24 * 60 * 60 * 1000,
+  REDIS_TYPING_KEY: (convId: string, uid: string) => `typing:${convId}:${uid}`,
+  TYPING_EXPIRE_SECONDS: 5,
   SOCKET_RATE_LIMITS: {
     GLOBAL: { maxEvents: 60, windowMs: 1_000 },
     TYPING_START: { maxEvents: 1, windowMs: 2_000 },
@@ -15,8 +17,10 @@ vi.mock("@igbo/config/realtime", () => ({
 }));
 
 const mockIsConversationMember = vi.hoisted(() => vi.fn());
+const mockMarkConversationRead = vi.hoisted(() => vi.fn());
 vi.mock("@igbo/db/queries/chat-conversations", () => ({
   isConversationMember: mockIsConversationMember,
+  markConversationRead: mockMarkConversationRead,
 }));
 
 const mockGetMessagesSince = vi.hoisted(() => vi.fn());
@@ -92,6 +96,7 @@ function makeRedis() {
   return {
     set: vi.fn().mockResolvedValue("OK"),
     get: vi.fn().mockResolvedValue(null),
+    del: vi.fn().mockResolvedValue(1),
   } as unknown as Redis;
 }
 
@@ -100,11 +105,13 @@ function setupAndConnect(userId = USER_ID) {
   let capturedHandler: (socket: ReturnType<typeof makeSocket>) => void = () => {};
 
   const useCallbacks: ((s: unknown, next: (err?: Error) => void) => void)[] = [];
+  const nspToChain = { emit: vi.fn() };
   const nsp = {
     use: vi.fn((cb: (s: unknown, next: (err?: Error) => void) => void) => useCallbacks.push(cb)),
     on: vi.fn((event: string, handler: (s: ReturnType<typeof makeSocket>) => void) => {
       if (event === "connection") capturedHandler = handler;
     }),
+    to: vi.fn().mockReturnValue(nspToChain),
   } as unknown as Namespace;
 
   const io = { of: vi.fn().mockReturnValue(nsp) };
@@ -114,7 +121,7 @@ function setupAndConnect(userId = USER_ID) {
   const socket = makeSocket(userId);
   capturedHandler(socket);
 
-  return { socket, redis, nsp, io };
+  return { socket, redis, nsp, io, nspToChain };
 }
 
 beforeEach(() => {
@@ -124,6 +131,7 @@ beforeEach(() => {
   mockGetPortalConversationIdsForUser.mockResolvedValue([]);
   mockIsConversationMember.mockResolvedValue(true);
   mockGetMessagesSince.mockResolvedValue([]);
+  mockMarkConversationRead.mockResolvedValue(undefined);
 });
 
 // ── Basic namespace setup ────────────────────────────────────────────────────
@@ -474,5 +482,237 @@ describe("setupPortalNamespace — disconnect", () => {
       ),
     );
     consoleSpy.mockRestore();
+  });
+});
+
+// ── typing:start handler ──────────────────────────────────────────────────────
+
+describe("setupPortalNamespace — typing:start", () => {
+  it("validates membership with context='portal'", async () => {
+    const { socket } = setupAndConnect();
+    await vi.waitFor(() =>
+      expect(socket.on).toHaveBeenCalledWith("typing:start", expect.any(Function)),
+    );
+    socket._trigger("typing:start", { conversationId: CONV_ID }, vi.fn());
+    await vi.waitFor(() =>
+      expect(mockIsConversationMember).toHaveBeenCalledWith(CONV_ID, USER_ID, "portal"),
+    );
+  });
+
+  it("sets Redis typing key with TYPING_EXPIRE_SECONDS TTL", async () => {
+    const { socket, redis } = setupAndConnect();
+    await vi.waitFor(() =>
+      expect(socket.on).toHaveBeenCalledWith("typing:start", expect.any(Function)),
+    );
+    socket._trigger("typing:start", { conversationId: CONV_ID }, vi.fn());
+    await vi.waitFor(() =>
+      expect(redis.set).toHaveBeenCalledWith(`typing:${CONV_ID}:${USER_ID}`, "1", "EX", 5),
+    );
+  });
+
+  it("broadcasts typing:start to room excluding sender", async () => {
+    const { socket } = setupAndConnect();
+    await vi.waitFor(() =>
+      expect(socket.on).toHaveBeenCalledWith("typing:start", expect.any(Function)),
+    );
+    socket._trigger("typing:start", { conversationId: CONV_ID }, vi.fn());
+    await vi.waitFor(() => expect(socket.to).toHaveBeenCalledWith(`conversation:${CONV_ID}`));
+    await vi.waitFor(() =>
+      expect(socket._toChain.emit).toHaveBeenCalledWith(
+        "typing:start",
+        expect.objectContaining({ userId: USER_ID, conversationId: CONV_ID }),
+      ),
+    );
+  });
+
+  it("acks ok:true on success", async () => {
+    const { socket } = setupAndConnect();
+    await vi.waitFor(() =>
+      expect(socket.on).toHaveBeenCalledWith("typing:start", expect.any(Function)),
+    );
+    const ack = vi.fn();
+    socket._trigger("typing:start", { conversationId: CONV_ID }, ack);
+    await vi.waitFor(() => expect(ack).toHaveBeenCalledWith({ ok: true }));
+  });
+
+  it("acks error when not a member", async () => {
+    mockIsConversationMember.mockResolvedValue(false);
+    const { socket } = setupAndConnect();
+    await vi.waitFor(() =>
+      expect(socket.on).toHaveBeenCalledWith("typing:start", expect.any(Function)),
+    );
+    const ack = vi.fn();
+    socket._trigger("typing:start", { conversationId: CONV_ID }, ack);
+    await vi.waitFor(() => expect(ack).toHaveBeenCalledWith({ error: "Not a member" }));
+  });
+
+  it("acks error on invalid/empty conversationId", async () => {
+    const { socket } = setupAndConnect();
+    await vi.waitFor(() =>
+      expect(socket.on).toHaveBeenCalledWith("typing:start", expect.any(Function)),
+    );
+    const ack = vi.fn();
+    socket._trigger("typing:start", { conversationId: "" }, ack);
+    await vi.waitFor(() => expect(ack).toHaveBeenCalledWith({ error: "Invalid conversationId" }));
+  });
+});
+
+// ── typing:stop handler ───────────────────────────────────────────────────────
+
+describe("setupPortalNamespace — typing:stop", () => {
+  it("validates membership before deleting Redis key", async () => {
+    const { socket } = setupAndConnect();
+    await vi.waitFor(() =>
+      expect(socket.on).toHaveBeenCalledWith("typing:stop", expect.any(Function)),
+    );
+    socket._trigger("typing:stop", { conversationId: CONV_ID });
+    await vi.waitFor(() =>
+      expect(mockIsConversationMember).toHaveBeenCalledWith(CONV_ID, USER_ID, "portal"),
+    );
+  });
+
+  it("deletes Redis typing key on stop", async () => {
+    const { socket, redis } = setupAndConnect();
+    await vi.waitFor(() =>
+      expect(socket.on).toHaveBeenCalledWith("typing:stop", expect.any(Function)),
+    );
+    socket._trigger("typing:stop", { conversationId: CONV_ID });
+    await vi.waitFor(() => expect(redis.del).toHaveBeenCalledWith(`typing:${CONV_ID}:${USER_ID}`));
+  });
+
+  it("broadcasts typing:stop to room excluding sender", async () => {
+    const { socket } = setupAndConnect();
+    await vi.waitFor(() =>
+      expect(socket.on).toHaveBeenCalledWith("typing:stop", expect.any(Function)),
+    );
+    socket._trigger("typing:stop", { conversationId: CONV_ID });
+    await vi.waitFor(() => expect(socket.to).toHaveBeenCalledWith(`conversation:${CONV_ID}`));
+    await vi.waitFor(() =>
+      expect(socket._toChain.emit).toHaveBeenCalledWith(
+        "typing:stop",
+        expect.objectContaining({ userId: USER_ID, conversationId: CONV_ID }),
+      ),
+    );
+  });
+
+  it("silently ignores non-member (no ack on stop)", async () => {
+    mockIsConversationMember.mockResolvedValue(false);
+    const { socket, redis } = setupAndConnect();
+    await vi.waitFor(() =>
+      expect(socket.on).toHaveBeenCalledWith("typing:stop", expect.any(Function)),
+    );
+    socket._trigger("typing:stop", { conversationId: CONV_ID });
+    await new Promise((r) => setTimeout(r, 20));
+    expect(redis.del).not.toHaveBeenCalled();
+    expect(socket._toChain.emit).not.toHaveBeenCalled();
+  });
+});
+
+// ── message:read handler ──────────────────────────────────────────────────────
+
+describe("setupPortalNamespace — message:read", () => {
+  it("validates membership with context='portal'", async () => {
+    const { socket } = setupAndConnect();
+    await vi.waitFor(() =>
+      expect(socket.on).toHaveBeenCalledWith("message:read", expect.any(Function)),
+    );
+    socket._trigger("message:read", { conversationId: CONV_ID }, vi.fn());
+    await vi.waitFor(() =>
+      expect(mockIsConversationMember).toHaveBeenCalledWith(CONV_ID, USER_ID, "portal"),
+    );
+  });
+
+  it("calls markConversationRead with correct args", async () => {
+    const { socket } = setupAndConnect();
+    await vi.waitFor(() =>
+      expect(socket.on).toHaveBeenCalledWith("message:read", expect.any(Function)),
+    );
+    socket._trigger("message:read", { conversationId: CONV_ID }, vi.fn());
+    await vi.waitFor(() => expect(mockMarkConversationRead).toHaveBeenCalledWith(CONV_ID, USER_ID));
+  });
+
+  it("broadcasts message:read to ALL via namespace (includes sender)", async () => {
+    const { socket, nsp, nspToChain } = setupAndConnect();
+    await vi.waitFor(() =>
+      expect(socket.on).toHaveBeenCalledWith("message:read", expect.any(Function)),
+    );
+    socket._trigger("message:read", { conversationId: CONV_ID }, vi.fn());
+    await vi.waitFor(() => expect(nsp.to).toHaveBeenCalledWith(`conversation:${CONV_ID}`));
+    await vi.waitFor(() =>
+      expect(nspToChain.emit).toHaveBeenCalledWith(
+        "message:read",
+        expect.objectContaining({
+          conversationId: CONV_ID,
+          readerId: USER_ID,
+        }),
+      ),
+    );
+  });
+
+  it("broadcast includes readerId, lastReadAt, conversationId", async () => {
+    const { socket, nspToChain } = setupAndConnect();
+    await vi.waitFor(() =>
+      expect(socket.on).toHaveBeenCalledWith("message:read", expect.any(Function)),
+    );
+    socket._trigger("message:read", { conversationId: CONV_ID }, vi.fn());
+    await vi.waitFor(() =>
+      expect(nspToChain.emit).toHaveBeenCalledWith(
+        "message:read",
+        expect.objectContaining({
+          conversationId: CONV_ID,
+          readerId: USER_ID,
+          lastReadAt: expect.any(String),
+          timestamp: expect.any(String),
+        }),
+      ),
+    );
+  });
+
+  it("does NOT use socket.to() for message:read broadcast", async () => {
+    const { socket, nspToChain } = setupAndConnect();
+    await vi.waitFor(() =>
+      expect(socket.on).toHaveBeenCalledWith("message:read", expect.any(Function)),
+    );
+    socket._trigger("message:read", { conversationId: CONV_ID }, vi.fn());
+    // namespace-level broadcast should fire
+    await vi.waitFor(() =>
+      expect(nspToChain.emit).toHaveBeenCalledWith("message:read", expect.any(Object)),
+    );
+    // socket-level broadcast should NOT be used for message:read
+    const socketReadEmit = (socket._toChain.emit as ReturnType<typeof vi.fn>).mock.calls.filter(
+      (call: unknown[]) => call[0] === "message:read",
+    );
+    expect(socketReadEmit).toHaveLength(0);
+  });
+
+  it("acks error when not a member", async () => {
+    mockIsConversationMember.mockResolvedValue(false);
+    const { socket } = setupAndConnect();
+    await vi.waitFor(() =>
+      expect(socket.on).toHaveBeenCalledWith("message:read", expect.any(Function)),
+    );
+    const ack = vi.fn();
+    socket._trigger("message:read", { conversationId: CONV_ID }, ack);
+    await vi.waitFor(() => expect(ack).toHaveBeenCalledWith({ error: "Not a member" }));
+  });
+
+  it("acks error on invalid/empty conversationId", async () => {
+    const { socket } = setupAndConnect();
+    await vi.waitFor(() =>
+      expect(socket.on).toHaveBeenCalledWith("message:read", expect.any(Function)),
+    );
+    const ack = vi.fn();
+    socket._trigger("message:read", { conversationId: "" }, ack);
+    await vi.waitFor(() => expect(ack).toHaveBeenCalledWith({ error: "Invalid conversationId" }));
+  });
+
+  it("acks ok:true on success", async () => {
+    const { socket } = setupAndConnect();
+    await vi.waitFor(() =>
+      expect(socket.on).toHaveBeenCalledWith("message:read", expect.any(Function)),
+    );
+    const ack = vi.fn();
+    socket._trigger("message:read", { conversationId: CONV_ID }, ack);
+    await vi.waitFor(() => expect(ack).toHaveBeenCalledWith({ ok: true }));
   });
 });

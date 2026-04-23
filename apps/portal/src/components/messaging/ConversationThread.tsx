@@ -4,10 +4,12 @@ import { useEffect, useLayoutEffect, useRef, useState, useCallback } from "react
 import { useTranslations } from "next-intl";
 import { useSession } from "next-auth/react";
 import { usePortalMessages } from "@/hooks/use-portal-messages";
+import { useTypingIndicator } from "@/hooks/use-typing-indicator";
 import { usePortalSocket } from "@/providers/SocketProvider";
 import { MessageBubble } from "./MessageBubble";
 import { DateSeparator } from "./DateSeparator";
 import { MessageInput } from "./MessageInput";
+import { TypingIndicator } from "./TypingIndicator";
 
 interface ConversationThreadProps {
   applicationId: string;
@@ -36,16 +38,23 @@ export function ConversationThread({
   const t = useTranslations("Portal.messages");
   const { data: session } = useSession();
   const userId = session?.user?.id as string | undefined;
-  const { isConnected, connectionPhase } = usePortalSocket(); // F8
+  const { portalSocket, isConnected, connectionPhase } = usePortalSocket(); // F8
 
   const { messages, isLoading, hasMore, loadOlder, sendMessage, retryMessage } = usePortalMessages({
     applicationId,
     conversationId,
   });
 
+  const { typingUserId, emitTypingStart, emitTypingStop } = useTypingIndicator({
+    conversationId,
+    userId,
+  });
+
   const listRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const [isSending, setIsSending] = useState(false);
+  // Track other-party message count to emit message:read only when new messages arrive from them
+  const otherMsgCountRef = useRef(0);
   const [showNewIndicator, setShowNewIndicator] = useState(false);
   const isAtBottomRef = useRef(true);
   // F16: Scroll preservation refs
@@ -120,6 +129,7 @@ export function ConversationThread({
 
   const handleSend = useCallback(
     async (content: string) => {
+      emitTypingStop(); // Clear typing indicator immediately on send
       setIsSending(true);
       try {
         await sendMessage(content);
@@ -127,7 +137,7 @@ export function ConversationThread({
         setIsSending(false);
       }
     },
-    [sendMessage],
+    [sendMessage, emitTypingStop],
   );
 
   // F7: Wire retry to failed messages
@@ -137,6 +147,16 @@ export function ConversationThread({
     },
     [retryMessage],
   );
+
+  // Emit message:read when new messages from the other participant become visible
+  useEffect(() => {
+    if (!portalSocket || !conversationId || !userId) return;
+    const otherCount = messages.filter((m) => m.senderId !== userId && !m._optimisticId).length;
+    if (otherCount > otherMsgCountRef.current) {
+      portalSocket.emit("message:read", { conversationId });
+    }
+    otherMsgCountRef.current = otherCount;
+  }, [portalSocket, conversationId, messages, userId]);
 
   const scrollToBottom = () => {
     const el = listRef.current;
@@ -227,6 +247,9 @@ export function ConversationThread({
         </button>
       )}
 
+      {/* Typing indicator — shown above input when other participant is typing */}
+      {!readOnly && typingUserId && <TypingIndicator typingName={otherParticipantName} />}
+
       {/* Read-only banner or message input */}
       {readOnly ? (
         <div
@@ -236,7 +259,12 @@ export function ConversationThread({
           {t("readOnlyBanner")}
         </div>
       ) : (
-        <MessageInput onSend={handleSend} isSending={isSending} />
+        <MessageInput
+          onSend={handleSend}
+          isSending={isSending}
+          onTyping={emitTypingStart}
+          onTypingStop={emitTypingStop}
+        />
       )}
     </div>
   );

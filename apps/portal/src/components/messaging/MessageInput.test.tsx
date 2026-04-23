@@ -90,4 +90,23 @@ describe("MessageInput", () => {
     await user.type(textarea, "Hi");
     expect(getByRole("button", { name: "Send message" })).toBeDisabled();
   });
+
+  it("calls onTyping callback on input change", async () => {
+    const user = userEvent.setup();
+    const onTyping = vi.fn();
+    const { getByRole } = render(<MessageInput onSend={vi.fn()} onTyping={onTyping} />);
+    const textarea = getByRole("textbox", { name: "Message" });
+    await user.type(textarea, "H");
+    expect(onTyping).toHaveBeenCalled();
+  });
+
+  it("calls onTypingStop callback when message is sent", async () => {
+    const user = userEvent.setup();
+    const onTypingStop = vi.fn();
+    const { getByRole } = render(<MessageInput onSend={vi.fn()} onTypingStop={onTypingStop} />);
+    const textarea = getByRole("textbox", { name: "Message" });
+    await user.type(textarea, "Hello");
+    await user.click(getByRole("button", { name: "Send message" }));
+    expect(onTypingStop).toHaveBeenCalled();
+  });
 });

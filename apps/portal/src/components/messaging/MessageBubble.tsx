@@ -34,6 +34,13 @@ function StatusIcon({ status }: { status: MessageStatus | undefined }) {
       </span>
     );
   }
+  if (status === "read") {
+    return (
+      <span aria-hidden="true" className="text-primary text-xs font-medium">
+        ✓✓
+      </span>
+    );
+  }
   if (status === "failed") {
     return (
       <span aria-hidden="true" className="text-destructive text-xs">
