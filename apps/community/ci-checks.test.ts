@@ -19,6 +19,7 @@ import {
   scanNextLinkImports,
   KNOWN_VIOLATIONS,
 } from "../../scripts/ci-checks/check-next-link-import";
+import { scanRealtimeServerOnly } from "../../scripts/ci-checks/check-realtime-server-only";
 
 let tmpDir: string;
 
@@ -949,12 +950,244 @@ describe("scanNextLinkImports — run() integration", () => {
   });
 });
 
+// ─── Realtime server-only import guard ────────────────────────────────────────
+
+describe("scanRealtimeServerOnly", () => {
+  it("returns empty when entry point does not exist", () => {
+    // Guards against: scanner throwing when realtime dir is absent (e.g., test tmpdir)
+    const results = scanRealtimeServerOnly(tmpDir);
+    expect(results).toEqual([]);
+  });
+
+  it("returns empty when entry point has no server-only in graph", () => {
+    // Guards against: false positive on clean import graph
+    createFile(
+      "apps/community/src/server/realtime/index.ts",
+      `import { setup } from "./namespaces/chat";\nexport {};`,
+    );
+    createFile(
+      "apps/community/src/server/realtime/namespaces/chat.ts",
+      `import Redis from "ioredis";\nexport function setup() {}`,
+    );
+    const results = scanRealtimeServerOnly(tmpDir);
+    expect(results).toEqual([]);
+  });
+
+  it("detects direct import of server-only from entry point", () => {
+    // Guards against: scanner missing direct server-only import
+    createFile(
+      "apps/community/src/server/realtime/index.ts",
+      `import "server-only";\nimport { Server } from "socket.io";\nexport {};`,
+    );
+    const results = scanRealtimeServerOnly(tmpDir);
+    expect(results).toHaveLength(1);
+    expect(results[0].check).toBe("realtime-server-only");
+    expect(results[0].file).toContain("realtime/index.ts");
+    expect(results[0].match).toContain('imports "server-only"');
+  });
+
+  it("detects transitive server-only via relative import", () => {
+    // Guards against: scanner not following relative imports
+    createFile(
+      "apps/community/src/server/realtime/index.ts",
+      `import { auth } from "./middleware/auth";\nexport {};`,
+    );
+    createFile(
+      "apps/community/src/server/realtime/middleware/auth.ts",
+      `import { helper } from "./helper";\nexport function auth() {}`,
+    );
+    createFile(
+      "apps/community/src/server/realtime/middleware/helper.ts",
+      `import "server-only";\nexport function helper() {}`,
+    );
+    const results = scanRealtimeServerOnly(tmpDir);
+    expect(results).toHaveLength(1);
+    expect(results[0].file).toContain("helper.ts");
+    expect(results[0].match).toContain("→");
+  });
+
+  it("detects transitive server-only via @igbo/db package import", () => {
+    // Guards against: scanner not resolving @igbo/* workspace packages
+    createFile(
+      "apps/community/src/server/realtime/index.ts",
+      `import { getUser } from "@igbo/db/queries/auth-queries";\nexport {};`,
+    );
+    createFile(
+      "packages/db/src/queries/auth-queries.ts",
+      `import "server-only";\nexport function getUser() {}`,
+    );
+    const results = scanRealtimeServerOnly(tmpDir);
+    expect(results).toHaveLength(1);
+    expect(results[0].file).toContain("packages/db/src/queries/auth-queries.ts");
+  });
+
+  it("detects transitive server-only via @igbo/config package import", () => {
+    // Guards against: scanner not resolving @igbo/config subpath
+    createFile(
+      "apps/community/src/server/realtime/index.ts",
+      `import { FOO } from "@igbo/config/realtime";\nexport {};`,
+    );
+    createFile("packages/config/src/realtime.ts", `import "server-only";\nexport const FOO = 1;`);
+    const results = scanRealtimeServerOnly(tmpDir);
+    expect(results).toHaveLength(1);
+    expect(results[0].file).toContain("packages/config/src/realtime.ts");
+  });
+
+  it("detects transitive server-only via @/ path alias", () => {
+    // Guards against: scanner not resolving @/ alias to community/src
+    createFile(
+      "apps/community/src/server/realtime/index.ts",
+      `import type { Foo } from "@/types/events";\nimport { bar } from "@/lib/utils";\nexport {};`,
+    );
+    createFile("apps/community/src/types/events.ts", `export type Foo = string;`);
+    createFile(
+      "apps/community/src/lib/utils.ts",
+      `import "server-only";\nexport function bar() {}`,
+    );
+    const results = scanRealtimeServerOnly(tmpDir);
+    expect(results).toHaveLength(1);
+    expect(results[0].file).toContain("lib/utils.ts");
+  });
+
+  it("skips type-only imports (import type has no runtime effect)", () => {
+    // Guards against: false positive on import type from server-only module
+    createFile(
+      "apps/community/src/server/realtime/index.ts",
+      `import type { Foo } from "./foo";\nexport {};`,
+    );
+    createFile(
+      "apps/community/src/server/realtime/foo.ts",
+      `import "server-only";\nexport type Foo = string;`,
+    );
+    const results = scanRealtimeServerOnly(tmpDir);
+    expect(results).toEqual([]);
+  });
+
+  it("reports multiple violations in the graph", () => {
+    // Guards against: scanner stopping after first violation
+    createFile(
+      "apps/community/src/server/realtime/index.ts",
+      `import { a } from "./module-a";\nimport { b } from "./module-b";\nexport {};`,
+    );
+    createFile(
+      "apps/community/src/server/realtime/module-a.ts",
+      `import "server-only";\nexport const a = 1;`,
+    );
+    createFile(
+      "apps/community/src/server/realtime/module-b.ts",
+      `import "server-only";\nexport const b = 2;`,
+    );
+    const results = scanRealtimeServerOnly(tmpDir);
+    expect(results).toHaveLength(2);
+    expect(results.every((r) => r.check === "realtime-server-only")).toBe(true);
+  });
+
+  it("handles circular imports without infinite loop", () => {
+    // Guards against: infinite loop on circular dependencies
+    createFile(
+      "apps/community/src/server/realtime/index.ts",
+      `import { a } from "./circular-a";\nexport {};`,
+    );
+    createFile(
+      "apps/community/src/server/realtime/circular-a.ts",
+      `import { b } from "./circular-b";\nexport const a = 1;`,
+    );
+    createFile(
+      "apps/community/src/server/realtime/circular-b.ts",
+      `import { a } from "./circular-a";\nexport const b = 2;`,
+    );
+    const results = scanRealtimeServerOnly(tmpDir);
+    expect(results).toEqual([]);
+  });
+
+  it("import chain includes full path from entry to violation", () => {
+    // Guards against: chain being empty or incomplete
+    createFile(
+      "apps/community/src/server/realtime/index.ts",
+      `import { setup } from "./namespaces/portal";\nexport {};`,
+    );
+    createFile(
+      "apps/community/src/server/realtime/namespaces/portal.ts",
+      `import { query } from "@igbo/db/queries/bad-query";\nexport function setup() {}`,
+    );
+    createFile(
+      "packages/db/src/queries/bad-query.ts",
+      `import "server-only";\nexport function query() {}`,
+    );
+    const results = scanRealtimeServerOnly(tmpDir);
+    expect(results).toHaveLength(1);
+    const chain = results[0].match;
+    expect(chain).toContain("realtime/index.ts");
+    expect(chain).toContain("namespaces/portal.ts");
+    expect(chain).toContain("bad-query.ts");
+  });
+
+  it("excludes @igbo/db barrel from traversal (Drizzle schema registration pattern)", () => {
+    // Guards against: false positive on @igbo/db barrel which imports all schemas
+    // The db barrel is a Drizzle ORM requirement — all schemas registered via `import *`.
+    // Traversal is skipped, but the barrel ITSELF is still checked for server-only.
+    createFile(
+      "apps/community/src/server/realtime/index.ts",
+      `import { db } from "@igbo/db";\nexport {};`,
+    );
+    // Barrel file imports a schema with server-only (like the real codebase)
+    createFile(
+      "packages/db/src/index.ts",
+      `import * as portalSchema from "./schema/portal-job-postings";\nexport const db = {};`,
+    );
+    createFile(
+      "packages/db/src/schema/portal-job-postings.ts",
+      `import "server-only";\nexport const table = {};`,
+    );
+    const results = scanRealtimeServerOnly(tmpDir);
+    // Barrel traversal is excluded — schema file not reached
+    expect(results).toEqual([]);
+  });
+
+  it("still detects server-only in the @igbo/db barrel itself", () => {
+    // Guards against: exclusion hiding server-only IN the barrel file
+    createFile(
+      "apps/community/src/server/realtime/index.ts",
+      `import { db } from "@igbo/db";\nexport {};`,
+    );
+    createFile("packages/db/src/index.ts", `import "server-only";\nexport const db = {};`);
+    const results = scanRealtimeServerOnly(tmpDir);
+    expect(results).toHaveLength(1);
+    expect(results[0].file).toBe("packages/db/src/index.ts");
+  });
+
+  it("still detects server-only in @igbo/db subpath imports (not excluded)", () => {
+    // Guards against: exclusion being too broad — subpath imports MUST be checked
+    createFile(
+      "apps/community/src/server/realtime/index.ts",
+      `import { getUser } from "@igbo/db/queries/portal-applications";\nexport {};`,
+    );
+    createFile(
+      "packages/db/src/queries/portal-applications.ts",
+      `import "server-only";\nexport function getUser() {}`,
+    );
+    const results = scanRealtimeServerOnly(tmpDir);
+    expect(results).toHaveLength(1);
+    expect(results[0].file).toContain("portal-applications.ts");
+  });
+
+  it("ignores external npm packages (no false positive on ioredis, socket.io, etc.)", () => {
+    // Guards against: scanner crashing or false-positive on unresolvable npm imports
+    createFile(
+      "apps/community/src/server/realtime/index.ts",
+      `import { Server } from "socket.io";\nimport Redis from "ioredis";\nimport { createServer } from "node:http";\nexport {};`,
+    );
+    const results = scanRealtimeServerOnly(tmpDir);
+    expect(results).toEqual([]);
+  });
+});
+
 // ─── Integration canary ───────────────────────────────────────────────────────
 
 describe("integration canary — real codebase", () => {
   const ROOT = resolve(__dirname, "../..");
 
-  it("all six scanners report zero violations against current codebase", () => {
+  it("all seven scanners report zero violations against current codebase", () => {
     // next-link-import: filter out known violations (they are warnings, not failures)
     const knownSet = new Set(KNOWN_VIOLATIONS);
     const nextLinkNew = scanNextLinkImports(ROOT).filter((r) => !knownSet.has(r.file));
@@ -966,6 +1199,7 @@ describe("integration canary — real codebase", () => {
       ...scanHardcodedJsxStrings(ROOT),
       ...scanUnsanitizedHtml(ROOT),
       ...nextLinkNew,
+      ...scanRealtimeServerOnly(ROOT),
     ];
     expect(
       results,

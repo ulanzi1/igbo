@@ -9,6 +9,7 @@ import {
   scanNextLinkImports,
   KNOWN_VIOLATIONS as NEXT_LINK_KNOWN_VIOLATIONS,
 } from "./check-next-link-import";
+import { scanRealtimeServerOnly } from "./check-realtime-server-only";
 import type { CheckResult } from "./types";
 
 // All known ci-allow-<reason> tags (existing + new)
@@ -205,6 +206,9 @@ function run(): void {
   const unsanitizedHtml = disabledChecks.has("unsanitized-html")
     ? []
     : scanUnsanitizedHtml(rootDir);
+  const realtimeServerOnly = disabledChecks.has("realtime-server-only")
+    ? []
+    : scanRealtimeServerOnly(rootDir);
 
   // next-link-import scanner with known-violation filtering
   const nextLinkAll = disabledChecks.has("next-link-import") ? [] : scanNextLinkImports(rootDir);
@@ -240,6 +244,7 @@ function run(): void {
     ...hardcodedJsx,
     ...unsanitizedHtml,
     ...nextLinkNew,
+    ...realtimeServerOnly,
     ...registryViolations,
   ];
 
@@ -273,6 +278,7 @@ function run(): void {
     "unsanitized-html",
     "unsanitized-html-extraction-failed",
     "next-link-import",
+    "realtime-server-only",
     "allowlist-registry-drift",
   ];
   for (const check of checkOrder) {
@@ -301,6 +307,7 @@ function run(): void {
     "unsanitized-html",
     "unsanitized-html-extraction-failed",
     "next-link-import",
+    "realtime-server-only",
     "allowlist-registry-drift",
   ]) {
     const count = allResults.filter((r) => r.check === check).length;
