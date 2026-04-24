@@ -9,7 +9,8 @@ const mockValues = vi.fn(() => ({
   onConflictDoNothing: vi.fn(() => ({ returning: mockReturning })),
 }));
 const mockInsert = vi.fn(() => ({ values: mockValues }));
-const mockWhere = vi.fn(() => ({ returning: mockReturning }));
+const mockLimit = vi.fn();
+const mockWhere = vi.fn(() => ({ returning: mockReturning, limit: mockLimit }));
 const mockFrom = vi.fn(() => ({ where: mockWhere }));
 const mockSelect = vi.fn(() => ({ from: mockFrom }));
 
@@ -127,6 +128,36 @@ describe("chat-message-attachments queries", () => {
       const result = await getAttachmentsForMessages(["msg-1", "msg-2"]);
       expect(mockSelect).toHaveBeenCalled();
       expect(result).toEqual(mockAttachments);
+    });
+  });
+
+  describe("getAttachmentByFileUploadId", () => {
+    it("returns attachment when found by fileUploadId", async () => {
+      const mockRow = {
+        id: "att-1",
+        messageId: "msg-1",
+        fileUploadId: "fu-1",
+        fileUrl: "https://cdn.example.com/img.jpg",
+        fileName: "img.jpg",
+        fileType: "image/jpeg",
+        fileSize: 12345,
+        createdAt: new Date(),
+      };
+      mockLimit.mockResolvedValueOnce([mockRow]);
+      const { getAttachmentByFileUploadId } = await import("./chat-message-attachments");
+
+      const result = await getAttachmentByFileUploadId("fu-1");
+      expect(mockSelect).toHaveBeenCalled();
+      expect(mockLimit).toHaveBeenCalledWith(1);
+      expect(result).toEqual(mockRow);
+    });
+
+    it("returns null when no attachment found for fileUploadId", async () => {
+      mockLimit.mockResolvedValueOnce([]);
+      const { getAttachmentByFileUploadId } = await import("./chat-message-attachments");
+
+      const result = await getAttachmentByFileUploadId("non-existent-fu");
+      expect(result).toBeNull();
     });
   });
 });

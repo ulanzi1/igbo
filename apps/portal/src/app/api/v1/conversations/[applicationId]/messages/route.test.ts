@@ -78,6 +78,7 @@ beforeEach(() => {
     conversationId: CONV_ID,
     message: mockMessage as never,
     conversationCreated: true,
+    attachments: [],
   });
   vi.mocked(conversationService.getPortalConversationMessages).mockResolvedValue({
     messages: [mockMessage as never],
@@ -226,6 +227,96 @@ describe("GET /api/v1/conversations/[applicationId]/messages", () => {
 describe("POST /api/v1/conversations/[applicationId]/messages — input validation", () => {
   it("returns 400 for non-UUID applicationId", async () => {
     const res = await POST(makePostRequest("not-a-uuid"));
+    expect(res.status).toBe(400);
+  });
+});
+
+// ── POST — attachments ───────────────────────────────────────────────────────
+
+describe("POST /api/v1/conversations/[applicationId]/messages — attachments", () => {
+  const FILE_UPLOAD_ID = "00000000-0000-4000-8000-000000000010";
+  const ATTACHMENT_ID = "00000000-0000-4000-8000-000000000011";
+
+  const mockAttachment = {
+    id: ATTACHMENT_ID,
+    fileUrl: "https://test-bucket.example.com/portal/messages/employer-1/uuid.pdf",
+    fileName: "resume.pdf",
+    fileType: "application/pdf",
+    fileSize: 12345,
+  };
+
+  it("passes attachmentFileUploadIds to sendMessage service", async () => {
+    await POST(
+      makePostRequest(APP_ID, {
+        content: "Here is my CV",
+        attachmentFileUploadIds: [FILE_UPLOAD_ID],
+      }),
+    );
+    expect(conversationService.sendMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        attachmentFileUploadIds: [FILE_UPLOAD_ID],
+      }),
+    );
+  });
+
+  it("returns attachments array in response body", async () => {
+    vi.mocked(conversationService.sendMessage).mockResolvedValue({
+      conversationId: CONV_ID,
+      message: mockMessage as never,
+      conversationCreated: false,
+      attachments: [mockAttachment],
+    });
+
+    const res = await POST(
+      makePostRequest(APP_ID, {
+        content: "Here is my CV",
+        attachmentFileUploadIds: [FILE_UPLOAD_ID],
+      }),
+    );
+
+    expect(res.status).toBe(201);
+    const body = await res.json();
+    expect(body.data.attachments).toHaveLength(1);
+    expect(body.data.attachments[0]).toMatchObject({ id: ATTACHMENT_ID, fileName: "resume.pdf" });
+  });
+
+  it("succeeds with empty content when attachments are provided", async () => {
+    const res = await POST(
+      makePostRequest(APP_ID, {
+        content: "",
+        attachmentFileUploadIds: [FILE_UPLOAD_ID],
+      }),
+    );
+    expect(res.status).toBe(201);
+  });
+
+  it("returns 400 when both content and attachments are missing", async () => {
+    const res = await POST(makePostRequest(APP_ID, {}));
+    expect(res.status).toBe(400);
+  });
+
+  it("returns 400 when content is empty and no attachments", async () => {
+    const res = await POST(makePostRequest(APP_ID, { content: "" }));
+    expect(res.status).toBe(400);
+  });
+
+  it("returns 400 when attachmentFileUploadIds has more than 3 items", async () => {
+    const res = await POST(
+      makePostRequest(APP_ID, {
+        content: "Hello",
+        attachmentFileUploadIds: ["id1", "id2", "id3", "id4"],
+      }),
+    );
+    expect(res.status).toBe(400);
+  });
+
+  it("returns 400 when attachmentFileUploadIds contains non-UUID", async () => {
+    const res = await POST(
+      makePostRequest(APP_ID, {
+        content: "Hello",
+        attachmentFileUploadIds: ["not-a-uuid"],
+      }),
+    );
     expect(res.status).toBe(400);
   });
 });

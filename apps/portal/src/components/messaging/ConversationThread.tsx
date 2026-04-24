@@ -4,6 +4,8 @@ import { useEffect, useLayoutEffect, useRef, useState, useCallback } from "react
 import { useTranslations } from "next-intl";
 import { useSession } from "next-auth/react";
 import { usePortalMessages } from "@/hooks/use-portal-messages";
+import { useFileAttachment } from "@/hooks/use-file-attachment";
+import type { UploadedFileInfo } from "@/hooks/use-file-attachment";
 import { useTypingIndicator } from "@/hooks/use-typing-indicator";
 import { usePortalSocket } from "@/providers/SocketProvider";
 import { MessageBubble } from "./MessageBubble";
@@ -45,6 +47,8 @@ export function ConversationThread({
     conversationId,
   });
 
+  const { pendingUploads, isUploading, addFiles, removeFile, clearAll } = useFileAttachment();
+
   const { typingUserId, emitTypingStart, emitTypingStop } = useTypingIndicator({
     conversationId,
     userId,
@@ -53,7 +57,6 @@ export function ConversationThread({
   const listRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const [isSending, setIsSending] = useState(false);
-  // Track other-party message count to emit message:read only when new messages arrive from them
   const otherMsgCountRef = useRef(0);
   const [showNewIndicator, setShowNewIndicator] = useState(false);
   const isAtBottomRef = useRef(true);
@@ -85,7 +88,6 @@ export function ConversationThread({
   useLayoutEffect(() => {
     const el = listRef.current;
     if (!el) return;
-    // Detect prepend (message count grew but not from append)
     if (
       messages.length > prevMessageCountRef.current &&
       prevScrollHeightRef.current > 0 &&
@@ -129,15 +131,21 @@ export function ConversationThread({
 
   const handleSend = useCallback(
     async (content: string) => {
-      emitTypingStop(); // Clear typing indicator immediately on send
+      emitTypingStop();
       setIsSending(true);
       try {
-        await sendMessage(content);
+        // Collect completed upload IDs
+        const completedUploads = pendingUploads.filter(
+          (u): u is UploadedFileInfo => u.status === "done",
+        );
+        const fileUploadIds = completedUploads.map((u) => u.fileUploadId);
+        await sendMessage(content, fileUploadIds.length > 0 ? fileUploadIds : undefined);
+        clearAll(); // Reset attachment state after successful send
       } finally {
         setIsSending(false);
       }
     },
-    [sendMessage, emitTypingStop],
+    [sendMessage, emitTypingStop, pendingUploads, clearAll],
   );
 
   // F7: Wire retry to failed messages
@@ -264,6 +272,10 @@ export function ConversationThread({
           isSending={isSending}
           onTyping={emitTypingStart}
           onTypingStop={emitTypingStop}
+          pendingUploads={pendingUploads}
+          onAddFiles={addFiles}
+          onRemoveFile={removeFile}
+          isUploading={isUploading}
         />
       )}
     </div>

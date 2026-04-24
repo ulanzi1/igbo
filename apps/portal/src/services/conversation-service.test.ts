@@ -28,6 +28,19 @@ vi.mock("@igbo/db/queries/chat-conversations", () => ({
   isConversationMember: vi.fn(),
 }));
 
+vi.mock("@igbo/db/queries/chat-message-attachments", () => ({
+  createMessageAttachments: vi.fn(),
+  getAttachmentsForMessages: vi.fn(),
+}));
+
+vi.mock("@igbo/db/queries/file-uploads", () => ({
+  getFileUploadById: vi.fn(),
+}));
+
+vi.mock("@/lib/build-s3-public-url", () => ({
+  buildS3PublicUrl: vi.fn(),
+}));
+
 vi.mock("drizzle-orm", () => ({
   sql: vi.fn((strings: TemplateStringsArray, ...values: unknown[]) => ({
     __sql: true,
@@ -49,6 +62,12 @@ import {
 import { createMessage, getConversationMessages } from "@igbo/db/queries/chat-messages";
 import { isConversationMember } from "@igbo/db/queries/chat-conversations";
 import {
+  createMessageAttachments,
+  getAttachmentsForMessages,
+} from "@igbo/db/queries/chat-message-attachments";
+import { getFileUploadById } from "@igbo/db/queries/file-uploads";
+import { buildS3PublicUrl } from "@/lib/build-s3-public-url";
+import {
   sendMessage,
   getPortalConversationMessages,
   listUserConversations,
@@ -64,6 +83,32 @@ const SEEKER_ID = "00000000-0000-4000-8000-000000000004";
 const JOB_ID = "00000000-0000-4000-8000-000000000005";
 const COMPANY_ID = "00000000-0000-4000-8000-000000000006";
 const MSG_ID = "00000000-0000-4000-8000-000000000007";
+const FILE_UPLOAD_ID = "00000000-0000-4000-8000-000000000010";
+const ATTACHMENT_ID = "00000000-0000-4000-8000-000000000011";
+const S3_URL = "https://test-bucket.example.com/portal/messages/user-123/uuid.pdf";
+
+const mockFileUpload = {
+  id: FILE_UPLOAD_ID,
+  uploaderId: EMPLOYER_ID,
+  objectKey: "portal/messages/user-123/uuid.pdf",
+  originalFilename: "resume.pdf",
+  fileType: "application/pdf",
+  fileSize: 12345,
+  status: "ready" as const,
+  processedUrl: null,
+  createdAt: new Date(),
+};
+
+const mockAttachment = {
+  id: ATTACHMENT_ID,
+  messageId: MSG_ID,
+  fileUploadId: FILE_UPLOAD_ID,
+  fileUrl: S3_URL,
+  fileName: "resume.pdf",
+  fileType: "application/pdf",
+  fileSize: 12345,
+  createdAt: new Date(),
+};
 
 const mockAppRow = {
   application_id: APP_ID,
@@ -119,16 +164,18 @@ beforeEach(() => {
   mockDb.execute.mockResolvedValue([mockAppRow]);
   // Default: no existing conversation
   vi.mocked(getPortalConversationByApplicationId).mockResolvedValue(null);
-  // Default transaction passes through callback
-  mockDb.transaction.mockImplementation(async (cb: (tx: unknown) => Promise<unknown>) => {
-    const mockTx = {};
-    vi.mocked(createPortalConversation).mockResolvedValue(mockConversation);
-    vi.mocked(createMessage).mockResolvedValue(mockMessage);
-    return cb(mockTx);
-  });
   vi.mocked(createPortalConversation).mockResolvedValue(mockConversation);
   vi.mocked(createMessage).mockResolvedValue(mockMessage);
+  // Default transaction passes through callback (does NOT reset createMessage — tests control that)
+  mockDb.transaction.mockImplementation(async (cb: (tx: unknown) => Promise<unknown>) => {
+    return cb({});
+  });
   vi.mocked(isConversationMember).mockResolvedValue(true);
+  // Attachment-related defaults
+  vi.mocked(getFileUploadById).mockResolvedValue(null);
+  vi.mocked(createMessageAttachments).mockResolvedValue([]);
+  vi.mocked(getAttachmentsForMessages).mockResolvedValue([]);
+  vi.mocked(buildS3PublicUrl).mockReturnValue(S3_URL);
 });
 
 // ── sendMessage — employer first message ────────────────────────────────────
@@ -215,10 +262,11 @@ describe("sendMessage — employer subsequent message", () => {
       content: "Following up!",
     });
 
-    expect(mockDb.transaction).not.toHaveBeenCalled();
+    expect(mockDb.transaction).toHaveBeenCalledOnce();
     expect(createPortalConversation).not.toHaveBeenCalled();
     expect(createMessage).toHaveBeenCalledWith(
       expect.objectContaining({ conversationId: CONV_ID }),
+      expect.anything(),
     );
     expect(result.conversationCreated).toBe(false);
     expect(mockPortalEventBus.emit).toHaveBeenCalledWith("portal.message.sent", expect.anything());
@@ -401,7 +449,8 @@ describe("sendMessage — employer mismatch", () => {
 describe("sendMessage — race condition", () => {
   it("retries with existing conversation on unique constraint violation", async () => {
     const uniqueErr = Object.assign(new Error("Unique violation"), { code: "23505" });
-    mockDb.transaction.mockRejectedValue(uniqueErr);
+    mockDb.transaction.mockRejectedValueOnce(uniqueErr);
+    // Second transaction call (recovery) uses the default beforeEach implementation
     vi.mocked(getPortalConversationByApplicationId)
       .mockResolvedValueOnce(null) // first call: no conv
       .mockResolvedValueOnce(mockConvWithMembers); // after race: conv exists
@@ -417,6 +466,7 @@ describe("sendMessage — race condition", () => {
     expect(result.conversationCreated).toBe(false);
     expect(createMessage).toHaveBeenCalledWith(
       expect.objectContaining({ conversationId: CONV_ID }),
+      expect.anything(),
     );
   });
 });
@@ -687,5 +737,319 @@ describe("getConversationStatus", () => {
     const status = await getConversationStatus(APP_ID, SEEKER_ID);
 
     expect(status).toEqual({ exists: true, readOnly: false });
+  });
+});
+
+// ── sendMessage — with attachments (new conversation) ────────────────────────
+
+describe("sendMessage — with attachments (new conversation)", () => {
+  beforeEach(() => {
+    vi.mocked(getFileUploadById).mockResolvedValue(mockFileUpload);
+    mockDb.transaction.mockImplementation(async (cb: (tx: unknown) => Promise<unknown>) => {
+      vi.mocked(createPortalConversation).mockResolvedValue(mockConversation);
+      vi.mocked(createMessage).mockResolvedValue(mockMessage);
+      vi.mocked(createMessageAttachments).mockResolvedValue([mockAttachment]);
+      return cb({});
+    });
+  });
+
+  it("creates message with attachments atomically in transaction", async () => {
+    const result = await sendMessage({
+      applicationId: APP_ID,
+      senderId: EMPLOYER_ID,
+      senderPortalRole: "EMPLOYER",
+      content: "Please review my CV",
+      attachmentFileUploadIds: [FILE_UPLOAD_ID],
+    });
+
+    expect(mockDb.transaction).toHaveBeenCalledOnce();
+    expect(createMessageAttachments).toHaveBeenCalledWith(
+      MSG_ID,
+      expect.any(Array),
+      expect.anything(),
+    );
+    expect(result.attachments).toHaveLength(1);
+    expect(result.attachments[0]).toMatchObject({ id: ATTACHMENT_ID, fileName: "resume.pdf" });
+  });
+
+  it("EventBus payload includes attachments array", async () => {
+    await sendMessage({
+      applicationId: APP_ID,
+      senderId: EMPLOYER_ID,
+      senderPortalRole: "EMPLOYER",
+      content: "Please review",
+      attachmentFileUploadIds: [FILE_UPLOAD_ID],
+    });
+
+    expect(mockPortalEventBus.emit).toHaveBeenCalledWith(
+      "portal.message.sent",
+      expect.objectContaining({
+        attachments: expect.arrayContaining([expect.objectContaining({ id: ATTACHMENT_ID })]),
+      }),
+    );
+  });
+
+  it("returns empty attachments array when no attachmentFileUploadIds", async () => {
+    mockDb.transaction.mockImplementation(async (cb: (tx: unknown) => Promise<unknown>) => {
+      vi.mocked(createPortalConversation).mockResolvedValue(mockConversation);
+      vi.mocked(createMessage).mockResolvedValue(mockMessage);
+      return cb({});
+    });
+
+    const result = await sendMessage({
+      applicationId: APP_ID,
+      senderId: EMPLOYER_ID,
+      senderPortalRole: "EMPLOYER",
+      content: "Hello!",
+    });
+
+    expect(result.attachments).toEqual([]);
+    expect(createMessageAttachments).not.toHaveBeenCalled();
+  });
+});
+
+// ── sendMessage — with attachments (existing conversation) ────────────────────
+
+describe("sendMessage — with attachments (existing conversation)", () => {
+  beforeEach(() => {
+    vi.mocked(getPortalConversationByApplicationId).mockResolvedValue(mockConvWithMembers);
+    vi.mocked(getFileUploadById).mockResolvedValue(mockFileUpload);
+    mockDb.transaction.mockImplementation(async (cb: (tx: unknown) => Promise<unknown>) => {
+      vi.mocked(createMessage).mockResolvedValue(mockMessage);
+      vi.mocked(createMessageAttachments).mockResolvedValue([mockAttachment]);
+      return cb({});
+    });
+  });
+
+  it("inserts message + attachments in transaction for existing conversation", async () => {
+    const result = await sendMessage({
+      applicationId: APP_ID,
+      senderId: EMPLOYER_ID,
+      senderPortalRole: "EMPLOYER",
+      content: "Attached docs",
+      attachmentFileUploadIds: [FILE_UPLOAD_ID],
+    });
+
+    expect(mockDb.transaction).toHaveBeenCalledOnce();
+    expect(createMessageAttachments).toHaveBeenCalledWith(
+      MSG_ID,
+      expect.any(Array),
+      expect.anything(),
+    );
+    expect(result.attachments).toHaveLength(1);
+    expect(result.conversationCreated).toBe(false);
+  });
+});
+
+// ── sendMessage — attachment validation ──────────────────────────────────────
+
+describe("sendMessage — attachment validation", () => {
+  it("rejects with 400 when more than 3 attachments provided", async () => {
+    await expect(
+      sendMessage({
+        applicationId: APP_ID,
+        senderId: EMPLOYER_ID,
+        senderPortalRole: "EMPLOYER",
+        content: "Hello",
+        attachmentFileUploadIds: ["id1", "id2", "id3", "id4"],
+      }),
+    ).rejects.toMatchObject({ status: 400 });
+  });
+
+  it("rejects with 400 when file upload not found", async () => {
+    vi.mocked(getFileUploadById).mockResolvedValue(null);
+
+    await expect(
+      sendMessage({
+        applicationId: APP_ID,
+        senderId: EMPLOYER_ID,
+        senderPortalRole: "EMPLOYER",
+        content: "Hello",
+        attachmentFileUploadIds: [FILE_UPLOAD_ID],
+      }),
+    ).rejects.toMatchObject({ status: 400 });
+  });
+
+  it("rejects with 400 when upload does not belong to sender", async () => {
+    vi.mocked(getFileUploadById).mockResolvedValue({
+      ...mockFileUpload,
+      uploaderId: "different-user-id",
+    });
+
+    await expect(
+      sendMessage({
+        applicationId: APP_ID,
+        senderId: EMPLOYER_ID,
+        senderPortalRole: "EMPLOYER",
+        content: "Hello",
+        attachmentFileUploadIds: [FILE_UPLOAD_ID],
+      }),
+    ).rejects.toMatchObject({ status: 400 });
+  });
+
+  it("rejects with 400 when upload status is not ready", async () => {
+    vi.mocked(getFileUploadById).mockResolvedValue({
+      ...mockFileUpload,
+      status: "processing" as const,
+    });
+
+    await expect(
+      sendMessage({
+        applicationId: APP_ID,
+        senderId: EMPLOYER_ID,
+        senderPortalRole: "EMPLOYER",
+        content: "Hello",
+        attachmentFileUploadIds: [FILE_UPLOAD_ID],
+      }),
+    ).rejects.toMatchObject({ status: 400 });
+  });
+
+  it("uses processedUrl when available, otherwise builds S3 URL", async () => {
+    vi.mocked(getFileUploadById).mockResolvedValue({
+      ...mockFileUpload,
+      processedUrl: "https://cdn.example.com/processed.pdf",
+    });
+    mockDb.transaction.mockImplementation(async (cb: (tx: unknown) => Promise<unknown>) => {
+      vi.mocked(createPortalConversation).mockResolvedValue(mockConversation);
+      vi.mocked(createMessage).mockResolvedValue(mockMessage);
+      vi.mocked(createMessageAttachments).mockResolvedValue([
+        { ...mockAttachment, fileUrl: "https://cdn.example.com/processed.pdf" },
+      ]);
+      return cb({});
+    });
+
+    const result = await sendMessage({
+      applicationId: APP_ID,
+      senderId: EMPLOYER_ID,
+      senderPortalRole: "EMPLOYER",
+      content: "Hello",
+      attachmentFileUploadIds: [FILE_UPLOAD_ID],
+    });
+
+    expect(buildS3PublicUrl).not.toHaveBeenCalled();
+    expect(result.attachments[0]?.fileUrl).toBe("https://cdn.example.com/processed.pdf");
+  });
+});
+
+// ── sendMessage — empty text with attachments ─────────────────────────────────
+
+describe("sendMessage — empty text with attachments", () => {
+  beforeEach(() => {
+    vi.mocked(getFileUploadById).mockResolvedValue(mockFileUpload);
+    mockDb.transaction.mockImplementation(async (cb: (tx: unknown) => Promise<unknown>) => {
+      vi.mocked(createPortalConversation).mockResolvedValue(mockConversation);
+      vi.mocked(createMessage).mockResolvedValue(mockMessage);
+      vi.mocked(createMessageAttachments).mockResolvedValue([mockAttachment]);
+      return cb({});
+    });
+  });
+
+  it("succeeds when content is empty but attachments are provided", async () => {
+    const result = await sendMessage({
+      applicationId: APP_ID,
+      senderId: EMPLOYER_ID,
+      senderPortalRole: "EMPLOYER",
+      content: "",
+      attachmentFileUploadIds: [FILE_UPLOAD_ID],
+    });
+
+    expect(result.conversationId).toBe(CONV_ID);
+    expect(result.attachments).toHaveLength(1);
+  });
+
+  it("succeeds when content is whitespace-only but attachments are provided", async () => {
+    const result = await sendMessage({
+      applicationId: APP_ID,
+      senderId: EMPLOYER_ID,
+      senderPortalRole: "EMPLOYER",
+      content: "   ",
+      attachmentFileUploadIds: [FILE_UPLOAD_ID],
+    });
+
+    expect(result.conversationId).toBe(CONV_ID);
+  });
+
+  it("rejects with 400 when both content and attachments are empty", async () => {
+    await expect(
+      sendMessage({
+        applicationId: APP_ID,
+        senderId: EMPLOYER_ID,
+        senderPortalRole: "EMPLOYER",
+        content: "",
+      }),
+    ).rejects.toMatchObject({ status: 400 });
+  });
+});
+
+// ── getPortalConversationMessages — with attachments ─────────────────────────
+
+describe("getPortalConversationMessages — with attachments", () => {
+  beforeEach(() => {
+    vi.mocked(getPortalConversationByApplicationId).mockResolvedValue(mockConvWithMembers);
+    vi.mocked(isConversationMember).mockResolvedValue(true);
+  });
+
+  it("returns messages with _attachments populated from batch load", async () => {
+    vi.mocked(getConversationMessages).mockResolvedValue({
+      messages: [mockMessage],
+      hasMore: false,
+    });
+    vi.mocked(getAttachmentsForMessages).mockResolvedValue([mockAttachment]);
+
+    const result = await getPortalConversationMessages(APP_ID, EMPLOYER_ID);
+
+    expect(getAttachmentsForMessages).toHaveBeenCalledWith([MSG_ID]);
+    expect(result.messages[0]?._attachments).toHaveLength(1);
+    expect(result.messages[0]?._attachments?.[0]).toMatchObject({
+      id: ATTACHMENT_ID,
+      fileName: "resume.pdf",
+      fileType: "application/pdf",
+    });
+  });
+
+  it("returns messages with empty _attachments when no attachments exist", async () => {
+    vi.mocked(getConversationMessages).mockResolvedValue({
+      messages: [mockMessage],
+      hasMore: false,
+    });
+    vi.mocked(getAttachmentsForMessages).mockResolvedValue([]);
+
+    const result = await getPortalConversationMessages(APP_ID, EMPLOYER_ID);
+
+    expect(result.messages[0]?._attachments).toEqual([]);
+  });
+
+  it("groups attachments by messageId correctly", async () => {
+    const MSG_ID_2 = "00000000-0000-4000-8000-000000000020";
+    const ATTACHMENT_ID_2 = "00000000-0000-4000-8000-000000000021";
+    const mockMessage2 = { ...mockMessage, id: MSG_ID_2 };
+    const mockAttachment2 = {
+      ...mockAttachment,
+      id: ATTACHMENT_ID_2,
+      messageId: MSG_ID_2,
+      fileName: "portfolio.pdf",
+    };
+
+    vi.mocked(getConversationMessages).mockResolvedValue({
+      messages: [mockMessage, mockMessage2],
+      hasMore: false,
+    });
+    vi.mocked(getAttachmentsForMessages).mockResolvedValue([mockAttachment, mockAttachment2]);
+
+    const result = await getPortalConversationMessages(APP_ID, EMPLOYER_ID);
+
+    expect(result.messages[0]?._attachments).toHaveLength(1);
+    expect(result.messages[0]?._attachments?.[0]?.id).toBe(ATTACHMENT_ID);
+    expect(result.messages[1]?._attachments).toHaveLength(1);
+    expect(result.messages[1]?._attachments?.[0]?.id).toBe(ATTACHMENT_ID_2);
+  });
+
+  it("skips batch load when no messages returned", async () => {
+    vi.mocked(getConversationMessages).mockResolvedValue({ messages: [], hasMore: false });
+
+    const result = await getPortalConversationMessages(APP_ID, EMPLOYER_ID);
+
+    expect(getAttachmentsForMessages).not.toHaveBeenCalled();
+    expect(result.messages).toEqual([]);
   });
 });

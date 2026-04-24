@@ -1095,6 +1095,52 @@ describe("eventbus-bridge — portal.message.sent routing", () => {
       expect.objectContaining({ parentMessageId: null }),
     );
   });
+
+  it("passes through attachments array when present in portal.message.sent payload", async () => {
+    const { subscriber, pmessageCallbacks } = makeSubscriber();
+    const { io, portalEmit } = makeIoWithPortal();
+
+    await startEventBusBridge(io, subscriber);
+
+    const mockAttachments = [
+      {
+        id: "att-1",
+        fileUrl: "https://test-bucket.example.com/portal/messages/user/uuid.pdf",
+        fileName: "resume.pdf",
+        fileType: "application/pdf",
+        fileSize: 12345,
+      },
+    ];
+
+    pmessageCallbacks[0]?.(
+      "eventbus:*",
+      "eventbus:portal.message.sent",
+      JSON.stringify(makePortalMessageSentPayload({ attachments: mockAttachments })),
+    );
+
+    expect(portalEmit).toHaveBeenCalledWith(
+      "message:new",
+      expect.objectContaining({ attachments: mockAttachments }),
+    );
+  });
+
+  it("passes through empty attachments array when no attachments in payload", async () => {
+    const { subscriber, pmessageCallbacks } = makeSubscriber();
+    const { io, portalEmit } = makeIoWithPortal();
+
+    await startEventBusBridge(io, subscriber);
+
+    pmessageCallbacks[0]?.(
+      "eventbus:*",
+      "eventbus:portal.message.sent",
+      JSON.stringify(makePortalMessageSentPayload({ attachments: undefined })),
+    );
+
+    expect(portalEmit).toHaveBeenCalledWith(
+      "message:new",
+      expect.objectContaining({ attachments: [] }),
+    );
+  });
 });
 
 describe("eventbus-bridge — portal.message.edited routing", () => {

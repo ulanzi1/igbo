@@ -396,6 +396,7 @@ function routeToNamespace(io: Server, eventName: string, payload: unknown): void
         parentMessageId: portalMsgPayload.parentMessageId ?? null,
         applicationId: portalMsgPayload.applicationId,
         senderRole: portalMsgPayload.senderRole,
+        attachments: portalMsgPayload.attachments ?? [],
       });
       break;
     }

@@ -7,9 +7,10 @@ import { successResponse } from "@/lib/api-response";
 import * as conversationService from "@/services/conversation-service";
 
 const sendMessageSchema = z.object({
-  content: z.string().min(1).max(5000),
+  content: z.string().max(5000).optional().default(""),
   contentType: z.enum(["text"]).optional().default("text"),
   parentMessageId: z.string().uuid().nullable().optional(),
+  attachmentFileUploadIds: z.array(z.string().uuid()).max(3).optional(),
 });
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -66,13 +67,27 @@ export const POST = withApiHandler(async (req: Request): Promise<Response> => {
     });
   }
 
+  const { content, contentType, parentMessageId, attachmentFileUploadIds } = parsed.data;
+
+  // Require either non-empty content or at least one attachment
+  const trimmedContent = content.trim();
+  const hasAttachments = (attachmentFileUploadIds?.length ?? 0) > 0;
+  if (!trimmedContent && !hasAttachments) {
+    throw new ApiError({
+      title: "Bad Request",
+      status: 400,
+      detail: "Message must have content or at least one attachment",
+    });
+  }
+
   const result = await conversationService.sendMessage({
     applicationId,
     senderId: session.user.id,
     senderPortalRole: activePortalRole,
-    content: parsed.data.content,
-    contentType: parsed.data.contentType,
-    parentMessageId: parsed.data.parentMessageId,
+    content: trimmedContent,
+    contentType,
+    parentMessageId,
+    attachmentFileUploadIds,
   });
 
   return successResponse(
@@ -80,6 +95,7 @@ export const POST = withApiHandler(async (req: Request): Promise<Response> => {
       conversationId: result.conversationId,
       message: result.message,
       conversationCreated: result.conversationCreated,
+      attachments: result.attachments,
     },
     undefined,
     201,

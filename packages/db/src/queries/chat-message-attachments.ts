@@ -53,3 +53,18 @@ export async function getAttachmentsForMessages(
     .from(chatMessageAttachments)
     .where(inArray(chatMessageAttachments.messageId, messageIds));
 }
+
+/**
+ * Find attachment record by fileUploadId (for download authorization).
+ * Returns first match or null.
+ */
+export async function getAttachmentByFileUploadId(
+  fileUploadId: string,
+): Promise<ChatMessageAttachment | null> {
+  const [attachment] = await db
+    .select()
+    .from(chatMessageAttachments)
+    .where(eq(chatMessageAttachments.fileUploadId, fileUploadId))
+    .limit(1);
+  return attachment ?? null;
+}
