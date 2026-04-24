@@ -29,6 +29,9 @@ export default async function ConversationDetailPage({ params }: PageProps) {
     exists: false,
     readOnly: true,
     unreadCount: 0,
+    jobTitle: "",
+    companyName: "",
+    otherPartyName: "",
   }));
 
   // If conversation doesn't exist and user is a seeker, redirect to application detail
@@ -38,7 +41,7 @@ export default async function ConversationDetailPage({ params }: PageProps) {
 
   return (
     <div className="flex h-full flex-col">
-      {/* Back link */}
+      {/* Back link + conversation header */}
       <div className="border-b px-4 py-3">
         <Link
           href="/conversations"
@@ -47,6 +50,14 @@ export default async function ConversationDetailPage({ params }: PageProps) {
         >
           ← {t("conversationsTitle")}
         </Link>
+        <div className="mt-1">
+          <p className="text-sm font-semibold" data-testid="conversation-header-name">
+            {convStatus.otherPartyName}
+          </p>
+          <p className="text-xs text-muted-foreground" data-testid="conversation-header-job">
+            {convStatus.jobTitle}
+          </p>
+        </div>
       </div>
 
       {/* Thread */}

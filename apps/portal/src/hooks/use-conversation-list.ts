@@ -84,7 +84,6 @@ export function useConversationList(): UseConversationListReturn {
           if (!refetchPendingRef.current) {
             refetchPendingRef.current = true;
             Promise.resolve().then(() => {
-              refetchPendingRef.current = false;
               fetch("/api/v1/conversations")
                 .then((r) => {
                   if (!r.ok) throw new Error(`HTTP ${r.status}`);
@@ -96,7 +95,10 @@ export function useConversationList(): UseConversationListReturn {
                   setConversations(data.data.conversations);
                   setHasMore(data.data.hasMore);
                 })
-                .catch(console.error);
+                .catch(console.error)
+                .finally(() => {
+                  refetchPendingRef.current = false;
+                });
             });
           }
           return prev;

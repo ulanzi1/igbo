@@ -1053,6 +1053,7 @@
       "selectedCvHeading": "Submitted CV",
       "portfolioHeading": "Portfolio Links",
       "noCoverLetter": "No cover letter submitted",
+      "unknownCompany": "Employer",
       "backToList": "Back to My Applications",
       "currentStatus": "Current Status",
       "status": {

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { AtsKanbanBoard } from "@/components/domain/ats-kanban-board";
@@ -36,6 +36,14 @@ export function AtsPipelineView({ applications }: AtsPipelineViewProps) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const [messagingAppId, setMessagingAppId] = useState<string | null>(null);
   const messagingTriggerRef = useRef<HTMLElement | null>(null);
+  const messagingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Clean up pending messaging timer on unmount
+  useEffect(() => {
+    return () => {
+      if (messagingTimerRef.current) clearTimeout(messagingTimerRef.current);
+    };
+  }, []);
 
   const handleCardClick = useCallback((applicationId: string) => {
     setSelectedId(applicationId);
@@ -54,7 +62,11 @@ export function AtsPipelineView({ applications }: AtsPipelineViewProps) {
     // Close side panel first, then open messaging drawer after exit animation completes.
     // Delay (350ms) exceeds Sheet's 300ms exit animation to prevent simultaneous aria-modal Sheets (AC-10 / P7).
     setSelectedId(null);
-    setTimeout(() => setMessagingAppId(applicationId), 350);
+    if (messagingTimerRef.current) clearTimeout(messagingTimerRef.current);
+    messagingTimerRef.current = setTimeout(() => {
+      messagingTimerRef.current = null;
+      setMessagingAppId(applicationId);
+    }, 350);
   }, []);
 
   const handleToggleSelect = useCallback((applicationId: string) => {

@@ -148,6 +148,9 @@ beforeEach(() => {
     exists: false,
     readOnly: false,
     unreadCount: 0,
+    jobTitle: "Senior Engineer",
+    companyName: "Acme Corp",
+    otherPartyName: "John Doe",
   });
 });
 
@@ -292,6 +295,9 @@ describe("ApplicationDetailPage", () => {
       exists: false,
       readOnly: false,
       unreadCount: 0,
+      jobTitle: "Senior Engineer",
+      companyName: "Acme Corp",
+      otherPartyName: "John Doe",
     });
     await renderPage();
     const section = screen.getByTestId("application-messaging-section");
@@ -303,6 +309,9 @@ describe("ApplicationDetailPage", () => {
       exists: true,
       readOnly: false,
       unreadCount: 3,
+      jobTitle: "Senior Engineer",
+      companyName: "Acme Corp",
+      otherPartyName: "John Doe",
     });
     await renderPage();
     const section = screen.getByTestId("application-messaging-section");

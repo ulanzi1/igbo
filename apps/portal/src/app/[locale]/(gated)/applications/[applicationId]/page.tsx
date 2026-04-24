@@ -38,6 +38,9 @@ export default async function ApplicationDetailPage({ params }: PageProps) {
     exists: false,
     readOnly: true,
     unreadCount: 0,
+    jobTitle: "",
+    companyName: "",
+    otherPartyName: "",
   }));
 
   const portfolioLinks = Array.isArray(application.portfolioLinksJson)
@@ -91,7 +94,7 @@ export default async function ApplicationDetailPage({ params }: PageProps) {
             applicationId={application.id}
             conversationExists={convStatus.exists}
             readOnly={convStatus.readOnly}
-            otherPartyName={application.companyName ?? ""}
+            otherPartyName={application.companyName || t("unknownCompany")}
             unreadCount={convStatus.unreadCount}
           />
         </div>

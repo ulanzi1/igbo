@@ -68,6 +68,9 @@ beforeEach(() => {
     exists: true,
     readOnly: false,
     unreadCount: 0,
+    jobTitle: "Software Engineer",
+    companyName: "Tech Corp",
+    otherPartyName: "Jane Doe",
   });
 });
 
@@ -96,6 +99,9 @@ describe("ConversationDetailPage", () => {
       exists: false,
       readOnly: false,
       unreadCount: 0,
+      jobTitle: "Software Engineer",
+      companyName: "Tech Corp",
+      otherPartyName: "Jane Doe",
     });
     await expect(renderPage("en", "app-1")).rejects.toThrow("REDIRECT:/en/applications/app-1");
   });
@@ -106,6 +112,9 @@ describe("ConversationDetailPage", () => {
       exists: false,
       readOnly: false,
       unreadCount: 0,
+      jobTitle: "Software Engineer",
+      companyName: "Tech Corp",
+      otherPartyName: "Jane Doe",
     });
     await renderPage();
     expect(screen.getByTestId("conversation-thread")).toBeTruthy();
@@ -124,6 +133,9 @@ describe("ConversationDetailPage", () => {
       exists: true,
       readOnly: false,
       unreadCount: 0,
+      jobTitle: "Software Engineer",
+      companyName: "Tech Corp",
+      otherPartyName: "Jane Doe",
     });
     await renderPage();
     expect(screen.getByTestId("conversation-thread")).toHaveAttribute("data-read-only", "false");
@@ -134,6 +146,9 @@ describe("ConversationDetailPage", () => {
       exists: true,
       readOnly: true,
       unreadCount: 0,
+      jobTitle: "Software Engineer",
+      companyName: "Tech Corp",
+      otherPartyName: "Jane Doe",
     });
     await renderPage();
     expect(screen.getByTestId("conversation-thread")).toHaveAttribute("data-read-only", "true");
@@ -155,6 +170,12 @@ describe("ConversationDetailPage", () => {
   it("renders for JOB_SEEKER when conversation exists", async () => {
     await renderPage();
     expect(screen.getByTestId("conversation-thread")).toBeTruthy();
+  });
+
+  it("renders conversation header with other party name and job title", async () => {
+    await renderPage();
+    expect(screen.getByTestId("conversation-header-name")).toHaveTextContent("Jane Doe");
+    expect(screen.getByTestId("conversation-header-job")).toHaveTextContent("Software Engineer");
   });
 
   it("uses locale in redirect URLs", async () => {

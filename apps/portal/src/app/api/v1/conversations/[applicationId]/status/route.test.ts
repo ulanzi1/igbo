@@ -34,6 +34,9 @@ beforeEach(() => {
     exists: true,
     readOnly: false,
     unreadCount: 0,
+    jobTitle: "Software Engineer",
+    companyName: "Tech Corp",
+    otherPartyName: "Jane Doe",
   });
 });
 

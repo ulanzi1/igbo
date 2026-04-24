@@ -487,10 +487,22 @@ export async function listUserConversations(
  * Used by UI (P-5.5) to determine messaging button state.
  * Returns 404 for non-participants (consistent with 404-not-403 invariant).
  */
+export interface ConversationStatusResult {
+  exists: boolean;
+  readOnly: boolean;
+  unreadCount: number;
+  /** Job title from the application's job posting */
+  jobTitle: string;
+  /** Company name from the application's company profile */
+  companyName: string;
+  /** Display name of the other party (resolved from community_profiles) */
+  otherPartyName: string;
+}
+
 export async function getConversationStatus(
   applicationId: string,
   userId: string,
-): Promise<{ exists: boolean; readOnly: boolean; unreadCount: number }> {
+): Promise<ConversationStatusResult> {
   const appCtx = await getApplicationContext(applicationId);
   if (!appCtx) {
     throw new ApiError({ title: "Not Found", status: 404 });
@@ -503,10 +515,25 @@ export async function getConversationStatus(
   const TERMINAL = ["hired", "rejected", "withdrawn"];
   const readOnly = TERMINAL.includes(appCtx.status);
 
-  if (!conv) return { exists: false, readOnly, unreadCount: 0 };
+  // Resolve the other party's display name
+  const otherUserId =
+    userId === appCtx.employerUserId ? appCtx.seekerUserId : appCtx.employerUserId;
+  const nameRows = await db.execute(
+    sql`SELECT COALESCE(display_name, 'Unknown') AS name FROM community_profiles WHERE user_id = ${otherUserId}::uuid LIMIT 1`,
+  );
+  const otherPartyName = (nameRows[0] as { name: string } | undefined)?.name ?? "Unknown";
+
+  const base = {
+    readOnly,
+    jobTitle: appCtx.jobTitle,
+    companyName: appCtx.companyName,
+    otherPartyName,
+  };
+
+  if (!conv) return { ...base, exists: false, unreadCount: 0 };
 
   const unreadCount = await getUnreadCountForConversation(conv.conversation.id, userId);
-  return { exists: true, readOnly, unreadCount };
+  return { ...base, exists: true, unreadCount };
 }
 
 /**

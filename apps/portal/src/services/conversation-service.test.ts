@@ -699,13 +699,20 @@ describe("listUserConversations", () => {
 // ── getConversationStatus ────────────────────────────────────────────────────
 
 describe("getConversationStatus", () => {
+  const mockProfileRow = { name: "Jane Doe" };
+
+  beforeEach(() => {
+    // getConversationStatus calls db.execute twice: 1) getApplicationContext, 2) community profile
+    mockDb.execute.mockResolvedValueOnce([mockAppRow]).mockResolvedValueOnce([mockProfileRow]);
+  });
+
   it("returns exists=true, readOnly=false, unreadCount=0 for active conversation with no unread", async () => {
     vi.mocked(getPortalConversationByApplicationId).mockResolvedValue(mockConvWithMembers);
     vi.mocked(getUnreadCountForConversation).mockResolvedValue(0);
 
     const status = await getConversationStatus(APP_ID, EMPLOYER_ID);
 
-    expect(status).toEqual({ exists: true, readOnly: false, unreadCount: 0 });
+    expect(status).toMatchObject({ exists: true, readOnly: false, unreadCount: 0 });
   });
 
   it("returns exists=false, unreadCount=0 when no conversation", async () => {
@@ -718,7 +725,10 @@ describe("getConversationStatus", () => {
   });
 
   it("returns readOnly=true when application is terminal", async () => {
-    mockDb.execute.mockResolvedValue([{ ...mockAppRow, status: "rejected" }]);
+    mockDb.execute
+      .mockReset()
+      .mockResolvedValueOnce([{ ...mockAppRow, status: "rejected" }])
+      .mockResolvedValueOnce([mockProfileRow]);
     vi.mocked(getPortalConversationByApplicationId).mockResolvedValue(mockConvWithMembers);
 
     const status = await getConversationStatus(APP_ID, EMPLOYER_ID);
@@ -733,7 +743,7 @@ describe("getConversationStatus", () => {
   });
 
   it("returns 404 when application does not exist", async () => {
-    mockDb.execute.mockResolvedValue([]);
+    mockDb.execute.mockReset().mockResolvedValue([]);
 
     await expect(getConversationStatus(APP_ID, EMPLOYER_ID)).rejects.toMatchObject({ status: 404 });
   });
@@ -763,6 +773,25 @@ describe("getConversationStatus", () => {
     await getConversationStatus(APP_ID, EMPLOYER_ID);
 
     expect(getUnreadCountForConversation).not.toHaveBeenCalled();
+  });
+
+  it("returns jobTitle, companyName, and otherPartyName", async () => {
+    vi.mocked(getPortalConversationByApplicationId).mockResolvedValue(mockConvWithMembers);
+
+    const status = await getConversationStatus(APP_ID, EMPLOYER_ID);
+
+    expect(status.jobTitle).toBe("Software Engineer");
+    expect(status.companyName).toBe("Tech Corp");
+    expect(status.otherPartyName).toBe("Jane Doe");
+  });
+
+  it("returns 'Unknown' for otherPartyName when no community profile exists", async () => {
+    mockDb.execute.mockReset().mockResolvedValueOnce([mockAppRow]).mockResolvedValueOnce([]);
+    vi.mocked(getPortalConversationByApplicationId).mockResolvedValue(mockConvWithMembers);
+
+    const status = await getConversationStatus(APP_ID, EMPLOYER_ID);
+
+    expect(status.otherPartyName).toBe("Unknown");
   });
 });
 
