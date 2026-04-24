@@ -1094,7 +1094,10 @@
       "employerApplicationWithdrawn": {
         "title": "A candidate withdrew their application",
         "body": "{seekerName} withdrew from {jobTitle}"
-      }
+      },
+      "newMessage": "{senderName} sent you a message about {jobTitle}",
+      "newMessageBatch": "{senderName} sent you {count} new messages about {jobTitle}",
+      "newMessagePreview": "New message about {jobTitle}"
     },
     "chooseRole": {
       "title": "Choose Your Path",

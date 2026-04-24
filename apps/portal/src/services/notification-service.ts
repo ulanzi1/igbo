@@ -6,6 +6,7 @@ import { getCompanyById } from "@igbo/db/queries/portal-companies";
 import { getSavedSearchById } from "@igbo/db/queries/portal-saved-searches";
 import { createNotification } from "@igbo/db/queries/notifications";
 import { enqueueEmailJob } from "@/services/email-service";
+import { sendPushNotification } from "@/services/push-service";
 import { getRedisClient } from "@/lib/redis";
 import { evaluateInstantAlert, checkInstantAlerts } from "@/services/saved-search-service";
 import type {
@@ -13,9 +14,43 @@ import type {
   ApplicationWithdrawnEvent,
   SavedSearchNewResultEvent,
   JobReviewedEvent,
+  PortalMessageSentEvent,
+  NotificationCreatedEvent,
 } from "@igbo/config/events";
 
 const NOTIF_DEDUP_TTL_SECONDS = 15 * 60; // 15 minutes
+const MSG_THROTTLE_TTL_SECONDS = 30; // 30-second fixed window
+
+/**
+ * Publishes a notification.created event to Redis pub/sub for real-time delivery.
+ * The eventbus-bridge routes "eventbus:notification.created" → /notifications:notification:new.
+ *
+ * createNotification() is a bare db.insert() — it does NOT auto-publish.
+ * Every notification handler must call this after createNotification() resolves.
+ */
+async function publishNotificationCreated(
+  notifId: string,
+  userId: string,
+  type: string,
+  title: string,
+  body: string,
+  link: string | undefined,
+  timestamp: string,
+): Promise<void> {
+  const payload: NotificationCreatedEvent = {
+    eventId: notifId, // re-use notifId as unique eventId for this publish
+    version: 1,
+    timestamp,
+    notificationId: notifId,
+    userId,
+    type,
+    title,
+    body,
+    link,
+  };
+  const redis = getRedisClient();
+  await redis.publish("eventbus:notification.created", JSON.stringify(payload));
+}
 
 /**
  * Portal notification service — registers EventBus handlers to send
@@ -153,13 +188,16 @@ if (globalForNotif.__portalNotifHandlersRegistered) {
     // notification copy (currently hardcoded English per AC 4 spec).
     if (employerUserId) {
       const seekerName = seeker?.name ?? "a seeker";
+      const notifTitle = `New application for ${jobTitle}`;
+      const notifBody = `from ${seekerName}`;
+      const notifLink = `/admin/applications/${applicationId}`;
       try {
-        await createNotification({
+        const notif = await createNotification({
           userId: employerUserId,
           type: "system",
-          title: `New application for ${jobTitle}`,
-          body: `from ${seekerName}`,
-          link: `/admin/applications/${applicationId}`,
+          title: notifTitle,
+          body: notifBody,
+          link: notifLink,
         });
         console.info(
           JSON.stringify({
@@ -169,6 +207,27 @@ if (globalForNotif.__portalNotifHandlersRegistered) {
             employerUserId,
           }),
         );
+        // Publish for real-time delivery via eventbus-bridge → /notifications:notification:new
+        try {
+          await publishNotificationCreated(
+            notif.id,
+            employerUserId,
+            "system",
+            notifTitle,
+            notifBody,
+            notifLink,
+            notif.createdAt.toISOString(),
+          );
+        } catch (publishErr: unknown) {
+          console.error(
+            JSON.stringify({
+              level: "error",
+              message: "portal.notification.app_submitted.publish.error",
+              applicationId,
+              error: String(publishErr),
+            }),
+          );
+        }
       } catch (notifErr: unknown) {
         console.error(
           JSON.stringify({
@@ -261,15 +320,18 @@ if (globalForNotif.__portalNotifHandlersRegistered) {
 
     const seekerName = seeker?.name ?? "A candidate";
     const jobTitle = posting?.title ?? "Unknown Position";
+    const notifTitle = "A candidate withdrew their application";
+    const notifBody = `${seekerName} withdrew from ${jobTitle}`;
+    const notifLink = `/admin/applications/${applicationId}`;
 
     // TODO(P-6.1A): Hardcoded English per existing application.submitted pattern
     try {
-      await createNotification({
+      const notif = await createNotification({
         userId: employerUserId,
         type: "system",
-        title: "A candidate withdrew their application",
-        body: `${seekerName} withdrew from ${jobTitle}`,
-        link: `/admin/applications/${applicationId}`,
+        title: notifTitle,
+        body: notifBody,
+        link: notifLink,
       });
       console.info(
         JSON.stringify({
@@ -279,6 +341,27 @@ if (globalForNotif.__portalNotifHandlersRegistered) {
           employerUserId,
         }),
       );
+      // Publish for real-time delivery via eventbus-bridge → /notifications:notification:new
+      try {
+        await publishNotificationCreated(
+          notif.id,
+          employerUserId,
+          "system",
+          notifTitle,
+          notifBody,
+          notifLink,
+          notif.createdAt.toISOString(),
+        );
+      } catch (publishErr: unknown) {
+        console.error(
+          JSON.stringify({
+            level: "error",
+            message: "portal.notification.app_withdrawn.publish.error",
+            applicationId,
+            error: String(publishErr),
+          }),
+        );
+      }
     } catch (notifErr: unknown) {
       console.error(
         JSON.stringify({
@@ -313,15 +396,18 @@ if (globalForNotif.__portalNotifHandlersRegistered) {
     if (!shouldAlert) return;
 
     const portalBaseUrl = process.env.NEXT_PUBLIC_PORTAL_URL; // ci-allow-process-env
+    const notifTitle = `New match: ${jobTitle}`;
+    const notifBody = `Your saved search "${searchName}" has a new result`;
+    const notifLink = `${portalBaseUrl ?? ""}/jobs/${jobId}`;
     // TODO(P-6.1A): Use user's languagePreference for bilingual notification text.
     // Currently hardcoded English — same pattern as application.submitted handler.
     try {
-      await createNotification({
+      const notif = await createNotification({
         userId,
         type: "system",
-        title: `New match: ${jobTitle}`,
-        body: `Your saved search "${searchName}" has a new result`,
-        link: `${portalBaseUrl ?? ""}/jobs/${jobId}`,
+        title: notifTitle,
+        body: notifBody,
+        link: notifLink,
       });
       console.info(
         JSON.stringify({
@@ -332,6 +418,28 @@ if (globalForNotif.__portalNotifHandlersRegistered) {
           jobId,
         }),
       );
+      // Publish for real-time delivery via eventbus-bridge → /notifications:notification:new
+      try {
+        await publishNotificationCreated(
+          notif.id,
+          userId,
+          "system",
+          notifTitle,
+          notifBody,
+          notifLink,
+          notif.createdAt.toISOString(),
+        );
+      } catch (publishErr: unknown) {
+        console.error(
+          JSON.stringify({
+            level: "error",
+            message: "portal.notification.saved-search.publish.error",
+            savedSearchId,
+            userId,
+            error: String(publishErr),
+          }),
+        );
+      }
     } catch (err: unknown) {
       console.error(
         JSON.stringify({
@@ -360,6 +468,170 @@ if (globalForNotif.__portalNotifHandlersRegistered) {
           error: String(err),
         }),
       );
+    }
+  });
+
+  // ── portal.message.sent handler ──────────────────────────────────────────
+  portalEventBus.on("portal.message.sent", async (payload: PortalMessageSentEvent) => {
+    const { messageId, recipientId, senderId, senderName, jobTitle, applicationId, content } =
+      payload;
+
+    // 0. Self-exclusion guard — defensive, do not rely solely on upstream contract
+    if (recipientId === senderId) return;
+
+    // 1. Dedup by messageId (atomic SET NX EX — single command avoids race condition)
+    try {
+      const redis = getRedisClient();
+      const dedupKey = `dedup:portal:notif:msg:${messageId}`;
+      const acquired = await redis.set(dedupKey, "1", "EX", NOTIF_DEDUP_TTL_SECONDS, "NX");
+      if (acquired === null) {
+        // Key already existed — this event was already processed
+        console.info(
+          JSON.stringify({
+            level: "info",
+            message: "portal.notification.msg.dedup_skipped",
+            messageId,
+          }),
+        );
+        return;
+      }
+    } catch (redisErr: unknown) {
+      console.error(
+        JSON.stringify({
+          level: "error",
+          message: "portal.notification.msg.dedup_check.error",
+          messageId,
+          error: String(redisErr),
+        }),
+      );
+      // Proceed without dedup — fail-open (better to send duplicate than drop)
+    }
+
+    // 2. Throttle: fixed 30-second window per (senderId, recipientId, applicationId)
+    //    First message in window: count=1, create notification + set TTL.
+    //    Subsequent messages: count>1, suppress notification (unread badge handles count UX).
+    let throttleCount = 0;
+    try {
+      const redis = getRedisClient();
+      const throttleKey = `portal:msg:throttle:${senderId}:${recipientId}:${applicationId}`;
+      // Pipeline makes INCR+EXPIRE atomic — if EXPIRE fails after INCR, the key
+      // would persist forever, permanently suppressing notifications for this triple.
+      const pipeline = redis.pipeline();
+      pipeline.incr(throttleKey);
+      pipeline.expire(throttleKey, MSG_THROTTLE_TTL_SECONDS);
+      const results = await pipeline.exec();
+      // pipeline.exec() returns [[err, result], [err, result]] or null
+      throttleCount = (results?.[0]?.[1] as number) ?? 1;
+    } catch (throttleErr: unknown) {
+      console.error(
+        JSON.stringify({
+          level: "error",
+          message: "portal.notification.msg.throttle_check.error",
+          messageId,
+          error: String(throttleErr),
+        }),
+      );
+      // Proceed with notification on Redis failure — fail-open
+      throttleCount = 1;
+    }
+
+    if (throttleCount > 1) {
+      // Within 30s window — suppress additional notifications
+      console.info(
+        JSON.stringify({
+          level: "info",
+          message: "portal.notification.msg.throttled",
+          messageId,
+          senderId,
+          recipientId,
+          applicationId,
+          throttleCount,
+        }),
+      );
+      return;
+    }
+
+    // 3. Create in-app notification (no DB lookups — payload is already denormalized)
+    // TODO(P-6.1A): Resolve recipient's languagePreference for bilingual notification text.
+    const resolvedSenderName = senderName ?? "Someone";
+    const resolvedJobTitle = jobTitle ?? "a job posting";
+    const safeContent = content ?? "";
+    const notifTitle = `${resolvedSenderName} sent you a message about ${resolvedJobTitle}`;
+    const notifBody = safeContent.slice(0, 50);
+    const notifLink = applicationId ? `/conversations/${applicationId}` : "/conversations";
+
+    try {
+      const notif = await createNotification({
+        userId: recipientId,
+        type: "message",
+        title: notifTitle,
+        body: notifBody,
+        link: notifLink,
+      });
+      console.info(
+        JSON.stringify({
+          level: "info",
+          message: "portal.notification.msg.notification.created",
+          messageId,
+          recipientId,
+          applicationId,
+        }),
+      );
+
+      // 4. Publish for real-time delivery via eventbus-bridge → /notifications:notification:new
+      try {
+        await publishNotificationCreated(
+          notif.id,
+          recipientId,
+          "message",
+          notifTitle,
+          notifBody,
+          notifLink,
+          notif.createdAt.toISOString(),
+        );
+      } catch (publishErr: unknown) {
+        console.error(
+          JSON.stringify({
+            level: "error",
+            message: "portal.notification.msg.publish.error",
+            messageId,
+            error: String(publishErr),
+          }),
+        );
+        // Fire-and-forget — publish failure does not affect in-app notification
+      }
+
+      // 5. Push notification (fire-and-forget, non-blocking)
+      //    Always send push — browser/OS suppresses if app is in foreground (AC #2, Option B)
+      // Strip HTML tags for plain-text push body (lock-screen safe)
+      const plainPreview = safeContent.replace(/<[^>]*>/g, "").slice(0, 50);
+      sendPushNotification(recipientId, {
+        title: resolvedSenderName,
+        body: `New message about ${resolvedJobTitle}: ${plainPreview}`,
+        link: notifLink,
+        tag: `msg:${applicationId}`,
+      }).catch((pushErr: unknown) => {
+        console.error(
+          JSON.stringify({
+            level: "error",
+            message: "portal.notification.msg.push.error",
+            messageId,
+            recipientId,
+            error: String(pushErr),
+          }),
+        );
+      });
+    } catch (notifErr: unknown) {
+      console.error(
+        JSON.stringify({
+          level: "error",
+          message: "portal.notification.msg.notification.error",
+          messageId,
+          recipientId,
+          error: String(notifErr),
+        }),
+      );
+      // Error logged — does not propagate (fire-and-forget)
     }
   });
 }

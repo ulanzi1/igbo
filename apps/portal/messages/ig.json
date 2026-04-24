@@ -1094,7 +1094,10 @@
       "employerApplicationWithdrawn": {
         "title": "Onye nọ n'ọchịchọ weputara arịọ ya",
         "body": "{seekerName} weputara arịọ ya maka {jobTitle}"
-      }
+      },
+      "newMessage": "{senderName} zigara gị ozi banyere {jobTitle}",
+      "newMessageBatch": "{senderName} zigara gị ozi ọhụrụ {count} banyere {jobTitle}",
+      "newMessagePreview": "Ozi ọhụrụ banyere {jobTitle}"
     },
     "chooseRole": {
       "title": "Họrọ Ụzọ Gị",

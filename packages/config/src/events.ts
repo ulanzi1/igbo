@@ -276,6 +276,26 @@ export interface UserSuspendedCrossAppEvent extends BaseEvent {
   userId: string;
 }
 
+// ---------------------------------------------------------------------------
+// Notification created event — used by portal notification-service to publish
+// real-time delivery after createNotification() DB insert. The eventbus-bridge
+// routes "notification.created" channel to /notifications:notification:new.
+// ---------------------------------------------------------------------------
+
+/**
+ * Published to Redis pub/sub channel "eventbus:notification.created" after
+ * createNotification() inserts a record. The eventbus-bridge routes this to
+ * Socket.IO /notifications namespace as "notification:new".
+ */
+export interface NotificationCreatedEvent extends BaseEvent {
+  notificationId: string;
+  userId: string;
+  type: string;
+  title: string;
+  body: string;
+  link?: string;
+}
+
 /** Community events the portal receives via event-bridge (Redis pub/sub). */
 export interface CommunityCrossAppEventMap {
   "user.verified": UserVerifiedCrossAppEvent;
