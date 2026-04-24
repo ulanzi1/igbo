@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi } from "vitest";
-import { render, fireEvent } from "@testing-library/react";
+import { render, fireEvent, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import React from "react";
+import type { PendingUpload } from "@/hooks/use-file-attachment";
 
 vi.mock("next-intl", () => ({
   useTranslations: () => (key: string) => {
@@ -11,6 +12,10 @@ vi.mock("next-intl", () => ({
       inputPlaceholder: "Type a message…",
       send: "Send",
       sendAriaLabel: "Send message",
+      attachFile: "Attach file",
+      fileUploading: "Uploading…",
+      fileUploadFailed: "Upload failed",
+      removeFile: "Remove file",
     };
     return map[key] ?? key;
   },
@@ -108,5 +113,95 @@ describe("MessageInput", () => {
     await user.type(textarea, "Hello");
     await user.click(getByRole("button", { name: "Send message" }));
     expect(onTypingStop).toHaveBeenCalled();
+  });
+});
+
+// ── MessageInput — attachment UI ─────────────────────────────────────────────
+
+describe("MessageInput — attachment UI", () => {
+  const makePending = (overrides?: Partial<PendingUpload>): PendingUpload => ({
+    tempId: "temp-1",
+    file: new File(["x"], "cv.pdf", { type: "application/pdf" }),
+    fileName: "cv.pdf",
+    status: "uploading",
+    progress: 50,
+    ...overrides,
+  });
+
+  it("shows attachment button when not disabled", () => {
+    render(<MessageInput onSend={vi.fn()} />);
+    expect(screen.getByRole("button", { name: "Attach file" })).toBeDefined();
+  });
+
+  it("hides attachment button when disabled=true", () => {
+    render(<MessageInput onSend={vi.fn()} disabled={true} />);
+    expect(screen.queryByRole("button", { name: "Attach file" })).toBeNull();
+  });
+
+  it("renders pending uploads list with progressbar", () => {
+    const upload = makePending({ status: "uploading", progress: 42 });
+    render(<MessageInput onSend={vi.fn()} pendingUploads={[upload]} />);
+    expect(screen.getByRole("list")).toBeDefined();
+    const progressbar = screen.getByRole("progressbar");
+    expect(progressbar.getAttribute("aria-valuenow")).toBe("42");
+    expect(progressbar.getAttribute("aria-label")).toBe("Uploading…");
+  });
+
+  it("shows file name in upload list", () => {
+    const upload = makePending({ fileName: "resume.pdf" });
+    render(<MessageInput onSend={vi.fn()} pendingUploads={[upload]} />);
+    expect(screen.getByText("resume.pdf")).toBeDefined();
+  });
+
+  it("shows upload failed text for errored uploads", () => {
+    const upload = makePending({ status: "error", progress: 0 });
+    render(<MessageInput onSend={vi.fn()} pendingUploads={[upload]} />);
+    expect(screen.getByText("Upload failed")).toBeDefined();
+  });
+
+  it("shows remove button for each pending upload", () => {
+    const upload = makePending();
+    const onRemoveFile = vi.fn();
+    render(<MessageInput onSend={vi.fn()} pendingUploads={[upload]} onRemoveFile={onRemoveFile} />);
+    expect(screen.getByRole("button", { name: "Remove file" })).toBeDefined();
+  });
+
+  it("calls onRemoveFile when remove button clicked", async () => {
+    const user = userEvent.setup();
+    const upload = makePending({ tempId: "temp-abc" });
+    const onRemoveFile = vi.fn();
+    render(<MessageInput onSend={vi.fn()} pendingUploads={[upload]} onRemoveFile={onRemoveFile} />);
+    await user.click(screen.getByRole("button", { name: "Remove file" }));
+    expect(onRemoveFile).toHaveBeenCalledWith("temp-abc");
+  });
+
+  it("disables send button while isUploading=true", async () => {
+    const user = userEvent.setup();
+    render(<MessageInput onSend={vi.fn()} isUploading={true} />);
+    const textarea = screen.getByRole("textbox", { name: "Message" });
+    await user.type(textarea, "Hello");
+    expect(screen.getByRole("button", { name: "Send message" })).toBeDisabled();
+  });
+
+  it("enables send button when upload is done (no text required)", () => {
+    const doneUpload: PendingUpload = {
+      tempId: "temp-1",
+      file: new File(["x"], "cv.pdf", { type: "application/pdf" }),
+      fileName: "cv.pdf",
+      status: "done",
+      progress: 100,
+    };
+    render(<MessageInput onSend={vi.fn()} pendingUploads={[doneUpload]} isUploading={false} />);
+    expect(screen.getByRole("button", { name: "Send message" })).not.toBeDisabled();
+  });
+
+  it("calls onAddFiles when files are selected via hidden input", async () => {
+    const onAddFiles = vi.fn();
+    render(<MessageInput onSend={vi.fn()} onAddFiles={onAddFiles} />);
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+    const file = new File(["content"], "cv.pdf", { type: "application/pdf" });
+    Object.defineProperty(fileInput, "files", { value: [file] });
+    fireEvent.change(fileInput);
+    expect(onAddFiles).toHaveBeenCalledWith([file]);
   });
 });

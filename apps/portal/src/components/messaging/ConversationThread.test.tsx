@@ -99,6 +99,33 @@ vi.mock("@/hooks/use-typing-indicator", () => ({
   }),
 }));
 
+// ── useFileAttachment mock ────────────────────────────────────────────────────
+type PendingUploadStub = {
+  tempId: string;
+  fileName: string;
+  status: "uploading" | "done" | "error";
+  progress: number;
+  file: File;
+  fileUploadId?: string;
+};
+const fileAttachmentState: { pendingUploads: PendingUploadStub[]; isUploading: boolean } = {
+  pendingUploads: [],
+  isUploading: false,
+};
+const mockAddFiles = vi.fn();
+const mockRemoveFile = vi.fn();
+const mockClearAll = vi.fn();
+
+vi.mock("@/hooks/use-file-attachment", () => ({
+  useFileAttachment: () => ({
+    ...fileAttachmentState,
+    addFiles: mockAddFiles,
+    removeFile: mockRemoveFile,
+    clearAll: mockClearAll,
+    retryUpload: vi.fn(),
+  }),
+}));
+
 import { ConversationThread } from "./ConversationThread";
 
 const APP_ID = "00000000-0000-4000-8000-000000000001";
@@ -126,6 +153,11 @@ beforeEach(() => {
   typingState.typingUserId = null;
   mockEmitTypingStart.mockReset();
   mockEmitTypingStop.mockReset();
+  fileAttachmentState.pendingUploads = [];
+  fileAttachmentState.isUploading = false;
+  mockAddFiles.mockReset();
+  mockRemoveFile.mockReset();
+  mockClearAll.mockReset();
 });
 
 describe("ConversationThread", () => {
@@ -178,7 +210,7 @@ describe("ConversationThread", () => {
     fireEvent.change(textarea, { target: { value: "Test message" } });
     fireEvent.keyDown(textarea, { key: "Enter", shiftKey: false });
 
-    await waitFor(() => expect(mockSendMessage).toHaveBeenCalledWith("Test message"));
+    await waitFor(() => expect(mockSendMessage).toHaveBeenCalledWith("Test message", undefined));
   });
 
   it("does not show empty state when loading", () => {
@@ -270,5 +302,70 @@ describe("ConversationThread", () => {
     fireEvent.keyDown(textarea, { key: "Enter", shiftKey: false });
 
     await waitFor(() => expect(mockEmitTypingStop).toHaveBeenCalled());
+  });
+});
+
+// ── ConversationThread — file attachments ─────────────────────────────────────
+
+describe("ConversationThread — file attachments", () => {
+  it("passes pendingUploads to MessageInput", () => {
+    fileAttachmentState.pendingUploads = [
+      {
+        tempId: "temp-1",
+        fileName: "cv.pdf",
+        status: "uploading",
+        progress: 50,
+        file: new File(["x"], "cv.pdf", { type: "application/pdf" }),
+      },
+    ];
+
+    const { getByRole } = render(<ConversationThread applicationId={APP_ID} />);
+    // The uploading progress bar should be visible via MessageInput
+    expect(getByRole("progressbar")).toBeDefined();
+  });
+
+  it("disables send while isUploading=true", () => {
+    fileAttachmentState.isUploading = true;
+    const { getByRole } = render(<ConversationThread applicationId={APP_ID} />);
+    expect(getByRole("button", { name: "Send message" })).toBeDisabled();
+  });
+
+  it("calls sendMessage with fileUploadIds from completed uploads", async () => {
+    mockSendMessage.mockResolvedValue(undefined);
+    fileAttachmentState.pendingUploads = [
+      {
+        tempId: "temp-1",
+        fileName: "cv.pdf",
+        status: "done",
+        progress: 100,
+        file: new File(["x"], "cv.pdf", { type: "application/pdf" }),
+        fileUploadId: "upload-uuid-1",
+      },
+    ];
+
+    const { getByRole } = render(<ConversationThread applicationId={APP_ID} />);
+    const textarea = getByRole("textbox", { name: "Message" });
+    fireEvent.change(textarea, { target: { value: "See attachment" } });
+    fireEvent.keyDown(textarea, { key: "Enter", shiftKey: false });
+
+    await waitFor(() =>
+      expect(mockSendMessage).toHaveBeenCalledWith("See attachment", ["upload-uuid-1"]),
+    );
+  });
+
+  it("calls clearAll after successful send", async () => {
+    mockSendMessage.mockResolvedValue(undefined);
+
+    const { getByRole } = render(<ConversationThread applicationId={APP_ID} />);
+    const textarea = getByRole("textbox", { name: "Message" });
+    fireEvent.change(textarea, { target: { value: "Hello" } });
+    fireEvent.keyDown(textarea, { key: "Enter", shiftKey: false });
+
+    await waitFor(() => expect(mockClearAll).toHaveBeenCalled());
+  });
+
+  it("shows attachment button in non-readOnly mode", () => {
+    const { getByRole } = render(<ConversationThread applicationId={APP_ID} readOnly={false} />);
+    expect(getByRole("button", { name: "attachFile" })).toBeDefined();
   });
 });

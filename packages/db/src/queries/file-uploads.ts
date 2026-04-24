@@ -12,6 +12,8 @@ export async function createFileUpload(data: {
   originalFilename?: string;
   fileType?: string;
   fileSize?: number;
+  /** Explicit status override. Defaults to schema default ("processing"). */
+  status?: "processing" | "pending_scan" | "ready" | "quarantined" | "deleted";
 }): Promise<PlatformFileUpload> {
   const [record] = await db
     .insert(platformFileUploads)
@@ -21,6 +23,7 @@ export async function createFileUpload(data: {
       originalFilename: data.originalFilename,
       fileType: data.fileType,
       fileSize: data.fileSize,
+      ...(data.status !== undefined ? { status: data.status } : {}),
     })
     .returning();
   if (!record) throw new Error("Insert returned no record");

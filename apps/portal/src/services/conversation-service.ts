@@ -12,10 +12,17 @@ import {
 import { isConversationMember } from "@igbo/db/queries/chat-conversations";
 import type { EnrichedUserConversation } from "@igbo/db/queries/chat-conversations";
 import type { ChatMessage } from "@igbo/db/queries/chat-messages";
+import {
+  createMessageAttachments,
+  getAttachmentsForMessages,
+} from "@igbo/db/queries/chat-message-attachments";
+import type { ChatMessageAttachment } from "@igbo/db/queries/chat-message-attachments";
+import { getFileUploadById } from "@igbo/db/queries/file-uploads";
 import { sql } from "drizzle-orm";
 import { portalEventBus } from "@/services/event-bus";
 import { ApiError } from "@/lib/api-error";
 import { PORTAL_ERRORS } from "@/lib/portal-errors";
+import { buildS3PublicUrl } from "@/lib/build-s3-public-url";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -32,6 +39,18 @@ interface ApplicationContext {
   companyName: string;
 }
 
+export interface MessageAttachment {
+  id: string;
+  fileUrl: string;
+  fileName: string;
+  fileType: string | null;
+  fileSize: number | null;
+}
+
+export interface PortalMessageWithAttachments extends ChatMessage {
+  _attachments?: MessageAttachment[];
+}
+
 export interface SendPortalMessageParams {
   applicationId: string;
   senderId: string;
@@ -40,12 +59,15 @@ export interface SendPortalMessageParams {
   content: string;
   contentType?: string;
   parentMessageId?: string | null;
+  /** File upload IDs to attach (max 3, must be status=ready, uploaderId=sender) */
+  attachmentFileUploadIds?: string[];
 }
 
 export interface SendPortalMessageResult {
   conversationId: string;
   message: ChatMessage;
   conversationCreated: boolean;
+  attachments: MessageAttachment[];
 }
 
 // ---------------------------------------------------------------------------
@@ -106,6 +128,72 @@ function isUniqueViolationError(err: unknown): boolean {
   );
 }
 
+/**
+ * Validate attachment file upload IDs before inserting a message.
+ * Returns attachment values for insertion into chatMessageAttachments.
+ */
+async function validateAndBuildAttachmentValues(
+  attachmentFileUploadIds: string[],
+  senderId: string,
+): Promise<Omit<ChatMessageAttachment, "id" | "messageId" | "createdAt">[]> {
+  if (attachmentFileUploadIds.length > 3) {
+    throw new ApiError({
+      title: "Bad Request",
+      status: 400,
+      detail: "Maximum 3 attachments per message",
+    });
+  }
+
+  const attachmentValues: Omit<ChatMessageAttachment, "id" | "messageId" | "createdAt">[] = [];
+
+  for (const fileUploadId of attachmentFileUploadIds) {
+    const upload = await getFileUploadById(fileUploadId);
+    if (!upload) {
+      throw new ApiError({
+        title: "Bad Request",
+        status: 400,
+        detail: `File upload not found: ${fileUploadId}`,
+      });
+    }
+    if (upload.uploaderId !== senderId) {
+      throw new ApiError({
+        title: "Bad Request",
+        status: 400,
+        detail: `File upload ${fileUploadId} does not belong to sender`,
+      });
+    }
+    if (upload.status !== "ready") {
+      throw new ApiError({
+        title: "Bad Request",
+        status: 400,
+        detail: `File upload ${fileUploadId} is not ready (status: ${upload.status})`,
+      });
+    }
+
+    // Denormalize fields — processedUrl is always null for portal uploads (no async pipeline)
+    const fileUrl = upload.processedUrl ?? buildS3PublicUrl(upload.objectKey);
+    attachmentValues.push({
+      fileUploadId,
+      fileUrl,
+      fileName: upload.originalFilename ?? "file",
+      fileType: upload.fileType ?? null,
+      fileSize: upload.fileSize ?? null,
+    });
+  }
+
+  return attachmentValues;
+}
+
+function toMessageAttachments(rows: ChatMessageAttachment[]): MessageAttachment[] {
+  return rows.map((a) => ({
+    id: a.id,
+    fileUrl: a.fileUrl,
+    fileName: a.fileName,
+    fileType: a.fileType ?? null,
+    fileSize: a.fileSize ?? null,
+  }));
+}
+
 // ---------------------------------------------------------------------------
 // Exported service functions
 // ---------------------------------------------------------------------------
@@ -118,12 +206,20 @@ function isUniqueViolationError(err: unknown): boolean {
 export async function sendMessage(
   params: SendPortalMessageParams,
 ): Promise<SendPortalMessageResult> {
-  const { applicationId, senderId, senderPortalRole, content, contentType, parentMessageId } =
-    params;
+  const {
+    applicationId,
+    senderId,
+    senderPortalRole,
+    content,
+    contentType,
+    parentMessageId,
+    attachmentFileUploadIds = [],
+  } = params;
 
-  // Step 1: Validate content (use trimmed value for both checks and storage)
+  // Step 1: Validate content — empty content allowed when attachments are present
   const trimmedContent = content.trim();
-  if (trimmedContent.length === 0) {
+  const hasAttachments = attachmentFileUploadIds.length > 0;
+  if (trimmedContent.length === 0 && !hasAttachments) {
     throw new ApiError({
       title: "Bad Request",
       status: 400,
@@ -138,6 +234,11 @@ export async function sendMessage(
     });
   }
 
+  // Step 1b: Validate attachments (before any DB writes)
+  const attachmentValues = hasAttachments
+    ? await validateAndBuildAttachmentValues(attachmentFileUploadIds, senderId)
+    : [];
+
   // Step 2: Get application context
   const appCtx = await getApplicationContext(applicationId);
   if (!appCtx) {
@@ -148,8 +249,7 @@ export async function sendMessage(
     });
   }
 
-  // Step 3: Check terminal state (read-only) — derived from appCtx.status to avoid
-  // a second DB round-trip and TOCTOU race with isPortalConversationReadOnly()
+  // Step 3: Check terminal state (read-only)
   const TERMINAL_STATES = ["hired", "rejected", "withdrawn"];
   if (TERMINAL_STATES.includes(appCtx.status)) {
     throw new ApiError({
@@ -168,6 +268,7 @@ export async function sendMessage(
   let conversationId: string;
   let message: ChatMessage;
   let conversationCreated = false;
+  let insertedAttachments: ChatMessageAttachment[] = [];
 
   if (!existing) {
     // No conversation yet — seeker can NEVER create the first conversation
@@ -179,7 +280,6 @@ export async function sendMessage(
           detail: PORTAL_ERRORS.SEEKER_CANNOT_INITIATE,
         });
       }
-      // For all other non-terminal statuses, return 404 (avoid revealing application state)
       throw new ApiError({ title: "Not Found", status: 404 });
     }
 
@@ -215,11 +315,16 @@ export async function sendMessage(
           },
           tx,
         );
-        return { conv, msg };
+        const atts =
+          attachmentValues.length > 0
+            ? await createMessageAttachments(msg.id, attachmentValues, tx)
+            : [];
+        return { conv, msg, atts };
       });
 
       conversationId = txResult.conv.id;
       message = txResult.msg;
+      insertedAttachments = txResult.atts;
       conversationCreated = true;
     } catch (err) {
       if (isUniqueViolationError(err)) {
@@ -234,13 +339,26 @@ export async function sendMessage(
         }
 
         conversationId = raceConv.conversation.id;
-        message = await createMessage({
-          conversationId,
-          senderId,
-          content: trimmedContent,
-          contentType: (contentType ?? "text") as "text",
-          parentMessageId: parentMessageId ?? null,
+        // Wrap recovery in transaction for atomicity with attachments
+        const recoveryResult = await db.transaction(async (tx) => {
+          const msg = await createMessage(
+            {
+              conversationId,
+              senderId,
+              content: trimmedContent,
+              contentType: (contentType ?? "text") as "text",
+              parentMessageId: parentMessageId ?? null,
+            },
+            tx,
+          );
+          const atts =
+            attachmentValues.length > 0
+              ? await createMessageAttachments(msg.id, attachmentValues, tx)
+              : [];
+          return { msg, atts };
         });
+        message = recoveryResult.msg;
+        insertedAttachments = recoveryResult.atts;
         conversationCreated = false;
       } else {
         throw err;
@@ -254,17 +372,30 @@ export async function sendMessage(
     }
 
     conversationId = existing.conversation.id;
-    message = await createMessage({
-      conversationId,
-      senderId,
-      content: trimmedContent,
-      contentType: (contentType ?? "text") as "text",
-      parentMessageId: parentMessageId ?? null,
+    const txResult = await db.transaction(async (tx) => {
+      const msg = await createMessage(
+        {
+          conversationId,
+          senderId,
+          content: trimmedContent,
+          contentType: (contentType ?? "text") as "text",
+          parentMessageId: parentMessageId ?? null,
+        },
+        tx,
+      );
+      const atts =
+        attachmentValues.length > 0
+          ? await createMessageAttachments(msg.id, attachmentValues, tx)
+          : [];
+      return { msg, atts };
     });
+    message = txResult.msg;
+    insertedAttachments = txResult.atts;
   }
 
   // Step 7: Emit event AFTER transaction commit
   const recipientId = senderRole === "employer" ? appCtx.seekerUserId : appCtx.employerUserId;
+  const attachmentsPayload = toMessageAttachments(insertedAttachments);
 
   portalEventBus.emit("portal.message.sent", {
     messageId: message.id,
@@ -282,20 +413,21 @@ export async function sendMessage(
     recipientId,
     senderName: undefined,
     senderRole,
+    attachments: attachmentsPayload,
   });
 
-  return { conversationId, message, conversationCreated };
+  return { conversationId, message, conversationCreated, attachments: attachmentsPayload };
 }
 
 /**
- * Get paginated messages for a portal conversation.
+ * Get paginated messages for a portal conversation, with attachments batch-loaded.
  * Returns 404 for non-participants and for missing conversations.
  */
 export async function getPortalConversationMessages(
   applicationId: string,
   userId: string,
   options?: { cursor?: string; limit?: number },
-): Promise<{ messages: ChatMessage[]; hasMore: boolean }> {
+): Promise<{ messages: PortalMessageWithAttachments[]; hasMore: boolean }> {
   const conv = await getPortalConversationByApplicationId(applicationId);
   if (!conv) {
     throw new ApiError({ title: "Not Found", status: 404 });
@@ -306,7 +438,34 @@ export async function getPortalConversationMessages(
     throw new ApiError({ title: "Not Found", status: 404 });
   }
 
-  return getConversationMessagesDb(conv.conversation.id, options);
+  const { messages, hasMore } = await getConversationMessagesDb(conv.conversation.id, options);
+
+  if (messages.length === 0) return { messages: [], hasMore };
+
+  // Batch-load attachments (N+1 prevention)
+  const messageIds = messages.map((m) => m.id);
+  const allAttachments = await getAttachmentsForMessages(messageIds);
+
+  // Group attachments by messageId
+  const attachmentsByMessageId = new Map<string, MessageAttachment[]>();
+  for (const att of allAttachments) {
+    const existing = attachmentsByMessageId.get(att.messageId) ?? [];
+    existing.push({
+      id: att.id,
+      fileUrl: att.fileUrl,
+      fileName: att.fileName,
+      fileType: att.fileType ?? null,
+      fileSize: att.fileSize ?? null,
+    });
+    attachmentsByMessageId.set(att.messageId, existing);
+  }
+
+  const enriched: PortalMessageWithAttachments[] = messages.map((msg) => ({
+    ...msg,
+    _attachments: attachmentsByMessageId.get(msg.id) ?? [],
+  }));
+
+  return { messages: enriched, hasMore };
 }
 
 /**

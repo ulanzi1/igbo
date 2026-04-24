@@ -337,7 +337,7 @@ development_status:
   p-5-1b-conversation-lifecycle-application-integration: done
   p-5-2-real-time-messaging-via-socket-io: done
   p-5-3-read-receipts-typing-indicators: done
-  p-5-4-file-sharing-in-messages: ready-for-dev
+  p-5-4-file-sharing-in-messages: done
   p-5-5-messaging-entry-points-access-control: backlog
   p-5-6-message-notifications-integration: backlog
   portal-epic-5-retrospective: optional

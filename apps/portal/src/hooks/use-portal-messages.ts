@@ -6,6 +6,14 @@ import { usePortalSocket } from "@/providers/SocketProvider";
 
 export type MessageStatus = "sending" | "sent" | "delivered" | "read" | "failed";
 
+export interface MessageAttachment {
+  id: string;
+  fileUrl: string;
+  fileName: string;
+  fileType: string | null;
+  fileSize: number | null;
+}
+
 export interface PortalMessage {
   id: string;
   conversationId: string;
@@ -20,6 +28,10 @@ export interface PortalMessage {
   _status?: MessageStatus;
   /** Unique ID for the optimistic message before server confirmation */
   _optimisticId?: string;
+  /** Attachments for this message */
+  _attachments?: MessageAttachment[];
+  /** Stored attachment IDs for retry (not from server) */
+  _attachmentFileUploadIds?: string[];
 }
 
 interface UsePortalMessagesOptions {
@@ -35,7 +47,7 @@ interface UsePortalMessagesReturn {
   isLoading: boolean;
   hasMore: boolean;
   loadOlder: () => void;
-  sendMessage: (content: string) => Promise<void>;
+  sendMessage: (content: string, attachmentFileUploadIds?: string[]) => Promise<void>;
   retryMessage: (optimisticId: string) => Promise<void>;
 }
 
@@ -92,17 +104,19 @@ export function usePortalMessages({
   }, [applicationId, enabled]);
 
   // Real-time: append new messages from Socket.IO, dedup by id
-  // F1: emit message:delivered back to server; listen for message:delivered broadcasts
-  // F2: filter by conversationId so messages don't leak across conversations
   useEffect(() => {
     if (!portalSocket) return;
 
-    const handleMessageNew = (msg: PortalMessage) => {
+    const handleMessageNew = (msg: PortalMessage & { attachments?: MessageAttachment[] }) => {
       // F2: Only process messages for THIS conversation
       if (conversationId && msg.conversationId !== conversationId) return;
       if (!msg.id || seenIdsRef.current.has(msg.id)) return;
       seenIdsRef.current.add(msg.id);
-      setMessages((prev) => [...prev, { ...msg, _status: "delivered" }]);
+      // Map `attachments` (no underscore, from bridge) → `_attachments` (underscore, PortalMessage type)
+      setMessages((prev) => [
+        ...prev,
+        { ...msg, _status: "delivered", _attachments: msg.attachments ?? [] },
+      ]);
 
       // F1: Emit delivery acknowledgment back to server (only for messages from others)
       if (msg.senderId !== userId) {
@@ -130,7 +144,6 @@ export function usePortalMessages({
       lastReadAt: string;
     }) => {
       if (conversationId && payload.conversationId !== conversationId) return;
-      // When WE are the reader, no need to update our own sent messages' status
       if (payload.readerId === userId) return;
       const readTs = new Date(payload.lastReadAt).getTime();
       setMessages((prev) =>
@@ -158,7 +171,6 @@ export function usePortalMessages({
         );
         newMsgs.forEach((m) => seenIdsRef.current.add(m.id));
         if (newMsgs.length === 0) return prev;
-        // Merge and sort by createdAt
         const merged = [...prev, ...newMsgs.map((m) => ({ ...m, _status: "delivered" as const }))];
         merged.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
         return merged;
@@ -230,8 +242,12 @@ export function usePortalMessages({
   }, [applicationId, enabled, hasMore]);
 
   const sendMessage = useCallback(
-    async (content: string) => {
+    async (content: string, attachmentFileUploadIds?: string[]) => {
       const optimisticId = `opt_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+
+      // Build optimistic attachments from pending uploads metadata
+      // (The caller passes attachmentFileUploadIds — we can't know fileUrl/fileName here,
+      // so optimistic attachments use placeholder data; real data comes after server confirm)
       const optimistic: PortalMessage = {
         id: optimisticId,
         conversationId: conversationId ?? "",
@@ -244,22 +260,36 @@ export function usePortalMessages({
         createdAt: new Date().toISOString(),
         _status: "sending",
         _optimisticId: optimisticId,
+        _attachmentFileUploadIds: attachmentFileUploadIds,
+        _attachments: [],
       };
 
       setMessages((prev) => [...prev, optimistic]);
 
       try {
+        const body: Record<string, unknown> = { content, contentType: "text" };
+        if (attachmentFileUploadIds && attachmentFileUploadIds.length > 0) {
+          body.attachmentFileUploadIds = attachmentFileUploadIds;
+        }
+
         const r = await fetch(`/api/v1/conversations/${applicationId}/messages`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ content, contentType: "text" }),
+          body: JSON.stringify(body),
         });
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        const data = (await r.json()) as { data: { message: PortalMessage } };
+        const data = (await r.json()) as {
+          data: { message: PortalMessage; attachments?: MessageAttachment[] };
+        };
         const sent = data.data.message;
+        const serverAttachments = data.data.attachments ?? [];
         seenIdsRef.current.add(sent.id);
         setMessages((prev) =>
-          prev.map((m) => (m._optimisticId === optimisticId ? { ...sent, _status: "sent" } : m)),
+          prev.map((m) =>
+            m._optimisticId === optimisticId
+              ? { ...sent, _status: "sent", _attachments: serverAttachments }
+              : m,
+          ),
         );
       } catch {
         setMessages((prev) =>
@@ -279,17 +309,30 @@ export function usePortalMessages({
         prev.map((m) => (m._optimisticId === optimisticId ? { ...m, _status: "sending" } : m)),
       );
       try {
+        const body: Record<string, unknown> = { content: msg.content, contentType: "text" };
+        // VS15: Include attachment IDs stored on the optimistic message for retry
+        if (msg._attachmentFileUploadIds && msg._attachmentFileUploadIds.length > 0) {
+          body.attachmentFileUploadIds = msg._attachmentFileUploadIds;
+        }
+
         const r = await fetch(`/api/v1/conversations/${applicationId}/messages`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ content: msg.content, contentType: "text" }),
+          body: JSON.stringify(body),
         });
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        const data = (await r.json()) as { data: { message: PortalMessage } };
+        const data = (await r.json()) as {
+          data: { message: PortalMessage; attachments?: MessageAttachment[] };
+        };
         const sent = data.data.message;
+        const serverAttachments = data.data.attachments ?? [];
         seenIdsRef.current.add(sent.id);
         setMessages((prev) =>
-          prev.map((m) => (m._optimisticId === optimisticId ? { ...sent, _status: "sent" } : m)),
+          prev.map((m) =>
+            m._optimisticId === optimisticId
+              ? { ...sent, _status: "sent", _attachments: serverAttachments }
+              : m,
+          ),
         );
       } catch {
         setMessages((prev) =>

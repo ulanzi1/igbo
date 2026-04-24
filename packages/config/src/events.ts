@@ -190,6 +190,14 @@ export interface PortalMessageSentEvent extends BaseEvent {
   recipientId: string;
   senderName?: string;
   senderRole: "employer" | "seeker";
+  /** File attachments included with the message (empty array if none) */
+  attachments?: Array<{
+    id: string;
+    fileUrl: string;
+    fileName: string;
+    fileType: string | null;
+    fileSize: number | null;
+  }>;
 }
 
 export interface PortalMessageEditedEvent extends BaseEvent {

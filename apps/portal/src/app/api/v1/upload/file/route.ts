@@ -8,9 +8,23 @@ import { withApiHandler } from "@/lib/api-middleware";
 import { successResponse } from "@/lib/api-response";
 import { getPortalS3Client } from "@/lib/s3-client";
 
-const ALLOWED_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
+// Logo category: images only (existing behaviour)
+const LOGO_ALLOWED_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
+const LOGO_MAX_SIZE_BYTES = 5 * 1024 * 1024; // 5MB
 
-const MAX_SIZE_BYTES = 5 * 1024 * 1024; // 5MB
+// Message category: professional documents + images + plain text
+const MESSAGE_ALLOWED_MIME_TYPES = new Set([
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "text/plain",
+]);
+const MESSAGE_MAX_SIZE_BYTES = 10 * 1024 * 1024; // 10MB
+
+const MESSAGE_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
 export const POST = withApiHandler(async (req: Request): Promise<Response> => {
   const session = await auth();
@@ -27,26 +41,59 @@ export const POST = withApiHandler(async (req: Request): Promise<Response> => {
     throw new ApiError({ title: "Bad Request", status: 400, detail: "Missing file field" });
   }
 
-  if (!ALLOWED_MIME_TYPES.has(file.type)) {
+  const category = (formData.get("category") as string | null) ?? "logo";
+  if (category !== "logo" && category !== "message") {
     throw new ApiError({
       title: "Bad Request",
       status: 400,
-      detail: `Invalid file type '${file.type}'. Accepted: jpeg, png, webp, gif`,
+      detail: `Invalid upload category '${category}'. Accepted: logo, message`,
     });
   }
+  const isMessageCategory = category === "message";
 
-  if (file.size > MAX_SIZE_BYTES) {
-    throw new ApiError({
-      title: "Bad Request",
-      status: 400,
-      detail: `File too large. Maximum size is 5MB`,
-    });
+  if (isMessageCategory) {
+    if (!MESSAGE_ALLOWED_MIME_TYPES.has(file.type)) {
+      throw new ApiError({
+        title: "Bad Request",
+        status: 400,
+        detail: `Invalid file type '${file.type}'. Accepted: pdf, doc, docx, jpeg, png, webp, txt`,
+      });
+    }
+    if (file.size > MESSAGE_MAX_SIZE_BYTES) {
+      throw new ApiError({
+        title: "Bad Request",
+        status: 400,
+        detail: `File too large. Maximum size is 10MB`,
+      });
+    }
+  } else {
+    // Default: logo category (backwards-compatible)
+    if (!LOGO_ALLOWED_MIME_TYPES.has(file.type)) {
+      throw new ApiError({
+        title: "Bad Request",
+        status: 400,
+        detail: `Invalid file type '${file.type}'. Accepted: jpeg, png, webp, gif`,
+      });
+    }
+    if (file.size > LOGO_MAX_SIZE_BYTES) {
+      throw new ApiError({
+        title: "Bad Request",
+        status: 400,
+        detail: `File too large. Maximum size is 5MB`,
+      });
+    }
   }
 
   const ext = file.name.split(".").pop() ?? "bin";
-  const objectKey = `portal/logos/${session.user.id}/${randomUUID()}.${ext}`;
+  const objectKey = isMessageCategory
+    ? `portal/messages/${session.user.id}/${randomUUID()}.${ext}`
+    : `portal/logos/${session.user.id}/${randomUUID()}.${ext}`;
 
   const buffer = Buffer.from(await file.arrayBuffer());
+
+  // Set ContentDisposition: "attachment" for non-image message files (security: prevent inline rendering)
+  const contentDisposition =
+    isMessageCategory && !MESSAGE_IMAGE_TYPES.has(file.type) ? "attachment" : "inline";
 
   const s3Client = getPortalS3Client();
   await s3Client.send(
@@ -56,6 +103,7 @@ export const POST = withApiHandler(async (req: Request): Promise<Response> => {
       Body: buffer,
       ContentType: file.type,
       ContentLength: buffer.byteLength,
+      ContentDisposition: contentDisposition,
     }),
   );
 
@@ -65,6 +113,9 @@ export const POST = withApiHandler(async (req: Request): Promise<Response> => {
     originalFilename: file.name,
     fileType: file.type,
     fileSize: file.size,
+    // Message uploads are immediately usable — no async processing pipeline in portal.
+    // Logo uploads keep the schema default ("processing") for backwards compatibility.
+    ...(isMessageCategory ? { status: "ready" as const } : {}),
   });
 
   const s3PublicUrl = process.env.HETZNER_S3_PUBLIC_URL; // ci-allow-process-env

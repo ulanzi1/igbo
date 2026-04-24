@@ -62,6 +62,30 @@ function formatTime(dateString: string): string {
   }
 }
 
+/** Format bytes into human-readable size string */
+export function formatFileSize(bytes: number | null): string {
+  if (bytes == null || bytes === 0) return "0 B";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+const IMAGE_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+
+function FileTypeLabel({ fileType }: { fileType: string | null }) {
+  if (!fileType) return <span className="text-xs font-mono uppercase">FILE</span>;
+  if (fileType === "application/pdf") return <span className="text-xs font-mono">PDF</span>;
+  if (
+    fileType === "application/msword" ||
+    fileType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+  ) {
+    return <span className="text-xs font-mono">DOC</span>;
+  }
+  if (fileType === "text/plain") return <span className="text-xs font-mono">TXT</span>;
+  if (IMAGE_MIME_TYPES.has(fileType)) return null; // thumbnails shown instead
+  return <span className="text-xs font-mono uppercase">FILE</span>;
+}
+
 export function MessageBubble({ message, isSelf, senderName, onRetry }: MessageBubbleProps) {
   const t = useTranslations("Portal.messages");
   const { density } = useDensity();
@@ -78,6 +102,8 @@ export function MessageBubble({ message, isSelf, senderName, onRetry }: MessageB
       onRetry(message._optimisticId);
     }
   };
+
+  const attachments = message._attachments ?? [];
 
   return (
     <div
@@ -108,14 +134,70 @@ export function MessageBubble({ message, isSelf, senderName, onRetry }: MessageB
           isFailed ? "opacity-70 cursor-pointer" : "",
         ].join(" ")}
       >
-        <p
-          className="text-sm whitespace-pre-wrap break-words"
-          style={{ overflowWrap: "break-word" }}
-        >
-          {message.content}
-        </p>
+        {/* Message text */}
+        {message.content && (
+          <p
+            className="text-sm whitespace-pre-wrap break-words"
+            style={{ overflowWrap: "break-word" }}
+          >
+            {message.content}
+          </p>
+        )}
+
         {/* F7: Show retry prompt for failed messages */}
         {isFailed && <p className="text-xs text-destructive mt-1">{t("retryPrompt")}</p>}
+
+        {/* Attachments */}
+        {attachments.length > 0 && (
+          <ul role="list" className="mt-2 flex flex-col gap-2">
+            {attachments.map((attachment) => {
+              const isImage = IMAGE_MIME_TYPES.has(attachment.fileType ?? "");
+              const downloadHref = `/api/v1/upload/download/${attachment.id}`;
+
+              return (
+                <li key={attachment.id} role="listitem">
+                  {isImage ? (
+                    <a
+                      href={downloadHref}
+                      aria-label={`${t("download")} ${attachment.fileName}`}
+                      className="block"
+                    >
+                      {/* Image thumbnail */}
+                      <img
+                        src={attachment.fileUrl}
+                        alt={attachment.fileName}
+                        className="max-w-[200px] rounded border border-border object-cover"
+                        style={{ maxHeight: "150px" }}
+                      />
+                    </a>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <FileTypeLabel fileType={attachment.fileType ?? null} />
+                      <div className="flex flex-col min-w-0">
+                        <span
+                          className="text-xs truncate max-w-[160px]"
+                          title={attachment.fileName}
+                        >
+                          {attachment.fileName}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {formatFileSize(attachment.fileSize)}
+                        </span>
+                      </div>
+                      <a
+                        href={downloadHref}
+                        aria-label={`${t("download")} ${attachment.fileName}`}
+                        className="text-xs underline shrink-0"
+                      >
+                        {t("download")}
+                      </a>
+                    </div>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        )}
       </div>
       <div className="flex items-center gap-1 mt-0.5 px-1">
         <time dateTime={message.createdAt} className="text-xs text-muted-foreground">

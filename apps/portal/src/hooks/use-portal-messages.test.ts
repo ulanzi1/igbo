@@ -473,6 +473,131 @@ describe("usePortalMessages", () => {
     expect(result.current.messages[0]?._status).toBe("sent");
   });
 
+  // ── Attachments ─────────────────────────────────────────────────────────────
+
+  it("message:new maps socket 'attachments' field to '_attachments'", async () => {
+    mockFetch.mockReturnValueOnce(makeSuccessResponse({ messages: [], hasMore: false }));
+
+    const { result } = renderHook(() =>
+      usePortalMessages({ applicationId: APP_ID, conversationId: "conv-1" }),
+    );
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    const attachment = {
+      id: "att-1",
+      fileUrl: "https://example.com/file.pdf",
+      fileName: "cv.pdf",
+      fileType: "application/pdf",
+      fileSize: 12345,
+    };
+
+    act(() => {
+      mockSocket._trigger("message:new", {
+        ...makeMsg("msg-2"),
+        conversationId: "conv-1",
+        attachments: [attachment],
+      });
+    });
+
+    expect(result.current.messages[0]?._attachments).toHaveLength(1);
+    expect(result.current.messages[0]?._attachments?.[0]).toMatchObject({
+      id: "att-1",
+      fileName: "cv.pdf",
+    });
+  });
+
+  it("message:new with no attachments field sets _attachments to empty array", async () => {
+    mockFetch.mockReturnValueOnce(makeSuccessResponse({ messages: [], hasMore: false }));
+
+    const { result } = renderHook(() =>
+      usePortalMessages({ applicationId: APP_ID, conversationId: "conv-1" }),
+    );
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    act(() => {
+      mockSocket._trigger("message:new", { ...makeMsg("msg-3"), conversationId: "conv-1" });
+    });
+
+    expect(result.current.messages[0]?._attachments).toEqual([]);
+  });
+
+  it("sendMessage with attachmentFileUploadIds passes them in POST body", async () => {
+    mockFetch.mockReturnValueOnce(makeSuccessResponse({ messages: [], hasMore: false }));
+    mockFetch.mockReturnValueOnce(
+      makeSuccessResponse({ message: makeMsg("srv-1"), attachments: [] }),
+    );
+
+    const { result } = renderHook(() => usePortalMessages({ applicationId: APP_ID }));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    await act(async () => {
+      await result.current.sendMessage("Check this", ["upload-uuid-1"]);
+    });
+
+    const postCall = mockFetch.mock.calls[1];
+    const body = JSON.parse(postCall?.[1]?.body as string);
+    expect(body.attachmentFileUploadIds).toEqual(["upload-uuid-1"]);
+  });
+
+  it("sendMessage stores _attachments on the message after server confirm", async () => {
+    mockFetch.mockReturnValueOnce(makeSuccessResponse({ messages: [], hasMore: false }));
+
+    const serverAttachment = {
+      id: "att-1",
+      fileUrl: "https://example.com/file.pdf",
+      fileName: "cv.pdf",
+      fileType: "application/pdf",
+      fileSize: 12345,
+    };
+    mockFetch.mockReturnValueOnce(
+      makeSuccessResponse({ message: makeMsg("srv-1"), attachments: [serverAttachment] }),
+    );
+
+    const { result } = renderHook(() => usePortalMessages({ applicationId: APP_ID }));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    await act(async () => {
+      await result.current.sendMessage("See attachment", ["upload-uuid-1"]);
+    });
+
+    expect(result.current.messages[0]?._attachments).toHaveLength(1);
+    expect(result.current.messages[0]?._attachments?.[0]?.id).toBe("att-1");
+  });
+
+  it("retryMessage includes _attachmentFileUploadIds in retry POST body", async () => {
+    mockFetch.mockReturnValueOnce(makeSuccessResponse({ messages: [], hasMore: false }));
+    // First send fails
+    mockFetch.mockReturnValueOnce(
+      Promise.resolve({ ok: false, status: 500, json: () => Promise.resolve({}) }),
+    );
+
+    const { result } = renderHook(() => usePortalMessages({ applicationId: APP_ID }));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    await act(async () => {
+      await result.current.sendMessage("Retry me", ["upload-uuid-2"]);
+    });
+
+    const failedMsg = result.current.messages[0];
+    expect(failedMsg?._status).toBe("failed");
+    expect(failedMsg?._attachmentFileUploadIds).toEqual(["upload-uuid-2"]);
+
+    const optimisticId = failedMsg?._optimisticId ?? "";
+
+    // Retry succeeds
+    mockFetch.mockReturnValueOnce(
+      makeSuccessResponse({ message: makeMsg("srv-retry"), attachments: [] }),
+    );
+
+    await act(async () => {
+      await result.current.retryMessage(optimisticId);
+    });
+
+    const retryCall = mockFetch.mock.calls[mockFetch.mock.calls.length - 1];
+    const retryBody = JSON.parse(retryCall?.[1]?.body as string);
+    expect(retryBody.attachmentFileUploadIds).toEqual(["upload-uuid-2"]);
+  });
+
   it("message:read for message in sending status is not promoted", async () => {
     mockFetch.mockReturnValueOnce(makeSuccessResponse({ messages: [], hasMore: false }));
 
