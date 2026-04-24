@@ -37,9 +37,7 @@ const REALTIME_ENTRY = "apps/community/src/server/realtime/index.ts";
  * The exclusion only prevents TRAVERSAL into the barrel — it does NOT prevent
  * detecting `import "server-only"` if the barrel itself contained it.
  */
-const TRAVERSAL_EXCLUDED_FILES = new Set([
-  "packages/db/src/index.ts",
-]);
+const TRAVERSAL_EXCLUDED_FILES = new Set(["packages/db/src/index.ts"]);
 
 interface ImportGraphViolation {
   /** File that contains `import "server-only"` */
@@ -52,11 +50,7 @@ interface ImportGraphViolation {
  * Resolve a module specifier to a file path on disk.
  * Returns null if the specifier cannot be resolved (external npm package, node built-in, etc.).
  */
-function resolveSpecifier(
-  specifier: string,
-  importerPath: string,
-  rootDir: string,
-): string | null {
+function resolveSpecifier(specifier: string, importerPath: string, rootDir: string): string | null {
   // Skip node built-ins
   if (specifier.startsWith("node:")) return null;
 
@@ -142,10 +136,7 @@ function extractImports(content: string): string[] {
  *
  * Uses BFS to find the shortest import chain to each violation.
  */
-function walkImportGraph(
-  entryPath: string,
-  rootDir: string,
-): ImportGraphViolation[] {
+function walkImportGraph(entryPath: string, rootDir: string): ImportGraphViolation[] {
   const violations: ImportGraphViolation[] = [];
   const visited = new Set<string>();
 
