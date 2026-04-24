@@ -7,6 +7,9 @@ vi.mock("@igbo/db/queries/portal-applications", () => ({
   getApplicationDetailForSeeker: vi.fn(),
   getTransitionHistory: vi.fn(),
 }));
+vi.mock("@/services/conversation-service", () => ({
+  getConversationStatus: vi.fn(),
+}));
 vi.mock("next-intl/server", () => ({
   getTranslations: vi.fn().mockImplementation((ns: string) =>
     Promise.resolve((key: string, params?: Record<string, string>) => {
@@ -68,6 +71,26 @@ vi.mock("@/components/domain/withdraw-application-controls", () => ({
     </button>
   ),
 }));
+vi.mock("@/components/domain/application-messaging-section", () => ({
+  ApplicationMessagingSection: ({
+    applicationId,
+    conversationExists,
+    unreadCount,
+  }: {
+    applicationId: string;
+    conversationExists: boolean;
+    readOnly: boolean;
+    otherPartyName: string;
+    unreadCount: number;
+  }) => (
+    <div
+      data-testid="application-messaging-section"
+      data-application-id={applicationId}
+      data-conversation-exists={conversationExists ? "true" : "false"}
+      data-unread-count={unreadCount}
+    />
+  ),
+}));
 
 import { render, screen } from "@testing-library/react";
 import { axe, toHaveNoViolations } from "jest-axe";
@@ -76,6 +99,7 @@ import {
   getApplicationDetailForSeeker,
   getTransitionHistory,
 } from "@igbo/db/queries/portal-applications";
+import { getConversationStatus } from "@/services/conversation-service";
 import ApplicationDetailPage from "./page";
 
 expect.extend(toHaveNoViolations);
@@ -120,6 +144,11 @@ beforeEach(() => {
   );
   vi.mocked(getApplicationDetailForSeeker).mockResolvedValue(mockApplication as never);
   vi.mocked(getTransitionHistory).mockResolvedValue(mockTransitions as never);
+  vi.mocked(getConversationStatus).mockResolvedValue({
+    exists: false,
+    readOnly: false,
+    unreadCount: 0,
+  });
 });
 
 async function renderPage(locale = "en", applicationId = "app-1") {
@@ -256,5 +285,42 @@ describe("ApplicationDetailPage", () => {
     const { container } = await renderPage();
     const results = await axe(container);
     expect(results).toHaveNoViolations();
+  });
+
+  it("renders ApplicationMessagingSection with conversationExists=false when no conversation", async () => {
+    vi.mocked(getConversationStatus).mockResolvedValue({
+      exists: false,
+      readOnly: false,
+      unreadCount: 0,
+    });
+    await renderPage();
+    const section = screen.getByTestId("application-messaging-section");
+    expect(section).toHaveAttribute("data-conversation-exists", "false");
+  });
+
+  it("renders ApplicationMessagingSection with conversationExists=true and unreadCount from SSR", async () => {
+    vi.mocked(getConversationStatus).mockResolvedValue({
+      exists: true,
+      readOnly: false,
+      unreadCount: 3,
+    });
+    await renderPage();
+    const section = screen.getByTestId("application-messaging-section");
+    expect(section).toHaveAttribute("data-conversation-exists", "true");
+    expect(section).toHaveAttribute("data-unread-count", "3");
+  });
+
+  it("renders ApplicationMessagingSection with applicationId", async () => {
+    await renderPage();
+    const section = screen.getByTestId("application-messaging-section");
+    expect(section).toHaveAttribute("data-application-id", "app-1");
+  });
+
+  it("renders ApplicationMessagingSection even when getConversationStatus throws", async () => {
+    vi.mocked(getConversationStatus).mockRejectedValue(new Error("DB error"));
+    // Should not throw — .catch() fallback used
+    await expect(renderPage()).resolves.toBeDefined();
+    const section = screen.getByTestId("application-messaging-section");
+    expect(section).toHaveAttribute("data-conversation-exists", "false");
   });
 });

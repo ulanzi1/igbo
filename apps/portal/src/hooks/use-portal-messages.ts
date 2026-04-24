@@ -95,6 +95,8 @@ export function usePortalMessages({
         if (msgs.length > 0) {
           oldestCursorRef.current = msgs[0]?.createdAt;
         }
+        // Mark conversation as read server-side (fire-and-forget)
+        fetch(`/api/v1/conversations/${applicationId}/read`, { method: "POST" }).catch(() => {});
       })
       .catch(console.error)
       .finally(() => {

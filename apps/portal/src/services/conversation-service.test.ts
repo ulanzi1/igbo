@@ -26,6 +26,7 @@ vi.mock("@igbo/db/queries/chat-messages", () => ({
 
 vi.mock("@igbo/db/queries/chat-conversations", () => ({
   isConversationMember: vi.fn(),
+  getUnreadCountForConversation: vi.fn(),
 }));
 
 vi.mock("@igbo/db/queries/chat-message-attachments", () => ({
@@ -60,7 +61,10 @@ import {
   getPortalConversationsForUser,
 } from "@igbo/db";
 import { createMessage, getConversationMessages } from "@igbo/db/queries/chat-messages";
-import { isConversationMember } from "@igbo/db/queries/chat-conversations";
+import {
+  isConversationMember,
+  getUnreadCountForConversation,
+} from "@igbo/db/queries/chat-conversations";
 import {
   createMessageAttachments,
   getAttachmentsForMessages,
@@ -171,6 +175,7 @@ beforeEach(() => {
     return cb({});
   });
   vi.mocked(isConversationMember).mockResolvedValue(true);
+  vi.mocked(getUnreadCountForConversation).mockResolvedValue(0);
   // Attachment-related defaults
   vi.mocked(getFileUploadById).mockResolvedValue(null);
   vi.mocked(createMessageAttachments).mockResolvedValue([]);
@@ -694,20 +699,22 @@ describe("listUserConversations", () => {
 // ── getConversationStatus ────────────────────────────────────────────────────
 
 describe("getConversationStatus", () => {
-  it("returns exists=true, readOnly=false for active conversation", async () => {
+  it("returns exists=true, readOnly=false, unreadCount=0 for active conversation with no unread", async () => {
     vi.mocked(getPortalConversationByApplicationId).mockResolvedValue(mockConvWithMembers);
+    vi.mocked(getUnreadCountForConversation).mockResolvedValue(0);
 
     const status = await getConversationStatus(APP_ID, EMPLOYER_ID);
 
-    expect(status).toEqual({ exists: true, readOnly: false });
+    expect(status).toEqual({ exists: true, readOnly: false, unreadCount: 0 });
   });
 
-  it("returns exists=false when no conversation", async () => {
+  it("returns exists=false, unreadCount=0 when no conversation", async () => {
     vi.mocked(getPortalConversationByApplicationId).mockResolvedValue(null);
 
     const status = await getConversationStatus(APP_ID, EMPLOYER_ID);
 
     expect(status.exists).toBe(false);
+    expect(status.unreadCount).toBe(0);
   });
 
   it("returns readOnly=true when application is terminal", async () => {
@@ -736,7 +743,26 @@ describe("getConversationStatus", () => {
 
     const status = await getConversationStatus(APP_ID, SEEKER_ID);
 
-    expect(status).toEqual({ exists: true, readOnly: false });
+    expect(status.exists).toBe(true);
+    expect(status.readOnly).toBe(false);
+  });
+
+  it("returns unreadCount from getUnreadCountForConversation when conversation exists", async () => {
+    vi.mocked(getPortalConversationByApplicationId).mockResolvedValue(mockConvWithMembers);
+    vi.mocked(getUnreadCountForConversation).mockResolvedValue(3);
+
+    const status = await getConversationStatus(APP_ID, EMPLOYER_ID);
+
+    expect(status.unreadCount).toBe(3);
+    expect(getUnreadCountForConversation).toHaveBeenCalledWith(CONV_ID, EMPLOYER_ID);
+  });
+
+  it("does not call getUnreadCountForConversation when no conversation exists", async () => {
+    vi.mocked(getPortalConversationByApplicationId).mockResolvedValue(null);
+
+    await getConversationStatus(APP_ID, EMPLOYER_ID);
+
+    expect(getUnreadCountForConversation).not.toHaveBeenCalled();
   });
 });
 

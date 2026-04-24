@@ -3,9 +3,11 @@ import { auth } from "@igbo/auth";
 import { redirect } from "next/navigation";
 import { getApplicationDetailForSeeker } from "@igbo/db/queries/portal-applications";
 import { getTransitionHistory } from "@igbo/db/queries/portal-applications";
+import { getConversationStatus } from "@/services/conversation-service";
 import { ApplicationStatusBadge } from "@/components/domain/application-status-badge";
 import { ApplicationTimeline } from "@/components/domain/application-timeline";
 import { WithdrawApplicationControls } from "@/components/domain/withdraw-application-controls";
+import { ApplicationMessagingSection } from "@/components/domain/application-messaging-section";
 import { Link } from "@/i18n/navigation";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -29,6 +31,14 @@ export default async function ApplicationDetailPage({ params }: PageProps) {
   }
 
   const transitions = await getTransitionHistory(applicationId);
+
+  // Fetch conversation status for messaging section (SSR — initial hydration only)
+  // Fail-closed: default readOnly=true so transient errors don't grant write access
+  const convStatus = await getConversationStatus(applicationId, session.user.id).catch(() => ({
+    exists: false,
+    readOnly: true,
+    unreadCount: 0,
+  }));
 
   const portfolioLinks = Array.isArray(application.portfolioLinksJson)
     ? application.portfolioLinksJson
@@ -77,6 +87,13 @@ export default async function ApplicationDetailPage({ params }: PageProps) {
               currentStatus={application.status}
             />
           )}
+          <ApplicationMessagingSection
+            applicationId={application.id}
+            conversationExists={convStatus.exists}
+            readOnly={convStatus.readOnly}
+            otherPartyName={application.companyName ?? ""}
+            unreadCount={convStatus.unreadCount}
+          />
         </div>
       </div>
 

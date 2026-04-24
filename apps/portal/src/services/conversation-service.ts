@@ -9,7 +9,11 @@ import {
   createMessage,
   getConversationMessages as getConversationMessagesDb,
 } from "@igbo/db/queries/chat-messages";
-import { isConversationMember } from "@igbo/db/queries/chat-conversations";
+import {
+  isConversationMember,
+  getUnreadCountForConversation,
+  markConversationRead,
+} from "@igbo/db/queries/chat-conversations";
 import type { EnrichedUserConversation } from "@igbo/db/queries/chat-conversations";
 import type { ChatMessage } from "@igbo/db/queries/chat-messages";
 import {
@@ -486,7 +490,7 @@ export async function listUserConversations(
 export async function getConversationStatus(
   applicationId: string,
   userId: string,
-): Promise<{ exists: boolean; readOnly: boolean }> {
+): Promise<{ exists: boolean; readOnly: boolean; unreadCount: number }> {
   const appCtx = await getApplicationContext(applicationId);
   if (!appCtx) {
     throw new ApiError({ title: "Not Found", status: 404 });
@@ -498,5 +502,29 @@ export async function getConversationStatus(
   const conv = await getPortalConversationByApplicationId(applicationId);
   const TERMINAL = ["hired", "rejected", "withdrawn"];
   const readOnly = TERMINAL.includes(appCtx.status);
-  return { exists: conv !== null, readOnly };
+
+  if (!conv) return { exists: false, readOnly, unreadCount: 0 };
+
+  const unreadCount = await getUnreadCountForConversation(conv.conversation.id, userId);
+  return { exists: true, readOnly, unreadCount };
+}
+
+/**
+ * Mark a conversation as read for a user (updates last_read_at in DB).
+ * Enforces participant access control — non-participants get 404.
+ * Called by POST /api/v1/conversations/[applicationId]/read route.
+ */
+export async function markConversationAsRead(applicationId: string, userId: string): Promise<void> {
+  const appCtx = await getApplicationContext(applicationId);
+  if (!appCtx) {
+    throw new ApiError({ title: "Not Found", status: 404 });
+  }
+  if (userId !== appCtx.seekerUserId && userId !== appCtx.employerUserId) {
+    throw new ApiError({ title: "Not Found", status: 404 });
+  }
+
+  const conv = await getPortalConversationByApplicationId(applicationId);
+  if (!conv) return; // No conversation to mark
+
+  await markConversationRead(conv.conversation.id, userId);
 }

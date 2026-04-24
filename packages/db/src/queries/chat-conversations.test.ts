@@ -50,6 +50,7 @@ import {
   getConversationWithMembers,
   checkGroupBlockConflict,
   getMemberJoinedAt,
+  getUnreadCountForConversation,
 } from "./chat-conversations";
 
 const CONV_ID = "00000000-0000-4000-8000-000000000001";
@@ -469,5 +470,31 @@ describe("getMemberJoinedAt", () => {
     mockDb.execute.mockResolvedValue([]);
     const result = await getMemberJoinedAt(CONV_ID, USER_ID);
     expect(result).toBeNull();
+  });
+});
+
+describe("getUnreadCountForConversation", () => {
+  it("returns unread count from DB", async () => {
+    mockDb.execute.mockResolvedValue([{ count: 5 }]);
+    const count = await getUnreadCountForConversation(CONV_ID, USER_ID);
+    expect(count).toBe(5);
+  });
+
+  it("returns 0 when no unread messages", async () => {
+    mockDb.execute.mockResolvedValue([{ count: 0 }]);
+    const count = await getUnreadCountForConversation(CONV_ID, USER_ID);
+    expect(count).toBe(0);
+  });
+
+  it("returns 0 when result row is missing", async () => {
+    mockDb.execute.mockResolvedValue([]);
+    const count = await getUnreadCountForConversation(CONV_ID, USER_ID);
+    expect(count).toBe(0);
+  });
+
+  it("calls db.execute with conversationId and userId", async () => {
+    mockDb.execute.mockResolvedValue([{ count: 2 }]);
+    await getUnreadCountForConversation(CONV_ID, USER_ID);
+    expect(mockDb.execute).toHaveBeenCalled();
   });
 });

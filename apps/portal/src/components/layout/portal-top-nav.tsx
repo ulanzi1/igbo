@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { useActivePortalRole } from "@/hooks/use-active-portal-role";
 import { buildSignInUrl } from "@/lib/guest-utils";
 import { RoleSwitcher } from "./role-switcher";
+import { UnreadMessageBadge } from "./UnreadMessageBadge";
 
 function getCommunityUrl() {
   return process.env.NEXT_PUBLIC_COMMUNITY_URL ?? "http://localhost:3000";
@@ -43,6 +44,7 @@ export function PortalTopNav({ className }: { className?: string }) {
     { key: "browseAll", href: `/${locale}/search`, label: t("browseAll") },
     { key: "myApplications", href: `/${locale}/applications`, label: t("myApplications") },
     { key: "savedSearches", href: `/${locale}/saved-searches`, label: t("savedSearches") },
+    { key: "conversations", href: `/${locale}/conversations`, label: t("messages") },
   ];
 
   const employerLinks: NavLink[] = [
@@ -53,6 +55,7 @@ export function PortalTopNav({ className }: { className?: string }) {
       label: t("employerApplications"),
     },
     { key: "companyProfile", href: `/${locale}/company-profile`, label: t("companyProfile") },
+    { key: "conversations", href: `/${locale}/conversations`, label: t("messages") },
   ];
 
   const adminLinks: NavLink[] = [
@@ -111,9 +114,10 @@ export function PortalTopNav({ className }: { className?: string }) {
             <a
               key={key}
               href={href}
-              className="flex items-center min-h-[44px] px-3 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+              className="flex items-center gap-1 min-h-[44px] px-3 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
             >
               {label}
+              {key === "conversations" && <UnreadMessageBadge />}
             </a>
           ))}
         </nav>
@@ -205,9 +209,10 @@ export function PortalTopNav({ className }: { className?: string }) {
                       key={key}
                       href={href}
                       onClick={() => setMobileMenuOpen(false)}
-                      className="flex items-center min-h-[44px] px-4 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-colors rounded-md"
+                      className="flex items-center gap-1 min-h-[44px] px-4 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-colors rounded-md"
                     >
                       {label}
+                      {key === "conversations" && <UnreadMessageBadge />}
                     </a>
                   ))}
                   <div className="border-t border-border my-2" />

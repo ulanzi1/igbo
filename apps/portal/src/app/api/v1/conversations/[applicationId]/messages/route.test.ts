@@ -320,3 +320,54 @@ describe("POST /api/v1/conversations/[applicationId]/messages — attachments", 
     expect(res.status).toBe(400);
   });
 });
+
+// ── Access control invariants (AC-6) ─────────────────────────────────────────
+// These tests verify that route-level access control is enforced (not just UI).
+// Non-participants receive 404 (not 403) — the 404-not-403 invariant.
+
+describe("Access control — 404-not-403 invariant", () => {
+  const adminSession = { user: { id: "admin-1", activePortalRole: "JOB_ADMIN" } };
+  const seekerSession = { user: { id: "seeker-1", activePortalRole: "JOB_SEEKER" } };
+
+  it("admin GET /messages → service 404 (admin is never a participant)", async () => {
+    vi.mocked(auth).mockResolvedValue(
+      adminSession as ReturnType<typeof auth> extends Promise<infer T> ? T : never,
+    );
+    vi.mocked(conversationService.getPortalConversationMessages).mockRejectedValue(
+      new ApiError({ title: "Not Found", status: 404 }),
+    );
+    const res = await GET(makeGetRequest(APP_ID));
+    expect(res.status).toBe(404);
+  });
+
+  it("admin POST /messages → service 404 (admin is never a participant)", async () => {
+    vi.mocked(auth).mockResolvedValue(
+      adminSession as ReturnType<typeof auth> extends Promise<infer T> ? T : never,
+    );
+    vi.mocked(conversationService.sendMessage).mockRejectedValue(
+      new ApiError({ title: "Not Found", status: 404 }),
+    );
+    const res = await POST(makePostRequest(APP_ID));
+    expect(res.status).toBe(404);
+  });
+
+  it("seeker POST /messages when no prior conversation → 403 SEEKER_CANNOT_INITIATE", async () => {
+    vi.mocked(auth).mockResolvedValue(
+      seekerSession as ReturnType<typeof auth> extends Promise<infer T> ? T : never,
+    );
+    vi.mocked(conversationService.sendMessage).mockRejectedValue(
+      new ApiError({
+        title: "Forbidden",
+        status: 403,
+        detail: PORTAL_ERRORS.SEEKER_CANNOT_INITIATE,
+      }),
+    );
+    const res = await POST(makePostRequest(APP_ID));
+    expect(res.status).toBe(403);
+  });
+
+  it("participant GET /messages returns 200 (positive control)", async () => {
+    const res = await GET(makeGetRequest(APP_ID));
+    expect(res.status).toBe(200);
+  });
+});

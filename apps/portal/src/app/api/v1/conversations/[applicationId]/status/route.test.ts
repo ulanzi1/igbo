@@ -33,6 +33,7 @@ beforeEach(() => {
   vi.mocked(conversationService.getConversationStatus).mockResolvedValue({
     exists: true,
     readOnly: false,
+    unreadCount: 0,
   });
 });
 
@@ -41,7 +42,7 @@ describe("GET /api/v1/conversations/[applicationId]/status", () => {
     const res = await GET(makeGetRequest(APP_ID));
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body.data).toEqual({ exists: true, readOnly: false });
+    expect(body.data).toMatchObject({ exists: true, readOnly: false });
   });
 
   it("returns 401 without auth", async () => {

@@ -3,6 +3,8 @@
  */
 import { describe, it, expect, vi, beforeAll, beforeEach } from "vitest";
 import userEvent from "@testing-library/user-event";
+import { waitFor } from "@testing-library/react";
+import React from "react";
 import { renderWithPortalProviders, screen } from "@/test-utils/render";
 import { AtsPipelineView } from "./ats-pipeline-view";
 import type { KanbanApplication } from "@/components/domain/candidate-card";
@@ -10,6 +12,30 @@ import type { KanbanApplication } from "@/components/domain/candidate-card";
 // Mock sonner toast (kanban board uses it)
 vi.mock("sonner", () => ({
   toast: { success: vi.fn(), error: vi.fn() },
+}));
+
+// Mock MessagingDrawer to avoid ConversationThread dependencies in ATS view tests
+vi.mock("@/components/messaging/MessagingDrawer", () => ({
+  MessagingDrawer: ({
+    applicationId,
+    open,
+    onOpenChange,
+    otherParticipantName,
+  }: {
+    applicationId: string;
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+    otherParticipantName: string;
+  }) =>
+    open ? (
+      <div
+        data-testid="messaging-drawer"
+        data-application-id={applicationId}
+        data-other-participant={otherParticipantName}
+      >
+        <button onClick={() => onOpenChange(false)}>Close drawer</button>
+      </div>
+    ) : null,
 }));
 
 // Mock next/navigation — router.refresh() is called after bulk actions
@@ -39,37 +65,45 @@ beforeAll(() => {
   };
 });
 
+const candidateDetailData = {
+  application: {
+    id: "app-1",
+    jobId: "job-1",
+    seekerUserId: "user-1",
+    status: "submitted",
+    createdAt: new Date("2024-03-15").toISOString(),
+    updatedAt: new Date("2024-03-15").toISOString(),
+    coverLetterText: null,
+    portfolioLinksJson: [],
+    selectedCvId: null,
+    jobTitle: "Senior",
+    seekerName: "Ada Okafor",
+    seekerHeadline: "Software Engineer",
+    seekerProfileId: "sp-1",
+    seekerSummary: null,
+    seekerSkills: [],
+    cvId: null,
+    cvLabel: null,
+    cvProcessedUrl: null,
+  },
+  trustSignals: null,
+  transitions: [],
+  notes: [],
+};
+
 beforeEach(() => {
   vi.clearAllMocks();
-  global.fetch = vi.fn().mockResolvedValue({
-    ok: true,
-    json: vi.fn().mockResolvedValue({
-      data: {
-        application: {
-          id: "app-1",
-          jobId: "job-1",
-          seekerUserId: "user-1",
-          status: "submitted",
-          createdAt: new Date("2024-03-15").toISOString(),
-          updatedAt: new Date("2024-03-15").toISOString(),
-          coverLetterText: null,
-          portfolioLinksJson: [],
-          selectedCvId: null,
-          jobTitle: "Senior",
-          seekerName: "Ada Okafor",
-          seekerHeadline: "Software Engineer",
-          seekerProfileId: "sp-1",
-          seekerSummary: null,
-          seekerSkills: [],
-          cvId: null,
-          cvLabel: null,
-          cvProcessedUrl: null,
-        },
-        trustSignals: null,
-        transitions: [],
-        notes: [],
-      },
-    }),
+  global.fetch = vi.fn().mockImplementation((url: string) => {
+    if ((url as string).includes("/status")) {
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ data: { exists: true, readOnly: false, unreadCount: 0 } }),
+      });
+    }
+    return Promise.resolve({
+      ok: true,
+      json: () => Promise.resolve({ data: candidateDetailData }),
+    });
   }) as unknown as typeof fetch;
 });
 
@@ -219,5 +253,73 @@ describe("AtsPipelineView — bulk selection (P-2.10)", () => {
     // Submitted column has app-1; under_review has app-2
     await user.click(screen.getByTestId("kanban-column-select-all-submitted"));
     expect(screen.getByTestId("bulk-selected-count")).toHaveTextContent("1 selected");
+  });
+});
+
+describe("AtsPipelineView — messaging drawer (P-5.5)", () => {
+  it("clicking 'Message Candidate' closes side panel and opens messaging drawer", async () => {
+    const user = userEvent.setup();
+    renderWithPortalProviders(<AtsPipelineView applications={MIXED_APPS} />);
+
+    // Open side panel
+    await user.click(screen.getByTestId("candidate-card-app-1"));
+    expect(await screen.findByTestId("candidate-side-panel")).toBeInTheDocument();
+
+    // Click "Message Candidate"
+    const msgBtn = await screen.findByTestId("message-candidate-button");
+    await user.click(msgBtn);
+
+    // Side panel should close; drawer opens after animation delay (200ms)
+    expect(screen.queryByTestId("candidate-side-panel")).not.toBeInTheDocument();
+    expect(await screen.findByTestId("messaging-drawer")).toBeInTheDocument();
+  });
+
+  it("messaging drawer renders with correct applicationId", async () => {
+    const user = userEvent.setup();
+    renderWithPortalProviders(<AtsPipelineView applications={MIXED_APPS} />);
+
+    await user.click(screen.getByTestId("candidate-card-app-1"));
+    await user.click(await screen.findByTestId("message-candidate-button"));
+
+    const drawer = await screen.findByTestId("messaging-drawer");
+    expect(drawer).toHaveAttribute("data-application-id", "app-1");
+  });
+
+  it("messaging drawer shows seeker name as otherParticipantName", async () => {
+    const user = userEvent.setup();
+    renderWithPortalProviders(<AtsPipelineView applications={MIXED_APPS} />);
+
+    await user.click(screen.getByTestId("candidate-card-app-1"));
+    await user.click(await screen.findByTestId("message-candidate-button"));
+
+    const drawer = await screen.findByTestId("messaging-drawer");
+    expect(drawer).toHaveAttribute("data-other-participant", "Open Ada");
+  });
+
+  it("after messaging drawer closes, focus returns to the candidate card (P6)", async () => {
+    const user = userEvent.setup();
+    renderWithPortalProviders(<AtsPipelineView applications={MIXED_APPS} />);
+
+    await user.click(screen.getByTestId("candidate-card-app-1"));
+    await user.click(await screen.findByTestId("message-candidate-button"));
+    expect(await screen.findByTestId("messaging-drawer")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Close drawer" }));
+    await waitFor(() => expect(screen.queryByTestId("messaging-drawer")).not.toBeInTheDocument());
+
+    const card = screen.getByTestId("candidate-card-app-1");
+    expect(document.activeElement).toBe(card);
+  });
+
+  it("closing messaging drawer removes it from the DOM", async () => {
+    const user = userEvent.setup();
+    renderWithPortalProviders(<AtsPipelineView applications={MIXED_APPS} />);
+
+    await user.click(screen.getByTestId("candidate-card-app-1"));
+    await user.click(await screen.findByTestId("message-candidate-button"));
+    expect(await screen.findByTestId("messaging-drawer")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Close drawer" }));
+    await waitFor(() => expect(screen.queryByTestId("messaging-drawer")).not.toBeInTheDocument());
   });
 });

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { useSession } from "next-auth/react";
 import { usePortalSocket } from "@/providers/SocketProvider";
 
 export interface ConversationPreview {
@@ -24,6 +25,7 @@ export interface ConversationPreview {
     createdAt: string;
   } | null;
   updatedAt: string;
+  unreadCount: number;
 }
 
 interface UseConversationListReturn {
@@ -31,10 +33,14 @@ interface UseConversationListReturn {
   isLoading: boolean;
   hasMore: boolean;
   loadMore: () => void;
+  resetConversationUnread: (conversationId: string) => void;
 }
 
 export function useConversationList(): UseConversationListReturn {
+  const { data: session } = useSession();
+  const userId = session?.user?.id as string | undefined;
   const { portalSocket } = usePortalSocket();
+  const refetchPendingRef = useRef(false);
   const [conversations, setConversations] = useState<ConversationPreview[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [hasMore, setHasMore] = useState(false);
@@ -74,25 +80,30 @@ export function useConversationList(): UseConversationListReturn {
       setConversations((prev) => {
         const idx = prev.findIndex((conv) => conv.id === msg.conversationId);
         if (idx === -1) {
-          // F9: Unknown conversation (first-message flow) — re-fetch list to pick it up.
-          // We could optimistically insert a stub, but we lack full ConversationPreview data
-          // from just a message:new event. Refetch is safer.
-          fetch("/api/v1/conversations")
-            .then((r) => {
-              if (!r.ok) throw new Error(`HTTP ${r.status}`);
-              return r.json() as Promise<{
-                data: { conversations: ConversationPreview[]; hasMore: boolean };
-              }>;
-            })
-            .then((data) => {
-              setConversations(data.data.conversations);
-              setHasMore(data.data.hasMore);
-            })
-            .catch(console.error);
+          // Unknown conversation — schedule a re-fetch outside the updater (P8 fix)
+          if (!refetchPendingRef.current) {
+            refetchPendingRef.current = true;
+            Promise.resolve().then(() => {
+              refetchPendingRef.current = false;
+              fetch("/api/v1/conversations")
+                .then((r) => {
+                  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+                  return r.json() as Promise<{
+                    data: { conversations: ConversationPreview[]; hasMore: boolean };
+                  }>;
+                })
+                .then((data) => {
+                  setConversations(data.data.conversations);
+                  setHasMore(data.data.hasMore);
+                })
+                .catch(console.error);
+            });
+          }
           return prev;
         }
 
-        // F6: Update the conversation and move it to the top (most-recent-first)
+        // Update the conversation and move it to the top (most-recent-first)
+        const isFromOther = msg.senderId !== userId;
         const updated = {
           ...prev[idx]!,
           lastMessage: {
@@ -102,6 +113,8 @@ export function useConversationList(): UseConversationListReturn {
             createdAt: msg.createdAt,
           },
           updatedAt: msg.createdAt,
+          // P4: increment unread count for messages from other party
+          unreadCount: isFromOther ? prev[idx]!.unreadCount + 1 : prev[idx]!.unreadCount,
         };
         const rest = prev.filter((_, i) => i !== idx);
         return [updated, ...rest];
@@ -112,7 +125,7 @@ export function useConversationList(): UseConversationListReturn {
     return () => {
       portalSocket.off("message:new", handleMessageNew);
     };
-  }, [portalSocket]);
+  }, [portalSocket, userId]);
 
   const loadMore = useCallback(() => {
     if (!hasMore || isLoading) return;
@@ -137,5 +150,12 @@ export function useConversationList(): UseConversationListReturn {
       .finally(() => setIsLoading(false));
   }, [cursor, hasMore, isLoading]);
 
-  return { conversations, isLoading, hasMore, loadMore };
+  // Called when user opens a conversation — zero out the unread count optimistically.
+  const resetConversationUnread = useCallback((conversationId: string) => {
+    setConversations((prev) =>
+      prev.map((conv) => (conv.id === conversationId ? { ...conv, unreadCount: 0 } : conv)),
+    );
+  }, []);
+
+  return { conversations, isLoading, hasMore, loadMore, resetConversationUnread };
 }
