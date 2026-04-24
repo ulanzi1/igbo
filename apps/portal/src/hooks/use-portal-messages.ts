@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { usePortalSocket } from "@/providers/SocketProvider";
 
-export type MessageStatus = "sending" | "sent" | "delivered" | "failed";
+export type MessageStatus = "sending" | "sent" | "delivered" | "read" | "failed";
 
 export interface PortalMessage {
   id: string;
@@ -123,6 +123,30 @@ export function usePortalMessages({
       );
     };
 
+    // Listen for read receipts — promote own sent/delivered messages to "read"
+    const handleMessageRead = (payload: {
+      conversationId: string;
+      readerId: string;
+      lastReadAt: string;
+    }) => {
+      if (conversationId && payload.conversationId !== conversationId) return;
+      // When WE are the reader, no need to update our own sent messages' status
+      if (payload.readerId === userId) return;
+      const readTs = new Date(payload.lastReadAt).getTime();
+      setMessages((prev) =>
+        prev.map((m) => {
+          if (
+            m.senderId === userId &&
+            (m._status === "sent" || m._status === "delivered") &&
+            new Date(m.createdAt).getTime() <= readTs
+          ) {
+            return { ...m, _status: "read" };
+          }
+          return m;
+        }),
+      );
+    };
+
     // F3: Handle sync:replay — merge missed messages after reconnect
     const handleSyncReplay = (payload: { messages: PortalMessage[]; hasMore: boolean }) => {
       const incoming = payload.messages ?? [];
@@ -165,11 +189,13 @@ export function usePortalMessages({
 
     portalSocket.on("message:new", handleMessageNew);
     portalSocket.on("message:delivered", handleMessageDelivered);
+    portalSocket.on("message:read", handleMessageRead);
     portalSocket.on("sync:replay", handleSyncReplay);
     portalSocket.on("sync:full_refresh", handleSyncFullRefresh);
     return () => {
       portalSocket.off("message:new", handleMessageNew);
       portalSocket.off("message:delivered", handleMessageDelivered);
+      portalSocket.off("message:read", handleMessageRead);
       portalSocket.off("sync:replay", handleSyncReplay);
       portalSocket.off("sync:full_refresh", handleSyncFullRefresh);
     };

@@ -1422,10 +1422,13 @@
       "connectionLost": "Connection lost. Messages will be delivered when you reconnect.",
       "reconnecting": "Reconnecting…",
       "retryPrompt": "Failed to send. Tap to retry.",
+      "typing": "{name} is typing...",
+      "typingUnknown": "Typing...",
       "status": {
         "sending": "Sending…",
         "sent": "Sent",
         "delivered": "Delivered",
+        "read": "Read",
         "failed": "Failed to send"
       }
     }

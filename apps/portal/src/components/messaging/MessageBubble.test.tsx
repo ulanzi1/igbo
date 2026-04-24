@@ -81,6 +81,15 @@ describe("MessageBubble", () => {
     expect(getByText("✗")).toBeDefined();
   });
 
+  it("shows read status with correct aria-label", () => {
+    const msg = { ...baseMsg, _status: "read" as const };
+    const { getByText, getByLabelText } = render(<MessageBubble message={msg} isSelf={true} />);
+    // Status icon renders ✓✓ (same visual as delivered but font-medium)
+    expect(getByText("✓✓")).toBeDefined();
+    // aria-label contains the i18n key path
+    expect(getByLabelText("status.read")).toBeDefined();
+  });
+
   it("preserves whitespace in message content", () => {
     const msg = { ...baseMsg, content: "Line 1\nLine 2" };
     const { container } = render(<MessageBubble message={msg} isSelf={true} />);

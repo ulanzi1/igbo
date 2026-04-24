@@ -1422,10 +1422,13 @@
       "connectionLost": "Njikọ furu efu. A ga-eziga ozi mgbe ị jikọtara ọzọ.",
       "reconnecting": "Na-ejikọta ọzọ…",
       "retryPrompt": "Ezighị ozi. Pịa ka ịnwaa ọzọ.",
+      "typing": "{name} na-ede...",
+      "typingUnknown": "Na-ede...",
       "status": {
         "sending": "Na-eziga…",
         "sent": "Ezigara",
         "delivered": "Enwetara",
+        "read": "Agụrụ",
         "failed": "Ezighị ozi"
       }
     }
