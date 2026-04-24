@@ -401,6 +401,9 @@ importers:
       tailwind-merge:
         specifier: ^3.5.0
         version: 3.5.0
+      web-push:
+        specifier: ^3.6.7
+        version: 3.6.7
       zod:
         specifier: ^4.3.6
         version: 4.3.6
@@ -435,6 +438,9 @@ importers:
       "@types/sanitize-html":
         specifier: ^2.16.1
         version: 2.16.1
+      "@types/web-push":
+        specifier: ^3.6.4
+        version: 3.6.4
       eslint:
         specifier: ^9
         version: 9.39.4(jiti@2.6.1)

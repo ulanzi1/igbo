@@ -144,3 +144,4 @@ export type Database = ReturnType<typeof createDb>;
 
 export { portalJobSearchQueries };
 export * from "./queries/portal-conversations";
+export * from "./queries/push-subscriptions";
