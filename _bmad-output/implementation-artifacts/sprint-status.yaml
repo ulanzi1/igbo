@@ -332,7 +332,7 @@ development_status:
   portal-epic-4-prep-h-cross-app-schema-validation: done        # Spike: community chat survives portal schema extension (HARD GATE for P-5.1A)
 
   # Portal Epic 5: Portal Messaging
-  portal-epic-5: in-progress
+  portal-epic-5: done
   p-5-1a-messaging-data-model-extension: done
   p-5-1b-conversation-lifecycle-application-integration: done
   p-5-2-real-time-messaging-via-socket-io: done
@@ -340,7 +340,18 @@ development_status:
   p-5-4-file-sharing-in-messages: done
   p-5-5-messaging-entry-points-access-control: done
   p-5-6-message-notifications-integration: done
-  portal-epic-5-retrospective: optional
+  portal-epic-5-retrospective: done
+  # Portal Epic 5 Prep Sprint (enforcement infrastructure for Epic 6)
+  portal-epic-5-ai-25-server-only-import-guard: done                  # CI scanner: realtime server import graph fails if server-only reachable
+  portal-epic-5-ai-26-redis-key-enforcement-structure: backlog         # Key naming convention + createRedisKey enforcement + scanner
+  portal-epic-5-ai-27-cross-container-smoke-test: backlog              # Integration test: Portal API → Redis → Realtime → Socket.IO delivery
+  portal-epic-5-ai-28-eventbus-payload-validation-ownership: backlog   # Zod validation at emit + emittedBy/version/idempotencyKey metadata
+  portal-epic-5-ai-29-handler-guard-standardization: backlog           # withHandlerGuard wrapper for all event/socket/notification handlers
+  portal-epic-5-ai-30-minimal-idempotency-rule: backlog                # Side-effect handlers idempotent: ON CONFLICT DO NOTHING + Redis NX
+  portal-epic-5-ai-20-runtime-checklist-template: backlog              # Story file template with mandatory runtime verification section
+  portal-epic-5-ai-21-placeholder-page-policy: backlog                 # Decision: remove or badge placeholder nav links
+  portal-epic-5-notification-pattern-assessment: backlog               # Decision doc: which P-5.6 patterns Epic 6 builds on vs. replaces
+  portal-epic-5-architecture-diagram: backlog                          # Cross-container diagram with server-only boundary
 
   # Portal Epic 6: Notifications & "Viewed by Employer" Signal
   portal-epic-6: backlog
