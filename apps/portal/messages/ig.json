@@ -1053,6 +1053,7 @@
       "selectedCvHeading": "CV Ezigara",
       "portfolioHeading": "Njikọ Portfolio",
       "noCoverLetter": "Ọ dịghị akwụkwọ mkpuchite e zigara",
+      "unknownCompany": "Onye ọrụ",
       "backToList": "Laghachi na Arịọ M",
       "currentStatus": "Ọnọdụ Ugbu a",
       "status": {
@@ -1443,7 +1444,21 @@
         "delivered": "Enwetara",
         "read": "Agụrụ",
         "failed": "Ezighị ozi"
-      }
+      },
+      "messageCandidate": "Zigara onye na-achọ ọrụ ozi",
+      "messageEmployer": "Zigara onye ọrụ ozi",
+      "noConversationYet": "Onye ọrụ ga-enwe ike iziga gị ozi mgbe ha nyochachara akwụkwọ gị.",
+      "conversationsTitle": "Ozi",
+      "noConversations": "Enweghị mkparịta ụka ọ bụla.",
+      "unreadBadgeLabel": "{count} ozi a na-agụghị",
+      "lastMessageYou": "Gị: {preview}",
+      "conversationWith": "Mkparịta ụka na {name} banyere {jobTitle}",
+      "loadError": "Ọ rụkwaghị ịbuo mkparịta ụka. Biko nwaa ọzọ.",
+      "timeJustNow": "Ugbu a",
+      "timeMinutesAgo": "{count}m gara aga",
+      "timeHoursAgo": "{count}h gara aga",
+      "timeYesterday": "Ụnyaahụ",
+      "timeDaysAgo": "{count}d gara aga"
     }
   },
   "Shell": {

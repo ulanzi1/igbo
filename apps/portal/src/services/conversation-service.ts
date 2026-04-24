@@ -9,7 +9,11 @@ import {
   createMessage,
   getConversationMessages as getConversationMessagesDb,
 } from "@igbo/db/queries/chat-messages";
-import { isConversationMember } from "@igbo/db/queries/chat-conversations";
+import {
+  isConversationMember,
+  getUnreadCountForConversation,
+  markConversationRead,
+} from "@igbo/db/queries/chat-conversations";
 import type { EnrichedUserConversation } from "@igbo/db/queries/chat-conversations";
 import type { ChatMessage } from "@igbo/db/queries/chat-messages";
 import {
@@ -483,10 +487,22 @@ export async function listUserConversations(
  * Used by UI (P-5.5) to determine messaging button state.
  * Returns 404 for non-participants (consistent with 404-not-403 invariant).
  */
+export interface ConversationStatusResult {
+  exists: boolean;
+  readOnly: boolean;
+  unreadCount: number;
+  /** Job title from the application's job posting */
+  jobTitle: string;
+  /** Company name from the application's company profile */
+  companyName: string;
+  /** Display name of the other party (resolved from community_profiles) */
+  otherPartyName: string;
+}
+
 export async function getConversationStatus(
   applicationId: string,
   userId: string,
-): Promise<{ exists: boolean; readOnly: boolean }> {
+): Promise<ConversationStatusResult> {
   const appCtx = await getApplicationContext(applicationId);
   if (!appCtx) {
     throw new ApiError({ title: "Not Found", status: 404 });
@@ -498,5 +514,44 @@ export async function getConversationStatus(
   const conv = await getPortalConversationByApplicationId(applicationId);
   const TERMINAL = ["hired", "rejected", "withdrawn"];
   const readOnly = TERMINAL.includes(appCtx.status);
-  return { exists: conv !== null, readOnly };
+
+  // Resolve the other party's display name
+  const otherUserId =
+    userId === appCtx.employerUserId ? appCtx.seekerUserId : appCtx.employerUserId;
+  const nameRows = await db.execute(
+    sql`SELECT COALESCE(display_name, 'Unknown') AS name FROM community_profiles WHERE user_id = ${otherUserId}::uuid LIMIT 1`,
+  );
+  const otherPartyName = (nameRows[0] as { name: string } | undefined)?.name ?? "Unknown";
+
+  const base = {
+    readOnly,
+    jobTitle: appCtx.jobTitle,
+    companyName: appCtx.companyName,
+    otherPartyName,
+  };
+
+  if (!conv) return { ...base, exists: false, unreadCount: 0 };
+
+  const unreadCount = await getUnreadCountForConversation(conv.conversation.id, userId);
+  return { ...base, exists: true, unreadCount };
+}
+
+/**
+ * Mark a conversation as read for a user (updates last_read_at in DB).
+ * Enforces participant access control — non-participants get 404.
+ * Called by POST /api/v1/conversations/[applicationId]/read route.
+ */
+export async function markConversationAsRead(applicationId: string, userId: string): Promise<void> {
+  const appCtx = await getApplicationContext(applicationId);
+  if (!appCtx) {
+    throw new ApiError({ title: "Not Found", status: 404 });
+  }
+  if (userId !== appCtx.seekerUserId && userId !== appCtx.employerUserId) {
+    throw new ApiError({ title: "Not Found", status: 404 });
+  }
+
+  const conv = await getPortalConversationByApplicationId(applicationId);
+  if (!conv) return; // No conversation to mark
+
+  await markConversationRead(conv.conversation.id, userId);
 }

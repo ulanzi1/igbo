@@ -562,6 +562,32 @@ export async function checkBlocksAmongMembers(memberIds: string[]): Promise<bool
   return rows.length > 0;
 }
 
+/**
+ * Get unread message count for a specific user in a specific conversation.
+ * Counts messages created after the user's last_read_at timestamp.
+ * Messages sent by the user themselves are excluded.
+ * Used by getConversationStatus() to populate the unreadCount field (P-5.5).
+ * NOTE: Never call this in a loop — use getUserConversations() for batch unread counts.
+ */
+export async function getUnreadCountForConversation(
+  conversationId: string,
+  userId: string,
+): Promise<number> {
+  const rows = await db.execute(sql`
+    SELECT COUNT(*)::int as count
+    FROM chat_messages cm
+    INNER JOIN chat_conversation_members ccm
+      ON ccm.conversation_id = cm.conversation_id
+      AND ccm.user_id = ${userId}::uuid
+    WHERE cm.conversation_id = ${conversationId}::uuid
+      AND cm.sender_id != ${userId}::uuid
+      AND cm.deleted_at IS NULL
+      AND (ccm.last_read_at IS NULL OR cm.created_at > ccm.last_read_at)
+  `);
+  const row = rows[0] as { count: number } | undefined;
+  return Number(row?.count ?? 0);
+}
+
 // ── Message search ────────────────────────────────────────────────────────────
 
 export type MessageSearchResult = {

@@ -9,14 +9,15 @@ import {
   LogInIcon,
   ShieldCheckIcon,
   BarChart3Icon,
-  BookmarkIcon,
   InboxIcon,
+  MessageSquareIcon,
 } from "lucide-react";
 import { useTranslations, useLocale } from "next-intl";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { buildSignInUrl } from "@/lib/guest-utils";
 import { useActivePortalRole } from "@/hooks/use-active-portal-role";
+import { UnreadMessageBadge } from "./UnreadMessageBadge";
 
 interface BottomNavItem {
   key: string;
@@ -41,10 +42,10 @@ export function PortalBottomNav() {
     { key: "home", href: `/${locale}`, label: t("home"), icon: HomeIcon },
     { key: "jobs", href: `/${locale}/jobs`, label: t("jobs"), icon: BriefcaseIcon },
     {
-      key: "savedSearches",
-      href: `/${locale}/saved-searches`,
-      label: t("savedSearches"),
-      icon: BookmarkIcon,
+      key: "conversations",
+      href: `/${locale}/conversations`,
+      label: t("messages"),
+      icon: MessageSquareIcon,
     },
     {
       key: "myApplications",
@@ -63,6 +64,12 @@ export function PortalBottomNav() {
       href: `/${locale}/employer-applications`,
       label: t("employerApplications"),
       icon: InboxIcon,
+    },
+    {
+      key: "conversations",
+      href: `/${locale}/conversations`,
+      label: t("messages"),
+      icon: MessageSquareIcon,
     },
     { key: "profile", href: `/${locale}/profile`, label: t("profile"), icon: UserIcon },
   ];
@@ -119,7 +126,10 @@ export function PortalBottomNav() {
                 )}
                 aria-current={isActive ? "page" : undefined}
               >
-                <Icon className="size-5" aria-hidden={true} />
+                <span className="relative">
+                  <Icon className="size-5" aria-hidden={true} />
+                  {key === "conversations" && <UnreadMessageBadge />}
+                </span>
                 <span>{label}</span>
               </a>
             </li>

@@ -25,13 +25,21 @@ vi.mock("@/providers/SocketProvider", () => ({
   }),
 }));
 
+vi.mock("next-auth/react", () => ({
+  useSession: () => ({
+    data: { user: { id: "user-1" } },
+    status: "authenticated",
+  }),
+  SessionProvider: ({ children }: { children: React.ReactNode }) => children,
+}));
+
 // ── fetch mock ────────────────────────────────────────────────────────────────
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
 
 import { useConversationList } from "./use-conversation-list";
 
-const makeConv = (id: string, updatedAt = "2026-04-23T10:00:00.000Z") => ({
+const makeConv = (id: string, updatedAt = "2026-04-23T10:00:00.000Z", unreadCount = 0) => ({
   id,
   applicationId: `app-${id}`,
   portalContext: {
@@ -48,6 +56,7 @@ const makeConv = (id: string, updatedAt = "2026-04-23T10:00:00.000Z") => ({
     createdAt: updatedAt,
   },
   updatedAt,
+  unreadCount,
 });
 
 function makeSuccessResponse(data: unknown) {
@@ -172,5 +181,47 @@ describe("useConversationList", () => {
 
     unmount();
     expect(mockSocket.off).toHaveBeenCalledWith("message:new", expect.any(Function));
+  });
+
+  it("maps unreadCount from API response", async () => {
+    const convs = [makeConv("conv-1", "2026-04-23T10:00:00.000Z", 3)];
+    mockFetch.mockReturnValue(makeSuccessResponse({ conversations: convs, hasMore: false }));
+
+    const { result } = renderHook(() => useConversationList());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(result.current.conversations[0]?.unreadCount).toBe(3);
+  });
+
+  it("resetConversationUnread zeroes unreadCount for matching conversation", async () => {
+    const convs = [makeConv("conv-1", "2026-04-23T10:00:00.000Z", 5)];
+    mockFetch.mockReturnValue(makeSuccessResponse({ conversations: convs, hasMore: false }));
+
+    const { result } = renderHook(() => useConversationList());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    act(() => {
+      result.current.resetConversationUnread("conv-1");
+    });
+
+    expect(result.current.conversations[0]?.unreadCount).toBe(0);
+  });
+
+  it("resetConversationUnread does not affect other conversations", async () => {
+    const convs = [
+      makeConv("conv-1", "2026-04-23T10:00:00.000Z", 5),
+      makeConv("conv-2", "2026-04-22T10:00:00.000Z", 2),
+    ];
+    mockFetch.mockReturnValue(makeSuccessResponse({ conversations: convs, hasMore: false }));
+
+    const { result } = renderHook(() => useConversationList());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    act(() => {
+      result.current.resetConversationUnread("conv-1");
+    });
+
+    expect(result.current.conversations[0]?.unreadCount).toBe(0);
+    expect(result.current.conversations[1]?.unreadCount).toBe(2);
   });
 });

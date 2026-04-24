@@ -25,6 +25,10 @@ vi.mock("sonner", () => ({
   toast: vi.fn(),
 }));
 
+vi.mock("@/components/layout/UnreadMessageBadge", () => ({
+  UnreadMessageBadge: () => <span data-testid="unread-message-badge" />,
+}));
+
 import { fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useSession } from "next-auth/react";
@@ -64,6 +68,20 @@ describe("PortalTopNav", () => {
       expect(screen.getAllByText("myApplications").length).toBeGreaterThan(0);
     });
 
+    it("renders 'Messages' link for JOB_SEEKER", () => {
+      setSession({ user: { activePortalRole: "JOB_SEEKER", portalRoles: ["JOB_SEEKER"] } });
+      render(<PortalTopNav />);
+      expect(screen.getAllByText("messages").length).toBeGreaterThan(0);
+    });
+
+    it("'Messages' link points to /en/conversations for seeker", () => {
+      setSession({ user: { activePortalRole: "JOB_SEEKER", portalRoles: ["JOB_SEEKER"] } });
+      render(<PortalTopNav />);
+      const links = screen.getAllByText("messages").map((el) => el.closest("a"));
+      const convLinks = links.filter((l) => l?.getAttribute("href")?.includes("/conversations"));
+      expect(convLinks.length).toBeGreaterThan(0);
+    });
+
     it("shows role switcher for multi-role seeker user", () => {
       setSession({
         user: { activePortalRole: "JOB_SEEKER", portalRoles: ["JOB_SEEKER", "EMPLOYER"] },
@@ -74,6 +92,12 @@ describe("PortalTopNav", () => {
   });
 
   describe("employer role", () => {
+    it("renders 'Messages' link for EMPLOYER", () => {
+      setSession({ user: { activePortalRole: "EMPLOYER", portalRoles: ["EMPLOYER"] } });
+      render(<PortalTopNav />);
+      expect(screen.getAllByText("messages").length).toBeGreaterThan(0);
+    });
+
     it("renders employer nav items", () => {
       setSession({ user: { activePortalRole: "EMPLOYER", portalRoles: ["EMPLOYER"] } });
       render(<PortalTopNav />);
@@ -102,6 +126,12 @@ describe("PortalTopNav", () => {
   });
 
   describe("admin role", () => {
+    it("does NOT render 'Messages' link for admin role", () => {
+      setSession({ user: { activePortalRole: "JOB_ADMIN", portalRoles: ["JOB_ADMIN"] } });
+      render(<PortalTopNav />);
+      expect(screen.queryByText("messages")).not.toBeInTheDocument();
+    });
+
     it("renders admin nav items", () => {
       setSession({ user: { activePortalRole: "JOB_ADMIN", portalRoles: ["JOB_ADMIN"] } });
       render(<PortalTopNav />);
@@ -143,6 +173,12 @@ describe("PortalTopNav", () => {
   });
 
   describe("guest", () => {
+    it("does NOT render 'Messages' link for guest", () => {
+      setGuest();
+      render(<PortalTopNav />);
+      expect(screen.queryByText("messages")).not.toBeInTheDocument();
+    });
+
     it("renders guest nav items (discover, browse all)", () => {
       setGuest();
       render(<PortalTopNav />);

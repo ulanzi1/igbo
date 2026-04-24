@@ -414,5 +414,94 @@ describe("CandidateSidePanel — accessibility", () => {
   });
 });
 
+// ---------------------------------------------------------------------------
+// 8. Message Candidate button (P-5.5)
+// ---------------------------------------------------------------------------
+describe("CandidateSidePanel — Message Candidate button", () => {
+  const STATUS_RESPONSE = { data: { exists: true, readOnly: false, unreadCount: 0 } };
+  const STATUS_UNREAD_RESPONSE = { data: { exists: true, readOnly: false, unreadCount: 2 } };
+
+  function setupFetch(unreadCount = 0) {
+    const statusData = unreadCount > 0 ? STATUS_UNREAD_RESPONSE : STATUS_RESPONSE;
+    global.fetch = vi.fn().mockImplementation((url: string) => {
+      if ((url as string).includes("/status")) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(statusData),
+        });
+      }
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ data: makeDetail() }),
+      });
+    }) as unknown as typeof fetch;
+  }
+
+  it("renders 'Message Candidate' button when onOpenMessaging is provided", async () => {
+    setupFetch();
+    const onOpenMessaging = vi.fn();
+    renderWithPortalProviders(
+      <CandidateSidePanel
+        applicationId={APP_ID}
+        onClose={() => {}}
+        onOpenMessaging={onOpenMessaging}
+      />,
+    );
+    expect(await screen.findByTestId("message-candidate-button")).toBeInTheDocument();
+    expect(screen.getByTestId("message-candidate-button")).toHaveTextContent("Message Candidate");
+  });
+
+  it("does not render 'Message Candidate' button when onOpenMessaging is not provided", async () => {
+    setupFetch();
+    renderWithPortalProviders(<CandidateSidePanel applicationId={APP_ID} onClose={() => {}} />);
+    await screen.findByText("Ada Okafor");
+    expect(screen.queryByTestId("message-candidate-button")).not.toBeInTheDocument();
+  });
+
+  it("button click calls onOpenMessaging with applicationId", async () => {
+    setupFetch();
+    const user = userEvent.setup();
+    const onOpenMessaging = vi.fn();
+    renderWithPortalProviders(
+      <CandidateSidePanel
+        applicationId={APP_ID}
+        onClose={() => {}}
+        onOpenMessaging={onOpenMessaging}
+      />,
+    );
+    await user.click(await screen.findByTestId("message-candidate-button"));
+    expect(onOpenMessaging).toHaveBeenCalledWith(APP_ID);
+  });
+
+  it("button shows unread count badge when conversation has unread messages", async () => {
+    setupFetch(2);
+    const onOpenMessaging = vi.fn();
+    renderWithPortalProviders(
+      <CandidateSidePanel
+        applicationId={APP_ID}
+        onClose={() => {}}
+        onOpenMessaging={onOpenMessaging}
+      />,
+    );
+    await screen.findByTestId("message-candidate-button");
+    await waitFor(() => expect(screen.getByText("2")).toBeInTheDocument());
+  });
+
+  it("button has descriptive aria-label", async () => {
+    setupFetch();
+    const onOpenMessaging = vi.fn();
+    renderWithPortalProviders(
+      <CandidateSidePanel
+        applicationId={APP_ID}
+        onClose={() => {}}
+        onOpenMessaging={onOpenMessaging}
+      />,
+    );
+    const btn = await screen.findByTestId("message-candidate-button");
+    expect(btn).toHaveAttribute("aria-label");
+    expect(btn.getAttribute("aria-label")).toMatch(/Message Candidate/i);
+  });
+});
+
 // Unused import guard
 void within;

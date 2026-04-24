@@ -18,6 +18,10 @@ vi.mock("next/navigation", () => ({
   usePathname: vi.fn().mockReturnValue("/en"),
 }));
 
+vi.mock("@/components/layout/UnreadMessageBadge", () => ({
+  UnreadMessageBadge: () => <span data-testid="unread-message-badge" />,
+}));
+
 import { useSession } from "next-auth/react";
 import { usePathname } from "next/navigation";
 import { PortalBottomNav } from "./portal-bottom-nav";
@@ -47,7 +51,7 @@ describe("PortalBottomNav", () => {
     render(<PortalBottomNav />);
     expect(screen.getByText("home")).toBeInTheDocument();
     expect(screen.getByText("jobs")).toBeInTheDocument();
-    expect(screen.getByText("savedSearches")).toBeInTheDocument();
+    expect(screen.getByText("messages")).toBeInTheDocument();
     expect(screen.getByText("myApplications")).toBeInTheDocument();
     expect(screen.getByText("profile")).toBeInTheDocument();
   });
@@ -156,6 +160,42 @@ describe("PortalBottomNav", () => {
     render(<PortalBottomNav />);
     const reportsLink = screen.getByText("reports").closest("a");
     expect(reportsLink).toHaveAttribute("href", "/en/admin/reports");
+  });
+
+  it("Messages link appears for JOB_SEEKER", () => {
+    setSession({ user: { activePortalRole: "JOB_SEEKER", portalRoles: ["JOB_SEEKER"] } });
+    render(<PortalBottomNav />);
+    expect(screen.getByText("messages")).toBeInTheDocument();
+    const messagesLink = screen.getByText("messages").closest("a");
+    expect(messagesLink).toHaveAttribute("href", "/en/conversations");
+  });
+
+  it("Messages link appears for EMPLOYER", () => {
+    setSession({ user: { activePortalRole: "EMPLOYER", portalRoles: ["EMPLOYER"] } });
+    render(<PortalBottomNav />);
+    expect(screen.getByText("messages")).toBeInTheDocument();
+    const messagesLink = screen.getByText("messages").closest("a");
+    expect(messagesLink).toHaveAttribute("href", "/en/conversations");
+  });
+
+  it("Messages link does NOT appear for admin role", () => {
+    setSession({ user: { activePortalRole: "JOB_ADMIN", portalRoles: ["JOB_ADMIN"] } });
+    render(<PortalBottomNav />);
+    expect(screen.queryByText("messages")).not.toBeInTheDocument();
+  });
+
+  it("Messages link is active when pathname starts with /conversations", () => {
+    setSession({ user: { activePortalRole: "JOB_SEEKER", portalRoles: ["JOB_SEEKER"] } });
+    vi.mocked(usePathname).mockReturnValue("/en/conversations");
+    render(<PortalBottomNav />);
+    const messagesLink = screen.getByText("messages").closest("a");
+    expect(messagesLink).toHaveAttribute("aria-current", "page");
+  });
+
+  it("savedSearches is no longer in seeker bottom nav (replaced by messages)", () => {
+    setSession({ user: { activePortalRole: "JOB_SEEKER", portalRoles: ["JOB_SEEKER"] } });
+    render(<PortalBottomNav />);
+    expect(screen.queryByText("savedSearches")).not.toBeInTheDocument();
   });
 
   it("does not reference the removed Portal.nav.settings key", () => {

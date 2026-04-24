@@ -1053,6 +1053,7 @@
       "selectedCvHeading": "Submitted CV",
       "portfolioHeading": "Portfolio Links",
       "noCoverLetter": "No cover letter submitted",
+      "unknownCompany": "Employer",
       "backToList": "Back to My Applications",
       "currentStatus": "Current Status",
       "status": {
@@ -1443,7 +1444,21 @@
         "delivered": "Delivered",
         "read": "Read",
         "failed": "Failed to send"
-      }
+      },
+      "messageCandidate": "Message Candidate",
+      "messageEmployer": "Message Employer",
+      "noConversationYet": "The employer will be able to message you once they review your application.",
+      "conversationsTitle": "Messages",
+      "noConversations": "No conversations yet.",
+      "unreadBadgeLabel": "{count} unread messages",
+      "lastMessageYou": "You: {preview}",
+      "conversationWith": "Conversation with {name} about {jobTitle}",
+      "loadError": "Failed to load conversation. Please try again.",
+      "timeJustNow": "Just now",
+      "timeMinutesAgo": "{count}m ago",
+      "timeHoursAgo": "{count}h ago",
+      "timeYesterday": "Yesterday",
+      "timeDaysAgo": "{count}d ago"
     }
   },
   "Shell": {

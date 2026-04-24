@@ -1,12 +1,13 @@
 "use client";
 
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { AtsKanbanBoard } from "@/components/domain/ats-kanban-board";
 import { ClosedApplicationsSection } from "@/components/domain/closed-applications-section";
 import { CandidateSidePanel } from "@/components/domain/candidate-side-panel";
 import { BulkActionToolbar } from "@/components/domain/bulk-action-toolbar";
+import { MessagingDrawer } from "@/components/messaging/MessagingDrawer";
 import type { KanbanApplication } from "@/components/domain/candidate-card";
 import type { PortalApplicationStatus } from "@igbo/db/schema/portal-applications";
 
@@ -33,6 +34,16 @@ export function AtsPipelineView({ applications }: AtsPipelineViewProps) {
   const router = useRouter();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
+  const [messagingAppId, setMessagingAppId] = useState<string | null>(null);
+  const messagingTriggerRef = useRef<HTMLElement | null>(null);
+  const messagingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Clean up pending messaging timer on unmount
+  useEffect(() => {
+    return () => {
+      if (messagingTimerRef.current) clearTimeout(messagingTimerRef.current);
+    };
+  }, []);
 
   const handleCardClick = useCallback((applicationId: string) => {
     setSelectedId(applicationId);
@@ -40,6 +51,22 @@ export function AtsPipelineView({ applications }: AtsPipelineViewProps) {
 
   const handleSidePanelClose = useCallback(() => {
     setSelectedId(null);
+  }, []);
+
+  const handleOpenMessaging = useCallback((applicationId: string) => {
+    // Remember the triggering card so focus can return after drawer closes (P6).
+    const card = document.querySelector<HTMLElement>(
+      `[data-testid="candidate-card-${applicationId}"]`,
+    );
+    messagingTriggerRef.current = card;
+    // Close side panel first, then open messaging drawer after exit animation completes.
+    // Delay (350ms) exceeds Sheet's 300ms exit animation to prevent simultaneous aria-modal Sheets (AC-10 / P7).
+    setSelectedId(null);
+    if (messagingTimerRef.current) clearTimeout(messagingTimerRef.current);
+    messagingTimerRef.current = setTimeout(() => {
+      messagingTimerRef.current = null;
+      setMessagingAppId(applicationId);
+    }, 350);
   }, []);
 
   const handleToggleSelect = useCallback((applicationId: string) => {
@@ -113,7 +140,25 @@ export function AtsPipelineView({ applications }: AtsPipelineViewProps) {
         onClearSelection={handleClearSelection}
       />
       <ClosedApplicationsSection applications={closedApps} onCardClick={handleCardClick} />
-      <CandidateSidePanel applicationId={selectedId} onClose={handleSidePanelClose} />
+      <CandidateSidePanel
+        applicationId={selectedId}
+        onClose={handleSidePanelClose}
+        onOpenMessaging={handleOpenMessaging}
+      />
+      <MessagingDrawer
+        applicationId={messagingAppId ?? ""}
+        open={messagingAppId !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setMessagingAppId(null);
+            messagingTriggerRef.current?.focus();
+            messagingTriggerRef.current = null;
+          }
+        }}
+        otherParticipantName={
+          applications.find((app) => app.id === messagingAppId)?.seekerName ?? ""
+        }
+      />
     </>
   );
 }

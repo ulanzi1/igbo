@@ -2,8 +2,9 @@
 
 import React, { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
-import { Download, ExternalLink } from "lucide-react";
+import { Download, ExternalLink, MessageSquare } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -49,6 +50,7 @@ export interface CandidateDetailResponse {
 export interface CandidateSidePanelProps {
   applicationId: string | null;
   onClose: () => void;
+  onOpenMessaging?: (applicationId: string) => void;
 }
 
 /**
@@ -56,11 +58,16 @@ export interface CandidateSidePanelProps {
  * Fetches `GET /api/v1/applications/[id]/detail` when applicationId is non-null,
  * and renders Profile / Community Trust / Cover Letter / Resume / Portfolio / Timeline sections.
  */
-export function CandidateSidePanel({ applicationId, onClose }: CandidateSidePanelProps) {
+export function CandidateSidePanel({
+  applicationId,
+  onClose,
+  onOpenMessaging,
+}: CandidateSidePanelProps) {
   const t = useTranslations("Portal.ats");
   const [data, setData] = useState<CandidateDetailResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [convUnreadCount, setConvUnreadCount] = useState(0);
 
   useEffect(() => {
     if (!applicationId) {
@@ -99,6 +106,27 @@ export function CandidateSidePanel({ applicationId, onClose }: CandidateSidePane
     };
   }, [applicationId, t]);
 
+  // Fetch conversation status to show unread badge on "Message Candidate" button
+  useEffect(() => {
+    if (!applicationId) {
+      setConvUnreadCount(0);
+      return;
+    }
+    fetch(`/api/v1/conversations/${applicationId}/status`)
+      .then((r) => {
+        if (!r.ok) return null;
+        return r.json() as Promise<{ data: { unreadCount: number } }>;
+      })
+      .then((body) => {
+        if (body && typeof body.data.unreadCount === "number") {
+          setConvUnreadCount(body.data.unreadCount);
+        }
+      })
+      .catch(() => {
+        // Silently ignore — badge stays at 0
+      });
+  }, [applicationId]);
+
   const isOpen = applicationId !== null;
 
   return (
@@ -127,7 +155,14 @@ export function CandidateSidePanel({ applicationId, onClose }: CandidateSidePane
             </p>
           ) : null}
 
-          {!isLoading && !error && data ? <PanelContent data={data} /> : null}
+          {!isLoading && !error && data ? (
+            <PanelContent
+              data={data}
+              applicationId={applicationId!}
+              unreadCount={convUnreadCount}
+              onOpenMessaging={onOpenMessaging}
+            />
+          ) : null}
         </ScrollArea>
       </SheetContent>
     </Sheet>
@@ -149,8 +184,19 @@ function LoadingSkeleton() {
   );
 }
 
-function PanelContent({ data }: { data: CandidateDetailResponse }) {
+function PanelContent({
+  data,
+  applicationId,
+  unreadCount,
+  onOpenMessaging,
+}: {
+  data: CandidateDetailResponse;
+  applicationId: string;
+  unreadCount: number;
+  onOpenMessaging?: (applicationId: string) => void;
+}) {
   const t = useTranslations("Portal.ats");
+  const tMessages = useTranslations("Portal.messages");
   const { application, trustSignals, transitions, notes } = data;
 
   return (
@@ -262,6 +308,34 @@ function PanelContent({ data }: { data: CandidateDetailResponse }) {
 
       {/* Notes (P-2.10) */}
       <NotesSection applicationId={application.id} initialNotes={notes} />
+
+      {/* Messaging entry point */}
+      {onOpenMessaging ? (
+        <div className="pt-2">
+          <Button
+            variant="outline"
+            className="relative w-full"
+            onClick={() => onOpenMessaging(applicationId)}
+            aria-label={
+              unreadCount > 0
+                ? tMessages("unreadBadgeLabel", { count: String(unreadCount) })
+                : tMessages("messageCandidate")
+            }
+            data-testid="message-candidate-button"
+          >
+            <MessageSquare className="mr-2 size-4" aria-hidden="true" />
+            {tMessages("messageCandidate")}
+            {unreadCount > 0 && (
+              <span
+                className="absolute -top-1.5 -right-1.5 flex size-5 items-center justify-center rounded-full bg-destructive text-xs font-bold text-destructive-foreground"
+                aria-hidden="true"
+              >
+                {unreadCount > 99 ? "99+" : unreadCount}
+              </span>
+            )}
+          </Button>
+        </div>
+      ) : null}
     </div>
   );
 }

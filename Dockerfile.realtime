@@ -42,18 +42,22 @@ FROM node:22-alpine AS runner
 
 WORKDIR /app
 
-# Reuse builder node_modules and prune devDeps
+# Copy pre-installed node_modules from builder — no re-install, no lifecycle scripts
 COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package.json ./package.json
 
-RUN npm prune --omit=dev 2>/dev/null || true
+# Workspace packages are symlinked from node_modules/@igbo/* → ../../packages/*
+# Copy only dist + package.json so those symlinks resolve at runtime
+COPY --from=builder /app/packages/config/package.json ./packages/config/package.json
+COPY --from=builder /app/packages/config/dist ./packages/config/dist
+COPY --from=builder /app/packages/db/package.json ./packages/db/package.json
+COPY --from=builder /app/packages/db/dist ./packages/db/dist
 
-# Copy built output
+# Copy compiled realtime bundle
 COPY --from=builder /app/dist/realtime.js ./dist/realtime.js
 
-EXPOSE 3001
+EXPOSE 3002
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD wget -qO- http://127.0.0.1:3001/health || exit 1
+  CMD wget -qO- http://127.0.0.1:3002/health || exit 1
 
 CMD ["node", "dist/realtime.js"]

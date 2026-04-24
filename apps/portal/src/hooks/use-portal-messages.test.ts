@@ -248,6 +248,7 @@ describe("usePortalMessages", () => {
 
   it("message:read promotes own sent message to read", async () => {
     mockFetch.mockReturnValueOnce(makeSuccessResponse({ messages: [], hasMore: false }));
+    mockFetch.mockReturnValueOnce(Promise.resolve({ ok: true, json: () => Promise.resolve({}) })); // POST /read fire-and-forget
     const sentMsg = { ...makeMsg("srv-1"), senderId: "current-user-id" };
     mockFetch.mockReturnValueOnce(makeSuccessResponse({ message: sentMsg }));
 
@@ -304,6 +305,7 @@ describe("usePortalMessages", () => {
 
   it("message:read from self (own userId as readerId) is ignored", async () => {
     mockFetch.mockReturnValueOnce(makeSuccessResponse({ messages: [], hasMore: false }));
+    mockFetch.mockReturnValueOnce(Promise.resolve({ ok: true, json: () => Promise.resolve({}) })); // POST /read fire-and-forget
     const sentMsg = { ...makeMsg("srv-1"), senderId: "current-user-id" };
     mockFetch.mockReturnValueOnce(makeSuccessResponse({ message: sentMsg }));
 
@@ -372,6 +374,7 @@ describe("usePortalMessages", () => {
 
   it("status monotonicity: message already read stays read (no backward regression)", async () => {
     mockFetch.mockReturnValueOnce(makeSuccessResponse({ messages: [], hasMore: false }));
+    mockFetch.mockReturnValueOnce(Promise.resolve({ ok: true, json: () => Promise.resolve({}) })); // POST /read fire-and-forget
     const sentMsg = { ...makeMsg("srv-1"), senderId: "current-user-id" };
     mockFetch.mockReturnValueOnce(makeSuccessResponse({ message: sentMsg }));
 
@@ -409,6 +412,7 @@ describe("usePortalMessages", () => {
 
   it("status monotonicity: message:delivered after message:read does not regress to delivered", async () => {
     mockFetch.mockReturnValueOnce(makeSuccessResponse({ messages: [], hasMore: false }));
+    mockFetch.mockReturnValueOnce(Promise.resolve({ ok: true, json: () => Promise.resolve({}) })); // POST /read fire-and-forget
     const sentMsg = { ...makeMsg("srv-1"), senderId: "current-user-id" };
     mockFetch.mockReturnValueOnce(makeSuccessResponse({ message: sentMsg }));
 
@@ -447,6 +451,7 @@ describe("usePortalMessages", () => {
 
   it("message:read with non-matching conversationId is filtered out", async () => {
     mockFetch.mockReturnValueOnce(makeSuccessResponse({ messages: [], hasMore: false }));
+    mockFetch.mockReturnValueOnce(Promise.resolve({ ok: true, json: () => Promise.resolve({}) })); // POST /read fire-and-forget
     const sentMsg = { ...makeMsg("srv-1"), senderId: "current-user-id" };
     mockFetch.mockReturnValueOnce(makeSuccessResponse({ message: sentMsg }));
 
@@ -523,6 +528,7 @@ describe("usePortalMessages", () => {
 
   it("sendMessage with attachmentFileUploadIds passes them in POST body", async () => {
     mockFetch.mockReturnValueOnce(makeSuccessResponse({ messages: [], hasMore: false }));
+    mockFetch.mockReturnValueOnce(Promise.resolve({ ok: true, json: () => Promise.resolve({}) })); // POST /read fire-and-forget
     mockFetch.mockReturnValueOnce(
       makeSuccessResponse({ message: makeMsg("srv-1"), attachments: [] }),
     );
@@ -534,13 +540,14 @@ describe("usePortalMessages", () => {
       await result.current.sendMessage("Check this", ["upload-uuid-1"]);
     });
 
-    const postCall = mockFetch.mock.calls[1];
+    const postCall = mockFetch.mock.calls[2];
     const body = JSON.parse(postCall?.[1]?.body as string);
     expect(body.attachmentFileUploadIds).toEqual(["upload-uuid-1"]);
   });
 
   it("sendMessage stores _attachments on the message after server confirm", async () => {
     mockFetch.mockReturnValueOnce(makeSuccessResponse({ messages: [], hasMore: false }));
+    mockFetch.mockReturnValueOnce(Promise.resolve({ ok: true, json: () => Promise.resolve({}) })); // POST /read fire-and-forget
 
     const serverAttachment = {
       id: "att-1",
