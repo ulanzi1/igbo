@@ -114,7 +114,7 @@ const NEW_JOB = {
 beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(batchUpdateLastAlertedAt).mockResolvedValue(undefined);
-  vi.mocked(enqueueEmailJob).mockImplementation(() => undefined);
+  vi.mocked(enqueueEmailJob).mockResolvedValue(true);
   vi.mocked(requireInternalAuth).mockImplementation(() => undefined);
 });
 

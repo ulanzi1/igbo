@@ -2,6 +2,8 @@ import "server-only";
 import { createHash } from "node:crypto";
 import { Resend } from "resend";
 import { renderTemplate } from "@/templates/email";
+import { getRedisClient } from "@/lib/redis";
+import { createRedisKey } from "@igbo/config/redis";
 
 export interface EmailPayload {
   to: string;
@@ -91,8 +93,39 @@ export const emailService = {
 /**
  * Enqueue an email send as a non-blocking fire-and-forget operation.
  * Failures are logged and swallowed — never block the caller.
+ *
+ * Includes Redis NX dedup to prevent duplicate sends on event replay.
+ * Returns true when the email was sent, false when deduped.
+ * Fail-open: if Redis is unavailable, proceeds with the send.
  */
-export function enqueueEmailJob(name: string, payload: EmailPayload): void {
+export async function enqueueEmailJob(name: string, payload: EmailPayload): Promise<boolean> {
+  // Redis NX dedup — prevent duplicate sends on event replay
+  try {
+    const redis = getRedisClient();
+    const dedupKey = createRedisKey("portal", "dedup", `email:${name}`);
+    const acquired = await redis.set(dedupKey, "1", "EX", 15 * 60, "NX");
+    if (acquired === null) {
+      console.info(
+        JSON.stringify({
+          level: "info",
+          message: "portal.email.dedup_skipped",
+          jobName: name,
+        }),
+      );
+      return false;
+    }
+  } catch (redisErr: unknown) {
+    console.error(
+      JSON.stringify({
+        level: "error",
+        message: "portal.email.dedup_check.error",
+        jobName: name,
+        error: String(redisErr),
+      }),
+    );
+    // Fail-open — proceed with send
+  }
+
   void emailService.send(payload).catch((err: unknown) => {
     console.error(
       JSON.stringify({
@@ -103,4 +136,5 @@ export function enqueueEmailJob(name: string, payload: EmailPayload): void {
       }),
     );
   });
+  return true;
 }

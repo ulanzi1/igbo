@@ -33,6 +33,16 @@ vi.mock("@igbo/db/queries/push-subscriptions", () => ({
     mockDeletePushSubscriptionByEndpoint(...args),
 }));
 
+// ─── Redis mock ───────────────────────────────────────────────────────────────
+
+const mockRedisSet = vi.hoisted(() => vi.fn());
+
+vi.mock("@/lib/redis", () => ({
+  getRedisClient: vi.fn(() => ({
+    set: mockRedisSet,
+  })),
+}));
+
 import { sendPushNotification, _resetVapidForTests } from "./push-service";
 
 const USER_ID = "user-1";
@@ -62,6 +72,9 @@ beforeEach(() => {
   mockGetUserPushSubscriptions.mockResolvedValue([]);
   mockDeletePushSubscriptionByEndpoint.mockResolvedValue(undefined);
   mockSendNotification.mockResolvedValue({});
+  // Default: Redis NX key not yet set — proceeds with send
+  mockRedisSet.mockReset();
+  mockRedisSet.mockResolvedValue("OK");
 });
 
 describe("sendPushNotification", () => {
@@ -196,5 +209,69 @@ describe("sendPushNotification", () => {
     expect(consoleSpy).toHaveBeenCalledOnce();
     expect(mockSendNotification).toHaveBeenCalledTimes(2);
     consoleSpy.mockRestore();
+  });
+
+  // ── Redis NX dedup tests ──────────────────────────────────────────────────
+
+  it("first call with userId+tag returns true (sent)", async () => {
+    mockRedisSet.mockResolvedValue("OK"); // NX acquired
+    mockGetUserPushSubscriptions.mockResolvedValue([mockSub]);
+
+    const result = await sendPushNotification(USER_ID, PAYLOAD);
+
+    expect(result).toBe(true);
+    expect(mockSendNotification).toHaveBeenCalledOnce();
+  });
+
+  it("second call with same userId+tag returns false (deduped)", async () => {
+    mockRedisSet.mockResolvedValue(null); // null = key already exists → deduped
+
+    const result = await sendPushNotification(USER_ID, PAYLOAD);
+
+    expect(result).toBe(false);
+    expect(mockSendNotification).not.toHaveBeenCalled();
+  });
+
+  it("call with different tag returns true (dedup is key-scoped, not global)", async () => {
+    mockRedisSet.mockResolvedValueOnce(null).mockResolvedValueOnce("OK");
+
+    await sendPushNotification(USER_ID, PAYLOAD); // deduped (first tag)
+    mockGetUserPushSubscriptions.mockResolvedValue([mockSub]);
+    const result = await sendPushNotification(USER_ID, { ...PAYLOAD, tag: "msg:app-different" });
+
+    expect(result).toBe(true);
+  });
+
+  it("Redis throws → returns true (fail-open: proceed with send)", async () => {
+    mockRedisSet.mockRejectedValue(new Error("Redis unavailable"));
+    mockGetUserPushSubscriptions.mockResolvedValue([mockSub]);
+
+    const result = await sendPushNotification(USER_ID, PAYLOAD);
+
+    expect(result).toBe(true);
+    expect(mockSendNotification).toHaveBeenCalledOnce();
+  });
+
+  it("tag is undefined → Redis dedup is skipped entirely (no NX check)", async () => {
+    mockGetUserPushSubscriptions.mockResolvedValue([mockSub]);
+
+    await sendPushNotification(USER_ID, { ...PAYLOAD, tag: undefined });
+
+    expect(mockRedisSet).not.toHaveBeenCalled();
+    expect(mockSendNotification).toHaveBeenCalledOnce();
+  });
+
+  it("dedup key uses portal:dedup:push:<userId>:<tag> format", async () => {
+    mockGetUserPushSubscriptions.mockResolvedValue([mockSub]);
+
+    await sendPushNotification(USER_ID, PAYLOAD);
+
+    expect(mockRedisSet).toHaveBeenCalledWith(
+      `portal:dedup:push:${USER_ID}:${PAYLOAD.tag}`,
+      "1",
+      "EX",
+      900,
+      "NX",
+    );
   });
 });

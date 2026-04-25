@@ -152,30 +152,24 @@ if (globalForNotif.__portalNotifHandlersRegistered) {
       const trackingUrl = `${portalBaseUrl ?? "https://portal.igbo.global"}/applications`;
 
       // ── Seeker confirmation email (fire-and-forget) ──────────────────────────
+      // Runs before employer notification so DB-level dedup on the employer side
+      // does not suppress the seeker email on replay (enqueueEmailJob has its own
+      // Redis NX dedup to prevent actual duplicate sends).
       if (seeker?.email) {
-        try {
-          enqueueEmailJob(`app-confirmed-${applicationId}`, {
-            to: seeker.email,
-            templateId: "application-confirmation",
-            data: {
-              seekerName: seeker.name ?? seeker.email,
-              jobTitle,
-              companyName,
-              submittedAt: payload.timestamp,
-              trackingUrl,
-            },
-            locale: seeker.languagePreference === "ig" ? "ig" : "en",
-          });
-        } catch (emailErr: unknown) {
-          console.error(
-            JSON.stringify({
-              level: "error",
-              message: "portal.notification.email_enqueue.error",
-              applicationId,
-              error: String(emailErr),
-            }),
-          );
-        }
+        // enqueueEmailJob is async fire-and-forget with internal error handling
+        // (Redis NX dedup + send error catch) — no outer try/catch needed.
+        void enqueueEmailJob(`app-confirmed-${applicationId}`, {
+          to: seeker.email,
+          templateId: "application-confirmation",
+          data: {
+            seekerName: seeker.name ?? seeker.email,
+            jobTitle,
+            companyName,
+            submittedAt: payload.timestamp,
+            trackingUrl,
+          },
+          locale: seeker.languagePreference === "ig" ? "ig" : "en",
+        });
       } else {
         console.info(
           JSON.stringify({
@@ -202,7 +196,20 @@ if (globalForNotif.__portalNotifHandlersRegistered) {
             title: notifTitle,
             body: notifBody,
             link: notifLink,
+            idempotencyKey: `app-submitted:${applicationId}`,
           });
+          if (!notif) {
+            // DB-level dedup: employer notification already created for this applicationId.
+            // Skip employer downstream work (publish). Seeker email already sent above.
+            console.info(
+              JSON.stringify({
+                level: "info",
+                message: "portal.notification.app_submitted.db_dedup_skipped",
+                applicationId,
+              }),
+            );
+            return;
+          }
           console.info(
             JSON.stringify({
               level: "info",
@@ -242,7 +249,6 @@ if (globalForNotif.__portalNotifHandlersRegistered) {
               error: String(notifErr),
             }),
           );
-          // Error logged — does not propagate (submission already succeeded)
         }
       }
     }),
@@ -339,7 +345,20 @@ if (globalForNotif.__portalNotifHandlersRegistered) {
           title: notifTitle,
           body: notifBody,
           link: notifLink,
+          idempotencyKey: `app-withdrawn:${applicationId}`,
         });
+        if (!notif) {
+          // DB-level dedup: notification already created for this applicationId.
+          // Skip all downstream work (publish, push).
+          console.info(
+            JSON.stringify({
+              level: "info",
+              message: "portal.notification.app_withdrawn.db_dedup_skipped",
+              applicationId,
+            }),
+          );
+          return;
+        }
         console.info(
           JSON.stringify({
             level: "info",
@@ -420,7 +439,22 @@ if (globalForNotif.__portalNotifHandlersRegistered) {
             title: notifTitle,
             body: notifBody,
             link: notifLink,
+            idempotencyKey: `search-alert:${savedSearchId}:${jobId}`,
           });
+          if (!notif) {
+            // DB-level dedup: notification already created for this savedSearchId+jobId combo.
+            // Skip all downstream work (publish, push).
+            console.info(
+              JSON.stringify({
+                level: "info",
+                message: "portal.notification.saved-search.db_dedup_skipped",
+                savedSearchId,
+                userId,
+                jobId,
+              }),
+            );
+            return;
+          }
           console.info(
             JSON.stringify({
               level: "info",
@@ -473,6 +507,10 @@ if (globalForNotif.__portalNotifHandlersRegistered) {
     "job.reviewed",
     withHandlerGuard("notif:job.reviewed", async (payload: JobReviewedEvent) => {
       if (payload.decision !== "approved") return;
+      // Idempotency note: this handler does NOT call createNotification directly.
+      // It delegates to checkInstantAlerts → evaluateInstantAlert → emits saved_search.new_result
+      // events per matched search. Idempotency for those notifications is inherited through
+      // the saved_search.new_result handler (idempotencyKey: "search-alert:{savedSearchId}:{jobId}").
       await checkInstantAlerts(payload.jobId);
     }),
   );
@@ -579,7 +617,20 @@ if (globalForNotif.__portalNotifHandlersRegistered) {
           title: notifTitle,
           body: notifBody,
           link: notifLink,
+          idempotencyKey: `msg:${messageId}`,
         });
+        if (!notif) {
+          // DB-level dedup: notification already created for this messageId.
+          // Skip all downstream work (publish, push).
+          console.info(
+            JSON.stringify({
+              level: "info",
+              message: "portal.notification.msg.db_dedup_skipped",
+              messageId,
+            }),
+          );
+          return;
+        }
         console.info(
           JSON.stringify({
             level: "info",

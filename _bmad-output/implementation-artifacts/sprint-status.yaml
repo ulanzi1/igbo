@@ -348,7 +348,7 @@ development_status:
   portal-epic-5-ai-27-cross-container-smoke-test: done                  # Integration test: Portal API → Redis → Realtime → Socket.IO delivery
   portal-epic-5-ai-28-eventbus-payload-validation-ownership: done     # Zod validation at emit + emittedBy/version/idempotencyKey metadata + validate() pre-tx method
   portal-epic-5-ai-29-handler-guard-standardization: done                # withHandlerGuard wrapper for all event/socket/notification handlers
-  portal-epic-5-ai-30-minimal-idempotency-rule: backlog                # Side-effect handlers idempotent: ON CONFLICT DO NOTHING + Redis NX
+  portal-epic-5-ai-30-minimal-idempotency-rule: done                     # Side-effect handlers idempotent: ON CONFLICT DO NOTHING + Redis NX
   portal-epic-5-ai-20-runtime-checklist-template: backlog              # Story file template with mandatory runtime verification section
   portal-epic-5-ai-21-placeholder-page-policy: backlog                 # Decision: remove or badge placeholder nav links
   portal-epic-5-notification-pattern-assessment: backlog               # Decision doc: which P-5.6 patterns Epic 6 builds on vs. replaces

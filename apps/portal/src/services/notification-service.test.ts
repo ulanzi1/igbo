@@ -240,12 +240,11 @@ describe("notification-service — application.submitted handler", () => {
   });
 
   it("creates notification even when email fails (error isolation)", async () => {
-    mockEnqueueEmailJob.mockImplementation(() => {
-      throw new Error("Email service down");
-    });
+    mockEnqueueEmailJob.mockRejectedValue(new Error("Email service down"));
     const handler = await getHandler();
     await handler(BASE_PAYLOAD);
 
+    // Seeker email is fire-and-forget (void prefix) — rejection doesn't block employer notification
     expect(mockCreateNotification).toHaveBeenCalled();
   });
 
@@ -254,6 +253,7 @@ describe("notification-service — application.submitted handler", () => {
     const handler = await getHandler();
     await handler(BASE_PAYLOAD);
 
+    // Seeker email fires before employer notification — always sent
     expect(mockEnqueueEmailJob).toHaveBeenCalled();
   });
 
@@ -373,6 +373,46 @@ describe("notification-service — application.submitted handler", () => {
       900,
       "NX",
     );
+  });
+
+  it("passes exact idempotencyKey 'app-submitted:<applicationId>' to createNotification", async () => {
+    const handler = await getHandler();
+    await handler(BASE_PAYLOAD);
+
+    expect(mockCreateNotification).toHaveBeenCalledWith(
+      expect.objectContaining({
+        idempotencyKey: `app-submitted:${BASE_PAYLOAD.applicationId}`,
+      }),
+    );
+  });
+
+  it("skips publishNotificationCreated when createNotification returns null (DB dedup)", async () => {
+    mockCreateNotification.mockResolvedValue(null);
+    const handler = await getHandler();
+    await handler(BASE_PAYLOAD);
+
+    expect(mockRedisPublish).not.toHaveBeenCalled();
+  });
+
+  it("still sends seeker email when createNotification returns null (DB dedup)", async () => {
+    mockCreateNotification.mockResolvedValue(null);
+    const handler = await getHandler();
+    await handler(BASE_PAYLOAD);
+
+    // Seeker email fires before employer notification — not gated by DB dedup
+    expect(mockEnqueueEmailJob).toHaveBeenCalled();
+    // But employer publish is skipped
+    expect(mockRedisPublish).not.toHaveBeenCalled();
+  });
+
+  it("proceeds normally when createNotification returns a notification object", async () => {
+    const notif = { id: "notif-1", createdAt: new Date("2026-04-09T10:00:00.000Z") };
+    mockCreateNotification.mockResolvedValue(notif);
+    const handler = await getHandler();
+    await handler(BASE_PAYLOAD);
+
+    expect(mockRedisPublish).toHaveBeenCalled();
+    expect(mockEnqueueEmailJob).toHaveBeenCalled();
   });
 
   it("HMR guard prevents duplicate handler registration", async () => {
@@ -560,6 +600,34 @@ describe("notification-service — application.withdrawn handler", () => {
       }),
     );
   });
+
+  it("passes exact idempotencyKey 'app-withdrawn:<applicationId>' to createNotification", async () => {
+    const handler = await getHandler("application.withdrawn");
+    await handler(WITHDRAWN_PAYLOAD);
+
+    expect(mockCreateNotification).toHaveBeenCalledWith(
+      expect.objectContaining({
+        idempotencyKey: `app-withdrawn:${WITHDRAWN_PAYLOAD.applicationId}`,
+      }),
+    );
+  });
+
+  it("skips publishNotificationCreated when createNotification returns null (DB dedup)", async () => {
+    mockCreateNotification.mockResolvedValue(null);
+    const handler = await getHandler("application.withdrawn");
+    await handler(WITHDRAWN_PAYLOAD);
+
+    expect(mockRedisPublish).not.toHaveBeenCalled();
+  });
+
+  it("proceeds normally when createNotification returns a notification object", async () => {
+    const notif = { id: "notif-wd-1", createdAt: new Date("2026-04-09T12:00:00.000Z") };
+    mockCreateNotification.mockResolvedValue(notif);
+    const handler = await getHandler("application.withdrawn");
+    await handler(WITHDRAWN_PAYLOAD);
+
+    expect(mockRedisPublish).toHaveBeenCalled();
+  });
 });
 
 // ── saved_search.new_result handler ──────────────────────────────────────────
@@ -675,6 +743,34 @@ describe("notification-service — saved_search.new_result handler", () => {
     mockCreateNotification.mockRejectedValue(new Error("DB error"));
     const handler = await getHandler("saved_search.new_result");
     await expect(handler(SAVED_SEARCH_PAYLOAD)).resolves.not.toThrow();
+  });
+
+  it("passes exact idempotencyKey 'search-alert:<savedSearchId>:<jobId>' to createNotification", async () => {
+    const handler = await getHandler("saved_search.new_result");
+    await handler(SAVED_SEARCH_PAYLOAD);
+
+    expect(mockCreateNotification).toHaveBeenCalledWith(
+      expect.objectContaining({
+        idempotencyKey: `search-alert:${SAVED_SEARCH_PAYLOAD.savedSearchId}:${SAVED_SEARCH_PAYLOAD.jobId}`,
+      }),
+    );
+  });
+
+  it("skips publishNotificationCreated when createNotification returns null (DB dedup)", async () => {
+    mockCreateNotification.mockResolvedValue(null);
+    const handler = await getHandler("saved_search.new_result");
+    await handler(SAVED_SEARCH_PAYLOAD);
+
+    expect(mockRedisPublish).not.toHaveBeenCalled();
+  });
+
+  it("proceeds normally when createNotification returns a notification object", async () => {
+    const notif = { id: "notif-ss-1", createdAt: new Date("2026-04-18T10:00:00.000Z") };
+    mockCreateNotification.mockResolvedValue(notif);
+    const handler = await getHandler("saved_search.new_result");
+    await handler(SAVED_SEARCH_PAYLOAD);
+
+    expect(mockRedisPublish).toHaveBeenCalled();
   });
 });
 
@@ -1036,5 +1132,42 @@ describe("notification-service — portal.message.sent handler", () => {
     expect(mockCreateNotification).toHaveBeenCalledWith(
       expect.objectContaining({ body: truncated }),
     );
+  });
+
+  it("passes exact idempotencyKey 'msg:<messageId>' to createNotification", async () => {
+    const handler = await getHandler("portal.message.sent");
+    await handler(MSG_PAYLOAD);
+
+    expect(mockCreateNotification).toHaveBeenCalledWith(
+      expect.objectContaining({
+        idempotencyKey: `msg:${MSG_PAYLOAD.messageId}`,
+      }),
+    );
+  });
+
+  it("skips publishNotificationCreated when createNotification returns null (DB dedup)", async () => {
+    mockCreateNotification.mockResolvedValue(null);
+    const handler = await getHandler("portal.message.sent");
+    await handler(MSG_PAYLOAD);
+
+    expect(mockRedisPublish).not.toHaveBeenCalled();
+  });
+
+  it("skips sendPushNotification when createNotification returns null (DB dedup)", async () => {
+    mockCreateNotification.mockResolvedValue(null);
+    const handler = await getHandler("portal.message.sent");
+    await handler(MSG_PAYLOAD);
+
+    expect(mockSendPushNotification).not.toHaveBeenCalled();
+  });
+
+  it("proceeds normally (publish + push) when createNotification returns a notification object", async () => {
+    const notif = { id: "notif-msg-1", createdAt: new Date("2026-04-24T10:00:00.000Z") };
+    mockCreateNotification.mockResolvedValue(notif);
+    const handler = await getHandler("portal.message.sent");
+    await handler(MSG_PAYLOAD);
+
+    expect(mockRedisPublish).toHaveBeenCalled();
+    expect(mockSendPushNotification).toHaveBeenCalled();
   });
 });
