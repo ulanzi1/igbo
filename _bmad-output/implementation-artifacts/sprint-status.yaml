@@ -347,7 +347,7 @@ development_status:
   portal-epic-5-ai-26b-redis-key-type-safety: done                    # REDIS_DOMAIN constants, RedisDomain union type on createRedisKey, allowlist ratchet — blocked by AI-26 merge
   portal-epic-5-ai-27-cross-container-smoke-test: done                  # Integration test: Portal API → Redis → Realtime → Socket.IO delivery
   portal-epic-5-ai-28-eventbus-payload-validation-ownership: done     # Zod validation at emit + emittedBy/version/idempotencyKey metadata + validate() pre-tx method
-  portal-epic-5-ai-29-handler-guard-standardization: ready-for-dev     # withHandlerGuard wrapper for all event/socket/notification handlers
+  portal-epic-5-ai-29-handler-guard-standardization: done                # withHandlerGuard wrapper for all event/socket/notification handlers
   portal-epic-5-ai-30-minimal-idempotency-rule: backlog                # Side-effect handlers idempotent: ON CONFLICT DO NOTHING + Redis NX
   portal-epic-5-ai-20-runtime-checklist-template: backlog              # Story file template with mandatory runtime verification section
   portal-epic-5-ai-21-placeholder-page-policy: backlog                 # Decision: remove or badge placeholder nav links

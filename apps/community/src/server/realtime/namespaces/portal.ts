@@ -14,6 +14,7 @@ import { getMessagesSince } from "@igbo/db/queries/chat-messages";
 import { getPortalConversationIdsForUser } from "@igbo/db/queries/portal-conversations";
 import { authMiddleware } from "../middleware/auth";
 import { createRateLimiterMiddleware } from "../middleware/rate-limiter";
+import { withHandlerGuard } from "@igbo/config/handler-guard";
 
 interface MessageDeliveredPayload {
   messageId: string;
@@ -53,46 +54,50 @@ export function setupPortalNamespace(io: Server, redis: Redis): void {
     // message:delivered — client emits on receiving message:new
     socket.on(
       "message:delivered",
-      async (payload: MessageDeliveredPayload, ack?: (resp: unknown) => void) => {
-        const { messageId, conversationId } = payload ?? {};
-        if (
-          !messageId ||
-          typeof messageId !== "string" ||
-          !conversationId ||
-          typeof conversationId !== "string"
-        ) {
-          if (typeof ack === "function") ack({ error: "Invalid payload" });
-          return;
-        }
+      withHandlerGuard(
+        "portal:message:delivered",
+        async (payload: MessageDeliveredPayload, ack?: (resp: unknown) => void) => {
+          const { messageId, conversationId } = payload ?? {};
+          if (
+            !messageId ||
+            typeof messageId !== "string" ||
+            !conversationId ||
+            typeof conversationId !== "string"
+          ) {
+            if (typeof ack === "function") ack({ error: "Invalid payload" });
+            return;
+          }
 
-        const isMember = await isConversationMember(conversationId, userId, "portal");
-        if (!isMember) {
-          if (typeof ack === "function") ack({ error: "Not a member" });
-          return;
-        }
+          const isMember = await isConversationMember(conversationId, userId, "portal");
+          if (!isMember) {
+            if (typeof ack === "function") ack({ error: "Not a member" });
+            return;
+          }
 
-        // Write-once delivery tracking — 24h TTL
-        // F5: NX ensures write-once semantics (Key Invariant #8)
-        // community-scope: raw Redis keys — VD-4 trigger not yet reached
-        await redis.set(`delivered:portal:${messageId}:${userId}`, "1", "EX", 86_400, "NX"); // ci-allow-redis-key
+          // Write-once delivery tracking — 24h TTL
+          // F5: NX ensures write-once semantics (Key Invariant #8)
+          // community-scope: raw Redis keys — VD-4 trigger not yet reached
+          await redis.set(`delivered:portal:${messageId}:${userId}`, "1", "EX", 86_400, "NX"); // ci-allow-redis-key
 
-        // Broadcast to conversation room (excluding this socket / the deliverer)
-        socket.to(ROOM_CONVERSATION(conversationId)).emit("message:delivered", {
-          messageId,
-          conversationId,
-          deliveredBy: userId,
-          timestamp: new Date().toISOString(),
-        });
+          // Broadcast to conversation room (excluding this socket / the deliverer)
+          socket.to(ROOM_CONVERSATION(conversationId)).emit("message:delivered", {
+            messageId,
+            conversationId,
+            deliveredBy: userId,
+            timestamp: new Date().toISOString(),
+          });
 
-        if (typeof ack === "function") ack({ ok: true });
-      },
+          if (typeof ack === "function") ack({ ok: true });
+        },
+      ),
     );
 
     // typing:start — store in Redis and broadcast to room (excluding sender)
     socket.on(
       "typing:start",
-      async (payload: { conversationId: string }, ack?: (r: unknown) => void) => {
-        try {
+      withHandlerGuard(
+        "portal:typing:start",
+        async (payload: { conversationId: string }, ack?: (r: unknown) => void) => {
           const { conversationId } = payload ?? {};
           if (!conversationId || typeof conversationId !== "string") {
             if (typeof ack === "function") ack({ error: "Invalid conversationId" });
@@ -117,23 +122,14 @@ export function setupPortalNamespace(io: Server, redis: Redis): void {
             timestamp: new Date().toISOString(),
           });
           if (typeof ack === "function") ack({ ok: true });
-        } catch (err: unknown) {
-          console.error(
-            JSON.stringify({
-              level: "error",
-              message: "portal.typing_start.failed",
-              userId,
-              error: String(err),
-            }),
-          );
-          if (typeof ack === "function") ack({ error: "Internal error" });
-        }
-      },
+        },
+      ),
     );
 
     // typing:stop — delete Redis key and broadcast to room (excluding sender)
-    socket.on("typing:stop", async (payload: { conversationId: string }) => {
-      try {
+    socket.on(
+      "typing:stop",
+      withHandlerGuard("portal:typing:stop", async (payload: { conversationId: string }) => {
         const { conversationId } = payload ?? {};
         if (!conversationId || typeof conversationId !== "string") return;
         const isMember = await isConversationMember(conversationId, userId, "portal");
@@ -144,23 +140,15 @@ export function setupPortalNamespace(io: Server, redis: Redis): void {
           conversationId,
           timestamp: new Date().toISOString(),
         });
-      } catch (err: unknown) {
-        console.error(
-          JSON.stringify({
-            level: "error",
-            message: "portal.typing_stop.failed",
-            userId,
-            error: String(err),
-          }),
-        );
-      }
-    });
+      }),
+    );
 
     // message:read — update last_read_at in DB and broadcast to ALL room members (including self)
     socket.on(
       "message:read",
-      async (payload: { conversationId: string }, ack?: (r: unknown) => void) => {
-        try {
+      withHandlerGuard(
+        "portal:message:read",
+        async (payload: { conversationId: string }, ack?: (r: unknown) => void) => {
           const { conversationId } = payload ?? {};
           if (!conversationId || typeof conversationId !== "string") {
             if (typeof ack === "function") ack({ error: "Invalid conversationId" });
@@ -181,70 +169,65 @@ export function setupPortalNamespace(io: Server, redis: Redis): void {
             timestamp: now.toISOString(),
           });
           if (typeof ack === "function") ack({ ok: true });
+        },
+      ),
+    );
+
+    // sync:request — reconnect gap catch-up
+    // NOTE: try/catch is kept inside the guard so DB errors still emit sync:full_refresh
+    // (guard alone would log but not send the fallback signal to the client)
+    socket.on(
+      "sync:request",
+      withHandlerGuard("portal:sync:request", async (payload: SyncRequestPayload) => {
+        try {
+          const lastTs = payload?.lastReceivedAt ? new Date(payload.lastReceivedAt) : null;
+
+          if (!lastTs || isNaN(lastTs.getTime())) {
+            socket.emit("sync:full_refresh", { timestamp: new Date().toISOString() });
+            return;
+          }
+
+          const gapMs = Date.now() - lastTs.getTime();
+          if (gapMs > CHAT_REPLAY_WINDOW_MS) {
+            socket.emit("sync:full_refresh", { timestamp: new Date().toISOString() });
+            return;
+          }
+
+          // Replay missed messages for user's portal conversations only
+          const conversationIds = await getPortalConversationIdsForUser(userId);
+          for (const conversationId of conversationIds) {
+            const missed = await getMessagesSince(conversationId, lastTs, 100);
+            if (missed.length === 0) continue;
+
+            const hasMore = missed.length === 100;
+            socket.emit("sync:replay", {
+              messages: missed.map((m) => ({
+                messageId: m.id,
+                conversationId: m.conversationId,
+                senderId: m.senderId,
+                content: m.deletedAt !== null ? "" : m.content,
+                contentType: m.contentType,
+                createdAt: m.createdAt.toISOString(),
+                parentMessageId: m.parentMessageId ?? null,
+                editedAt: m.editedAt ? m.editedAt.toISOString() : null,
+                deletedAt: m.deletedAt ? m.deletedAt.toISOString() : null,
+              })),
+              hasMore,
+            });
+          }
         } catch (err: unknown) {
           console.error(
             JSON.stringify({
               level: "error",
-              message: "portal.message_read.failed",
+              message: "portal.sync_request.failed",
               userId,
               error: String(err),
             }),
           );
-          if (typeof ack === "function") ack({ error: "Internal error" });
+          socket.emit("sync:full_refresh", { timestamp: new Date().toISOString() });
         }
-      },
+      }),
     );
-
-    // sync:request — reconnect gap catch-up
-    socket.on("sync:request", async (payload: SyncRequestPayload) => {
-      try {
-        const lastTs = payload?.lastReceivedAt ? new Date(payload.lastReceivedAt) : null;
-
-        if (!lastTs || isNaN(lastTs.getTime())) {
-          socket.emit("sync:full_refresh", { timestamp: new Date().toISOString() });
-          return;
-        }
-
-        const gapMs = Date.now() - lastTs.getTime();
-        if (gapMs > CHAT_REPLAY_WINDOW_MS) {
-          socket.emit("sync:full_refresh", { timestamp: new Date().toISOString() });
-          return;
-        }
-
-        // Replay missed messages for user's portal conversations only
-        const conversationIds = await getPortalConversationIdsForUser(userId);
-        for (const conversationId of conversationIds) {
-          const missed = await getMessagesSince(conversationId, lastTs, 100);
-          if (missed.length === 0) continue;
-
-          const hasMore = missed.length === 100;
-          socket.emit("sync:replay", {
-            messages: missed.map((m) => ({
-              messageId: m.id,
-              conversationId: m.conversationId,
-              senderId: m.senderId,
-              content: m.deletedAt !== null ? "" : m.content,
-              contentType: m.contentType,
-              createdAt: m.createdAt.toISOString(),
-              parentMessageId: m.parentMessageId ?? null,
-              editedAt: m.editedAt ? m.editedAt.toISOString() : null,
-              deletedAt: m.deletedAt ? m.deletedAt.toISOString() : null,
-            })),
-            hasMore,
-          });
-        }
-      } catch (err: unknown) {
-        console.error(
-          JSON.stringify({
-            level: "error",
-            message: "portal.sync_request.failed",
-            userId,
-            error: String(err),
-          }),
-        );
-        socket.emit("sync:full_refresh", { timestamp: new Date().toISOString() });
-      }
-    });
 
     socket.on("disconnect", (reason: string) => {
       console.info(

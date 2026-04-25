@@ -33,6 +33,10 @@ export default defineConfig({
         find: "@igbo/config/events",
         replacement: path.resolve(__dirname, "../../packages/config/src/events"),
       },
+      {
+        find: "@igbo/config/handler-guard",
+        replacement: path.resolve(__dirname, "../../packages/config/src/handler-guard"),
+      },
       // @igbo/db — regex aliases cover all subpaths without enumeration
       {
         find: /^@igbo\/db\/(.+)$/,
