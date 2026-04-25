@@ -100,6 +100,7 @@ async function deliverNotification(params: {
   // In-app channel: create notification + deliver via Redis pub/sub
   if (!routeResult.inApp.suppressed) {
     const notification = await createNotification({ userId, type, title, body, link });
+    if (!notification) return; // idempotency conflict — already created
 
     // Publish to Redis for realtime delivery via eventbus bridge
     const payload: NotificationCreatedEvent = {

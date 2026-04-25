@@ -172,9 +172,8 @@ describe.skipIf(!REDIS_URL)(
       subscriber = new Redis(REDIS_URL!, { lazyConnect: false, enableReadyCheck: false });
 
       // Start the real eventbus-bridge against the in-process Socket.IO server
-      const { startEventBusBridge } = await import(
-        "../../apps/community/src/server/realtime/subscribers/eventbus-bridge"
-      );
+      const { startEventBusBridge } =
+        await import("../../apps/community/src/server/realtime/subscribers/eventbus-bridge");
       await startEventBusBridge(io, subscriber);
 
       // Wait for psubscribe to register fully before any publish
@@ -193,84 +192,81 @@ describe.skipIf(!REDIS_URL)(
       await new Promise<void>((resolve) => server.close(() => resolve()));
     });
 
-    it(
-      "publishes portal.message.sent → client in ROOM_USER(senderId) receives message:new",
-      async () => {
-        const { io: ioClient } = await import("socket.io-client");
-        const { NAMESPACE_PORTAL, ROOM_USER } = await import("@igbo/config/realtime");
+    it("publishes portal.message.sent → client in ROOM_USER(senderId) receives message:new", async () => {
+      const { io: ioClient } = await import("socket.io-client");
+      const { NAMESPACE_PORTAL, ROOM_USER } = await import("@igbo/config/realtime");
 
-        const senderId = `user-${Date.now()}`;
-        const convId = `conv-${Date.now()}`;
-        const CHANNEL = "eventbus:portal.message.sent";
+      const senderId = `user-${Date.now()}`;
+      const convId = `conv-${Date.now()}`;
+      const CHANNEL = "eventbus:portal.message.sent";
 
-        const payload = {
-          eventId: `evt-${Date.now()}`,
-          messageId: `msg-${Date.now()}`,
-          conversationId: convId,
-          senderId,
-          recipientId: `recipient-${Date.now()}`,
-          applicationId: "app-1",
-          jobId: "job-1",
-          companyId: "co-1",
-          jobTitle: "Engineer",
-          companyName: "ACME",
-          content: "AI-27 smoke test message",
-          contentType: "text",
-          createdAt: new Date().toISOString(),
-          parentMessageId: null,
-          senderRole: "employer",
-          attachments: [],
-        };
+      const payload = {
+        eventId: `evt-${Date.now()}`,
+        messageId: `msg-${Date.now()}`,
+        conversationId: convId,
+        senderId,
+        recipientId: `recipient-${Date.now()}`,
+        applicationId: "app-1",
+        jobId: "job-1",
+        companyId: "co-1",
+        jobTitle: "Engineer",
+        companyName: "ACME",
+        content: "AI-27 smoke test message",
+        contentType: "text",
+        createdAt: new Date().toISOString(),
+        parentMessageId: null,
+        senderRole: "employer",
+        attachments: [],
+      };
 
-        // Connect a Socket.IO client to the /portal namespace (no auth — bypassed for smoke test)
-        const client = ioClient(`http://localhost:${port}${NAMESPACE_PORTAL}`, {
-          forceNew: true,
+      // Connect a Socket.IO client to the /portal namespace (no auth — bypassed for smoke test)
+      const client = ioClient(`http://localhost:${port}${NAMESPACE_PORTAL}`, {
+        forceNew: true,
+      });
+
+      await new Promise<void>((resolve) => client.on("connect", resolve));
+
+      // Server-side: manually join the client socket to ROOM_USER(senderId)
+      // This simulates what auth+auto-join does in production.
+      // The bridge's auto-join will then move it from ROOM_USER into ROOM_CONVERSATION.
+      const sockets = await io.of(NAMESPACE_PORTAL).fetchSockets();
+      const clientSocket = sockets.find((s) => s.id === client.id);
+      if (!clientSocket) throw new Error("Socket not found on server side");
+      clientSocket.join(ROOM_USER(senderId));
+
+      // Collect received message:new events
+      const received: unknown[] = [];
+      const receivePromise = new Promise<void>((resolve, reject) => {
+        const timeout = setTimeout(
+          () => reject(new Error("Timeout: message:new not received within 500ms")),
+          500,
+        );
+        client.on("message:new", (data: unknown) => {
+          received.push(data);
+          clearTimeout(timeout);
+          resolve();
         });
+      });
 
-        await new Promise<void>((resolve) => client.on("connect", resolve));
+      // Publish to Redis — this crosses the container boundary
+      await publisher.publish(CHANNEL, JSON.stringify(payload));
 
-        // Server-side: manually join the client socket to ROOM_USER(senderId)
-        // This simulates what auth+auto-join does in production.
-        // The bridge's auto-join will then move it from ROOM_USER into ROOM_CONVERSATION.
-        const sockets = await io.of(NAMESPACE_PORTAL).fetchSockets();
-        const clientSocket = sockets.find((s) => s.id === client.id);
-        if (!clientSocket) throw new Error("Socket not found on server side");
-        clientSocket.join(ROOM_USER(senderId));
+      // Wait for: Redis pub/sub → psubscribe handler → Socket.IO emit → client receive
+      await receivePromise;
 
-        // Collect received message:new events
-        const received: unknown[] = [];
-        const receivePromise = new Promise<void>((resolve, reject) => {
-          const timeout = setTimeout(
-            () => reject(new Error("Timeout: message:new not received within 500ms")),
-            500,
-          );
-          client.on("message:new", (data: unknown) => {
-            received.push(data);
-            clearTimeout(timeout);
-            resolve();
-          });
-        });
+      client.disconnect();
 
-        // Publish to Redis — this crosses the container boundary
-        await publisher.publish(CHANNEL, JSON.stringify(payload));
-
-        // Wait for: Redis pub/sub → psubscribe handler → Socket.IO emit → client receive
-        await receivePromise;
-
-        client.disconnect();
-
-        // Verify the received payload
-        expect(received).toHaveLength(1);
-        const msg = received[0] as Record<string, unknown>;
-        expect(msg.messageId).toBe(payload.messageId);
-        expect(msg.conversationId).toBe(convId);
-        expect(msg.senderId).toBe(senderId);
-        expect(msg.content).toBe("AI-27 smoke test message");
-        expect(msg.contentType).toBe("text");
-        expect(msg.senderRole).toBe("employer");
-        expect(msg.applicationId).toBe("app-1");
-        expect(msg.createdAt).toBeDefined();
-      },
-    );
+      // Verify the received payload
+      expect(received).toHaveLength(1);
+      const msg = received[0] as Record<string, unknown>;
+      expect(msg.messageId).toBe(payload.messageId);
+      expect(msg.conversationId).toBe(convId);
+      expect(msg.senderId).toBe(senderId);
+      expect(msg.content).toBe("AI-27 smoke test message");
+      expect(msg.contentType).toBe("text");
+      expect(msg.senderRole).toBe("employer");
+      expect(msg.applicationId).toBe("app-1");
+      expect(msg.createdAt).toBeDefined();
+    });
   },
 );

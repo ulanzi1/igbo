@@ -40,10 +40,7 @@ const KNOWN_REDIS_PREFIX =
 const EXEMPT_MARKERS = ["createRedisKey(", "// ci-allow-redis-key"];
 
 /** Files that are structurally exempt (implementation file, config helpers, etc.) */
-const EXEMPT_FILE_PATTERNS = [
-  "packages/config/src/redis.ts",
-  "packages/config/src/redis.test.ts",
-];
+const EXEMPT_FILE_PATTERNS = ["packages/config/src/redis.ts", "packages/config/src/redis.test.ts"];
 
 // ---------------------------------------------------------------------------
 // Allowlist ratchet
@@ -99,10 +96,7 @@ export function scanForRawRedisKeys(rootDir: string): CheckResult[] {
   const results: CheckResult[] = [];
   let allowlistedCount = 0;
 
-  const files = [
-    ...collectTsFiles(`${rootDir}/apps`),
-    ...collectTsFiles(`${rootDir}/packages`),
-  ];
+  const files = [...collectTsFiles(`${rootDir}/apps`), ...collectTsFiles(`${rootDir}/packages`)];
 
   for (const filePath of files) {
     const relPath = relative(rootDir, filePath).replace(/\\/g, "/");

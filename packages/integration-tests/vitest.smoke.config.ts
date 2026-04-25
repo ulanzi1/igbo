@@ -19,10 +19,7 @@ export default defineConfig({
     alias: [
       {
         find: "server-only",
-        replacement: path.resolve(
-          __dirname,
-          "../../apps/community/src/test/mocks/server-only.ts",
-        ),
+        replacement: path.resolve(__dirname, "../../apps/community/src/test/mocks/server-only.ts"),
       },
       {
         find: /^@igbo\/config\/(.+)$/,
