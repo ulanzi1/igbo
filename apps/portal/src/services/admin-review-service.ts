@@ -299,6 +299,7 @@ export async function approvePosting(
     decision: "approved",
     companyId: posting.companyId,
     ...(metadata?.fastLane ? { fastLane: true } : {}),
+    emittedBy: "admin-review-service",
   });
 
   // Invalidate job search cache — posting entered active state.
@@ -389,6 +390,7 @@ export async function rejectPosting(
     reviewerUserId,
     decision: "rejected",
     companyId: posting.companyId,
+    emittedBy: "admin-review-service",
   });
 }
 
@@ -472,6 +474,7 @@ export async function requestChanges(
     reviewerUserId,
     decision: "changes_requested",
     companyId: posting.companyId,
+    emittedBy: "admin-review-service",
   });
 }
 
@@ -674,6 +677,7 @@ export async function flagPosting(
     severity,
     companyId: posting.companyId,
     autoPaused: createdFlag.autoPaused,
+    emittedBy: "admin-review-service",
   });
 
   return createdFlag;

@@ -367,7 +367,7 @@ describe("notification-service — application.submitted handler", () => {
 
     expect(mockRedisSet).toHaveBeenCalledTimes(1);
     expect(mockRedisSet).toHaveBeenCalledWith(
-      `dedup:portal:notif:app-submitted:${BASE_PAYLOAD.applicationId}`,
+      `portal:dedup:notif:app-submitted:${BASE_PAYLOAD.applicationId}`,
       "1",
       "EX",
       900,
@@ -491,7 +491,7 @@ describe("notification-service — application.withdrawn handler", () => {
     await handler(WITHDRAWN_PAYLOAD);
 
     expect(mockRedisSet).toHaveBeenCalledWith(
-      `dedup:portal:notif:app-withdrawn:${WITHDRAWN_PAYLOAD.applicationId}`,
+      `portal:dedup:notif:app-withdrawn:${WITHDRAWN_PAYLOAD.applicationId}`,
       "1",
       "EX",
       900,
@@ -884,7 +884,7 @@ describe("notification-service — portal.message.sent handler", () => {
     await handler(MSG_PAYLOAD);
 
     expect(mockRedisSet).toHaveBeenCalledWith(
-      `dedup:portal:notif:msg:${MSG_PAYLOAD.messageId}`,
+      `portal:dedup:notif:msg:${MSG_PAYLOAD.messageId}`,
       "1",
       "EX",
       900,
@@ -911,10 +911,10 @@ describe("notification-service — portal.message.sent handler", () => {
     expect(mockCreateNotification).toHaveBeenCalled();
     // Pipeline should include both incr and expire
     expect(mockRedisIncr).toHaveBeenCalledWith(
-      `portal:msg:throttle:${MSG_PAYLOAD.senderId}:${MSG_PAYLOAD.recipientId}:${MSG_PAYLOAD.applicationId}`,
+      `portal:throttle:msg:${MSG_PAYLOAD.senderId}:${MSG_PAYLOAD.recipientId}:${MSG_PAYLOAD.applicationId}`,
     );
     expect(mockRedisExpire).toHaveBeenCalledWith(
-      `portal:msg:throttle:${MSG_PAYLOAD.senderId}:${MSG_PAYLOAD.recipientId}:${MSG_PAYLOAD.applicationId}`,
+      `portal:throttle:msg:${MSG_PAYLOAD.senderId}:${MSG_PAYLOAD.recipientId}:${MSG_PAYLOAD.applicationId}`,
       30,
     );
   });

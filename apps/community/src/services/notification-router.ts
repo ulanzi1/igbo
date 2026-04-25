@@ -107,7 +107,8 @@ export class NotificationRouter {
 
     // 5. Email: check DnD + type eligibility + DB preference + digest mode
     const redis = getRedisClient();
-    const isDnd = await redis.exists(`dnd:${userId}`);
+    // community-scope: raw Redis keys — VD-4 trigger not yet reached
+    const isDnd = await redis.exists(`dnd:${userId}`); // ci-allow-redis-key
     let email: ChannelDecision;
     if (isDnd) {
       email = { suppressed: true, reason: "quiet hours (dnd key set)" };

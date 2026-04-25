@@ -164,5 +164,6 @@ async function processExportRequest(requestId: string, userId: string): Promise<
 
   // Clean up Redis key
   const redis = getRedisClient();
-  await redis.del(`gdpr:export:${userId}`);
+  // community-scope: raw Redis keys — VD-4 trigger not yet reached
+  await redis.del(`gdpr:export:${userId}`); // ci-allow-redis-key
 }

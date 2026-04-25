@@ -28,7 +28,8 @@ export async function resendVerification(email: string): Promise<ResendActionRes
   const normalizedEmail = parsed.data.email.toLowerCase();
 
   // Rate limit: 3 resends per email per hour
-  const rateLimitKey = `resend-verify:${normalizedEmail}`;
+  // community-scope: raw Redis keys — VD-4 trigger not yet reached
+  const rateLimitKey = `resend-verify:${normalizedEmail}`; // ci-allow-redis-key
   const rateLimitResult = await checkRateLimit(rateLimitKey, RATE_LIMIT_MAX, RATE_LIMIT_WINDOW_MS);
   if (!rateLimitResult.allowed) {
     return { success: false, error: "Too many requests. Please try again later." };

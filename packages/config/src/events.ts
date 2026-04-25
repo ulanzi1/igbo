@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { z } from "zod/v4";
 
 /**
  * Base event envelope — ALL cross-app events extend this.
@@ -16,6 +17,10 @@ export interface BaseEvent {
   eventId: string; // UUID — unique per emission, used for dedup
   version: number; // Schema version — start at 1, bump on breaking change
   timestamp: string; // ISO 8601
+  /** Service/module that emitted this event — optional for backward compat with community events */
+  emittedBy?: string;
+  /** Caller-provided dedup key for business-meaningful idempotency (vs generic eventId dedup) */
+  idempotencyKey?: string;
 }
 
 /** Helper to create base event fields. Call in every emit(). */
@@ -310,3 +315,230 @@ export type PortalAllEventName = keyof PortalAllEventMap;
 /** Redis key for idempotency dedup: SET NX with 24h TTL */
 export const EVENT_DEDUP_KEY = (eventId: string) => `event:dedup:${eventId}`;
 export const EVENT_DEDUP_TTL_SECONDS = 86400; // 24 hours
+
+// ---------------------------------------------------------------------------
+// Zod schemas for portal event validation — enforce at emit time.
+// emittedBy is REQUIRED in schemas (z.string().min(1)) even though BaseEvent
+// has it as optional (emittedBy?: string). This is intentional: the TS
+// interface preserves backward compat with community code; the schema enforces
+// it at portal emit time.
+// ---------------------------------------------------------------------------
+
+/** Base schema — all portal event schemas extend this. */
+const BaseEventSchema = z.object({
+  eventId: z.string().uuid(),
+  version: z.number().int().positive(),
+  timestamp: z.string().datetime(),
+  emittedBy: z.string().min(1), // REQUIRED in portal schemas
+  idempotencyKey: z.string().optional(),
+});
+
+const JobPublishedEventSchema = BaseEventSchema.extend({
+  jobId: z.string(),
+  companyId: z.string(),
+  title: z.string(),
+  employmentType: z.string(),
+  status: z.string(),
+});
+
+const JobUpdatedEventSchema = BaseEventSchema.extend({
+  jobId: z.string(),
+  companyId: z.string(),
+  changes: z.record(z.string(), z.unknown()),
+});
+
+const JobClosedEventSchema = BaseEventSchema.extend({
+  jobId: z.string(),
+  companyId: z.string(),
+  reason: z.string().optional(),
+});
+
+const JobExpiredEventSchema = BaseEventSchema.extend({
+  jobId: z.string(),
+  companyId: z.string(),
+  title: z.string(),
+  employerUserId: z.string(),
+});
+
+const JobExpiryWarningEventSchema = BaseEventSchema.extend({
+  jobId: z.string(),
+  companyId: z.string(),
+  title: z.string(),
+  employerUserId: z.string(),
+  expiresAt: z.string().datetime(),
+  daysRemaining: z.number().int().nonnegative(),
+});
+
+const ApplicationSubmittedEventSchema = BaseEventSchema.extend({
+  applicationId: z.string(),
+  jobId: z.string(),
+  seekerUserId: z.string(),
+  companyId: z.string(),
+  employerUserId: z.string(),
+});
+
+const ApplicationStatusChangedEventSchema = BaseEventSchema.extend({
+  applicationId: z.string(),
+  jobId: z.string(),
+  seekerUserId: z.string(),
+  companyId: z.string(),
+  previousStatus: z.string(),
+  newStatus: z.string(),
+  actorUserId: z.string(),
+  actorRole: z.string(),
+});
+
+const ApplicationWithdrawnEventSchema = BaseEventSchema.extend({
+  applicationId: z.string(),
+  jobId: z.string(),
+  seekerUserId: z.string(),
+  companyId: z.string(),
+  previousStatus: z.string(),
+  newStatus: z.string(),
+  actorUserId: z.string(),
+});
+
+const JobViewedEventSchema = BaseEventSchema.extend({
+  jobId: z.string(),
+  userId: z.string(),
+  isNewView: z.boolean(),
+});
+
+const JobSharedToCommunityEventSchema = BaseEventSchema.extend({
+  jobId: z.string(),
+  companyId: z.string(),
+  communityPostId: z.string(),
+  employerUserId: z.string(),
+});
+
+const JobReviewedEventSchema = BaseEventSchema.extend({
+  jobId: z.string(),
+  reviewerUserId: z.string(),
+  decision: z.enum(["approved", "rejected", "changes_requested"]),
+  companyId: z.string(),
+  fastLane: z.boolean().optional(),
+});
+
+const JobFlaggedEventSchema = BaseEventSchema.extend({
+  jobId: z.string(),
+  flagId: z.string(),
+  adminUserId: z.string(),
+  category: z.string(),
+  severity: z.string(),
+  companyId: z.string(),
+  autoPaused: z.boolean(),
+});
+
+const PostingReportedEventSchema = BaseEventSchema.extend({
+  jobId: z.string(),
+  reportId: z.string(),
+  reporterUserId: z.string(),
+  category: z.string(),
+  reportCount: z.number().int(),
+  priorityEscalated: z.boolean(),
+  autoPaused: z.boolean(),
+});
+
+const EmployerVerificationSubmittedEventSchema = BaseEventSchema.extend({
+  companyId: z.string(),
+  employerUserId: z.string(),
+  verificationId: z.string(),
+  documentCount: z.number().int(),
+});
+
+const EmployerVerificationApprovedEventSchema = BaseEventSchema.extend({
+  companyId: z.string(),
+  employerUserId: z.string(),
+  verificationId: z.string(),
+  approvedByAdminId: z.string(),
+});
+
+const EmployerVerificationRejectedEventSchema = BaseEventSchema.extend({
+  companyId: z.string(),
+  employerUserId: z.string(),
+  verificationId: z.string(),
+  rejectedByAdminId: z.string(),
+  reason: z.string(),
+});
+
+const SavedSearchNewResultEventSchema = BaseEventSchema.extend({
+  savedSearchId: z.string(),
+  userId: z.string(),
+  jobId: z.string(),
+  jobTitle: z.string(),
+  searchName: z.string(),
+});
+
+const PortalMessageSentEventSchema = BaseEventSchema.extend({
+  messageId: z.string(),
+  senderId: z.string(),
+  conversationId: z.string(),
+  applicationId: z.string(),
+  jobId: z.string(),
+  companyId: z.string(),
+  jobTitle: z.string(),
+  companyName: z.string(),
+  content: z.string(),
+  contentType: z.string(),
+  createdAt: z.string().datetime(),
+  parentMessageId: z.string().nullable().optional(),
+  recipientId: z.string(),
+  senderName: z.string().optional(),
+  senderRole: z.enum(["employer", "seeker"]),
+  attachments: z
+    .array(
+      z.object({
+        id: z.string(),
+        fileUrl: z.string(),
+        fileName: z.string(),
+        fileType: z.string().nullable(),
+        fileSize: z.number().nullable(),
+      }),
+    )
+    .optional(),
+});
+
+const PortalMessageEditedEventSchema = BaseEventSchema.extend({
+  messageId: z.string(),
+  conversationId: z.string(),
+  applicationId: z.string(),
+  senderId: z.string(),
+  content: z.string(),
+  editedAt: z.string().datetime(),
+});
+
+const PortalMessageDeletedEventSchema = BaseEventSchema.extend({
+  messageId: z.string(),
+  conversationId: z.string(),
+  applicationId: z.string(),
+  senderId: z.string(),
+  deletedAt: z.string().datetime(),
+});
+
+/**
+ * Zod schemas for all 20 portal event types.
+ * Used by PortalTypedEventBus.emit() to validate payloads at emission time.
+ * emittedBy is REQUIRED by these schemas even though BaseEvent has it optional.
+ */
+export const portalEventSchemas: Record<PortalEventName, z.ZodType> = {
+  "job.published": JobPublishedEventSchema,
+  "job.updated": JobUpdatedEventSchema,
+  "job.closed": JobClosedEventSchema,
+  "job.expired": JobExpiredEventSchema,
+  "job.expiry_warning": JobExpiryWarningEventSchema,
+  "application.submitted": ApplicationSubmittedEventSchema,
+  "application.status_changed": ApplicationStatusChangedEventSchema,
+  "application.withdrawn": ApplicationWithdrawnEventSchema,
+  "job.viewed": JobViewedEventSchema,
+  "job.shared_to_community": JobSharedToCommunityEventSchema,
+  "job.reviewed": JobReviewedEventSchema,
+  "job.flagged": JobFlaggedEventSchema,
+  "posting.reported": PostingReportedEventSchema,
+  "employer.verification_submitted": EmployerVerificationSubmittedEventSchema,
+  "employer.verification_approved": EmployerVerificationApprovedEventSchema,
+  "employer.verification_rejected": EmployerVerificationRejectedEventSchema,
+  "saved_search.new_result": SavedSearchNewResultEventSchema,
+  "portal.message.sent": PortalMessageSentEventSchema,
+  "portal.message.edited": PortalMessageEditedEventSchema,
+  "portal.message.deleted": PortalMessageDeletedEventSchema,
+};

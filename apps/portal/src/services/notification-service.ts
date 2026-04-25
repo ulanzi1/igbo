@@ -9,6 +9,7 @@ import { enqueueEmailJob } from "@/services/email-service";
 import { sendPushNotification } from "@/services/push-service";
 import { getRedisClient } from "@/lib/redis";
 import { evaluateInstantAlert, checkInstantAlerts } from "@/services/saved-search-service";
+import { createRedisKey } from "@igbo/config/redis";
 import type {
   ApplicationSubmittedEvent,
   ApplicationWithdrawnEvent,
@@ -76,7 +77,7 @@ if (globalForNotif.__portalNotifHandlersRegistered) {
     // If Redis is unavailable, log and continue (fail-open for notifications — non-critical path)
     try {
       const redis = getRedisClient();
-      const dedupKey = `dedup:portal:notif:app-submitted:${applicationId}`;
+      const dedupKey = createRedisKey("portal", "dedup", `notif:app-submitted:${applicationId}`);
       const acquired = await redis.set(dedupKey, "1", "EX", NOTIF_DEDUP_TTL_SECONDS, "NX");
       if (acquired === null) {
         console.info(
@@ -250,7 +251,7 @@ if (globalForNotif.__portalNotifHandlersRegistered) {
     // Idempotency: deduplicate using Redis SET NX
     try {
       const redis = getRedisClient();
-      const dedupKey = `dedup:portal:notif:app-withdrawn:${applicationId}`;
+      const dedupKey = createRedisKey("portal", "dedup", `notif:app-withdrawn:${applicationId}`);
       const acquired = await redis.set(dedupKey, "1", "EX", NOTIF_DEDUP_TTL_SECONDS, "NX");
       if (acquired === null) {
         console.info(
@@ -482,7 +483,7 @@ if (globalForNotif.__portalNotifHandlersRegistered) {
     // 1. Dedup by messageId (atomic SET NX EX — single command avoids race condition)
     try {
       const redis = getRedisClient();
-      const dedupKey = `dedup:portal:notif:msg:${messageId}`;
+      const dedupKey = createRedisKey("portal", "dedup", `notif:msg:${messageId}`);
       const acquired = await redis.set(dedupKey, "1", "EX", NOTIF_DEDUP_TTL_SECONDS, "NX");
       if (acquired === null) {
         // Key already existed — this event was already processed
@@ -513,7 +514,11 @@ if (globalForNotif.__portalNotifHandlersRegistered) {
     let throttleCount = 0;
     try {
       const redis = getRedisClient();
-      const throttleKey = `portal:msg:throttle:${senderId}:${recipientId}:${applicationId}`;
+      const throttleKey = createRedisKey(
+        "portal",
+        "throttle",
+        `msg:${senderId}:${recipientId}:${applicationId}`,
+      );
       // Pipeline makes INCR+EXPIRE atomic — if EXPIRE fails after INCR, the key
       // would persist forever, permanently suppressing notifications for this triple.
       const pipeline = redis.pipeline();

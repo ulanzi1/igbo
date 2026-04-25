@@ -26,7 +26,7 @@ vi.mock("drizzle-orm", () => ({
   eq: vi.fn((col: unknown, val: unknown) => ({ eq: [col, val] })),
 }));
 vi.mock("@/services/event-bus", () => ({
-  portalEventBus: { emit: vi.fn() },
+  portalEventBus: { emit: vi.fn(), validate: vi.fn() },
 }));
 
 import { db } from "@igbo/db";
@@ -304,6 +304,7 @@ describe("transition — valid employer transitions", () => {
       newStatus: "under_review",
       actorUserId: "employer-1",
       actorRole: "employer",
+      emittedBy: "application-state-machine",
     });
   });
 
@@ -433,6 +434,7 @@ describe("transition — valid seeker withdrawal", () => {
       previousStatus: "submitted",
       newStatus: "withdrawn",
       actorUserId: "seeker-1",
+      emittedBy: "application-state-machine",
     });
   });
 

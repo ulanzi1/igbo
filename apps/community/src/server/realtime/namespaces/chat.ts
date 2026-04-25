@@ -323,7 +323,8 @@ export function setupChatNamespace(ns: Namespace, redis: Redis): void {
           return;
         }
         // Track delivery in Redis (volatile; not critical to persist)
-        await redis.set(`delivered:${messageId}:${userId}`, "1", "EX", 86_400); // 24h TTL
+        // community-scope: raw Redis keys — VD-4 trigger not yet reached
+        await redis.set(`delivered:${messageId}:${userId}`, "1", "EX", 86_400); // 24h TTL // ci-allow-redis-key
         // Broadcast to conversation room so sender sees the update
         socket.to(ROOM_CONVERSATION(conversationId)).emit("message:delivered", {
           messageId,

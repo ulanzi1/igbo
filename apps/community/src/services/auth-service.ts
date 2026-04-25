@@ -77,7 +77,8 @@ export function parseDeviceInfo(userAgent: string | null): string {
 async function checkLockout(email: string, ip: string): Promise<boolean> {
   try {
     const redis = getRedisClient();
-    const lockKey = `lockout:${email}:${ip}`;
+    // community-scope: raw Redis keys — VD-4 trigger not yet reached
+    const lockKey = `lockout:${email}:${ip}`; // ci-allow-redis-key
     const locked = await redis.get(lockKey);
     return !!locked;
   } catch {
@@ -88,7 +89,7 @@ async function checkLockout(email: string, ip: string): Promise<boolean> {
 async function recordFailedAttempt(email: string, ip: string): Promise<number> {
   try {
     const redis = getRedisClient();
-    const attemptsKey = `login_attempts:${email}:${ip}`;
+    const attemptsKey = `login_attempts:${email}:${ip}`; // ci-allow-redis-key
     const now = Date.now();
     const windowStart = now - env.ACCOUNT_LOCKOUT_SECONDS * 1000;
 
@@ -113,7 +114,7 @@ async function recordFailedAttempt(email: string, ip: string): Promise<number> {
 async function applyLockout(email: string, userId: string, ip: string): Promise<void> {
   try {
     const redis = getRedisClient();
-    await redis.set(`lockout:${email}:${ip}`, "1", "EX", env.ACCOUNT_LOCKOUT_SECONDS);
+    await redis.set(`lockout:${email}:${ip}`, "1", "EX", env.ACCOUNT_LOCKOUT_SECONDS); // ci-allow-redis-key
   } catch {
     // Non-critical — lockout will not be applied but credential check still fails
   }
@@ -142,7 +143,7 @@ async function applyLockout(email: string, userId: string, ip: string): Promise<
 async function clearLoginAttempts(email: string, ip: string): Promise<void> {
   try {
     const redis = getRedisClient();
-    await redis.del(`login_attempts:${email}:${ip}`);
+    await redis.del(`login_attempts:${email}:${ip}`); // ci-allow-redis-key
   } catch {
     // Non-critical
   }
@@ -307,7 +308,7 @@ export type Verify2faResult = { status: "ok"; challengeToken: string } | { statu
 async function check2faRateLimit(challengeToken: string): Promise<boolean> {
   try {
     const redis = getRedisClient();
-    const key = `mfa_attempts:${challengeToken}`;
+    const key = `mfa_attempts:${challengeToken}`; // ci-allow-redis-key
     const count = await redis.incr(key);
     if (count === 1) await redis.expire(key, MFA_VERIFY_RATE_WINDOW);
     return count <= MFA_VERIFY_RATE_LIMIT;
@@ -385,7 +386,7 @@ export async function sendEmailOtp(userId: string, challengeToken: string): Prom
 
   const otp = randomInt(100000, 1000000).toString();
   const redis = getRedisClient();
-  await redis.set(`email_otp:${userId}`, otp, "EX", EMAIL_OTP_TTL);
+  await redis.set(`email_otp:${userId}`, otp, "EX", EMAIL_OTP_TTL); // ci-allow-redis-key
 
   const user = await findUserById(userId);
   if (!user) return;
@@ -408,10 +409,10 @@ export async function verifyEmailOtp(
   if (!challenge) return { status: "invalid" };
 
   const redis = getRedisClient();
-  const stored = await redis.get(`email_otp:${userId}`);
+  const stored = await redis.get(`email_otp:${userId}`); // ci-allow-redis-key
   if (!stored || stored !== code) return { status: "invalid" };
 
-  await redis.del(`email_otp:${userId}`);
+  await redis.del(`email_otp:${userId}`); // ci-allow-redis-key
   await sc(challengeToken, { ...challenge, mfaVerified: true });
   return { status: "ok", challengeToken };
 }

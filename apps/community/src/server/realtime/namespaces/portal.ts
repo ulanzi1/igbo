@@ -73,7 +73,8 @@ export function setupPortalNamespace(io: Server, redis: Redis): void {
 
         // Write-once delivery tracking — 24h TTL
         // F5: NX ensures write-once semantics (Key Invariant #8)
-        await redis.set(`delivered:portal:${messageId}:${userId}`, "1", "EX", 86_400, "NX");
+        // community-scope: raw Redis keys — VD-4 trigger not yet reached
+        await redis.set(`delivered:portal:${messageId}:${userId}`, "1", "EX", 86_400, "NX"); // ci-allow-redis-key
 
         // Broadcast to conversation room (excluding this socket / the deliverer)
         socket.to(ROOM_CONVERSATION(conversationId)).emit("message:delivered", {
