@@ -10,7 +10,8 @@ import { getRedisClient } from "@/lib/redis";
 import * as Sentry from "@sentry/nextjs";
 
 const MAINTENANCE_SETTING_KEY = "maintenance_mode";
-const MAINTENANCE_REDIS_KEY = "platform:maintenance_mode";
+// community-scope: raw Redis keys — VD-4 trigger not yet reached
+const MAINTENANCE_REDIS_KEY = "platform:maintenance_mode"; // ci-allow-redis-key
 
 interface MaintenanceSetting {
   enabled: boolean;

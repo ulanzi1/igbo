@@ -2,6 +2,7 @@
 import { describe, it, expect } from "vitest";
 import {
   createEventEnvelope,
+  portalEventSchemas,
   PORTAL_CROSS_APP_EVENTS,
   COMMUNITY_CROSS_APP_EVENTS,
   EVENT_DEDUP_KEY,
@@ -25,7 +26,9 @@ import type {
   JobViewedEvent,
   JobSharedToCommunityEvent,
   JobReviewedEvent,
+  NotificationCreatedEvent,
 } from "./events";
+import type { PortalNotificationEventType } from "./notifications";
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const ISO_8601_REGEX = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
@@ -426,5 +429,244 @@ describe("JobReviewedEvent", () => {
   it("PortalEventMap includes job.reviewed key", () => {
     const key: PortalEventName = "job.reviewed";
     expect(key).toBe("job.reviewed");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Zod schema tests — portalEventSchemas
+// ---------------------------------------------------------------------------
+
+const BASE_ENVELOPE = {
+  eventId: "550e8400-e29b-41d4-a716-446655440000",
+  version: 1,
+  timestamp: "2026-01-01T00:00:00.000Z",
+  emittedBy: "test-service",
+};
+
+describe("portalEventSchemas — BaseEventSchema fields", () => {
+  it("accepts valid envelope fields", () => {
+    const result = portalEventSchemas["job.published"].safeParse({
+      ...BASE_ENVELOPE,
+      jobId: "j1",
+      companyId: "cp-1",
+      title: "Engineer",
+      employmentType: "full_time",
+      status: "active",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects non-UUID eventId", () => {
+    const result = portalEventSchemas["job.published"].safeParse({
+      ...BASE_ENVELOPE,
+      eventId: "not-a-uuid",
+      jobId: "j1",
+      companyId: "cp-1",
+      title: "Engineer",
+      employmentType: "full_time",
+      status: "active",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects missing emittedBy", () => {
+    const { emittedBy: _, ...envelopeWithout } = BASE_ENVELOPE;
+    void _;
+    const result = portalEventSchemas["job.published"].safeParse({
+      ...envelopeWithout,
+      jobId: "j1",
+      companyId: "cp-1",
+      title: "Engineer",
+      employmentType: "full_time",
+      status: "active",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects empty emittedBy string", () => {
+    const result = portalEventSchemas["job.published"].safeParse({
+      ...BASE_ENVELOPE,
+      emittedBy: "",
+      jobId: "j1",
+      companyId: "cp-1",
+      title: "Engineer",
+      employmentType: "full_time",
+      status: "active",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("accepts optional idempotencyKey when provided", () => {
+    const result = portalEventSchemas["job.published"].safeParse({
+      ...BASE_ENVELOPE,
+      idempotencyKey: "apply:j1:u1",
+      jobId: "j1",
+      companyId: "cp-1",
+      title: "Engineer",
+      employmentType: "full_time",
+      status: "active",
+    });
+    expect(result.success).toBe(true);
+  });
+});
+
+describe("portalEventSchemas — JobClosedEvent (optional fields)", () => {
+  it("accepts without optional reason", () => {
+    const result = portalEventSchemas["job.closed"].safeParse({
+      ...BASE_ENVELOPE,
+      jobId: "j1",
+      companyId: "cp-1",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts with optional reason", () => {
+    const result = portalEventSchemas["job.closed"].safeParse({
+      ...BASE_ENVELOPE,
+      jobId: "j1",
+      companyId: "cp-1",
+      reason: "Position filled",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects missing required jobId", () => {
+    const result = portalEventSchemas["job.closed"].safeParse({
+      ...BASE_ENVELOPE,
+      companyId: "cp-1",
+    });
+    expect(result.success).toBe(false);
+  });
+});
+
+describe("portalEventSchemas — PortalMessageSentEvent (complex/nested)", () => {
+  const VALID_MESSAGE_PAYLOAD = {
+    ...BASE_ENVELOPE,
+    messageId: "msg-1",
+    senderId: "u1",
+    conversationId: "conv-1",
+    applicationId: "app-1",
+    jobId: "j1",
+    companyId: "cp-1",
+    jobTitle: "Engineer",
+    companyName: "Acme",
+    content: "Hello",
+    contentType: "text",
+    createdAt: "2026-01-01T00:00:00.000Z",
+    recipientId: "u2",
+    senderRole: "employer" as const,
+  };
+
+  it("accepts valid message payload without attachments", () => {
+    const result = portalEventSchemas["portal.message.sent"].safeParse(VALID_MESSAGE_PAYLOAD);
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts with optional attachments array", () => {
+    const result = portalEventSchemas["portal.message.sent"].safeParse({
+      ...VALID_MESSAGE_PAYLOAD,
+      attachments: [
+        {
+          id: "att-1",
+          fileUrl: "https://example.com/file.pdf",
+          fileName: "file.pdf",
+          fileType: "application/pdf",
+          fileSize: 1024,
+        },
+      ],
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects invalid senderRole", () => {
+    const result = portalEventSchemas["portal.message.sent"].safeParse({
+      ...VALID_MESSAGE_PAYLOAD,
+      senderRole: "admin",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects missing required content", () => {
+    const { content: _, ...withoutContent } = VALID_MESSAGE_PAYLOAD;
+    void _;
+    const result = portalEventSchemas["portal.message.sent"].safeParse(withoutContent);
+    expect(result.success).toBe(false);
+  });
+});
+
+describe("portalEventSchemas — JobReviewedEvent (enum decision field)", () => {
+  it("accepts valid decision enum value", () => {
+    const result = portalEventSchemas["job.reviewed"].safeParse({
+      ...BASE_ENVELOPE,
+      jobId: "j1",
+      reviewerUserId: "admin-1",
+      decision: "approved",
+      companyId: "cp-1",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects invalid decision value", () => {
+    const result = portalEventSchemas["job.reviewed"].safeParse({
+      ...BASE_ENVELOPE,
+      jobId: "j1",
+      reviewerUserId: "admin-1",
+      decision: "unknown_decision",
+      companyId: "cp-1",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("portalEventSchemas has all 20 portal event keys", () => {
+    expect(Object.keys(portalEventSchemas)).toHaveLength(20);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// NotificationCreatedEvent — eventType field (P-6.1A)
+// ---------------------------------------------------------------------------
+
+describe("NotificationCreatedEvent — eventType field", () => {
+  it("accepts eventType of PortalNotificationEventType (optional field)", () => {
+    const event: NotificationCreatedEvent = {
+      ...createEventEnvelope(),
+      notificationId: "notif-1",
+      userId: "u-1",
+      type: "system",
+      title: "New application",
+      body: "From Ada Obi",
+      eventType: "portal.application.submitted",
+    };
+    const _typeCheck: PortalNotificationEventType = event.eventType!;
+    expect(event.eventType).toBe("portal.application.submitted");
+    void _typeCheck;
+  });
+
+  it("is backward-compatible — eventType is optional (omitting it compiles)", () => {
+    const event: NotificationCreatedEvent = {
+      ...createEventEnvelope(),
+      notificationId: "notif-2",
+      userId: "u-2",
+      type: "message",
+      title: "New message",
+      body: "Hello",
+    };
+    expect(event.eventType).toBeUndefined();
+  });
+
+  it("eventType field is PortalNotificationEventType — rejects non-union string at type level", () => {
+    // This test validates the TypeScript type assignment at compile time.
+    // The only valid eventType is PortalNotificationEventType, not raw string.
+    const validType: PortalNotificationEventType = "portal.message.received";
+    const event: NotificationCreatedEvent = {
+      ...createEventEnvelope(),
+      notificationId: "notif-3",
+      userId: "u-3",
+      type: "message",
+      title: "Test",
+      body: "Body",
+      eventType: validType,
+    };
+    expect(event.eventType).toBe("portal.message.received");
   });
 });

@@ -12,7 +12,6 @@ import {
 } from "@igbo/db/queries/portal-saved-searches";
 import { createRedisKey } from "@igbo/config/redis";
 import { portalEventBus } from "@/services/event-bus";
-import { createEventEnvelope } from "@igbo/config/events";
 import type { JobSearchRequest } from "@/lib/validations/job-search";
 import type {
   PortalSavedSearch,
@@ -268,12 +267,12 @@ export async function checkInstantAlerts(postingId: string): Promise<void> {
       if (!matches) return;
 
       portalEventBus.emit("saved_search.new_result", {
-        ...createEventEnvelope(),
         savedSearchId: savedSearch.id,
         userId: savedSearch.userId,
         jobId: posting.id,
         jobTitle: posting.title,
         searchName: savedSearch.name,
+        emittedBy: "saved-search-service",
       });
     }),
   );

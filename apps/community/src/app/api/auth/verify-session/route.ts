@@ -59,7 +59,8 @@ export async function GET(request: NextRequest) {
     request.headers.get("X-Real-IP") ??
     "unknown";
 
-  const rateLimit = await checkRateLimit(`rl:verify-session:${ip}`, 10, 60 * 1000);
+  // community-scope: raw Redis keys — VD-4 trigger not yet reached
+  const rateLimit = await checkRateLimit(`rl:verify-session:${ip}`, 10, 60 * 1000); // ci-allow-redis-key
   if (!rateLimit.allowed) {
     return new NextResponse("Too Many Requests", { status: 429 });
   }

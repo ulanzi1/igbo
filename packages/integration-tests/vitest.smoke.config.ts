@@ -1,14 +1,19 @@
 import { defineConfig } from "vitest/config";
 import path from "path";
 
+/**
+ * Vitest config for the cross-container smoke test (AI-27).
+ * Separate from vitest.config.ts so the smoke test can be run without
+ * being blocked by the exclude in the default config.
+ *
+ * Run with:
+ *   REDIS_URL=redis://localhost:6379 pnpm --filter @igbo/integration-tests test:smoke
+ */
 export default defineConfig({
   test: {
     globals: true,
     environment: "node",
-    include: ["**/*.test.ts"],
-    exclude: ["**/node_modules/**", "**/portal-cross-container-smoke.test.ts"],
-    // Integration tests require running apps — skip in CI unless explicitly opted in
-    // Run with: pnpm --filter @igbo/integration-tests test:integration
+    include: ["**/portal-cross-container-smoke.test.ts"],
   },
   resolve: {
     alias: [

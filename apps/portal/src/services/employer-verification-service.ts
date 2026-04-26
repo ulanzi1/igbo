@@ -110,6 +110,7 @@ export async function submitVerificationRequest(
     employerUserId,
     verificationId: verification.id,
     documentCount: documents.length,
+    emittedBy: "employer-verification-service",
   });
 
   return verification;
@@ -203,6 +204,7 @@ export async function approveVerificationRequest(
     employerUserId: company.ownerUserId,
     verificationId,
     approvedByAdminId: adminUserId,
+    emittedBy: "employer-verification-service",
   });
 }
 
@@ -285,6 +287,7 @@ export async function rejectVerificationRequest(
     verificationId,
     rejectedByAdminId: adminUserId,
     reason: reason.trim(),
+    emittedBy: "employer-verification-service",
   });
 }
 

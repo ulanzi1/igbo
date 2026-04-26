@@ -33,7 +33,8 @@ export async function checkRateLimit(
   const redis = getRedisClient();
   const now = Date.now();
   const windowStart = now - windowMs;
-  const redisKey = `ratelimit:${key}`;
+  // community-scope: raw Redis keys — VD-4 trigger not yet reached
+  const redisKey = `ratelimit:${key}`; // ci-allow-redis-key
 
   // Use a pipeline for atomic multi-step operation
   const pipeline = redis.pipeline();

@@ -138,6 +138,7 @@ export async function submitReport(input: SubmitReportInput): Promise<PortalPost
     reportCount: result.reportCount,
     priorityEscalated,
     autoPaused: result.autoPaused,
+    emittedBy: "posting-report-service",
   });
 
   return result.report;

@@ -195,6 +195,23 @@ jobs:
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/igbo_test
         run: pnpm --filter @igbo/integration-tests test
+      # ─── AI-27: Cross-container smoke test (reporting gate) ──────────────────
+      # PROMOTION RULE: Remove `continue-on-error: true` after 3 consecutive green
+      # runs on main. Flake = restore `continue-on-error: true` + open issue titled
+      # "[AI-27] smoke-test flake detected on <date>".
+      # See docs/decisions/smoke-test-promotion-rule.md for full policy.
+      # ─────────────────────────────────────────────────────────────────────────
+      - name: Cross-container smoke test (reporting gate — AI-27)
+        continue-on-error: true
+        env:
+          REDIS_URL: redis://localhost:6379
+        run: |
+          if pnpm --filter @igbo/integration-tests test:smoke; then
+            echo "✅ Smoke test PASSED" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Smoke test FAILED (reporting gate — not blocking)" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
       - name: Show test summary
         if: always()
         run: |
