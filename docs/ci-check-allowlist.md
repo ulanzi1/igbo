@@ -15,23 +15,76 @@ Add `// ci-allow-<reason>` above the relevant line, with a justification comment
 | `apps/community/ci-checks.test.ts` | `no-server-only` | "apps/community/src/services/event-bus.ts", |
 | `apps/community/ci-checks.test.ts` | `process-env` | (Tier 3 suppress)", () => { |
 | `apps/community/ci-checks.test.ts` | `process-env` | "apps/community/src/services/my-service.ts", |
+| `apps/community/ci-checks.test.ts` | `redis-key` | "apps/community/src/services/my-service.ts", |
 | `apps/community/ci-checks.test.ts` | `unsanitized-html` | `export function Allow({ html }: { html: string }) { |
 | `apps/community/ci-checks.test.ts` | `unsanitized-html` | `export function Allow({ html }: { html: string }) { |
 | `apps/community/ci-checks.test.ts` | `unsanitized-html` | `export function Allow({ html }: { html: string }) { |
 | `apps/community/ci-checks.test.ts` | `unsanitized-html` | `export function Allow({ html }: { html: string }) { |
 | `apps/community/ci-checks.test.ts` | `unsanitized-html` | pre-sanitized server-side |
 | `apps/community/src/app/[locale]/maintenance/page.tsx` | `literal-jsx` | height={64} |
+| `apps/community/src/app/api/auth/verify-session/route.ts` | `redis-key` | community-scope: raw Redis keys — VD-4 trigger not yet reached |
 | `apps/community/src/app/api/v1/admin/maintenance/route.ts` | `process-env` | current single-server Docker Compose architecture. |
+| `apps/community/src/app/api/v1/admin/maintenance/route.ts` | `redis-key` | community-scope: raw Redis keys — VD-4 trigger not yet reached |
+| `apps/community/src/app/api/v1/maintenance-status/route.ts` | `redis-key` | community-scope: raw Redis keys — VD-4 trigger not yet reached |
+| `apps/community/src/app/api/v1/profiles/social-link/[provider]/callback/route.ts` | `redis-key` | community-scope: raw Redis keys — VD-4 trigger not yet reached |
+| `apps/community/src/app/api/v1/profiles/social-link/[provider]/callback/route.ts` | `redis-key` | } |
+| `apps/community/src/app/api/v1/profiles/social-link/[provider]/callback/route.ts` | `redis-key` | if (provider === "twitter") { |
+| `apps/community/src/app/api/v1/profiles/social-link/[provider]/callback/route.ts` | `redis-key` | const verifier = await redis.get(`social_link_pkce:${state}`); // ci-allow-redis-key |
+| `apps/community/src/app/api/v1/profiles/social-link/[provider]/route.ts` | `redis-key` | await redis.set( |
+| `apps/community/src/app/api/v1/profiles/social-link/[provider]/route.ts` | `redis-key` | community-scope: raw Redis keys — VD-4 trigger not yet reached |
+| `apps/community/src/app/api/v1/user/dnd/route.ts` | `redis-key` | community-scope: raw Redis keys — VD-4 trigger not yet reached |
+| `apps/community/src/app/api/v1/user/dnd/route.ts` | `redis-key` | const redis = getRedisClient(); |
+| `apps/community/src/app/api/v1/user/notification-preferences/quiet-hours/route.ts` | `redis-key` | community-scope: raw Redis keys — VD-4 trigger not yet reached |
+| `apps/community/src/app/api/v1/user/notification-preferences/quiet-hours/route.ts` | `redis-key` | } else { |
+| `apps/community/src/app/api/v1/user/notification-preferences/quiet-hours/route.ts` | `redis-key` | const redis = getRedisClient(); |
 | `apps/community/src/features/articles/components/ArticleLanguageToggle.tsx` | `unsanitized-html` | className="prose prose-neutral dark:prose-invert max-w-none" |
 | `apps/community/src/features/articles/components/ArticleLanguageToggle.tsx` | `unsanitized-html` | className="prose prose-neutral dark:prose-invert max-w-none" |
+| `apps/community/src/features/auth/actions/resend-verification.ts` | `redis-key` | community-scope: raw Redis keys — VD-4 trigger not yet reached |
 | `apps/community/src/features/discover/components/SearchResultsContent.tsx` | `unsanitized-html` | className="text-xs text-muted-foreground [&_mark]:bg-yellow-200 [&_mark]:dark:bg-yellow-800 [&_mark]:rounded [&_mark]:px-0.5" |
 | `apps/community/src/features/profiles/components/GuidelinesStep.tsx` | `unsanitized-html` | className="prose prose-sm max-h-96 overflow-y-auto rounded-md border border-gray-200 bg-gray-50 p-4" |
 | `apps/community/src/lib/logger.ts` | `process-env` | function isDebugEnabled(): boolean { |
+| `apps/community/src/lib/points-lua-runner.ts` | `redis-key` | return { |
+| `apps/community/src/lib/points-lua-runner.ts` | `redis-key` | idempotencyKey: `points:idempotency:${input.idempotencyKey}`, // ci-allow-redis-key |
+| `apps/community/src/lib/points-lua-runner.ts` | `redis-key` | rapidKey: `points:rapid:${input.actorId}`, // ci-allow-redis-key |
+| `apps/community/src/lib/points-lua-runner.ts` | `redis-key` | repeatKey: `points:repeat:${input.actorId}:${input.contentOwnerId}`, // ci-allow-redis-key |
+| `apps/community/src/lib/points-lua-runner.ts` | `redis-key` | dailyBaseKey: `points:daily:${input.earnerUserId}`, // Lua appends :{utcDate} suffix internally // ci-allow-redis-key |
+| `apps/community/src/lib/points-lua-runner.ts` | `redis-key` | leaderboardKey: "points:leaderboard", // ci-allow-redis-key |
+| `apps/community/src/lib/rate-limiter.ts` | `redis-key` | community-scope: raw Redis keys — VD-4 trigger not yet reached |
 | `apps/community/src/lib/redis.ts` | `process-env` | function getRedisUrl(): string { |
 | `apps/community/src/server/api/middleware.ts` | `process-env` | if (process.env.MAINTENANCE_MODE === "true") { |
 | `apps/community/src/server/jobs/data-export.ts` | `process-env` | not in env schema (ops-only toggle) |
+| `apps/community/src/server/jobs/data-export.ts` | `redis-key` | community-scope: raw Redis keys — VD-4 trigger not yet reached |
+| `apps/community/src/server/jobs/notification-digest.ts` | `redis-key` | community-scope: raw Redis keys — VD-4 trigger not yet reached |
+| `apps/community/src/server/realtime/namespaces/chat.ts` | `redis-key` | community-scope: raw Redis keys — VD-4 trigger not yet reached |
+| `apps/community/src/server/realtime/namespaces/portal.ts` | `redis-key` | community-scope: raw Redis keys — VD-4 trigger not yet reached |
+| `apps/community/src/services/auth-service.ts` | `redis-key` | community-scope: raw Redis keys — VD-4 trigger not yet reached |
+| `apps/community/src/services/auth-service.ts` | `redis-key` | const redis = getRedisClient(); |
+| `apps/community/src/services/auth-service.ts` | `redis-key` | const redis = getRedisClient(); |
+| `apps/community/src/services/auth-service.ts` | `redis-key` | const redis = getRedisClient(); |
+| `apps/community/src/services/auth-service.ts` | `redis-key` | const redis = getRedisClient(); |
+| `apps/community/src/services/auth-service.ts` | `redis-key` | const redis = getRedisClient(); |
+| `apps/community/src/services/auth-service.ts` | `redis-key` | const redis = getRedisClient(); |
+| `apps/community/src/services/auth-service.ts` | `redis-key` | — |
 | `apps/community/src/services/event-bus.ts` | `no-server-only` | shared with standalone realtime server |
+| `apps/community/src/services/gdpr-service.ts` | `redis-key` | community-scope: raw Redis keys — VD-4 trigger not yet reached |
+| `apps/community/src/services/gdpr-service.ts` | `redis-key` | const redis = getRedisClient(); |
+| `apps/community/src/services/gdpr-service.ts` | `redis-key` | Clean up the token since it's no longer valid for this state |
+| `apps/community/src/services/gdpr-service.ts` | `redis-key` | — |
+| `apps/community/src/services/gdpr-service.ts` | `redis-key` | const redis = getRedisClient(); |
 | `apps/community/src/services/message-service.ts` | `no-server-only` | shared with standalone realtime server |
+| `apps/community/src/services/moderation-service.ts` | `redis-key` | community-scope: raw Redis keys — VD-4 trigger not yet reached |
+| `apps/community/src/services/moderation-service.ts` | `redis-key` | } |
+| `apps/community/src/services/moderation-service.ts` | `redis-key` | redis.incr("moderation:failed:total").catch(() => {}); // ci-allow-redis-key |
+| `apps/community/src/services/notification-router.ts` | `redis-key` | community-scope: raw Redis keys — VD-4 trigger not yet reached |
+| `apps/community/src/services/points-engine.ts` | `redis-key` | community-scope: raw Redis keys — VD-4 trigger not yet reached |
+| `apps/community/src/services/points-engine.ts` | `redis-key` | const total = await getUserPointsTotal(userId); |
+| `apps/community/src/services/points-engine.ts` | `redis-key` | if (CLEANUP_STATUSES.includes(payload.newStatus as (typeof CLEANUP_STATUSES)[number])) { |
+| `apps/community/src/services/recommendation-service.ts` | `redis-key` | community-scope: raw Redis keys — VD-4 trigger not yet reached |
+| `apps/community/src/services/suggestion-service.ts` | `redis-key` | community-scope: raw Redis keys — VD-4 trigger not yet reached |
+| `apps/community/src/services/suggestion-service.ts` | `redis-key` | const redis = getRedisClient(); |
+| `apps/community/src/services/suggestion-service.ts` | `redis-key` | const redis = getRedisClient(); |
+| `apps/community/src/services/suggestion-service.ts` | `redis-key` | await redis.sadd(`suggestions:dismissed:${viewerUserId}`, dismissedUserId); // ci-allow-redis-key |
+| `apps/community/src/services/suggestion-service.ts` | `redis-key` | Invalidate suggestions cache so next fetch excludes the dismissed member |
 | `apps/portal/src/app/[locale]/(gated)/page.tsx` | `process-env` | portal env.ts not yet created (VD-6) |
 | `apps/portal/src/app/[locale]/(gated)/page.tsx` | `process-env` | const communityUrl = process.env.COMMUNITY_URL ?? "http://localhost:3000"; // ci-allow-process-env — portal env.ts not yet created (VD-6) |
 | `apps/portal/src/app/[locale]/(ungated)/choose-role/page.tsx` | `process-env` | if (!session) { |
@@ -74,4 +127,14 @@ Add `// ci-allow-<reason>` above the relevant line, with a justification comment
 | `apps/portal/src/services/push-service.ts` | `process-env` | — |
 | `apps/portal/src/services/push-service.ts` | `process-env` | const contact = process.env.VAPID_CONTACT_EMAIL; // ci-allow-process-env |
 | `apps/portal/src/services/push-service.ts` | `process-env` | const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY; // ci-allow-process-env |
+| `packages/auth/src/config.ts` | `redis-key` | auth-scope: raw Redis keys — internal session/challenge management |
+| `packages/auth/src/config.ts` | `redis-key` | const redis = getAuthRedis(); |
+| `packages/auth/src/config.ts` | `redis-key` | const redis = getAuthRedis(); |
+| `packages/auth/src/config.ts` | `redis-key` | const redis = getAuthRedis(); |
+| `packages/auth/src/config.ts` | `redis-key` | const redis = getAuthRedis(); |
+| `packages/auth/src/config.ts` | `redis-key` | deviceIp = parsed.deviceIp ?? null; |
+| `packages/auth/src/config.ts` | `redis-key` | await redis.set( |
 | `packages/auth/src/redis.ts` | `process-env` | if (!_global.__igboAuthRedis) { |
+| `packages/auth/src/session-cache.ts` | `redis-key` | auth-scope: raw Redis keys — internal session/challenge management |
+| `packages/config/src/realtime.ts` | `redis-key` | community-scope: raw Redis keys — realtime ephemeral state, VD-4 trigger not yet reached |
+| `packages/config/src/realtime.ts` | `redis-key` | export const REDIS_TYPING_KEY = (conversationId: string, userId: string) => |

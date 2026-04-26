@@ -6,7 +6,7 @@ import type {
   PortalAllEventMap,
   PortalAllEventName,
 } from "@igbo/config/events";
-import { createEventEnvelope } from "@igbo/config/events";
+import { createEventEnvelope, portalEventSchemas } from "@igbo/config/events";
 import type Redis from "ioredis";
 
 type RedisPublisherGetter = () => Redis;
@@ -20,6 +20,24 @@ class PortalTypedEventBus {
     this.getPublisher = getter;
   }
 
+  /**
+   * Pre-validate an event payload WITHOUT emitting.
+   * Call this BEFORE a DB transaction commits so that invalid payloads
+   * cause a rollback rather than a committed-but-undelivered event.
+   * Throws ZodError on invalid payload.
+   */
+  validate<K extends PortalEventName>(
+    event: K,
+    payload: Omit<PortalEventMap[K], "eventId" | "version" | "timestamp"> &
+      Partial<Pick<PortalEventMap[K], "eventId" | "version" | "timestamp">>,
+  ): void {
+    const testPayload = {
+      ...createEventEnvelope(),
+      ...payload,
+    } as PortalEventMap[K];
+    portalEventSchemas[event].parse(testPayload);
+  }
+
   emit<K extends PortalEventName>(
     event: K,
     payload: Omit<PortalEventMap[K], "eventId" | "version" | "timestamp"> &
@@ -30,6 +48,9 @@ class PortalTypedEventBus {
       ...createEventEnvelope(),
       ...payload,
     } as PortalEventMap[K];
+
+    // Validate BEFORE Redis publish — throws ZodError if payload is invalid
+    portalEventSchemas[event].parse(fullPayload);
 
     const result = this.emitter.emit(event, fullPayload);
 

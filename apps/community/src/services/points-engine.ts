@@ -49,14 +49,15 @@ export async function getBadgeMultiplier(userId: string): Promise<number> {
 /** Read points balance from Redis; fall back to DB aggregate on cache miss. */
 export async function getUserPointsBalance(userId: string): Promise<number> {
   const redis = getRedisClient();
-  const cached = await redis.get(`points:user:${userId}`);
+  // community-scope: raw Redis keys — VD-4 trigger not yet reached
+  const cached = await redis.get(`points:user:${userId}`); // ci-allow-redis-key
   if (cached !== null) {
     const num = parseInt(cached, 10);
     if (!isNaN(num)) return num;
     // Corrupted cache value — fall through to DB
   }
   const total = await getUserPointsTotal(userId);
-  await redis.set(`points:user:${userId}`, String(total)); // no TTL — Lua maintains this key
+  await redis.set(`points:user:${userId}`, String(total)); // no TTL — Lua maintains this key // ci-allow-redis-key
   return total;
 }
 
@@ -209,7 +210,7 @@ export async function handleAccountStatusChanged(
   payload: AccountStatusChangedEvent,
 ): Promise<void> {
   if (CLEANUP_STATUSES.includes(payload.newStatus as (typeof CLEANUP_STATUSES)[number])) {
-    await getRedisClient().zrem("points:leaderboard", payload.userId);
+    await getRedisClient().zrem("points:leaderboard", payload.userId); // ci-allow-redis-key
   }
 }
 

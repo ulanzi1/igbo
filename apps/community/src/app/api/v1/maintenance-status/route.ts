@@ -10,7 +10,8 @@ export interface MaintenanceStatus {
   reason: string | null;
 }
 
-const MAINTENANCE_REDIS_KEY = "platform:maintenance_mode";
+// community-scope: raw Redis keys — VD-4 trigger not yet reached
+const MAINTENANCE_REDIS_KEY = "platform:maintenance_mode"; // ci-allow-redis-key
 
 export const GET = withApiHandler(
   async () => {

@@ -4,12 +4,14 @@
   "private": true,
   "scripts": {
     "test": "vitest run --passWithNoTests",
-    "test:integration": "vitest run"
+    "test:integration": "vitest run",
+    "test:smoke": "vitest run --config vitest.smoke.config.ts"
   },
   "devDependencies": {
     "@igbo/auth": "workspace:*",
     "@igbo/config": "workspace:*",
     "@igbo/db": "workspace:*",
+    "ioredis": "^5.6.1",
     "postgres": "^3.4.8",
     "socket.io": "^4.8.3",
     "socket.io-client": "^4.8.3",

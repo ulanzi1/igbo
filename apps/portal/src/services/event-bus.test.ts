@@ -4,22 +4,29 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const ISO_8601_REGEX = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/;
 
-// Reusable minimal payloads matching enriched event interfaces
+// Reusable minimal payloads matching enriched event interfaces (include emittedBy for validation)
 const JOB_PUBLISHED_PAYLOAD = {
   jobId: "j1",
   companyId: "cp-1",
   title: "Engineer",
   employmentType: "full_time",
   status: "active",
+  emittedBy: "test",
 };
-const JOB_UPDATED_PAYLOAD = { jobId: "j1", companyId: "cp-1", changes: { title: "New" } };
-const JOB_CLOSED_PAYLOAD = { jobId: "j1", companyId: "cp-1" };
+const JOB_UPDATED_PAYLOAD = {
+  jobId: "j1",
+  companyId: "cp-1",
+  changes: { title: "New" },
+  emittedBy: "test",
+};
+const JOB_CLOSED_PAYLOAD = { jobId: "j1", companyId: "cp-1", emittedBy: "test" };
 const APP_SUBMITTED_PAYLOAD = {
   applicationId: "a1",
   jobId: "j1",
   seekerUserId: "u1",
   companyId: "cp-1",
   employerUserId: "u-emp-1",
+  emittedBy: "test",
 };
 
 // Reset module between tests to clear the HMR singleton
@@ -78,7 +85,8 @@ describe("emit() — local handler delivery", () => {
     const bus = await getBus();
     const handler = vi.fn();
     bus.on("job.published", handler);
-    const customEventId = "custom-event-id-123";
+    // Must be a valid UUID since schemas enforce z.string().uuid()
+    const customEventId = "550e8400-e29b-41d4-a716-446655440000";
     bus.emit("job.published", { ...JOB_PUBLISHED_PAYLOAD, eventId: customEventId });
     const payload = handler.mock.calls[0]![0] as { eventId: string };
     expect(payload.eventId).toBe(customEventId);
@@ -287,5 +295,156 @@ describe("HMR singleton", () => {
 
     // Same instance from globalThis
     expect(bus2).toBe(bus1);
+  });
+});
+
+describe("emit() — Zod validation", () => {
+  it("succeeds with valid payload including emittedBy", async () => {
+    const bus = await getBus();
+    const handler = vi.fn();
+    bus.on("job.published", handler);
+    expect(() => bus.emit("job.published", JOB_PUBLISHED_PAYLOAD)).not.toThrow();
+    expect(handler).toHaveBeenCalledWith(expect.objectContaining({ emittedBy: "test" }));
+    bus.removeAllListeners();
+  });
+
+  it("throws ZodError when emittedBy is missing", async () => {
+    const bus = await getBus();
+    expect(() =>
+      bus.emit("job.published", {
+        jobId: "j1",
+        companyId: "cp-1",
+        title: "Engineer",
+        employmentType: "full_time",
+        status: "active",
+        // emittedBy intentionally omitted
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any),
+    ).toThrow();
+    bus.removeAllListeners();
+  });
+
+  it("throws ZodError when required field has wrong type (number instead of string)", async () => {
+    const bus = await getBus();
+    expect(() =>
+      bus.emit("job.published", {
+        jobId: 42, // should be string
+        companyId: "cp-1",
+        title: "Engineer",
+        employmentType: "full_time",
+        status: "active",
+        emittedBy: "test",
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any),
+    ).toThrow();
+    bus.removeAllListeners();
+  });
+
+  it("throws ZodError when required field is missing entirely", async () => {
+    const bus = await getBus();
+    expect(() =>
+      bus.emit("application.submitted", {
+        // missing applicationId
+        jobId: "j1",
+        seekerUserId: "u1",
+        companyId: "cp-1",
+        employerUserId: "u-emp-1",
+        emittedBy: "test",
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any),
+    ).toThrow();
+    bus.removeAllListeners();
+  });
+
+  it("emitLocal does NOT validate — accepts payload without emittedBy", async () => {
+    const bus = await getBus();
+    const handler = vi.fn();
+    bus.on("job.published", handler);
+
+    // Payload without emittedBy — would fail emit() validation but emitLocal skips it
+    const payload = {
+      jobId: "j1",
+      companyId: "cp-1",
+      title: "Engineer",
+      employmentType: "full_time",
+      status: "active",
+      eventId: "00000000-0000-4000-8000-000000000001",
+      version: 1 as const,
+      timestamp: "2026-01-01T00:00:00.000Z",
+    };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect(() => bus.emitLocal("job.published", payload as any)).not.toThrow();
+    expect(handler).toHaveBeenCalledWith(payload);
+    bus.removeAllListeners();
+  });
+
+  it("BaseEvent interface accepts emittedBy as optional (backward compat)", async () => {
+    // Type-level test: BaseEvent with optional emittedBy compiles without emittedBy present
+    const envelope = await import("@igbo/config/events").then((m) => m.createEventEnvelope());
+    // emittedBy is optional — not set by createEventEnvelope
+    expect(envelope.emittedBy).toBeUndefined();
+    // idempotencyKey is optional too
+    expect(envelope.idempotencyKey).toBeUndefined();
+  });
+
+  it("portalEventSchemas has an entry for all 20 portal event types", async () => {
+    const { portalEventSchemas } = await import("@igbo/config/events");
+    const expectedKeys = [
+      "job.published",
+      "job.updated",
+      "job.closed",
+      "job.expired",
+      "job.expiry_warning",
+      "application.submitted",
+      "application.status_changed",
+      "application.withdrawn",
+      "job.viewed",
+      "job.shared_to_community",
+      "job.reviewed",
+      "job.flagged",
+      "posting.reported",
+      "employer.verification_submitted",
+      "employer.verification_approved",
+      "employer.verification_rejected",
+      "saved_search.new_result",
+      "portal.message.sent",
+      "portal.message.edited",
+      "portal.message.deleted",
+    ];
+    for (const key of expectedKeys) {
+      expect(portalEventSchemas).toHaveProperty(key);
+    }
+    expect(Object.keys(portalEventSchemas)).toHaveLength(20);
+  });
+});
+
+describe("validate() — pre-transaction payload check", () => {
+  it("succeeds with valid payload (does not emit)", async () => {
+    const bus = await getBus();
+    const handler = vi.fn();
+    bus.on("job.published", handler);
+    expect(() => bus.validate("job.published", JOB_PUBLISHED_PAYLOAD)).not.toThrow();
+    // validate() should NOT emit — handler should not be called
+    expect(handler).not.toHaveBeenCalled();
+    bus.removeAllListeners();
+  });
+
+  it("throws ZodError for invalid payload (does not emit)", async () => {
+    const bus = await getBus();
+    const handler = vi.fn();
+    bus.on("job.published", handler);
+    expect(() =>
+      bus.validate("job.published", {
+        jobId: "j1",
+        companyId: "cp-1",
+        title: "Engineer",
+        employmentType: "full_time",
+        status: "active",
+        // emittedBy missing
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any),
+    ).toThrow();
+    expect(handler).not.toHaveBeenCalled();
+    bus.removeAllListeners();
   });
 });

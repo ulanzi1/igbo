@@ -31,6 +31,7 @@ export const POST = withApiHandler(
           companyId: posting.companyId,
           title: posting.title,
           employerUserId,
+          emittedBy: "expire-postings",
         });
       }),
     );
@@ -51,6 +52,7 @@ export const POST = withApiHandler(
           employerUserId,
           expiresAt: expiresAt.toISOString(),
           daysRemaining,
+          emittedBy: "expire-postings",
         });
       }),
     );

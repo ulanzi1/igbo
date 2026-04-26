@@ -6,7 +6,8 @@ import type { RecommendedGroupItem } from "@igbo/db/queries/recommendations";
 const CACHE_TTL_SECONDS = 12 * 60 * 60; // 43200
 
 function cacheKey(userId: string): string {
-  return `recommendations:groups:${userId}`;
+  // community-scope: raw Redis keys — VD-4 trigger not yet reached
+  return `recommendations:groups:${userId}`; // ci-allow-redis-key
 }
 
 export async function getRecommendedGroupsForUser(userId: string): Promise<RecommendedGroupItem[]> {

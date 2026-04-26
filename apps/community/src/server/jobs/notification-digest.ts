@@ -20,7 +20,8 @@ registerJob("notification-digest", async () => {
   // Users OUT of quiet hours: Redis TTL auto-expires their key — no explicit delete needed
   const usersInQh = await getUsersInQuietHours(now);
   for (const userId of usersInQh) {
-    await redis.set(`dnd:${userId}`, "1", "EX", 5400); // 90 min TTL
+    // community-scope: raw Redis keys — VD-4 trigger not yet reached
+    await redis.set(`dnd:${userId}`, "1", "EX", 5400); // 90 min TTL // ci-allow-redis-key
   }
 
   // Step 2: Send digest emails for users whose digest is due

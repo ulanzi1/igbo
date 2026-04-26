@@ -97,13 +97,14 @@ export function initPointsLuaCommands(redis: Redis): void {
  * Note: dailyBaseKey is the prefix passed as KEYS[4]; the Lua script appends :{utcDate} internally.
  */
 export function buildPointsKeys(input: AwardPointsInput) {
+  // community-scope: raw Redis keys — VD-4 trigger not yet reached (Lua script keys)
   return {
-    idempotencyKey: `points:idempotency:${input.idempotencyKey}`,
-    rapidKey: `points:rapid:${input.actorId}`,
-    repeatKey: `points:repeat:${input.actorId}:${input.contentOwnerId}`,
-    dailyBaseKey: `points:daily:${input.earnerUserId}`, // Lua appends :{utcDate} suffix internally
-    leaderboardKey: "points:leaderboard",
-    userKey: `points:user:${input.earnerUserId}`,
+    idempotencyKey: `points:idempotency:${input.idempotencyKey}`, // ci-allow-redis-key
+    rapidKey: `points:rapid:${input.actorId}`, // ci-allow-redis-key
+    repeatKey: `points:repeat:${input.actorId}:${input.contentOwnerId}`, // ci-allow-redis-key
+    dailyBaseKey: `points:daily:${input.earnerUserId}`, // Lua appends :{utcDate} suffix internally // ci-allow-redis-key
+    leaderboardKey: "points:leaderboard", // ci-allow-redis-key
+    userKey: `points:user:${input.earnerUserId}`, // ci-allow-redis-key
   };
 }
 

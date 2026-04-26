@@ -10,6 +10,7 @@ import { getJobPostingForApply } from "@igbo/db/queries/portal-job-postings";
 import { getExistingActiveApplication } from "@igbo/db/queries/portal-applications";
 import { getSeekerProfileByUserId } from "@igbo/db/queries/portal-seeker-profiles";
 import { listSeekerCvs } from "@igbo/db/queries/portal-seeker-cvs";
+import { createRedisKey } from "@igbo/config/redis";
 import { ApiError } from "@/lib/api-error";
 import { PORTAL_ERRORS } from "@/lib/portal-errors";
 import { getRedisClient } from "@/lib/redis";
@@ -110,7 +111,11 @@ export async function submit(input: SubmitApplicationInput): Promise<SubmitAppli
   // Step 6: Idempotency key check via atomic SET NX (AC-6)
   if (idempotencyKey) {
     const redis = getRedisClient();
-    const redisKey = `dedup:portal:apply:${jobId}:${seekerUserId}:${idempotencyKey}`;
+    const redisKey = createRedisKey(
+      "portal",
+      "dedup",
+      `apply:${jobId}:${seekerUserId}:${idempotencyKey}`,
+    );
     const acquired = await redis.set(redisKey, "pending", "EX", IDEMPOTENCY_TTL_SECONDS, "NX");
     if (acquired === null) {
       // Key already exists — this is a replay of a previous request
@@ -130,6 +135,17 @@ export async function submit(input: SubmitApplicationInput): Promise<SubmitAppli
       // Key set but no row found — fall through to insert (handles edge case)
     }
   }
+
+  // Pre-validate event payload BEFORE transaction — fail fast without orphaned DB state
+  const eventPayload = {
+    applicationId: "", // placeholder — replaced after insert
+    jobId,
+    seekerUserId,
+    companyId: job.companyId,
+    employerUserId: job.employerUserId,
+    emittedBy: "application-submission-service" as const,
+  };
+  portalEventBus.validate("application.submitted", eventPayload);
 
   // Step 7: Insert inside db.transaction, catching unique violation (AC-3, AC-6)
   let application: PortalApplication;
@@ -189,7 +205,11 @@ export async function submit(input: SubmitApplicationInput): Promise<SubmitAppli
   // Step 8: Update Redis key with application ID (overwrite "pending" → actual ID)
   if (idempotencyKey) {
     const redis = getRedisClient();
-    const redisKey = `dedup:portal:apply:${jobId}:${seekerUserId}:${idempotencyKey}`;
+    const redisKey = createRedisKey(
+      "portal",
+      "dedup",
+      `apply:${jobId}:${seekerUserId}:${idempotencyKey}`,
+    );
     await redis.set(redisKey, application.id, "EX", IDEMPOTENCY_TTL_SECONDS);
   }
 
@@ -200,6 +220,7 @@ export async function submit(input: SubmitApplicationInput): Promise<SubmitAppli
     seekerUserId,
     companyId: job.companyId,
     employerUserId: job.employerUserId,
+    emittedBy: "application-submission-service",
   });
 
   const durationMs = Date.now() - start;

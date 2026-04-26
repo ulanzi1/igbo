@@ -526,6 +526,13 @@
       "when": 1708000074000,
       "tag": "0074_portal_messaging_extension",
       "breakpoints": true
+    },
+    {
+      "idx": 75,
+      "version": "7",
+      "when": 1708000075000,
+      "tag": "0075_add_notification_idempotency_key",
+      "breakpoints": true
     }
   ]
 }

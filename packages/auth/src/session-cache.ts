@@ -2,7 +2,8 @@
 import { getAuthRedis } from "./redis";
 import type { AuthSession } from "@igbo/db/schema/auth-sessions";
 
-const SESSION_CACHE_PREFIX = "session:";
+// auth-scope: raw Redis keys — internal session/challenge management
+const SESSION_CACHE_PREFIX = "session:"; // ci-allow-redis-key
 
 function sessionCacheKey(token: string): string {
   return `${SESSION_CACHE_PREFIX}${token}`;
