@@ -125,7 +125,7 @@ describe("notification-service — application.submitted handler", () => {
       id: "notif-1",
       createdAt: new Date("2026-04-09T10:00:00.000Z"),
     });
-    mockEnqueueEmailJob.mockImplementation(() => undefined);
+    mockEnqueueEmailJob.mockResolvedValue(true);
   });
 
   afterEach(() => {
@@ -231,11 +231,10 @@ describe("notification-service — application.submitted handler", () => {
   });
 
   it("does not throw when email service fails (error isolation)", async () => {
-    mockEnqueueEmailJob.mockImplementation(() => {
-      throw new Error("Email service down");
-    });
+    // enqueueEmailJob is async — failures are rejected promises, not sync throws
+    mockEnqueueEmailJob.mockRejectedValue(new Error("Email service down"));
     const handler = await getHandler();
-    // Should not throw
+    // Should not throw — .catch() in production code swallows the rejection
     await expect(handler(BASE_PAYLOAD)).resolves.not.toThrow();
   });
 

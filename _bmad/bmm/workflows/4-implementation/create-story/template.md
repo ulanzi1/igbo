@@ -157,19 +157,25 @@ System axes: (1) DB queries/schema, (2) Services, (3) API routes, (4) UI compone
 ### Smoke Test Checklist
 
 - [ ] App started locally and accessible in browser
-- [ ] **Every SN-2 validation scenario** verified in running app (one evidence entry per scenario below)
+- [ ] Verified as a real authenticated user (where the story requires auth) — not mocked session, not direct URL bypass
+- [ ] **Every SN-2 validation scenario** verified in running app (one row per scenario in table below)
 - [ ] Evidence documented below (screenshots preferred, descriptions accepted)
-- [ ] Any runtime bugs discovered during smoke test are fixed, retested, and re-verified before moving to review
+- [ ] Any runtime bugs discovered are fixed, retested, and re-verified before moving to review
 - [ ] **OR** \[N/A\] — this story has no observable runtime effect (pure refactor, tooling-only, docs-only). Justification: _______
 
 ### Runtime Verification Evidence
 
-<!-- One entry per SN-2 validation scenario. Copy the scenario name exactly. -->
+> **SN-2 ↔ SN-6 Linkage:** Every validation scenario listed in the SN-2 section above MUST have a corresponding row in this table. No scenario may be left unverified without an explicit N/A justification. **"What Was Observed" must be a descriptive sentence** — e.g., "Search returned 8 results for 'developer'; employer nav rendered with Settings link visible." Single-word entries (PASS, OK, ✅) are not accepted as evidence.
 
-1. **[Scenario name from SN-2]** — Verified: Yes/No
-   - URL visited: [e.g., http://localhost:3000/en/search]
-   - What was observed: [description or screenshot path]
-   - Issues found & resolved: [None / description of fix]
+<!-- Delete the example row below and add one row per SN-2 scenario. The example row does not count as evidence. -->
+
+| Scenario (from SN-2) | Verified | URL Visited | What Was Observed | Issues Found & Resolved |
+|---|---|---|---|---|
+| [Scenario name] | Yes / No | http://localhost:3000/... | [One sentence describing what you saw, e.g., "Form submitted and toast confirmed success; user redirected to /dashboard"] | None / description of fix |
+
+### Implementer Sign-Off
+
+- [ ] I have personally verified every SN-2 scenario in a running browser (or documented N/A justification above)
 
 ## Flow Owner (SN-4)
 

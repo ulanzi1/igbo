@@ -114,23 +114,28 @@ export function setupChatNamespace(ns: Namespace, redis: Redis): void {
           }
 
           let message;
-          if (hasAttachments) {
-            message = await messageService.sendMessageWithAttachments({
-              conversationId,
-              senderId: userId,
-              content: content.trim(),
-              contentType: contentType as "text" | "rich_text" | "system",
-              parentMessageId: parentMessageId ?? undefined,
-              attachmentFileUploadIds: attachmentFileUploadIds,
-            });
-          } else {
-            message = await messageService.sendMessage({
-              conversationId,
-              senderId: userId,
-              content: content.trim(),
-              contentType: contentType as "text" | "rich_text" | "system",
-              parentMessageId: parentMessageId ?? undefined,
-            });
+          try {
+            if (hasAttachments) {
+              message = await messageService.sendMessageWithAttachments({
+                conversationId,
+                senderId: userId,
+                content: content.trim(),
+                contentType: contentType as "text" | "rich_text" | "system",
+                parentMessageId: parentMessageId ?? undefined,
+                attachmentFileUploadIds: attachmentFileUploadIds,
+              });
+            } else {
+              message = await messageService.sendMessage({
+                conversationId,
+                senderId: userId,
+                content: content.trim(),
+                contentType: contentType as "text" | "rich_text" | "system",
+                parentMessageId: parentMessageId ?? undefined,
+              });
+            }
+          } catch (err) {
+            if (typeof ack === "function") ack({ error: "Failed to send message" });
+            throw err; // propagate to withHandlerGuard for structured logging
           }
 
           // message:new is emitted via EventBus bridge (chat.message.sent → message:new)

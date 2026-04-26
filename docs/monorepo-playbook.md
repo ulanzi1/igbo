@@ -9,6 +9,12 @@ date: 2026-04-04
 
 This playbook documents the frozen patterns for working in the igbo monorepo. Follow these conventions for every new feature, package, and migration. If you encounter a gap, apply the **"second time = standardize"** rule: implement once freely, but the second time a pattern appears, freeze and name it here.
 
+## § Cross-Container Architecture
+
+The platform runs two separate Node.js processes: the **Portal/Community Next.js app** and the **Community Realtime Server** (standalone Socket.IO process). These communicate exclusively via Redis pub/sub — there are no direct network calls between them. The Portal container is bidirectional: it publishes portal events and subscribes to community cross-app events via `event-bridge.ts`.
+
+> **Critical constraint:** The realtime server is standalone Node.js and MUST NOT import modules that transitively import `server-only`. This is enforced by a CI scanner (AI-25). See the [Cross-Container Architecture Diagram — data flow, Redis channels, Socket.IO events](./architecture-cross-container.md) for the full picture.
+
 ## 1. Injection Patterns
 
 Shared packages (`@igbo/auth`, `@igbo/db`) cannot import app-specific modules. Instead, apps inject dependencies at startup via setter functions called in `instrumentation.ts`.

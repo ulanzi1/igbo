@@ -156,9 +156,9 @@ if (globalForNotif.__portalNotifHandlersRegistered) {
       // does not suppress the seeker email on replay (enqueueEmailJob has its own
       // Redis NX dedup to prevent actual duplicate sends).
       if (seeker?.email) {
-        // enqueueEmailJob is async fire-and-forget with internal error handling
-        // (Redis NX dedup + send error catch) — no outer try/catch needed.
-        void enqueueEmailJob(`app-confirmed-${applicationId}`, {
+        // enqueueEmailJob is async — discard promise with .catch() so unhandled
+        // rejections (e.g., Redis client not yet initialised) don't crash the process.
+        enqueueEmailJob(`app-confirmed-${applicationId}`, {
           to: seeker.email,
           templateId: "application-confirmation",
           data: {
@@ -169,6 +169,15 @@ if (globalForNotif.__portalNotifHandlersRegistered) {
             trackingUrl,
           },
           locale: seeker.languagePreference === "ig" ? "ig" : "en",
+        }).catch((err) => {
+          console.error(
+            JSON.stringify({
+              level: "error",
+              message: "portal.notification.seeker_email.enqueue_failed",
+              applicationId,
+              error: err instanceof Error ? err.message : String(err),
+            }),
+          );
         });
       } else {
         console.info(
@@ -564,8 +573,8 @@ if (globalForNotif.__portalNotifHandlersRegistered) {
           "throttle",
           `msg:${senderId}:${recipientId}:${applicationId}`,
         );
-        // Pipeline makes INCR+EXPIRE atomic — if EXPIRE fails after INCR, the key
-        // would persist forever, permanently suppressing notifications for this triple.
+        // Pipeline batches INCR+EXPIRE but is NOT atomic — if EXPIRE fails after INCR,
+        // the key would persist forever, permanently suppressing notifications for this triple.
         const pipeline = redis.pipeline();
         pipeline.incr(throttleKey);
         pipeline.expire(throttleKey, MSG_THROTTLE_TTL_SECONDS);
