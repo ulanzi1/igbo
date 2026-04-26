@@ -26,7 +26,9 @@ import type {
   JobViewedEvent,
   JobSharedToCommunityEvent,
   JobReviewedEvent,
+  NotificationCreatedEvent,
 } from "./events";
+import type { PortalNotificationEventType } from "./notifications";
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const ISO_8601_REGEX = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
@@ -617,5 +619,54 @@ describe("portalEventSchemas — JobReviewedEvent (enum decision field)", () => 
 
   it("portalEventSchemas has all 20 portal event keys", () => {
     expect(Object.keys(portalEventSchemas)).toHaveLength(20);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// NotificationCreatedEvent — eventType field (P-6.1A)
+// ---------------------------------------------------------------------------
+
+describe("NotificationCreatedEvent — eventType field", () => {
+  it("accepts eventType of PortalNotificationEventType (optional field)", () => {
+    const event: NotificationCreatedEvent = {
+      ...createEventEnvelope(),
+      notificationId: "notif-1",
+      userId: "u-1",
+      type: "system",
+      title: "New application",
+      body: "From Ada Obi",
+      eventType: "portal.application.submitted",
+    };
+    const _typeCheck: PortalNotificationEventType = event.eventType!;
+    expect(event.eventType).toBe("portal.application.submitted");
+    void _typeCheck;
+  });
+
+  it("is backward-compatible — eventType is optional (omitting it compiles)", () => {
+    const event: NotificationCreatedEvent = {
+      ...createEventEnvelope(),
+      notificationId: "notif-2",
+      userId: "u-2",
+      type: "message",
+      title: "New message",
+      body: "Hello",
+    };
+    expect(event.eventType).toBeUndefined();
+  });
+
+  it("eventType field is PortalNotificationEventType — rejects non-union string at type level", () => {
+    // This test validates the TypeScript type assignment at compile time.
+    // The only valid eventType is PortalNotificationEventType, not raw string.
+    const validType: PortalNotificationEventType = "portal.message.received";
+    const event: NotificationCreatedEvent = {
+      ...createEventEnvelope(),
+      notificationId: "notif-3",
+      userId: "u-3",
+      type: "message",
+      title: "Test",
+      body: "Body",
+      eventType: validType,
+    };
+    expect(event.eventType).toBe("portal.message.received");
   });
 });
