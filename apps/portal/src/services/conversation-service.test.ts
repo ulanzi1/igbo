@@ -619,12 +619,12 @@ describe("getPortalConversationMessages", () => {
     );
   });
 
-  it("rejects with 404 when conversation does not exist", async () => {
+  it("returns empty messages when conversation does not exist yet (send-first-message state)", async () => {
     vi.mocked(getPortalConversationByApplicationId).mockResolvedValue(null);
 
-    await expect(getPortalConversationMessages(APP_ID, EMPLOYER_ID)).rejects.toMatchObject({
-      status: 404,
-    });
+    const result = await getPortalConversationMessages(APP_ID, EMPLOYER_ID);
+
+    expect(result).toEqual({ messages: [], hasMore: false });
   });
 
   it("returns empty messages for empty conversation", async () => {

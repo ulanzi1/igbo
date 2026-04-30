@@ -28,6 +28,32 @@
 - F4: `String(err)` loses stack traces in guard log (`handler-guard.ts:26`). Pre-existing pattern across all handlers. Fix: use `err instanceof Error ? err.stack ?? String(err) : String(err)` for better debuggability in centralized error handler.
 - F5: notification-service EventBus handler payload destructuring without `?? {}` guard (`notification-service.ts:79, 500`). Pre-existing pattern. AI-28 Zod validation at emit prevents null payloads in practice. Fix: add `?? {}` to destructuring for defense-in-depth.
 
+## Deferred from: code review of p-6-1b-notification-routing-pipeline, Chunk 1: @igbo/config (2026-04-30)
+
+- C1-W1: AC#1 and task descriptions in story still reference "11 event types" — spec predates post-review addition of `portal.application.withdrawn`; code is correct, spec doc should be updated to say 12 when story closes.
+- C1-W2: `getDedupTtlSeconds`, `isSystemCritical`, `isHighPriority`, `isLowPriority` all accept `string` not `PortalNotificationEventType` — no compile-time enforcement for callers. Pre-existing pattern across all priority helpers in `packages/config/src/notifications.ts`.
+- C1-W3: `portal.application.withdrawn` absent from THROTTLE_WINDOWS without explanatory comment — intentional (withdrawal is structurally non-repeatable per application). Worth a short inline comment to distinguish deliberate omission from oversight.
+- C1-W4: No `PortalApplicationWithdrawnNotification` typed interface in notifications.ts — catalog entry and handler work without it; interface would formalize the typed contract. Low priority.
+- C1-W5: `THROTTLE_WINDOWS["portal.match.new_recommendations"] = 3600` is set on a reserved event type. P-7.x implementers who don't check THROTTLE_WINDOWS will be surprised by the 1-hour noise guard. Consider a comment in the THROTTLE_WINDOWS map noting the reserved entries.
+
+## Deferred from: code review of p-6-1b-notification-routing-pipeline, Chunk 3: notification-service (2026-04-30)
+
+- C3-W1: `application.withdrawn` derives `employerUserId` from `company.ownerUserId` DB lookup while `application.submitted` uses denormalized `employerUserId` from event payload — event contract difference; standardize when `ApplicationWithdrawnEvent` is enriched with `employerUserId`. [notification-service.ts:254]
+- C3-W2: `newStatus` interpolated raw into user-facing notification body (e.g., `"pending_review"`) — pre-existing copy issue; i18n label mapping out of scope for P-6.1B. [notification-service.ts:685]
+- C3-W3: `throttleKey` uses `applicationId` which could be empty string → degenerate `portal:throttle:msg:{id}:{id}:` key; type contract (non-nullable string) + AI-28 Zod protect at emit. [notification-service.ts:579]
+- C3-W4: `job.expired` passes `employerUserId` from event payload with no empty-string guard — type contract says `string` (non-nullable); acceptable but diverges from `application.withdrawn` runtime validation pattern. [notification-service.ts:744]
+- C3-W5: `notifBody` in `portal.message.sent` not HTML-stripped (only push `plainPreview` is) — in-app notification body may contain raw HTML; pre-existing from P-5.6 design; notification sanitization out of scope. [notification-service.ts:569]
+- C3-W6: Test count is 81 vs AC#10 stated 80 — benign one-test overcount; spec doc artifact from story template.
+
+## Deferred from: code review of p-6-1b-notification-routing-pipeline, Chunk 2: notification-router (2026-04-30)
+
+- C2-W1: `resolveChannels` returns live catalog object reference — no current mutation, but callers hold a shared reference. Add `{ ...entry.defaultChannels }` defensive spread if mutation is ever needed. [notification-router.ts:64]
+- C2-W2: Throttle check (Step 3) not bypassed for system-critical events — latent footgun if a future editor adds a THROTTLE_WINDOWS entry for a system-critical event. Currently safe (no system-critical entry in THROTTLE_WINDOWS). A comment noting the invariant would help. [notification-router.ts:194]
+- C2-W3: `Promise.allSettled` rejection loop is dead code — all `dispatches` entries have `.catch()` attached, so `allSettled` never yields `rejected`. Remove the loop or add a clarifying comment. [notification-router.ts:285]
+- C2-W4: Multiple `getRedisClient()` calls per dispatch (throttle check + dispatchInApp publish) — harmless if client is a singleton/pool, but no explicit pool guarantee surfaced in tests. [notification-router.ts:103, 167]
+- C2-W5: `dispatchInApp` `redis.publish` bare await — publish failure after successful DB insert loses real-time delivery silently; notification appears in DB but never reaches the socket. Architectural limitation; Story 6.5 (outbox pattern) addresses. [notification-router.ts:168]
+- C2-W6: `eventId` and `notificationId` both set to `notif.id` in `NotificationCreatedEvent` payload — violates `BaseEvent.eventId` semantic (should be a distinct event UUID). No behavioral impact on current bridge. [notification-router.ts:155]
+
 ## Deferred from: code review of portal-epic-5-notification-pattern-assessment (2026-04-26)
 
 - D1: "Binding constraint" language in decision doc used without defining enforcement mechanism (no CI check, linter, or PR gate). Process concern — decision documents cannot self-enforce. Consider adding a code-review checklist item for Epic 6 that verifies decision doc constraints.
@@ -57,3 +83,12 @@
 - `application.withdrawn` handler produces user-facing employer notifications but has no `PortalNotificationEventType` catalog entry. Intentionally excluded per spec ("Events NOT in this catalog" section). Revisit if 6.1B routing pipeline needs withdrawal classification or if 6.4 preferences UI needs a toggle for withdrawals. (`apps/portal/src/services/notification-service.ts`)
 - `publishNotificationCreated` has 8 positional string params — swap risk grows with future additions. Consider refactoring to named params object when 6.1B adds more fields. (`apps/portal/src/services/notification-service.ts:35-59`)
 - Throttle INCR/EXPIRE non-atomicity — EXPIRE failure result never checked; permanent notification suppression possible for affected sender-recipient-application triple. Pre-existing issue (also tracked as W8 from earlier review). (`apps/portal/src/services/notification-service.ts:583-589`)
+
+## Deferred from: code review of p-6-1b-notification-routing-pipeline (2026-04-26)
+
+- F4: Dedup-then-crash gap — if handler Redis NX dedup succeeds but `createNotification()` subsequently throws (DB down), the dedup key is consumed and retries are deduped, permanently losing the notification. Requires outbox/transactional approach (Story 6.5 scope). Pre-existing architectural limitation. (`notification-router.ts:131`, all handler dedup blocks)
+- F5: Double-dedup race between handler NX and router throttle in multi-instance deployment — for events with both handler dedup AND THROTTLE_WINDOWS entry (portal.message.received, portal.application.status_changed), two concurrent instances can race such that Instance A wins handler dedup but gets throttled, Instance B loses handler dedup. Net: zero notifications. Narrow window, pre-existing pattern (same issue existed with inline INCR/EXPIRE). (`notification-service.ts` + `notification-router.ts`)
+
+## Deferred from: code review of p-6-1b-notification-routing-pipeline, Chunk 4: conversation-service (2026-04-30)
+
+- C4-W1: No access-control check in the `conv == null` early-return path of `getPortalConversationMessages` — when no conversation exists, any authenticated user who knows the `applicationId` receives `{ messages: [], hasMore: false }` without membership check. Mitigated by route-level `requireAuthenticatedSession()`. Revisit if function is called from contexts with weaker auth, or if `applicationId` confidentiality requirements increase. (`conversation-service.ts:459-462`)

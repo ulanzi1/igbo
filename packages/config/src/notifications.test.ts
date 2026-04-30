@@ -6,6 +6,9 @@ import {
   isSystemCritical,
   isHighPriority,
   isLowPriority,
+  isKnownEventType,
+  THROTTLE_WINDOWS,
+  getDedupTtlSeconds,
 } from "./notifications";
 import type {
   PortalNotificationEventType,
@@ -29,8 +32,8 @@ import type {
 // ---------------------------------------------------------------------------
 
 describe("PORTAL_NOTIFICATION_CATALOG", () => {
-  it("has exactly 11 entries", () => {
-    expect(Object.keys(PORTAL_NOTIFICATION_CATALOG)).toHaveLength(11);
+  it("has exactly 12 entries", () => {
+    expect(Object.keys(PORTAL_NOTIFICATION_CATALOG)).toHaveLength(12);
   });
 
   it("system-critical events are exactly portal.application.submitted and portal.job.rejected (2 entries)", () => {
@@ -43,12 +46,13 @@ describe("PORTAL_NOTIFICATION_CATALOG", () => {
     expect(systemCritical).toContain("portal.job.rejected");
   });
 
-  it("high-priority events are exactly 7 entries (includes portal.application.viewed)", () => {
+  it("high-priority events are exactly 8 entries (includes portal.application.withdrawn)", () => {
     const highPriority = Object.entries(PORTAL_NOTIFICATION_CATALOG)
       .filter(([, entry]) => entry.priorityTier === "high")
       .map(([key]) => key);
 
-    expect(highPriority).toHaveLength(7);
+    expect(highPriority).toHaveLength(8);
+    expect(highPriority).toContain("portal.application.withdrawn");
     expect(highPriority).toContain("portal.application.viewed");
     expect(highPriority).toContain("portal.application.status_changed");
     expect(highPriority).toContain("portal.message.received");
@@ -205,6 +209,7 @@ describe("isLowPriority()", () => {
 
 const EXPECTED_EVENT_TYPES: PortalNotificationEventType[] = [
   "portal.application.submitted",
+  "portal.application.withdrawn",
   "portal.application.status_changed",
   "portal.application.viewed",
   "portal.message.received",
@@ -218,12 +223,12 @@ const EXPECTED_EVENT_TYPES: PortalNotificationEventType[] = [
 ];
 
 describe("PORTAL_NOTIFICATION_EVENT_TYPES runtime array", () => {
-  it("has exactly 11 entries matching PortalNotificationEventType union", () => {
-    expect(PORTAL_NOTIFICATION_EVENT_TYPES).toHaveLength(11);
+  it("has exactly 12 entries matching PortalNotificationEventType union", () => {
+    expect(PORTAL_NOTIFICATION_EVENT_TYPES).toHaveLength(12);
     expect(PORTAL_NOTIFICATION_EVENT_TYPES).toHaveLength(EXPECTED_EVENT_TYPES.length);
   });
 
-  it("includes all 11 expected event type strings", () => {
+  it("includes all 12 expected event type strings", () => {
     for (const eventType of EXPECTED_EVENT_TYPES) {
       expect(PORTAL_NOTIFICATION_EVENT_TYPES).toContain(eventType);
     }
@@ -266,10 +271,10 @@ describe("priority tier mutual exclusivity", () => {
 // ---------------------------------------------------------------------------
 
 describe("PortalNotificationEventType — TypeScript type-level assertions", () => {
-  it("PortalNotificationEventType union is assignable from all 11 string literals", () => {
+  it("PortalNotificationEventType union is assignable from all 12 string literals", () => {
     // If any string literal is wrong, TypeScript compilation fails
     const _types: PortalNotificationEventType[] = EXPECTED_EVENT_TYPES;
-    expect(_types).toHaveLength(11);
+    expect(_types).toHaveLength(12);
     void _types;
   });
 
@@ -469,5 +474,102 @@ describe("Portal notification event interfaces — type structure", () => {
     expect(_n.eventId).toBe("evt-11");
     expect(_n.version).toBe(1);
     void _n;
+  });
+});
+
+// ---------------------------------------------------------------------------
+// isKnownEventType (P-6.1B)
+// ---------------------------------------------------------------------------
+
+describe("isKnownEventType()", () => {
+  it("returns true for each of the 12 known event types", () => {
+    for (const eventType of PORTAL_NOTIFICATION_EVENT_TYPES) {
+      expect(isKnownEventType(eventType)).toBe(true);
+    }
+  });
+
+  it("returns false for an unknown string", () => {
+    expect(isKnownEventType("portal.unknown.event")).toBe(false);
+  });
+
+  it("returns false for an empty string", () => {
+    expect(isKnownEventType("")).toBe(false);
+  });
+
+  it("type-narrows to PortalNotificationEventType in an if branch (TypeScript compile check)", () => {
+    const input: string = "portal.job.approved";
+    if (isKnownEventType(input)) {
+      // TypeScript narrows `input` to PortalNotificationEventType here
+      const _typed: import("./notifications").PortalNotificationEventType = input;
+      expect(_typed).toBe("portal.job.approved");
+    }
+  });
+
+  it("returns true for portal.job.approved (sample known type)", () => {
+    expect(isKnownEventType("portal.job.approved")).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// THROTTLE_WINDOWS (P-6.1B)
+// ---------------------------------------------------------------------------
+
+describe("THROTTLE_WINDOWS", () => {
+  it("has exactly 3 entries", () => {
+    expect(Object.keys(THROTTLE_WINDOWS)).toHaveLength(3);
+  });
+
+  it("portal.message.received throttle window is 120 seconds", () => {
+    expect(THROTTLE_WINDOWS["portal.message.received"]).toBe(120);
+  });
+
+  it("portal.application.status_changed throttle window is 60 seconds", () => {
+    expect(THROTTLE_WINDOWS["portal.application.status_changed"]).toBe(60);
+  });
+
+  it("portal.match.new_recommendations throttle window is 3600 seconds (reserved)", () => {
+    expect(THROTTLE_WINDOWS["portal.match.new_recommendations"]).toBe(3600);
+  });
+
+  it("one-shot event portal.job.approved has no throttle window", () => {
+    expect(THROTTLE_WINDOWS["portal.job.approved"]).toBeUndefined();
+  });
+
+  it("one-shot event portal.job.rejected has no throttle window", () => {
+    expect(THROTTLE_WINDOWS["portal.job.rejected"]).toBeUndefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// getDedupTtlSeconds (P-6.1B)
+// ---------------------------------------------------------------------------
+
+describe("getDedupTtlSeconds()", () => {
+  it("returns 86400 for portal.application.submitted (system-critical)", () => {
+    expect(getDedupTtlSeconds("portal.application.submitted")).toBe(86400);
+  });
+
+  it("returns 86400 for portal.job.rejected (system-critical)", () => {
+    expect(getDedupTtlSeconds("portal.job.rejected")).toBe(86400);
+  });
+
+  it("returns 900 for portal.application.withdrawn (high-priority)", () => {
+    expect(getDedupTtlSeconds("portal.application.withdrawn")).toBe(900);
+  });
+
+  it("returns 900 for portal.application.status_changed (high-priority)", () => {
+    expect(getDedupTtlSeconds("portal.application.status_changed")).toBe(900);
+  });
+
+  it("returns 900 for portal.job.approved (high-priority)", () => {
+    expect(getDedupTtlSeconds("portal.job.approved")).toBe(900);
+  });
+
+  it("returns 900 for portal.saved_search.new_results (low-priority)", () => {
+    expect(getDedupTtlSeconds("portal.saved_search.new_results")).toBe(900);
+  });
+
+  it("returns 900 for unknown event type string", () => {
+    expect(getDedupTtlSeconds("portal.nonexistent")).toBe(900);
   });
 });

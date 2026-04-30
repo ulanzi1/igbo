@@ -50,6 +50,7 @@ export const DEFAULT_PREFERENCES: Record<
 /** All portal notification event type string literals. */
 export type PortalNotificationEventType =
   | "portal.application.submitted"
+  | "portal.application.withdrawn"
   | "portal.application.status_changed"
   | "portal.application.viewed"
   | "portal.message.received"
@@ -67,6 +68,7 @@ export type PortalNotificationEventType =
  */
 export const PORTAL_NOTIFICATION_EVENT_TYPES: PortalNotificationEventType[] = [
   "portal.application.submitted",
+  "portal.application.withdrawn",
   "portal.application.status_changed",
   "portal.application.viewed",
   "portal.message.received",
@@ -250,6 +252,13 @@ export const PORTAL_NOTIFICATION_CATALOG: Record<
   },
 
   // ── High-priority (default ON, user can disable) ──────────────────────────
+  "portal.application.withdrawn": {
+    priorityTier: "high",
+    defaultChannels: { inApp: true, push: false, email: false },
+    description:
+      "Employer receives notification when a candidate withdraws their application. " +
+      "In-app only by default — withdrawal is informational, not urgent.",
+  },
   "portal.application.status_changed": {
     priorityTier: "high",
     defaultChannels: { inApp: true, push: true, email: true },
@@ -261,6 +270,7 @@ export const PORTAL_NOTIFICATION_CATALOG: Record<
     description:
       "Seeker receives notification when employer views their application. " +
       "Informational — moved from system-critical to high so users can disable if noisy.",
+    reserved: true, // FUTURE: handler registered when application-view tracking is implemented (P-6.x)
   },
   "portal.message.received": {
     priorityTier: "high",
@@ -327,4 +337,38 @@ export function isHighPriority(eventType: string): boolean {
 export function isLowPriority(eventType: string): boolean {
   const entry = PORTAL_NOTIFICATION_CATALOG[eventType as PortalNotificationEventType];
   return entry?.priorityTier === "low";
+}
+
+// ---------------------------------------------------------------------------
+// P-6.1B additions: isKnownEventType, THROTTLE_WINDOWS, getDedupTtlSeconds
+// ---------------------------------------------------------------------------
+
+/**
+ * Type guard that returns true for all 12 known portal notification event types.
+ * Used by the routing pipeline's input validation step.
+ */
+export function isKnownEventType(eventType: string): eventType is PortalNotificationEventType {
+  return PORTAL_NOTIFICATION_EVENT_TYPES.includes(eventType as PortalNotificationEventType);
+}
+
+/**
+ * Throttle windows (in seconds) for portal notification event types.
+ * Event types absent from this map have NO throttle window (one-shot events).
+ * The routing pipeline reads this map to determine whether to apply noise-guard throttling.
+ */
+export const THROTTLE_WINDOWS: Partial<Record<PortalNotificationEventType, number>> = {
+  "portal.message.received": 120,
+  "portal.application.status_changed": 60,
+  "portal.match.new_recommendations": 3600,
+};
+
+/**
+ * Returns the Redis dedup TTL in seconds for a given notification event type.
+ * - System-critical events: 86400 (24 hours) — ensures reliable delivery with replay protection
+ * - All other events: 900 (15 minutes)
+ *
+ * Fulfills TODO(6.1B) registered in notification-service.ts.
+ */
+export function getDedupTtlSeconds(eventType: string): number {
+  return isSystemCritical(eventType) ? 86400 : 900;
 }
