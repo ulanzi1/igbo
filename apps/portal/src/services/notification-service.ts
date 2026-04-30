@@ -695,7 +695,6 @@ if (globalForNotif.__portalNotifHandlersRegistered) {
             : "Unknown Position";
 
         // Step 3: Dispatch via routing pipeline
-        const dedupKey = `status-changed:${applicationId}:${newStatus}`;
         await dispatchNotification({
           userId: seekerUserId,
           eventType: "portal.application.status_changed",
@@ -704,7 +703,7 @@ if (globalForNotif.__portalNotifHandlersRegistered) {
             body: `Your application for "${jobTitle}" is now ${newStatus}`,
             link: `/applications/${applicationId}`,
           },
-          dedupKey,
+          dedupKey: `status-changed:${applicationId}:${newStatus}`,
         }).catch((err: unknown) => {
           console.error(
             JSON.stringify({
