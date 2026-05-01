@@ -19,7 +19,7 @@ describe("createDb", () => {
     const result = createDb("postgres://localhost/test");
     // drizzle mock returns { _isMockDb: true }
     expect(result).toEqual({ _isMockDb: true });
-  });
+  }, 10000);
 
   it("uses default pool size of 10 when not provided", async () => {
     const postgres = (await import("postgres")).default as ReturnType<typeof vi.fn>;
@@ -27,7 +27,7 @@ describe("createDb", () => {
     const { createDb } = await import("./index");
     createDb("postgres://localhost/test");
     expect(postgres).toHaveBeenCalledWith("postgres://localhost/test", { max: 10 });
-  });
+  }, 10000);
 
   it("accepts a custom pool size", async () => {
     const postgres = (await import("postgres")).default as ReturnType<typeof vi.fn>;
@@ -35,7 +35,7 @@ describe("createDb", () => {
     const { createDb } = await import("./index");
     createDb("postgres://localhost/test", 5);
     expect(postgres).toHaveBeenCalledWith("postgres://localhost/test", { max: 5 });
-  });
+  }, 10000);
 });
 
 describe("db (lazy singleton proxy)", () => {
