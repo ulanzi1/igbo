@@ -97,7 +97,7 @@ export const PUT = withApiHandler(async (req: Request): Promise<Response> => {
   // Invalidate the preferences cache for this user
   try {
     const redis = getRedisClient();
-    await redis.del(createRedisKey("notif", "prefs", userId));
+    await redis.del(createRedisKey("portal", "notif-prefs", userId));
   } catch {
     // Cache invalidation failure is non-fatal
   }

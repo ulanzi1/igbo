@@ -59,7 +59,7 @@ interface TimezoneGroup {
 function groupTimezones(zones: string[]): TimezoneGroup[] {
   const groups: Record<string, string[]> = {};
   for (const tz of zones) {
-    const prefix = tz.includes("/") ? tz.split("/")[0] : "Other";
+    const prefix = tz.includes("/") ? (tz.split("/")[0] ?? "Other") : "Other";
     (groups[prefix] ??= []).push(tz);
   }
   const order = [
@@ -74,7 +74,7 @@ function groupTimezones(zones: string[]): TimezoneGroup[] {
     "UTC",
     "Other",
   ];
-  return order.filter((k) => groups[k]?.length).map((k) => ({ label: k, zones: groups[k] }));
+  return order.filter((k) => groups[k]?.length).map((k) => ({ label: k, zones: groups[k] ?? [] }));
 }
 
 const TIMEZONE_GROUPS = groupTimezones(getAllTimezones());

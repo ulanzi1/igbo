@@ -70,7 +70,7 @@ export async function resolveChannels(
   }
 
   const catalogDefaults = PORTAL_NOTIFICATION_CATALOG[eventType].defaultChannels;
-  const cacheKey = createRedisKey("notif", "prefs", userId);
+  const cacheKey = createRedisKey("portal", "notif-prefs", userId);
 
   try {
     const redis = getRedisClient();

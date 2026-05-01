@@ -161,7 +161,7 @@ describe("PUT /api/v1/notifications/preferences", () => {
         channelInApp: true,
       }),
     );
-    expect(mockRedisClient.del).toHaveBeenCalledWith("notif:prefs:user-1");
+    expect(mockRedisClient.del).toHaveBeenCalledWith("portal:notif-prefs:user-1");
   });
 
   it("rejects updates to system-critical event types with 400", async () => {
