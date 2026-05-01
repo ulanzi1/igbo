@@ -46,6 +46,11 @@ export function PortalTopNav({ className }: { className?: string }) {
     { key: "myApplications", href: `/${locale}/applications`, label: t("myApplications") },
     { key: "savedSearches", href: `/${locale}/saved-searches`, label: t("savedSearches") },
     { key: "conversations", href: `/${locale}/conversations`, label: t("messages") },
+    {
+      key: "notificationSettings",
+      href: `/${locale}/settings/notifications`,
+      label: t("notificationSettings"),
+    },
   ];
 
   const employerLinks: NavLink[] = [
@@ -57,6 +62,11 @@ export function PortalTopNav({ className }: { className?: string }) {
     },
     { key: "companyProfile", href: `/${locale}/company-profile`, label: t("companyProfile") },
     { key: "conversations", href: `/${locale}/conversations`, label: t("messages") },
+    {
+      key: "notificationSettings",
+      href: `/${locale}/settings/notifications`,
+      label: t("notificationSettings"),
+    },
   ];
 
   const adminLinks: NavLink[] = [

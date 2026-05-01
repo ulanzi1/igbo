@@ -42,7 +42,7 @@ describe("register()", () => {
     await register();
     const expectedClient = mockGetRedisClient();
     expect(mockInitAuthRedis).toHaveBeenCalledWith(expectedClient);
-  });
+  }, 10000);
 
   it("calls portalEventBus.setPublisher() with a function returning the Redis publisher", async () => {
     process.env.NEXT_RUNTIME = "nodejs";

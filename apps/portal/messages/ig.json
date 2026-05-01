@@ -35,7 +35,8 @@
       "employers": "Ndị Ọrụ Na-enye",
       "logout": "Pụọ",
       "discover": "Chọpụta Ọrụ",
-      "employerApplications": "Ngwa"
+      "employerApplications": "Ngwa",
+      "notificationSettings": "Ntọala Ọchịchọ"
     },
     "role": {
       "seeker": "Onye Na-achọ Ọrụ",
@@ -1103,6 +1104,66 @@
       "viewAction": "Lee",
       "bellLabel": "Ọchịchọ",
       "badgeAriaLabel": "{count, plural, =0 {Ọ dịghị ọchịchọ a agụghị} one {Ọchịchọ 1 a agụghị} other {Ọchịchọ # a agụghị}}"
+    },
+    "notificationPreferences": {
+      "pageTitle": "Ntọala Ọchịchọ",
+      "pageDescription": "Hụ ọchịchọ ndị ị na-anata na ụzọ ị na-enweta ha.",
+      "tierSystemCritical": "Dị Mkpa Nke Ọma",
+      "tierSystemCriticalDescription": "Ọchịchọ ndị a dị mkpa maka ọrụ nyocha na enweghị ike iwepụ ha.",
+      "tierHighPriority": "Dị Mkpa",
+      "tierHighPriorityDescription": "Ọchịchọ dị mkpa. Ụzọ niile na-arụ ọrụ site na mmalite.",
+      "tierLowPriority": "Dị Mkpa Obere",
+      "tierLowPriorityDescription": "Mmelite ozi. Na-abịa n'ime ngwa site na mmalite.",
+      "systemCriticalTooltip": "Dị mkpa maka ọrụ nyocha — enweghị ike iwepụ",
+      "channelInApp": "N'ime Ngwa",
+      "channelPush": "Mbupu",
+      "channelEmail": "Ozi-e",
+      "saveSuccess": "Echekwara ntọala",
+      "loadError": "Ọ dapụtabeghị ịbudata ntọala ọchịchọ. Biko nwaa ọzọ.",
+      "saveError": "Ọ dapụtabeghị ichekwa ntọala",
+      "atLeastOneRequired": "Otu ụzọ na-eru ọnụ ga-anọdụ na-arụ ọrụ maka ọchịchọ dị mkpa",
+      "pushRequiresDevice": "Ọchịchọ mbupu chọrọ ngwaọrụ ndekọ",
+      "reservedLabel": "Adịbeghị arụ ọrụ",
+      "eventLabel": {
+        "applicationSubmitted": "Enwetara Ngwa Ọhụrụ",
+        "applicationWithdrawn": "Weputara Ngwa",
+        "applicationStatusChanged": "Ọnọdụ Ngwa Gbanwere",
+        "applicationViewed": "Lere Ngwa Anya",
+        "messageReceived": "Ozi Ọhụrụ",
+        "jobApproved": "Ntinye Ọrụ Anabatara",
+        "jobRejected": "Ntinye Ọrụ Ajụọla",
+        "jobChangesRequested": "Achọrọ Mgbanwe",
+        "jobExpired": "Ntinye Ọrụ Agwụla",
+        "referralStatusChanged": "Ọnọdụ Ntinye Gbanwere",
+        "matchNewRecommendations": "Ntụaka Ọrụ Ọhụrụ",
+        "savedSearchNewResults": "Nsonaazụ Ọhụrụ n'Nchọta Echekwara"
+      },
+      "eventDescription": {
+        "applicationSubmitted": "Ọchịchọ mgbe onye na-achọ ọrụ nyere ngwa na ntinye ọrụ gị",
+        "applicationWithdrawn": "Ọchịchọ mgbe onye na-achọ ọrụ weputara ngwa ha",
+        "applicationStatusChanged": "Mmelite mgbe ọnọdụ ngwa gị gbanwere",
+        "applicationViewed": "Ọchịchọ mgbe onye ọrụ lere ngwa gị anya",
+        "messageReceived": "Ozi ọhụrụ na mkparịta ụka gị",
+        "jobApproved": "Ọchịchọ mgbe ntinye ọrụ gị anabatara",
+        "jobRejected": "Ọchịchọ mgbe ntinye ọrụ gị ajụla",
+        "jobChangesRequested": "Ọchịchọ mgbe nchịkwa chọrọ mgbanwe na ntinye ọrụ gị",
+        "jobExpired": "Ọchịchọ mgbe ntinye ọrụ gị gwụsịrị",
+        "referralStatusChanged": "Mmelite na ọnọdụ ntinye gị",
+        "matchNewRecommendations": "Ntụaka ọrụ ọhụrụ dabere na profaịlụ gị",
+        "savedSearchNewResults": "Nsonaazụ ọhụrụ dakọtara na nchọta echekwara gị"
+      },
+      "quietHours": {
+        "title": "Oge Ọzọ",
+        "description": "N'oge ọzọ, a na-emechi ọchịchọ mbupu na ozi-e. A na-ebupu ọchịchọ n'ime ngwa mgbe niile.",
+        "start": "Oge mmalite",
+        "end": "Oge ngwụcha",
+        "timezone": "Mpaghara oge",
+        "save": "Chekwa Oge Ọzọ",
+        "clear": "Kpụchaa",
+        "saveSuccess": "Echekwara oge ọzọ",
+        "saveError": "Ọ dapụtabeghị ichekwa oge ọzọ",
+        "notConfigured": "Atọlabeghi"
+      }
     },
     "chooseRole": {
       "title": "Họrọ Ụzọ Gị",
