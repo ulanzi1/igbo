@@ -116,14 +116,18 @@ Add `// ci-allow-<reason>` above the relevant line, with a justification comment
 | `apps/portal/src/lib/s3-client.ts` | `process-env` | credentials: { |
 | `apps/portal/src/lib/s3-client.ts` | `process-env` | accessKeyId: process.env.HETZNER_S3_ACCESS_KEY_ID ?? "", // ci-allow-process-env |
 | `apps/portal/src/services/email-service.ts` | `process-env` | function getResend(): Resend { |
-| `apps/portal/src/services/email-service.ts` | `process-env` | send: async (payload: EmailPayload): Promise<void> => { |
 | `apps/portal/src/services/email-service.ts` | `process-env` | const rendered = renderTemplate(payload.templateId, payload.data, payload.locale ?? "en"); |
 | `apps/portal/src/services/email-service.ts` | `process-env` | const fromName = process.env.EMAIL_FROM_NAME ?? "OBIGBO Job Portal"; // ci-allow-process-env |
+| `apps/portal/src/services/email-service.ts` | `process-env` | send: async (payload: EmailPayload): Promise<void> => { |
+| `apps/portal/src/services/email-service.ts` | `process-env` | Validate configuration before entering retry loop — config errors are not retryable. |
 | `apps/portal/src/services/event-bridge.ts` | `no-server-only` | shared with standalone server |
 | `apps/portal/src/services/event-bus.ts` | `no-server-only` | shared with standalone server |
 | `apps/portal/src/services/job-analytics-service.ts` | `process-env` | Build community post content |
 | `apps/portal/src/services/notification-service.ts` | `process-env` | const companyName = company?.name ?? "Unknown Company"; |
 | `apps/portal/src/services/notification-service.ts` | `process-env` | — |
+| `apps/portal/src/services/notification-service.ts` | `process-env` | — |
+| `apps/portal/src/services/notification-service.ts` | `process-env` | — |
+| `apps/portal/src/services/notification-service.ts` | `process-env` | const companyName = company?.name ?? "Unknown Company"; |
 | `apps/portal/src/services/push-service.ts` | `process-env` | — |
 | `apps/portal/src/services/push-service.ts` | `process-env` | const contact = process.env.VAPID_CONTACT_EMAIL; // ci-allow-process-env |
 | `apps/portal/src/services/push-service.ts` | `process-env` | const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY; // ci-allow-process-env |
