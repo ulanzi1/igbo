@@ -1218,3 +1218,188 @@ describe("eventbus-bridge — portal.message.deleted routing", () => {
     );
   });
 });
+
+// ── P-6.3: notification.created dual-emit to /portal namespace ────────────────
+
+function makeIoDualNotif() {
+  const notifEmit = vi.fn();
+  const portalEmit = vi.fn();
+
+  const io = {
+    of: vi.fn().mockImplementation((namespace: string) => {
+      if (namespace === "/portal") {
+        return {
+          to: vi.fn().mockReturnValue({ emit: portalEmit }),
+          in: vi.fn().mockReturnValue({ socketsJoin: vi.fn() }),
+        };
+      }
+      if (namespace === "/notifications") {
+        return {
+          to: vi.fn().mockReturnValue({ emit: notifEmit }),
+          in: vi.fn().mockReturnValue({ socketsJoin: vi.fn() }),
+        };
+      }
+      return {
+        to: vi.fn().mockReturnValue({ emit: vi.fn() }),
+        in: vi.fn().mockReturnValue({ socketsJoin: vi.fn() }),
+      };
+    }),
+  } as unknown as Server;
+
+  return { io, notifEmit, portalEmit };
+}
+
+describe("eventbus-bridge — notification.created dual-emit (P-6.3)", () => {
+  const NOTIF_PAYLOAD = {
+    userId: USER_ID,
+    notificationId: "notif-p63-001",
+    type: "system",
+    title: "Application update",
+    body: "Your application status changed",
+    link: "/applications/app-001",
+    timestamp: "2026-05-01T10:00:00.000Z",
+  };
+
+  it("notification.created → emits notification:new to both /notifications and /portal namespaces", async () => {
+    const { subscriber, pmessageCallbacks } = makeSubscriber();
+    const { io, notifEmit, portalEmit } = makeIoDualNotif();
+
+    await startEventBusBridge(io, subscriber);
+    pmessageCallbacks[0]?.(
+      "eventbus:*",
+      "eventbus:notification.created",
+      JSON.stringify(NOTIF_PAYLOAD),
+    );
+
+    expect(notifEmit).toHaveBeenCalledWith(
+      "notification:new",
+      expect.objectContaining({ id: "notif-p63-001" }),
+    );
+    expect(portalEmit).toHaveBeenCalledWith(
+      "notification:new",
+      expect.objectContaining({ id: "notif-p63-001" }),
+    );
+  });
+
+  it("notification.created → payload shape is identical in both /notifications and /portal emits", async () => {
+    const { subscriber, pmessageCallbacks } = makeSubscriber();
+    const { io, notifEmit, portalEmit } = makeIoDualNotif();
+
+    await startEventBusBridge(io, subscriber);
+    pmessageCallbacks[0]?.(
+      "eventbus:*",
+      "eventbus:notification.created",
+      JSON.stringify(NOTIF_PAYLOAD),
+    );
+
+    const notifCall = notifEmit.mock.calls.find(([event]) => event === "notification:new");
+    const portalCall = portalEmit.mock.calls.find(([event]) => event === "notification:new");
+    expect(notifCall?.[1]).toEqual(portalCall?.[1]);
+  });
+
+  it("notification.created with missing userId → neither /notifications nor /portal emits notification:new", async () => {
+    const { subscriber, pmessageCallbacks } = makeSubscriber();
+    const { io, notifEmit, portalEmit } = makeIoDualNotif();
+
+    await startEventBusBridge(io, subscriber);
+    pmessageCallbacks[0]?.(
+      "eventbus:*",
+      "eventbus:notification.created",
+      JSON.stringify({ ...NOTIF_PAYLOAD, userId: undefined }),
+    );
+
+    expect(notifEmit).not.toHaveBeenCalledWith("notification:new", expect.anything());
+    expect(portalEmit).not.toHaveBeenCalledWith("notification:new", expect.anything());
+  });
+
+  it("notification.created → /portal namespace emits to ROOM_USER(userId) room", async () => {
+    const { subscriber, pmessageCallbacks } = makeSubscriber();
+    const portalToSpy = vi.fn().mockReturnValue({ emit: vi.fn() });
+    const io = {
+      of: vi.fn().mockImplementation((namespace: string) => {
+        if (namespace === "/portal") {
+          return { to: portalToSpy, in: vi.fn().mockReturnValue({ socketsJoin: vi.fn() }) };
+        }
+        return {
+          to: vi.fn().mockReturnValue({ emit: vi.fn() }),
+          in: vi.fn().mockReturnValue({ socketsJoin: vi.fn() }),
+        };
+      }),
+    } as unknown as Server;
+
+    await startEventBusBridge(io, subscriber);
+    pmessageCallbacks[0]?.(
+      "eventbus:*",
+      "eventbus:notification.created",
+      JSON.stringify(NOTIF_PAYLOAD),
+    );
+
+    expect(portalToSpy).toHaveBeenCalledWith(`user:${USER_ID}`);
+  });
+
+  it("unrelated event type (chat.message.sent) → /portal namespace does NOT emit notification:new", async () => {
+    const { subscriber, pmessageCallbacks } = makeSubscriber();
+    const { io, portalEmit } = makeIoDualNotif();
+
+    await startEventBusBridge(io, subscriber);
+    pmessageCallbacks[0]?.(
+      "eventbus:*",
+      "eventbus:chat.message.sent",
+      JSON.stringify({
+        messageId: MSG_ID,
+        senderId: USER_ID,
+        conversationId: CONV_ID,
+        content: "Hello",
+        contentType: "text",
+        createdAt: new Date().toISOString(),
+        timestamp: new Date().toISOString(),
+      }),
+    );
+
+    expect(portalEmit).not.toHaveBeenCalledWith("notification:new", expect.anything());
+  });
+
+  it("notification.created → unread:update dual-emitted to both /notifications and /portal", async () => {
+    const { subscriber, pmessageCallbacks } = makeSubscriber();
+    const { io, notifEmit, portalEmit } = makeIoDualNotif();
+
+    await startEventBusBridge(io, subscriber);
+    pmessageCallbacks[0]?.(
+      "eventbus:*",
+      "eventbus:notification.created",
+      JSON.stringify(NOTIF_PAYLOAD),
+    );
+
+    expect(notifEmit).toHaveBeenCalledWith(
+      "unread:update",
+      expect.objectContaining({ userId: USER_ID, increment: 1 }),
+    );
+    expect(portalEmit).toHaveBeenCalledWith(
+      "unread:update",
+      expect.objectContaining({ userId: USER_ID, increment: 1 }),
+    );
+  });
+
+  it("notification.read → dual-emitted to both /notifications and /portal", async () => {
+    const { subscriber, pmessageCallbacks } = makeSubscriber();
+    const { io, notifEmit, portalEmit } = makeIoDualNotif();
+
+    const readPayload = {
+      userId: USER_ID,
+      notificationId: "notif-read-001",
+      timestamp: "2026-05-01T10:00:00.000Z",
+    };
+
+    await startEventBusBridge(io, subscriber);
+    pmessageCallbacks[0]?.("eventbus:*", "eventbus:notification.read", JSON.stringify(readPayload));
+
+    expect(notifEmit).toHaveBeenCalledWith(
+      "notification:read",
+      expect.objectContaining({ notificationId: "notif-read-001" }),
+    );
+    expect(portalEmit).toHaveBeenCalledWith(
+      "notification:read",
+      expect.objectContaining({ notificationId: "notif-read-001" }),
+    );
+  });
+});

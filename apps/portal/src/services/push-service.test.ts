@@ -192,23 +192,25 @@ describe("sendPushNotification", () => {
     consoleSpy.mockRestore();
   });
 
-  it("handles network error → logs and continues (does not throw)", async () => {
-    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-    const sub2 = {
-      endpoint: "https://push2.example.com/sub/xyz",
-      keys_p256dh: "p256dh2",
-      keys_auth: "auth2",
-    };
-    mockGetUserPushSubscriptions.mockResolvedValue([mockSub, sub2]);
+  it("transient error (network timeout) → retries after 2s delay, succeeds on 2nd attempt (does not throw)", async () => {
+    vi.useFakeTimers();
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    mockGetUserPushSubscriptions.mockResolvedValue([mockSub]);
     mockSendNotification
       .mockRejectedValueOnce(new Error("Network timeout"))
       .mockResolvedValueOnce({});
 
-    await sendPushNotification(USER_ID, PAYLOAD);
+    const p = sendPushNotification(USER_ID, PAYLOAD);
+    await vi.advanceTimersByTimeAsync(2000);
+    const result = await p;
 
-    expect(consoleSpy).toHaveBeenCalledOnce();
+    expect(result).toBe(true);
+    expect(warnSpy).toHaveBeenCalledOnce();
+    const logArg = JSON.parse(warnSpy.mock.calls[0]![0] as string) as { message: string };
+    expect(logArg.message).toBe("portal.push-service.send.retry");
     expect(mockSendNotification).toHaveBeenCalledTimes(2);
-    consoleSpy.mockRestore();
+    warnSpy.mockRestore();
+    vi.useRealTimers();
   });
 
   // ── Redis NX dedup tests ──────────────────────────────────────────────────
@@ -273,5 +275,162 @@ describe("sendPushNotification", () => {
       900,
       "NX",
     );
+  });
+
+  // ── Retry logic tests (per-subscription backoff) ──────────────────────────
+
+  it("(a) success on first try — sendNotification called once, no delay", async () => {
+    vi.useFakeTimers();
+    mockGetUserPushSubscriptions.mockResolvedValue([mockSub]);
+    mockSendNotification.mockResolvedValueOnce({});
+
+    const result = await sendPushNotification(USER_ID, PAYLOAD);
+
+    expect(result).toBe(true);
+    expect(mockSendNotification).toHaveBeenCalledTimes(1);
+    vi.useRealTimers();
+  });
+
+  it("(b) success on 2nd try after transient error — 2s delay, called twice", async () => {
+    vi.useFakeTimers();
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    mockGetUserPushSubscriptions.mockResolvedValue([mockSub]);
+    mockSendNotification
+      .mockRejectedValueOnce({ message: "Service Unavailable" }) // attempt 0 — transient
+      .mockResolvedValueOnce({}); // attempt 1 — success
+
+    const p = sendPushNotification(USER_ID, PAYLOAD);
+    await vi.advanceTimersByTimeAsync(2000);
+    const result = await p;
+
+    expect(result).toBe(true);
+    expect(mockSendNotification).toHaveBeenCalledTimes(2);
+    expect(warnSpy).toHaveBeenCalledOnce();
+    warnSpy.mockRestore();
+    vi.useRealTimers();
+  });
+
+  it("(c) success on 3rd try after 2 transient errors — 2s+10s delays, called 3 times", async () => {
+    vi.useFakeTimers();
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    mockGetUserPushSubscriptions.mockResolvedValue([mockSub]);
+    mockSendNotification
+      .mockRejectedValueOnce({ message: "503 Service Unavailable" }) // attempt 0
+      .mockRejectedValueOnce({ message: "503 Service Unavailable" }) // attempt 1
+      .mockResolvedValueOnce({}); // attempt 2 — success
+
+    const p = sendPushNotification(USER_ID, PAYLOAD);
+    await vi.advanceTimersByTimeAsync(2000); // fires delay for attempt 1
+    await vi.advanceTimersByTimeAsync(10000); // fires delay for attempt 2
+    const result = await p;
+
+    expect(result).toBe(true);
+    expect(mockSendNotification).toHaveBeenCalledTimes(3);
+    expect(warnSpy).toHaveBeenCalledTimes(2); // retry warn for attempts 1 and 2
+    warnSpy.mockRestore();
+    vi.useRealTimers();
+  });
+
+  it("(d) all 3 attempts fail → returns false + retries_exhausted log emitted", async () => {
+    vi.useFakeTimers();
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    mockGetUserPushSubscriptions.mockResolvedValue([mockSub]);
+    mockSendNotification
+      .mockRejectedValueOnce({ message: "503" }) // attempt 0
+      .mockRejectedValueOnce({ message: "503" }) // attempt 1
+      .mockRejectedValueOnce({ message: "503" }); // attempt 2 (exhausted)
+
+    const p = sendPushNotification(USER_ID, PAYLOAD);
+    await vi.advanceTimersByTimeAsync(12000); // 2000 + 10000
+    const result = await p;
+
+    expect(result).toBe(false);
+    expect(mockSendNotification).toHaveBeenCalledTimes(3);
+    const exhaustedCall = errorSpy.mock.calls.find((c) => {
+      try {
+        const parsed = JSON.parse(c[0] as string) as { message: string };
+        return parsed.message === "portal.push-service.send.retries_exhausted";
+      } catch {
+        return false;
+      }
+    });
+    expect(exhaustedCall).toBeDefined();
+    errorSpy.mockRestore();
+    vi.useRealTimers();
+  });
+
+  it("(e) 410 on first try → immediate cleanup, no retry, sendNotification called once", async () => {
+    mockGetUserPushSubscriptions.mockResolvedValue([mockSub]);
+    mockSendNotification.mockRejectedValueOnce({ statusCode: 410 });
+
+    const result = await sendPushNotification(USER_ID, PAYLOAD);
+
+    expect(result).toBe(false); // no "sent" — only "cleaned"
+    expect(mockSendNotification).toHaveBeenCalledTimes(1);
+    expect(mockDeletePushSubscriptionByEndpoint).toHaveBeenCalledWith(ENDPOINT);
+  });
+
+  it("(f) 404 on first try → immediate cleanup, no retry, sendNotification called once", async () => {
+    mockGetUserPushSubscriptions.mockResolvedValue([mockSub]);
+    mockSendNotification.mockRejectedValueOnce({ statusCode: 404 });
+
+    await sendPushNotification(USER_ID, PAYLOAD);
+
+    expect(mockSendNotification).toHaveBeenCalledTimes(1);
+    expect(mockDeletePushSubscriptionByEndpoint).toHaveBeenCalledWith(ENDPOINT);
+  });
+
+  it("(g) VAPID misconfiguration (401) → no retry, returns false, vapid_misconfiguration logged", async () => {
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    mockGetUserPushSubscriptions.mockResolvedValue([mockSub]);
+    mockSendNotification.mockRejectedValueOnce({ statusCode: 401 });
+
+    const result = await sendPushNotification(USER_ID, PAYLOAD);
+
+    expect(result).toBe(false);
+    expect(mockSendNotification).toHaveBeenCalledTimes(1);
+    expect(mockDeletePushSubscriptionByEndpoint).not.toHaveBeenCalled();
+    const vapidCall = errorSpy.mock.calls.find((c) => {
+      try {
+        const parsed = JSON.parse(c[0] as string) as { message: string };
+        return parsed.message === "portal.push-service.vapid_misconfiguration";
+      } catch {
+        return false;
+      }
+    });
+    expect(vapidCall).toBeDefined();
+    errorSpy.mockRestore();
+  });
+
+  it("(h) 3 subs: sub[1] returns 410 → cleanup sub[1] only, sub[0] and sub[2] succeed, returns true", async () => {
+    const sub1 = { endpoint: "https://push1.example.com/1", keys_p256dh: "k1", keys_auth: "a1" };
+    const sub2 = { endpoint: "https://push2.example.com/2", keys_p256dh: "k2", keys_auth: "a2" };
+    const sub3 = { endpoint: "https://push3.example.com/3", keys_p256dh: "k3", keys_auth: "a3" };
+    mockGetUserPushSubscriptions.mockResolvedValue([sub1, sub2, sub3]);
+    mockSendNotification
+      .mockResolvedValueOnce({}) // sub1 succeeds
+      .mockRejectedValueOnce({ statusCode: 410 }) // sub2 → cleaned
+      .mockResolvedValueOnce({}); // sub3 succeeds
+
+    const result = await sendPushNotification(USER_ID, PAYLOAD);
+
+    expect(result).toBe(true);
+    expect(mockSendNotification).toHaveBeenCalledTimes(3);
+    expect(mockDeletePushSubscriptionByEndpoint).toHaveBeenCalledTimes(1);
+    expect(mockDeletePushSubscriptionByEndpoint).toHaveBeenCalledWith(sub2.endpoint);
+  });
+
+  it("first sub 410 + second sub succeeds → returns true (at least one sent)", async () => {
+    const sub2 = { endpoint: "https://push2.example.com/2", keys_p256dh: "k2", keys_auth: "a2" };
+    mockGetUserPushSubscriptions.mockResolvedValue([mockSub, sub2]);
+    mockSendNotification
+      .mockRejectedValueOnce({ statusCode: 410 }) // sub1 → cleaned
+      .mockResolvedValueOnce({}); // sub2 → sent
+
+    const result = await sendPushNotification(USER_ID, PAYLOAD);
+
+    expect(result).toBe(true);
+    expect(mockDeletePushSubscriptionByEndpoint).toHaveBeenCalledWith(ENDPOINT);
+    expect(mockSendNotification).toHaveBeenCalledTimes(2);
   });
 });

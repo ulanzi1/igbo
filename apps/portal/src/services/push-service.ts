@@ -7,6 +7,12 @@ import {
 import { getRedisClient } from "@/lib/redis";
 import { createRedisKey } from "@igbo/config/redis";
 
+/** Retry delays for transient push failures: 2s, then 10s. */
+const PUSH_RETRY_DELAYS_MS = [2000, 10000] as const;
+
+/** Test-friendly delay using setTimeout (interceptable by vi.useFakeTimers). */
+const delay = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
 export interface PortalPushPayload {
   title: string;
   body: string;
@@ -62,11 +68,95 @@ function ensureVapidConfigured(): boolean {
 }
 
 /**
+ * Sends to a single push subscription with retry on transient errors.
+ * - 410/404: subscription permanently invalid — deletes it, no retry, returns "cleaned"
+ * - 400/401/403: VAPID misconfiguration — no retry, returns "failed"
+ * - Other errors: transient — retries up to PUSH_RETRY_DELAYS_MS.length times
+ * - All retries exhausted: logs retries_exhausted, returns "failed"
+ */
+async function sendToSubscriptionWithRetry(
+  pushSub: { endpoint: string; keys: { p256dh: string; auth: string } },
+  payloadStr: string,
+): Promise<"sent" | "cleaned" | "failed"> {
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt <= PUSH_RETRY_DELAYS_MS.length; attempt++) {
+    try {
+      await webpush.sendNotification(pushSub, payloadStr);
+      return "sent";
+    } catch (err: unknown) {
+      const statusCode = (err as { statusCode?: number }).statusCode;
+
+      // 410/404: token permanently invalid — clean up immediately, no retry
+      if (statusCode === 410 || statusCode === 404) {
+        try {
+          await deletePushSubscriptionByEndpoint(pushSub.endpoint);
+        } catch (cleanupErr: unknown) {
+          console.error(
+            JSON.stringify({
+              level: "error",
+              message: "portal.push-service.cleanup.error",
+              endpoint: pushSub.endpoint,
+              error: String(cleanupErr),
+            }),
+          );
+        }
+        return "cleaned";
+      }
+
+      // 400/401/403: VAPID misconfiguration — permanent, don't retry
+      if (statusCode === 400 || statusCode === 401 || statusCode === 403) {
+        console.error(
+          JSON.stringify({
+            level: "error",
+            message: "portal.push-service.vapid_misconfiguration",
+            statusCode,
+            hint: "Check VAPID key configuration",
+            error: String(err),
+          }),
+        );
+        return "failed";
+      }
+
+      // Transient error — schedule retry with backoff
+      lastError = err;
+      if (attempt < PUSH_RETRY_DELAYS_MS.length) {
+        console.warn(
+          JSON.stringify({
+            level: "warn",
+            message: "portal.push-service.send.retry",
+            endpoint: pushSub.endpoint,
+            attempt: attempt + 1,
+            nextDelayMs: PUSH_RETRY_DELAYS_MS[attempt],
+            error: String(err),
+          }),
+        );
+        await delay(PUSH_RETRY_DELAYS_MS[attempt]!);
+      }
+    }
+  }
+
+  // All retries exhausted for this subscription
+  console.error(
+    JSON.stringify({
+      level: "error",
+      message: "portal.push-service.send.retries_exhausted",
+      endpoint: pushSub.endpoint,
+      totalAttempts: PUSH_RETRY_DELAYS_MS.length + 1,
+      error: String(lastError),
+    }),
+  );
+  return "failed";
+}
+
+/**
  * Sends a push notification to all active subscriptions for a user.
- * Fire-and-forget — never throws. Cleans up invalid subscriptions (410/404).
+ * Fire-and-forget — never throws. Retries transient failures (2s, 10s backoff).
+ * Cleans up invalid subscriptions (410/404) without retrying.
  *
  * Includes Redis NX dedup when `tag` is defined to prevent duplicate sends on
- * event replay. Returns true when sent, false when deduped.
+ * event replay. Returns true when at least one subscription was sent to,
+ * false when deduped or no subscription succeeded.
  * Fail-open: if Redis is unavailable, proceeds with the send.
  */
 export async function sendPushNotification(
@@ -122,6 +212,7 @@ export async function sendPushNotification(
   }
   if (subscriptions.length === 0) return false;
 
+  let anySent = false;
   for (const sub of subscriptions) {
     const pushSub = {
       endpoint: sub.endpoint,
@@ -130,47 +221,8 @@ export async function sendPushNotification(
         auth: sub.keys_auth,
       },
     };
-
-    try {
-      await webpush.sendNotification(pushSub, JSON.stringify(payload));
-    } catch (err: unknown) {
-      const statusCode = (err as { statusCode?: number }).statusCode;
-      if (statusCode === 410 || statusCode === 404) {
-        // Subscription expired or unregistered — clean up
-        try {
-          await deletePushSubscriptionByEndpoint(sub.endpoint);
-        } catch (cleanupErr: unknown) {
-          console.error(
-            JSON.stringify({
-              level: "error",
-              message: "portal.push-service.cleanup.error",
-              endpoint: sub.endpoint,
-              error: String(cleanupErr),
-            }),
-          );
-        }
-      } else if (statusCode === 400 || statusCode === 401 || statusCode === 403) {
-        console.error(
-          JSON.stringify({
-            level: "error",
-            message: "portal.push-service.vapid_misconfiguration",
-            statusCode,
-            hint: "Check VAPID key configuration",
-            error: String(err),
-          }),
-        );
-      } else {
-        console.error(
-          JSON.stringify({
-            level: "error",
-            message: "portal.push-service.send.error",
-            userId,
-            endpoint: sub.endpoint,
-            error: String(err),
-          }),
-        );
-      }
-    }
+    const result = await sendToSubscriptionWithRetry(pushSub, JSON.stringify(payload));
+    if (result === "sent") anySent = true;
   }
-  return true;
+  return anySent;
 }

@@ -220,6 +220,12 @@ if (globalForNotif.__portalNotifHandlersRegistered) {
             link: `/admin/applications/${applicationId}`,
           },
           dedupKey: `app-submitted:${applicationId}`,
+          pushPayload: {
+            title: `New application for ${jobTitle}`,
+            body: `from ${seekerName}`,
+            link: `/admin/applications/${applicationId}`,
+            tag: `app-submitted:${applicationId}`,
+          },
           ...(employerEmailJob ? { emailJob: employerEmailJob } : {}),
         }).catch((err: unknown) => {
           console.error(
@@ -324,11 +330,17 @@ if (globalForNotif.__portalNotifHandlersRegistered) {
         userId: employerUserId,
         eventType: "portal.application.withdrawn",
         content: {
-          title: "A candidate withdrew their application",
+          title: "Application withdrawn",
           body: `${seekerName} withdrew from ${jobTitle}`,
           link: `/admin/applications/${applicationId}`,
         },
         dedupKey: `app-withdrawn:${applicationId}`,
+        pushPayload: {
+          title: "Application withdrawn",
+          body: `${seekerName} withdrew from ${jobTitle}`,
+          link: `/admin/applications/${applicationId}`,
+          tag: `app-withdrawn:${applicationId}`,
+        },
       }).catch((err: unknown) => {
         console.error(
           JSON.stringify({
@@ -634,6 +646,12 @@ if (globalForNotif.__portalNotifHandlersRegistered) {
           link: `/jobs/${jobId}`,
         },
         dedupKey: `job-reviewed:${jobId}:${decision}`,
+        pushPayload: {
+          title: notifTitle,
+          body: notifBody,
+          link: `/jobs/${jobId}`,
+          tag: `job-reviewed:${jobId}:${decision}`,
+        },
         ...(reviewedEmailJob ? { emailJob: reviewedEmailJob } : {}),
       }).catch((err: unknown) => {
         console.error(
@@ -882,6 +900,12 @@ if (globalForNotif.__portalNotifHandlersRegistered) {
             link: `/applications/${applicationId}`,
           },
           dedupKey: `status-changed:${applicationId}:${newStatus}`,
+          pushPayload: {
+            title: "Application update",
+            body: `Your application for "${jobTitle}" is now ${newStatus}`,
+            link: `/applications/${applicationId}`,
+            tag: `status-changed:${applicationId}:${newStatus}`,
+          },
           ...(statusEmailJob ? { emailJob: statusEmailJob } : {}),
         }).catch((err: unknown) => {
           console.error(
@@ -1011,6 +1035,12 @@ if (globalForNotif.__portalNotifHandlersRegistered) {
           link: `/jobs/${jobId}`,
         },
         dedupKey: `job-expired:${jobId}`,
+        pushPayload: {
+          title: "Job posting expired",
+          body: `"${jobTitle}" has expired`,
+          link: `/jobs/${jobId}`,
+          tag: `job-expired:${jobId}`,
+        },
         ...(expiredEmailJob ? { emailJob: expiredEmailJob } : {}),
       }).catch((err: unknown) => {
         console.error(

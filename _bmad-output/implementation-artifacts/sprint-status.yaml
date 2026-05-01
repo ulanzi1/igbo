@@ -359,7 +359,7 @@ development_status:
   p-6-1a-notification-event-types-contracts: done
   p-6-1b-notification-routing-pipeline: done
   p-6-2-email-notifications: done
-  p-6-3-push-in-app-notifications-delivery-guarantees: backlog
+  p-6-3-push-in-app-notifications-delivery-guarantees: done
   p-6-4-notification-preferences-priority-hierarchy: backlog
   p-6-5-viewed-by-employer-signal-outbox-pattern: backlog
   p-6-6-daily-weekly-digest: backlog

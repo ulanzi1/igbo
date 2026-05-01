@@ -29,6 +29,10 @@ vi.mock("@/components/layout/UnreadMessageBadge", () => ({
   UnreadMessageBadge: () => <span data-testid="unread-message-badge" />,
 }));
 
+vi.mock("@/components/layout/NotificationBadge", () => ({
+  NotificationBadge: () => <span data-testid="notification-badge" />,
+}));
+
 import { fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useSession } from "next-auth/react";

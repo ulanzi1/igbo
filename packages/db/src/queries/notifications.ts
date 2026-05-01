@@ -81,3 +81,12 @@ export async function getUnreadCount(userId: string): Promise<number> {
     .where(and(eq(platformNotifications.userId, userId), eq(platformNotifications.isRead, false)));
   return Number(result?.value ?? 0);
 }
+
+/**
+ * Returns the count of unread notifications for a user.
+ * Reads from platform_notifications (community table).
+ * TODO P-6.7: switch to portal_notifications when available.
+ */
+export async function getUnreadNotificationCount(userId: string): Promise<number> {
+  return getUnreadCount(userId);
+}

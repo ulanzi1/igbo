@@ -57,6 +57,17 @@ vi.mock("@/services/notification-router", () => ({
   dispatchNotification: mockDispatchNotification,
 }));
 
+// F15: needed to test real dispatchNotification channel isolation end-to-end
+const mockCreateNotification = vi.fn();
+vi.mock("@igbo/db/queries/notifications", () => ({
+  createNotification: mockCreateNotification,
+}));
+
+const mockSendPushNotification = vi.fn();
+vi.mock("@/services/push-service", () => ({
+  sendPushNotification: mockSendPushNotification,
+}));
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 type EventName =
@@ -445,7 +456,7 @@ describe("notification-service — application.withdrawn handler", () => {
         userId: "employer-wd-xyz",
         eventType: "portal.application.withdrawn",
         content: expect.objectContaining({
-          title: "A candidate withdrew their application",
+          title: "Application withdrawn",
           body: "Ada Obi withdrew from Senior Engineer",
           link: `/admin/applications/${WITHDRAWN_PAYLOAD.applicationId}`,
         }),
@@ -1448,5 +1459,251 @@ describe("notification-service — publishNotificationCreated removed", () => {
     vi.resetModules();
     const mod = await import("./notification-service");
     expect("publishNotificationCreated" in mod).toBe(false);
+  });
+});
+
+// ── P-6.3: pushPayload wiring tests ──────────────────────────────────────────
+
+describe("notification-service — pushPayload wiring (P-6.3)", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+    mockRedisSet.mockResolvedValue("OK");
+    mockCheckInstantAlerts.mockResolvedValue(undefined);
+    mockDispatchNotification.mockResolvedValue(undefined);
+    mockFindUserById.mockResolvedValue({
+      id: "user-1",
+      email: "user@example.com",
+      name: "Test User",
+      languagePreference: "en",
+    });
+    mockGetJobPostingById.mockResolvedValue({ id: "job-456", title: "Senior Engineer" });
+    mockGetJobPostingWithCompany.mockResolvedValue({
+      posting: { id: "job-456", title: "Senior Engineer" },
+      company: { id: "co-abc", name: "Igbo Tech", ownerUserId: "employer-xyz" },
+    });
+    mockGetCompanyById.mockResolvedValue({
+      id: "company-abc",
+      ownerUserId: "employer-xyz",
+      name: "Igbo Tech",
+    });
+    mockEnqueueEmailJob.mockResolvedValue(true);
+  });
+
+  afterEach(() => {
+    const g = globalThis as unknown as { __portalNotifHandlersRegistered?: boolean };
+    g.__portalNotifHandlersRegistered = false;
+  });
+
+  it("application.submitted → dispatchNotification includes pushPayload with correct fields", async () => {
+    const handler = await getHandler("application.submitted");
+    await handler(BASE_PAYLOAD);
+
+    const call = mockDispatchNotification.mock.calls[0]![0];
+    expect(call.pushPayload).toBeDefined();
+    expect(call.pushPayload.title).toContain("Senior Engineer");
+    expect(call.pushPayload.body).toContain("Test User"); // seekerName from 1st findUserById call
+    expect(call.pushPayload.link).toBe(`/admin/applications/${BASE_PAYLOAD.applicationId}`);
+    expect(call.pushPayload.tag).toBe(`app-submitted:${BASE_PAYLOAD.applicationId}`);
+  });
+
+  it("application.withdrawn → dispatchNotification includes pushPayload with seekerName + jobTitle", async () => {
+    const handler = await getHandler("application.withdrawn");
+    await handler(WITHDRAWN_PAYLOAD);
+
+    const call = mockDispatchNotification.mock.calls[0]![0];
+    expect(call.pushPayload).toBeDefined();
+    expect(call.pushPayload.title).toBe("Application withdrawn");
+    expect(call.pushPayload.body).toContain("Test User");
+    expect(call.pushPayload.body).toContain("Senior Engineer");
+    expect(call.pushPayload.link).toBe(`/admin/applications/${WITHDRAWN_PAYLOAD.applicationId}`);
+    expect(call.pushPayload.tag).toBe(`app-withdrawn:${WITHDRAWN_PAYLOAD.applicationId}`);
+  });
+
+  it("application.status_changed → dispatchNotification includes pushPayload with newStatus", async () => {
+    const STATUS_PAYLOAD = {
+      eventId: "evt-sc-p63",
+      version: 1,
+      timestamp: "2026-05-01T10:00:00.000Z",
+      applicationId: "app-sc-001",
+      jobId: "job-456",
+      seekerUserId: "seeker-001",
+      newStatus: "shortlisted",
+      previousStatus: "submitted",
+      actorUserId: "employer-xyz",
+      actorRole: "employer" as const,
+    };
+    const handler = await getHandler("application.status_changed");
+    await handler(STATUS_PAYLOAD);
+
+    const call = mockDispatchNotification.mock.calls[0]![0];
+    expect(call.pushPayload).toBeDefined();
+    expect(call.pushPayload.title).toBe("Application update");
+    expect(call.pushPayload.body).toContain("Senior Engineer");
+    expect(call.pushPayload.body).toContain("shortlisted");
+    expect(call.pushPayload.link).toBe(`/applications/${STATUS_PAYLOAD.applicationId}`);
+    expect(call.pushPayload.tag).toBe(
+      `status-changed:${STATUS_PAYLOAD.applicationId}:${STATUS_PAYLOAD.newStatus}`,
+    );
+  });
+
+  it("job.reviewed approved → pushPayload title/body/tag reflect approved decision", async () => {
+    const REVIEWED_PAYLOAD = {
+      eventId: "evt-jr-p63",
+      version: 1,
+      timestamp: "2026-05-01T10:00:00.000Z",
+      jobId: "job-456",
+      adminUserId: "admin-1",
+      decision: "approved" as const,
+    };
+    const handler = await getHandler("job.reviewed");
+    await handler(REVIEWED_PAYLOAD);
+
+    const call = mockDispatchNotification.mock.calls[0]![0];
+    expect(call.pushPayload).toBeDefined();
+    expect(call.pushPayload.title).toContain("approved");
+    expect(call.pushPayload.link).toBe(`/jobs/${REVIEWED_PAYLOAD.jobId}`);
+    expect(call.pushPayload.tag).toBe(`job-reviewed:${REVIEWED_PAYLOAD.jobId}:approved`);
+  });
+
+  it("job.reviewed rejected → pushPayload tag reflects rejected decision", async () => {
+    const REVIEWED_PAYLOAD = {
+      eventId: "evt-jr-rej",
+      version: 1,
+      timestamp: "2026-05-01T10:00:00.000Z",
+      jobId: "job-456",
+      adminUserId: "admin-1",
+      decision: "rejected" as const,
+    };
+    const handler = await getHandler("job.reviewed");
+    await handler(REVIEWED_PAYLOAD);
+
+    const call = mockDispatchNotification.mock.calls[0]![0];
+    expect(call.pushPayload.tag).toBe(`job-reviewed:${REVIEWED_PAYLOAD.jobId}:rejected`);
+  });
+
+  it("job.reviewed changes_requested → pushPayload tag reflects changes_requested decision", async () => {
+    const REVIEWED_PAYLOAD = {
+      eventId: "evt-jr-cr",
+      version: 1,
+      timestamp: "2026-05-01T10:00:00.000Z",
+      jobId: "job-456",
+      adminUserId: "admin-1",
+      decision: "changes_requested" as const,
+    };
+    const handler = await getHandler("job.reviewed");
+    await handler(REVIEWED_PAYLOAD);
+
+    const call = mockDispatchNotification.mock.calls[0]![0];
+    expect(call.pushPayload.tag).toBe(`job-reviewed:${REVIEWED_PAYLOAD.jobId}:changes_requested`);
+  });
+
+  it("job.expired → dispatchNotification includes pushPayload with jobTitle and correct tag", async () => {
+    const JOB_EXPIRED_PAYLOAD_P63 = {
+      eventId: "evt-je-p63",
+      version: 1,
+      timestamp: "2026-05-01T10:00:00.000Z",
+      jobId: "job-exp-001",
+      title: "Senior Engineer",
+      employerUserId: "employer-xyz",
+      companyId: "company-abc",
+    };
+    const handler = await getHandler("job.expired");
+    await handler(JOB_EXPIRED_PAYLOAD_P63);
+
+    const call = mockDispatchNotification.mock.calls[0]![0];
+    expect(call.pushPayload).toBeDefined();
+    expect(call.pushPayload.title).toBe("Job posting expired");
+    expect(call.pushPayload.body).toContain("Senior Engineer");
+    expect(call.pushPayload.link).toBe(`/jobs/${JOB_EXPIRED_PAYLOAD_P63.jobId}`);
+    expect(call.pushPayload.tag).toBe(`job-expired:${JOB_EXPIRED_PAYLOAD_P63.jobId}`);
+  });
+
+  it("saved_search.new_result → dispatchNotification does NOT include pushPayload (low-priority, push OFF)", async () => {
+    mockGetSavedSearchById.mockResolvedValue(MOCK_SAVED_SEARCH);
+    mockEvaluateInstantAlert.mockResolvedValue(true);
+    const handler = await getHandler("saved_search.new_result");
+    await handler(SAVED_SEARCH_PAYLOAD);
+
+    const call = mockDispatchNotification.mock.calls[0]?.[0];
+    expect(call?.pushPayload).toBeUndefined();
+  });
+});
+
+// ── P-6.3: Channel isolation — push failure does not block in-app ────────────
+// NOTE (F8): These tests verify at the HANDLER level that dispatchNotification is
+// called with pushPayload and that handler-level rejection is absorbed (fire-and-forget).
+// The actual Promise.allSettled channel isolation (push rejects → in-app still created)
+// is tested at the ROUTER level in notification-router.test.ts (4 tests: "push failure
+// does not block in-app", "in-app failure + push success", "all channels throw",
+// "redis.publish failure — push still dispatched"). Both levels together provide
+// complete coverage for SN-2 scenario 3.
+
+describe("notification-service — channel isolation (P-6.3 SN-2 scenario 3)", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+    mockRedisSet.mockResolvedValue("OK");
+    mockDispatchNotification.mockResolvedValue(undefined);
+    mockFindUserById.mockResolvedValue({
+      id: "user-1",
+      email: "user@example.com",
+      name: "Test User",
+      languagePreference: "en",
+    });
+    mockGetJobPostingById.mockResolvedValue({ id: "job-456", title: "Senior Engineer" });
+    mockGetCompanyById.mockResolvedValue({
+      id: "company-abc",
+      ownerUserId: "employer-xyz",
+      name: "Igbo Tech",
+    });
+    mockEnqueueEmailJob.mockResolvedValue(true);
+  });
+
+  afterEach(() => {
+    const g = globalThis as unknown as { __portalNotifHandlersRegistered?: boolean };
+    g.__portalNotifHandlersRegistered = false;
+  });
+
+  it("application.submitted: dispatchNotification still called even if sendPushNotification were to reject (Promise.allSettled channel isolation)", async () => {
+    // dispatchNotification is the boundary — it handles push + in-app via Promise.allSettled internally.
+    // Even if push fails (rejected), the in-app notification is created.
+    // This test verifies that dispatchNotification is still invoked (not short-circuited by any upstream error).
+    const handler = await getHandler("application.submitted");
+    await handler(BASE_PAYLOAD);
+
+    // dispatchNotification must be called — it contains both push AND in-app channels
+    expect(mockDispatchNotification).toHaveBeenCalledOnce();
+    expect(mockDispatchNotification).toHaveBeenCalledWith(
+      expect.objectContaining({
+        pushPayload: expect.objectContaining({ title: expect.any(String) }),
+      }),
+    );
+  });
+
+  it("application.submitted: dispatchNotification called even when dispatchNotification itself rejects (fire-and-forget pattern)", async () => {
+    // The handler wraps dispatchNotification in .catch() so rejection must not propagate
+    mockDispatchNotification.mockRejectedValue(new Error("push channel failed"));
+    const handler = await getHandler("application.submitted");
+    // Should not throw even if dispatchNotification rejects
+    await expect(handler(BASE_PAYLOAD)).resolves.not.toThrow();
+    expect(mockDispatchNotification).toHaveBeenCalled();
+  });
+
+  it("application.submitted: createNotification called even when sendPushNotification rejects — real dispatchNotification end-to-end (F15)", async () => {
+    // Use the real dispatchNotification to verify Promise.allSettled channel isolation
+    // chains correctly from handler → router → createNotification even when push rejects.
+    const handler = await getHandler("application.submitted");
+
+    const { dispatchNotification: realDispatch } = await vi.importActual<
+      typeof import("@/services/notification-router")
+    >("@/services/notification-router");
+    mockDispatchNotification.mockImplementation(realDispatch);
+
+    // Push channel fails; in-app (createNotification) must still be called
+    mockSendPushNotification.mockRejectedValue(new Error("Push VAPID error"));
+    mockCreateNotification.mockResolvedValue({ id: "notif-test", createdAt: new Date() });
+
+    await handler(BASE_PAYLOAD);
+
+    expect(mockCreateNotification).toHaveBeenCalledOnce();
   });
 });

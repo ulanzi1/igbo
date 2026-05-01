@@ -9,6 +9,7 @@ import { SkipLink } from "@/components/layout/skip-link";
 import { Toaster } from "@/components/ui/sonner";
 import { DensityProvider, ROLE_DENSITY_DEFAULTS } from "@/providers/density-context";
 import { SocketProvider } from "@/providers/SocketProvider";
+import { NotificationToastProvider } from "@/providers/NotificationToastProvider";
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
@@ -39,9 +40,11 @@ export default async function LocaleLayout({
       <DensityProvider defaultDensity={defaultDensity}>
         <SocketProvider>
           <NextIntlClientProvider>
-            <SkipLink href="#main-content" />
-            {children}
-            <Toaster />
+            <NotificationToastProvider>
+              <SkipLink href="#main-content" />
+              {children}
+              <Toaster />
+            </NotificationToastProvider>
           </NextIntlClientProvider>
         </SocketProvider>
       </DensityProvider>
