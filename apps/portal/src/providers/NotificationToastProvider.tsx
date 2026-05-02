@@ -24,6 +24,10 @@ export function NotificationToastProvider({ children }: { children: React.ReactN
     setUnreadCount((n) => n + 1);
   }, []);
 
+  const decrement = useCallback(() => {
+    setUnreadCount((n) => Math.max(0, n - 1));
+  }, []);
+
   const resetUnreadCount = useCallback(() => {
     setUnreadCount(0);
   }, []);
@@ -55,7 +59,7 @@ export function NotificationToastProvider({ children }: { children: React.ReactN
 
   return (
     <NotificationCountContext.Provider
-      value={{ unreadCount, increment, resetUnreadCount, syncFromServer }}
+      value={{ unreadCount, increment, decrement, resetUnreadCount, syncFromServer }}
     >
       <NotificationToastInner>{children}</NotificationToastInner>
     </NotificationCountContext.Provider>

@@ -18,6 +18,7 @@ vi.mock("next-intl", () => ({
 const contextState = vi.hoisted(() => ({
   unreadCount: 0,
   increment: vi.fn(),
+  decrement: vi.fn(),
   resetUnreadCount: vi.fn(),
   syncFromServer: vi.fn(),
 }));

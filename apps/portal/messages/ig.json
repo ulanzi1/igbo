@@ -1553,6 +1553,21 @@
       "frequencyOff": "Gbanyụọ",
       "frequencyLabel": "Ọnụọgụ email",
       "digestPreferenceUpdated": "Edegharịa ọnụọgụ nkwurịta"
+    },
+    "notificationCenter": {
+      "title": "Ọchịchọ",
+      "markAllRead": "Kee Ihe Nile dị ka Agụọla",
+      "markAllReadSuccess": "Akọtara ọchịchọ nile dị ka agụọla",
+      "noNotifications": "Ọ dịghị ọchịchọ ọ bụla ka ugbu a",
+      "noNotificationsDescription": "Ị ga-ahụ ọchịchọ ebe a mgbe ọrụ dị na akaụntụ gị.",
+      "loading": "Na-ebu ọchịchọ...",
+      "dismiss": "Hapụ",
+      "dismissed": "Ahapụọla ọchịchọ a",
+      "readNotification": "Ọchịchọ agụọla",
+      "unreadNotification": "Ọchịchọ agụọghị",
+      "notificationRead": "Akọrọ dị ka agụọla",
+      "justNow": "Ugbu a",
+      "itemUnavailable": "Ihe a adịghị ọzọ"
     }
   },
   "Shell": {

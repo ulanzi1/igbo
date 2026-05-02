@@ -4,6 +4,10 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 vi.mock("server-only", () => ({}));
 vi.mock("@igbo/auth", () => ({ auth: vi.fn() }));
 vi.mock("next/navigation", () => ({ redirect: vi.fn() }));
+vi.mock("@/i18n/navigation", () => ({
+  Link: ({ href, children }: { href: string; children: unknown }) => ({ href, children }),
+  useRouter: () => ({ push: vi.fn() }),
+}));
 
 import { auth } from "@igbo/auth";
 import { redirect } from "next/navigation";

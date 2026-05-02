@@ -2,6 +2,7 @@
 import { eq, and, desc, gt, count as sqlCount } from "drizzle-orm";
 import { db } from "../index";
 import { platformNotifications } from "../schema/platform-notifications";
+import { getPortalUnreadCount } from "./portal-notifications";
 
 export type {
   PlatformNotification,
@@ -83,10 +84,9 @@ export async function getUnreadCount(userId: string): Promise<number> {
 }
 
 /**
- * Returns the count of unread notifications for a user.
- * Reads from platform_notifications (community table).
- * TODO P-6.7: switch to portal_notifications when available.
+ * Returns the count of unread portal notifications for a user.
+ * Reads from portal_notifications table (P-6.7).
  */
 export async function getUnreadNotificationCount(userId: string): Promise<number> {
-  return getUnreadCount(userId);
+  return getPortalUnreadCount(userId);
 }

@@ -13,6 +13,7 @@ const {
   mockRedisDelete,
   mockGetNotificationPreferences,
   mockIsUserInQuietHours,
+  mockInvalidateUnreadCount,
   redisNxStore,
 } = vi.hoisted(() => {
   // Stateful Redis NX map: first SET NX returns "OK", second returns null
@@ -38,12 +39,13 @@ const {
     mockRedisDelete: vi.fn(),
     mockGetNotificationPreferences: vi.fn(),
     mockIsUserInQuietHours: vi.fn(),
+    mockInvalidateUnreadCount: vi.fn().mockResolvedValue(undefined),
     redisNxStore,
   };
 });
 
-vi.mock("@igbo/db/queries/notifications", () => ({
-  createNotification: mockCreateNotification,
+vi.mock("@igbo/db/queries/portal-notifications", () => ({
+  createPortalNotification: mockCreateNotification,
 }));
 
 vi.mock("@igbo/db/queries/notification-preferences", () => ({
@@ -57,6 +59,10 @@ vi.mock("@/services/push-service", () => ({
 
 vi.mock("@/services/email-service", () => ({
   enqueueEmailJob: mockEnqueueEmailJob,
+}));
+
+vi.mock("@/services/notification-count-service", () => ({
+  invalidateUnreadCount: mockInvalidateUnreadCount,
 }));
 
 vi.mock("@/lib/redis", () => ({
@@ -372,9 +378,10 @@ describe("dispatchInApp()", () => {
     vi.resetAllMocks();
     mockCreateNotification.mockResolvedValue(BASE_NOTIF);
     mockRedisPublish.mockResolvedValue(1);
+    mockInvalidateUnreadCount.mockResolvedValue(undefined);
   });
 
-  it("calls createNotification with correct args", async () => {
+  it("calls createPortalNotification with correct args (portal_notifications table)", async () => {
     await dispatchInApp(
       "user-1",
       "portal.application.submitted",
@@ -383,10 +390,11 @@ describe("dispatchInApp()", () => {
     );
     expect(mockCreateNotification).toHaveBeenCalledWith({
       userId: "user-1",
-      type: "system",
+      eventType: "portal.application.submitted",
       title: "Title",
       body: "Body",
       link: "/link",
+      payloadJson: { title: "Title", body: "Body", link: "/link" },
       idempotencyKey: "dedup:key",
     });
   });
@@ -411,7 +419,7 @@ describe("dispatchInApp()", () => {
     expect(payload).toMatchObject({
       notificationId: NOTIF_ID,
       userId: "user-1",
-      type: "system",
+      type: "portal.job.approved",
       title: "Job Approved",
       body: "Your job was approved",
       link: "/jobs/1",
@@ -450,6 +458,7 @@ describe("publishNotificationCreated absorption — channel name + payload contr
     vi.resetAllMocks();
     mockCreateNotification.mockResolvedValue(BASE_NOTIF);
     mockRedisPublish.mockResolvedValue(1);
+    mockInvalidateUnreadCount.mockResolvedValue(undefined);
   });
 
   it("always publishes to exact channel 'eventbus:notification.created' (bridge contract)", async () => {
@@ -469,10 +478,11 @@ describe("publishNotificationCreated absorption — channel name + payload contr
     expect(payload.userId).toBe("recipient-xyz");
   });
 
-  it("payload type is always 'system'", async () => {
+  it("payload type matches eventType (not hardcoded 'system')", async () => {
     await dispatchInApp("u", "portal.application.submitted", { title: "T", body: "B" }, "k");
     const payload = JSON.parse(mockRedisPublish.mock.calls[0]![1] as string);
-    expect(payload.type).toBe("system");
+    expect(payload.type).toBe("portal.application.submitted");
+    expect(payload.eventType).toBe("portal.application.submitted");
   });
 
   it("payload timestamp matches notification createdAt ISO string", async () => {
@@ -497,6 +507,7 @@ describe("dispatchNotification()", () => {
     mockRedisPublish.mockResolvedValue(1);
     mockSendPushNotification.mockResolvedValue(undefined);
     mockEnqueueEmailJob.mockResolvedValue(true);
+    mockInvalidateUnreadCount.mockResolvedValue(undefined);
   });
 
   it("dispatches in-app when channels enable it", async () => {

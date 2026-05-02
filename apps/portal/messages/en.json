@@ -1553,6 +1553,21 @@
       "frequencyOff": "Off",
       "frequencyLabel": "Email frequency",
       "digestPreferenceUpdated": "Digest frequency updated"
+    },
+    "notificationCenter": {
+      "title": "Notifications",
+      "markAllRead": "Mark All as Read",
+      "markAllReadSuccess": "All notifications marked as read",
+      "noNotifications": "No notifications yet",
+      "noNotificationsDescription": "You'll see notifications here when there's activity on your account.",
+      "loading": "Loading notifications...",
+      "dismiss": "Dismiss",
+      "dismissed": "Notification dismissed",
+      "readNotification": "Read notification",
+      "unreadNotification": "Unread notification",
+      "notificationRead": "Marked as read",
+      "justNow": "Just now",
+      "itemUnavailable": "This item is no longer available"
     }
   },
   "Shell": {

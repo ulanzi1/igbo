@@ -56,8 +56,8 @@ function deduplicateByEntity(
 /**
  * Classify a notification into a digest section based on its idempotencyKey prefix.
  *
- * Portal notifications are stored as `type = "system"` — the portal event type is not
- * persisted in platform_notifications. The idempotencyKey carries the event origin:
+ * Portal notifications are stored in portal_notifications with an eventType column.
+ * The idempotencyKey carries the event origin:
  *   - "search-alert:*" → saved search results
  *   - "match-rec:*"    → job recommendations (reserved for P-7.x)
  *   - everything else  → activity summary
@@ -146,9 +146,7 @@ export async function sendPendingDigests(nowUtc: Date): Promise<DigestResult> {
       }
 
       // Fetch ALL undigested portal notifications since the earliest watermark.
-      // Portal notifications are stored as type="system" — the original per-type query
-      // filtered on the notification_type enum using portal event type strings, which
-      // always returned 0 rows. This uses getUndigestedPortalNotifications instead.
+      // After P-6.7, portal notifications are in portal_notifications (not platform_notifications).
       const allNotifs = await getUndigestedPortalNotifications(userId, earliestSince);
 
       // Always advance the watermark — even for empty digests (AC #4)
