@@ -23,12 +23,92 @@ function hashEmail(email: string): string {
 // Lazy initialization — do NOT instantiate at module top level.
 let _resend: Resend | null = null;
 function getResend(): Resend {
-  const apiKey = process.env.RESEND_API_KEY; // ci-allow-process-env
-  if (!apiKey) {
-    throw new Error("RESEND_API_KEY is not set but ENABLE_EMAIL_SENDING=true");
-  }
+  const apiKey = process.env.RESEND_API_KEY!; // ci-allow-process-env (validated before entry)
   if (!_resend) _resend = new Resend(apiKey);
   return _resend;
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+const RETRY_DELAYS_MS = [1000, 5000, 30000] as const; // 1s, 5s, 30s
+
+/**
+ * Renders and sends a single email attempt via Resend. Throws on error.
+ */
+async function sendOnce(payload: EmailPayload): Promise<void> {
+  const rendered = renderTemplate(payload.templateId, payload.data, payload.locale ?? "en");
+  const fromName = process.env.EMAIL_FROM_NAME ?? "OBIGBO Job Portal"; // ci-allow-process-env
+  const fromAddress = process.env.EMAIL_FROM_ADDRESS ?? "noreply@igbo.global"; // ci-allow-process-env
+
+  const { data: resendData, error } = await getResend().emails.send({
+    from: payload.from ?? `${fromName} <${fromAddress}>`,
+    to: payload.to,
+    subject: payload.subject ?? rendered.subject,
+    html: rendered.html,
+    text: rendered.text,
+  });
+
+  if (error) {
+    throw new Error(`Resend API error [${payload.templateId}]: ${error.message}`);
+  }
+
+  const toHash = hashEmail(payload.to);
+  console.info(
+    JSON.stringify({
+      level: "info",
+      message: "portal.email.send.success",
+      templateId: payload.templateId,
+      toHash,
+      locale: payload.locale ?? "en",
+      resendId: resendData?.id,
+    }),
+  );
+}
+
+/**
+ * Sends an email with exponential-backoff retry (up to 3 attempts: 1s, 5s, 30s delays).
+ *
+ * Note: Retry durability is within-process only. If the Node.js process restarts during
+ * a delay window, the retry is silently lost. This is an accepted limitation until the
+ * outbox pattern lands in Story 6.5.
+ */
+async function sendWithRetry(payload: EmailPayload): Promise<void> {
+  let lastError: Error | undefined;
+
+  for (let attempt = 0; attempt <= RETRY_DELAYS_MS.length; attempt++) {
+    try {
+      await sendOnce(payload);
+      return; // Success
+    } catch (err) {
+      lastError = err instanceof Error ? err : new Error(String(err));
+      if (attempt < RETRY_DELAYS_MS.length) {
+        console.warn(
+          JSON.stringify({
+            level: "warn",
+            message: "portal.email.send.retry",
+            templateId: payload.templateId,
+            attempt: attempt + 1,
+            nextDelayMs: RETRY_DELAYS_MS[attempt],
+            error: lastError.message,
+          }),
+        );
+        await delay(RETRY_DELAYS_MS[attempt]!);
+      }
+    }
+  }
+
+  // All retries exhausted
+  console.error(
+    JSON.stringify({
+      level: "error",
+      message: "portal.email.send.retries_exhausted",
+      templateId: payload.templateId,
+      totalAttempts: RETRY_DELAYS_MS.length + 1,
+    }),
+  );
+  throw lastError ?? new Error("sendWithRetry: all attempts failed");
 }
 
 export const emailService = {
@@ -46,35 +126,16 @@ export const emailService = {
       return;
     }
 
+    // Validate configuration before entering retry loop — config errors are not retryable.
+    const apiKey = process.env.RESEND_API_KEY; // ci-allow-process-env
+    if (!apiKey) {
+      throw new Error("RESEND_API_KEY is not set but ENABLE_EMAIL_SENDING=true");
+    }
+
     const toHash = hashEmail(payload.to);
 
     try {
-      const rendered = renderTemplate(payload.templateId, payload.data, payload.locale ?? "en");
-      const fromName = process.env.EMAIL_FROM_NAME ?? "OBIGBO Job Portal"; // ci-allow-process-env
-      const fromAddress = process.env.EMAIL_FROM_ADDRESS ?? "noreply@igbo.global"; // ci-allow-process-env
-
-      const { data: resendData, error } = await getResend().emails.send({
-        from: payload.from ?? `${fromName} <${fromAddress}>`,
-        to: payload.to,
-        subject: payload.subject ?? rendered.subject,
-        html: rendered.html,
-        text: rendered.text,
-      });
-
-      if (error) {
-        throw new Error(`Resend API error [${payload.templateId}]: ${error.message}`);
-      }
-
-      console.info(
-        JSON.stringify({
-          level: "info",
-          message: "portal.email.send.success",
-          templateId: payload.templateId,
-          toHash,
-          locale: payload.locale ?? "en",
-          resendId: resendData?.id,
-        }),
-      );
+      await sendWithRetry(payload);
     } catch (err) {
       console.error(
         JSON.stringify({

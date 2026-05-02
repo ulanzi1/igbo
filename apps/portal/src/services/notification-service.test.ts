@@ -313,6 +313,77 @@ describe("notification-service — application.submitted handler", () => {
     );
     expect(appSubmittedCalls).toHaveLength(1);
   });
+
+  // ── Email wiring tests (employer emailJob via routing pipeline) ─────────────
+
+  it("emailJob present in dispatchNotification when employer has email", async () => {
+    // Default beforeEach: mockFindUserById returns user with email for all calls
+    // (seeker 1st call + employer 2nd call both get "seeker@example.com")
+    const handler = await getHandler();
+    await handler(BASE_PAYLOAD);
+
+    const call = mockDispatchNotification.mock.calls[0]![0];
+    expect(call.emailJob).toBeDefined();
+    expect(call.emailJob.payload.templateId).toBe("application-submitted-employer");
+    expect(call.emailJob.payload.to).toBe("seeker@example.com");
+  });
+
+  it("emailJob absent when employer has no email (in-app still dispatched)", async () => {
+    // Seeker (1st findUserById call): has email; Employer (2nd call): no email
+    mockFindUserById
+      .mockResolvedValueOnce({
+        id: "seeker-789",
+        email: "seeker@example.com",
+        name: "Ada Obi",
+        languagePreference: "en",
+      })
+      .mockResolvedValueOnce({ id: "employer-xyz", email: null, name: "Obi" });
+    const handler = await getHandler();
+    await handler(BASE_PAYLOAD);
+
+    const call = mockDispatchNotification.mock.calls[0]![0];
+    expect(call.emailJob).toBeUndefined();
+    expect(mockDispatchNotification).toHaveBeenCalled();
+  });
+
+  it("emailJob absent when employer findUserById fails (in-app still dispatched)", async () => {
+    // Seeker (1st findUserById call): success; Employer (2nd call): throws
+    mockFindUserById
+      .mockResolvedValueOnce({
+        id: "seeker-789",
+        email: "seeker@example.com",
+        name: "Ada Obi",
+        languagePreference: "en",
+      })
+      .mockRejectedValueOnce(new Error("DB timeout"));
+    const handler = await getHandler();
+    await handler(BASE_PAYLOAD);
+
+    const call = mockDispatchNotification.mock.calls[0]![0];
+    expect(call.emailJob).toBeUndefined();
+    expect(mockDispatchNotification).toHaveBeenCalled();
+  });
+
+  it("emailJob uses ig locale when employer languagePreference is ig", async () => {
+    mockFindUserById
+      .mockResolvedValueOnce({
+        id: "seeker-789",
+        email: "seeker@example.com",
+        name: "Ada",
+        languagePreference: "en",
+      })
+      .mockResolvedValueOnce({
+        id: "employer-xyz",
+        email: "employer@example.com",
+        name: "Obi",
+        languagePreference: "ig",
+      });
+    const handler = await getHandler();
+    await handler(BASE_PAYLOAD);
+
+    const call = mockDispatchNotification.mock.calls[0]![0];
+    expect(call.emailJob?.payload.locale).toBe("ig");
+  });
 });
 
 // ── application.withdrawn handler ────────────────────────────────────────────
@@ -611,6 +682,12 @@ describe("notification-service — job.reviewed handler", () => {
     mockRedisSet.mockResolvedValue("OK");
     mockCheckInstantAlerts.mockResolvedValue(undefined);
     mockGetJobPostingWithCompany.mockResolvedValue(MOCK_POSTING_WITH_COMPANY);
+    mockFindUserById.mockResolvedValue({
+      id: "employer-owner-123",
+      email: "employer@example.com",
+      name: "Obi Chukwu",
+      languagePreference: "en",
+    });
     mockDispatchNotification.mockResolvedValue(undefined);
   });
 
@@ -760,6 +837,68 @@ describe("notification-service — job.reviewed handler", () => {
     mockCheckInstantAlerts.mockRejectedValue(new Error("Service error"));
     const handler = await getHandler("job.reviewed");
     await expect(handler(JOB_REVIEWED_PAYLOAD)).resolves.not.toThrow();
+  });
+
+  // ── Email wiring tests ──────────────────────────────────────────────────────
+
+  it("emailJob present with job-approved template and jobDetailUrl (approved decision)", async () => {
+    const handler = await getHandler("job.reviewed");
+    await handler(JOB_REVIEWED_PAYLOAD); // decision: "approved"
+
+    const call = mockDispatchNotification.mock.calls[0]![0];
+    expect(call.emailJob).toBeDefined();
+    expect(call.emailJob.payload.templateId).toBe("job-approved");
+    expect(call.emailJob.payload.data.jobDetailUrl).toContain(
+      `/jobs/${JOB_REVIEWED_PAYLOAD.jobId}`,
+    );
+  });
+
+  it("emailJob present with job-rejected template and no CTA URL (rejected decision)", async () => {
+    const handler = await getHandler("job.reviewed");
+    await handler({ ...JOB_REVIEWED_PAYLOAD, decision: "rejected" });
+
+    const call = mockDispatchNotification.mock.calls[0]![0];
+    expect(call.emailJob).toBeDefined();
+    expect(call.emailJob.payload.templateId).toBe("job-rejected");
+    expect(call.emailJob.payload.data.jobDetailUrl).toBeUndefined();
+    expect(call.emailJob.payload.data.jobEditUrl).toBeUndefined();
+  });
+
+  it("emailJob present with job-changes-requested template and jobEditUrl (changes_requested decision)", async () => {
+    const handler = await getHandler("job.reviewed");
+    await handler({ ...JOB_REVIEWED_PAYLOAD, decision: "changes_requested" });
+
+    const call = mockDispatchNotification.mock.calls[0]![0];
+    expect(call.emailJob).toBeDefined();
+    expect(call.emailJob.payload.templateId).toBe("job-changes-requested");
+    expect(call.emailJob.payload.data.jobEditUrl).toContain(
+      `/jobs/${JOB_REVIEWED_PAYLOAD.jobId}/edit`,
+    );
+  });
+
+  it("emailJob absent when employer has no email (in-app still dispatched)", async () => {
+    mockFindUserById.mockResolvedValue({
+      id: "employer-owner-123",
+      email: null,
+      name: "Obi",
+      languagePreference: "en",
+    });
+    const handler = await getHandler("job.reviewed");
+    await handler(JOB_REVIEWED_PAYLOAD);
+
+    const call = mockDispatchNotification.mock.calls[0]![0];
+    expect(call.emailJob).toBeUndefined();
+    expect(mockDispatchNotification).toHaveBeenCalled();
+  });
+
+  it("emailJob absent when employer findUserById fails (in-app still dispatched)", async () => {
+    mockFindUserById.mockRejectedValue(new Error("DB timeout"));
+    const handler = await getHandler("job.reviewed");
+    await handler(JOB_REVIEWED_PAYLOAD);
+
+    const call = mockDispatchNotification.mock.calls[0]![0];
+    expect(call.emailJob).toBeUndefined();
+    expect(mockDispatchNotification).toHaveBeenCalled();
   });
 });
 
@@ -956,7 +1095,16 @@ describe("notification-service — application.status_changed handler (new)", ()
   beforeEach(() => {
     vi.resetAllMocks();
     mockRedisSet.mockResolvedValue("OK");
-    mockGetJobPostingById.mockResolvedValue({ id: "job-sc-456", title: "Product Manager" });
+    mockGetJobPostingWithCompany.mockResolvedValue({
+      posting: { id: "job-sc-456", title: "Product Manager", companyId: "company-sc-abc" },
+      company: { id: "company-sc-abc", name: "Igbo Tech" },
+    });
+    mockFindUserById.mockResolvedValue({
+      id: "seeker-sc-789",
+      email: "seeker@example.com",
+      name: "Ada Obi",
+      languagePreference: "en",
+    });
     mockDispatchNotification.mockResolvedValue(undefined);
   });
 
@@ -988,11 +1136,11 @@ describe("notification-service — application.status_changed handler (new)", ()
     );
   });
 
-  it("looks up jobTitle via getJobPostingById for notification content", async () => {
+  it("looks up jobTitle via getJobPostingWithCompany for notification content", async () => {
     const handler = await getHandler("application.status_changed");
     await handler(STATUS_CHANGED_PAYLOAD);
 
-    expect(mockGetJobPostingById).toHaveBeenCalledWith(STATUS_CHANGED_PAYLOAD.jobId);
+    expect(mockGetJobPostingWithCompany).toHaveBeenCalledWith(STATUS_CHANGED_PAYLOAD.jobId);
     expect(mockDispatchNotification).toHaveBeenCalledWith(
       expect.objectContaining({
         content: expect.objectContaining({
@@ -1023,8 +1171,8 @@ describe("notification-service — application.status_changed handler (new)", ()
     expect(mockDispatchNotification).not.toHaveBeenCalled();
   });
 
-  it("sends notification with fallback jobTitle when getJobPostingById rejects (fail-open)", async () => {
-    mockGetJobPostingById.mockRejectedValue(new Error("DB timeout"));
+  it("sends notification with fallback jobTitle when getJobPostingWithCompany rejects (fail-open)", async () => {
+    mockGetJobPostingWithCompany.mockRejectedValue(new Error("DB timeout"));
     const handler = await getHandler("application.status_changed");
     await handler(STATUS_CHANGED_PAYLOAD);
 
@@ -1063,20 +1211,78 @@ describe("notification-service — application.status_changed handler (new)", ()
     await expect(handler(STATUS_CHANGED_PAYLOAD)).resolves.not.toThrow();
   });
 
-  it("contract snapshot — dispatchNotification called with exact shape for application.status_changed", async () => {
+  it("contract snapshot — dispatchNotification called with correct shape for application.status_changed", async () => {
     const handler = await getHandler("application.status_changed");
     await handler(STATUS_CHANGED_PAYLOAD);
 
-    expect(mockDispatchNotification).toHaveBeenCalledWith({
-      userId: STATUS_CHANGED_PAYLOAD.seekerUserId,
-      eventType: "portal.application.status_changed",
-      content: {
-        title: expect.stringContaining("application"),
-        body: expect.stringContaining("Product Manager"),
-        link: `/applications/${STATUS_CHANGED_PAYLOAD.applicationId}`,
-      },
-      dedupKey: `status-changed:${STATUS_CHANGED_PAYLOAD.applicationId}:${STATUS_CHANGED_PAYLOAD.newStatus}`,
+    // Use objectContaining — emailJob is also present when seeker has email + status is eligible
+    expect(mockDispatchNotification).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: STATUS_CHANGED_PAYLOAD.seekerUserId,
+        eventType: "portal.application.status_changed",
+        content: {
+          title: expect.stringContaining("application"),
+          body: expect.stringContaining("Product Manager"),
+          link: `/applications/${STATUS_CHANGED_PAYLOAD.applicationId}`,
+        },
+        dedupKey: `status-changed:${STATUS_CHANGED_PAYLOAD.applicationId}:${STATUS_CHANGED_PAYLOAD.newStatus}`,
+      }),
+    );
+  });
+
+  // ── Email wiring tests ──────────────────────────────────────────────────────
+
+  it("emailJob present in dispatchNotification when seeker has email and status is eligible", async () => {
+    const handler = await getHandler("application.status_changed");
+    await handler(STATUS_CHANGED_PAYLOAD); // shortlisted is email-eligible
+
+    const call = mockDispatchNotification.mock.calls[0]![0];
+    expect(call.emailJob).toBeDefined();
+    expect(call.emailJob.payload.templateId).toBe("application-status-changed");
+    expect(call.emailJob.payload.to).toBe("seeker@example.com");
+  });
+
+  it("emailJob absent when seeker has no email (fail-open: in-app still dispatched)", async () => {
+    mockFindUserById.mockResolvedValue({ id: "seeker-sc-789", email: null, name: "Ada" });
+    const handler = await getHandler("application.status_changed");
+    await handler(STATUS_CHANGED_PAYLOAD);
+
+    const call = mockDispatchNotification.mock.calls[0]![0];
+    expect(call.emailJob).toBeUndefined();
+    expect(mockDispatchNotification).toHaveBeenCalled();
+  });
+
+  it("emailJob absent when newStatus is under_review (not email-eligible)", async () => {
+    const handler = await getHandler("application.status_changed");
+    await handler({ ...STATUS_CHANGED_PAYLOAD, newStatus: "under_review" });
+
+    const call = mockDispatchNotification.mock.calls[0]![0];
+    expect(call.emailJob).toBeUndefined();
+    expect(mockDispatchNotification).toHaveBeenCalled();
+  });
+
+  it("seeker findUserById failure → emailJob absent, in-app still dispatched", async () => {
+    mockFindUserById.mockRejectedValue(new Error("DB timeout"));
+    const handler = await getHandler("application.status_changed");
+    await handler(STATUS_CHANGED_PAYLOAD);
+
+    const call = mockDispatchNotification.mock.calls[0]![0];
+    expect(call.emailJob).toBeUndefined();
+    expect(mockDispatchNotification).toHaveBeenCalled();
+  });
+
+  it("emailJob uses ig locale when seeker languagePreference is ig", async () => {
+    mockFindUserById.mockResolvedValue({
+      id: "seeker-sc-789",
+      email: "seeker@example.com",
+      name: "Ada",
+      languagePreference: "ig",
     });
+    const handler = await getHandler("application.status_changed");
+    await handler(STATUS_CHANGED_PAYLOAD);
+
+    const call = mockDispatchNotification.mock.calls[0]![0];
+    expect(call.emailJob?.payload.locale).toBe("ig");
   });
 });
 
@@ -1096,6 +1302,13 @@ describe("notification-service — job.expired handler (new)", () => {
   beforeEach(() => {
     vi.resetAllMocks();
     mockRedisSet.mockResolvedValue("OK");
+    mockFindUserById.mockResolvedValue({
+      id: "employer-exp-xyz",
+      email: "employer@example.com",
+      name: "Obi Chukwu",
+      languagePreference: "en",
+    });
+    mockGetCompanyById.mockResolvedValue({ id: "company-exp-abc", name: "Igbo Tech" });
     mockDispatchNotification.mockResolvedValue(undefined);
   });
 
@@ -1170,6 +1383,29 @@ describe("notification-service — job.expired handler (new)", () => {
     mockDispatchNotification.mockRejectedValue(new Error("dispatch error"));
     const handler = await getHandler("job.expired");
     await expect(handler(JOB_EXPIRED_PAYLOAD)).resolves.not.toThrow();
+  });
+
+  // ── Email wiring tests ──────────────────────────────────────────────────────
+
+  it("emailJob present with job-expired template when employer has email", async () => {
+    const handler = await getHandler("job.expired");
+    await handler(JOB_EXPIRED_PAYLOAD);
+
+    const call = mockDispatchNotification.mock.calls[0]![0];
+    expect(call.emailJob).toBeDefined();
+    expect(call.emailJob.payload.templateId).toBe("job-expired");
+    expect(call.emailJob.payload.to).toBe("employer@example.com");
+    expect(call.emailJob.payload.data.renewUrl).toContain("/jobs/new");
+  });
+
+  it("emailJob absent when employer has no email (in-app still dispatched)", async () => {
+    mockFindUserById.mockResolvedValue({ id: "employer-exp-xyz", email: null, name: "Obi" });
+    const handler = await getHandler("job.expired");
+    await handler(JOB_EXPIRED_PAYLOAD);
+
+    const call = mockDispatchNotification.mock.calls[0]![0];
+    expect(call.emailJob).toBeUndefined();
+    expect(mockDispatchNotification).toHaveBeenCalled();
   });
 });
 

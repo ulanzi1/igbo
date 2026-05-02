@@ -118,11 +118,14 @@ if (globalForNotif.__portalNotifHandlersRegistered) {
           }),
         );
       }
-      const trackingUrl = `${portalBaseUrl ?? "https://portal.igbo.global"}/applications`;
+      const baseUrl = portalBaseUrl ?? "https://portal.igbo.global";
+      const trackingUrl = `${baseUrl}/applications`;
 
       // ── Seeker confirmation email (fire-and-forget) ──────────────────────────
-      // Targets a different user (seekerUserId) and is a confirmation, not a notification
-      // event — stays inline and does NOT flow through the routing pipeline.
+      // Targets seekerUserId — a DIFFERENT user than the routing pipeline target below.
+      // Two-recipient scenario: seeker gets a confirmation email (inline, here), employer
+      // gets a new-application notification via the routing pipeline (with emailJob below).
+      // Do NOT remove or merge these — they serve different recipients with different templates.
       if (seeker?.email) {
         enqueueEmailJob(`app-confirmed-${applicationId}`, {
           to: seeker.email,
@@ -158,7 +161,56 @@ if (globalForNotif.__portalNotifHandlersRegistered) {
 
       // ── Employer in-app notification via routing pipeline ────────────────────
       if (employerUserId) {
+        // Step 3: Employer user lookup for email + locale (separate from seeker batch — P-6.2)
+        // Fail-open: if lookup fails, in-app notification still dispatches without emailJob.
+        let employer: Awaited<ReturnType<typeof findUserById>> | null = null;
+        try {
+          employer = await findUserById(employerUserId);
+        } catch (lookupErr: unknown) {
+          console.warn(
+            JSON.stringify({
+              level: "warn",
+              message: "portal.notification.employer_lookup.failed",
+              applicationId,
+              employerUserId,
+              error: String(lookupErr),
+            }),
+          );
+        }
+
         const seekerName = seeker?.name ?? "a seeker";
+        const employerLocale: "en" | "ig" = employer?.languagePreference === "ig" ? "ig" : "en";
+
+        // Fail-open on missing employer email: emailJob omitted, in-app dispatched regardless
+        const employerEmailJob = employer?.email
+          ? {
+              name: `app-submitted-employer-${applicationId}`,
+              payload: {
+                to: employer.email,
+                templateId: "application-submitted-employer",
+                data: {
+                  jobTitle,
+                  seekerName: seeker?.name ?? seeker?.email ?? "a candidate",
+                  companyName,
+                  applicationDetailUrl: `${baseUrl}/admin/applications/${applicationId}`,
+                  portalBaseUrl: baseUrl,
+                },
+                locale: employerLocale,
+              },
+            }
+          : undefined;
+
+        if (!employer?.email) {
+          console.info(
+            JSON.stringify({
+              level: "info",
+              message: "portal.notification.employer_email.skipped",
+              applicationId,
+              reason: "no_email",
+            }),
+          );
+        }
+
         await dispatchNotification({
           userId: employerUserId,
           eventType: "portal.application.submitted",
@@ -168,6 +220,7 @@ if (globalForNotif.__portalNotifHandlersRegistered) {
             link: `/admin/applications/${applicationId}`,
           },
           dedupKey: `app-submitted:${applicationId}`,
+          ...(employerEmailJob ? { emailJob: employerEmailJob } : {}),
         }).catch((err: unknown) => {
           console.error(
             JSON.stringify({
@@ -492,6 +545,25 @@ if (globalForNotif.__portalNotifHandlersRegistered) {
         return;
       }
 
+      // Step 2: Employer user lookup for email + locale (fail-open)
+      const [employerResult] = await Promise.allSettled([findUserById(employerUserId)]);
+      const employer = employerResult.status === "fulfilled" ? employerResult.value : null;
+
+      if (employerResult.status === "rejected") {
+        console.warn(
+          JSON.stringify({
+            level: "warn",
+            message: "portal.notification.job_reviewed.employer_lookup.failed",
+            jobId,
+            employerUserId,
+            error: String(employerResult.reason),
+          }),
+        );
+      }
+
+      const portalBaseUrl = process.env.NEXT_PUBLIC_PORTAL_URL ?? "https://portal.igbo.global"; // ci-allow-process-env
+      const employerLocale: "en" | "ig" = employer?.languagePreference === "ig" ? "ig" : "en";
+
       let eventType: "portal.job.approved" | "portal.job.rejected" | "portal.job.changes_requested";
       let notifTitle: string;
       let notifBody: string;
@@ -514,6 +586,45 @@ if (globalForNotif.__portalNotifHandlersRegistered) {
           break;
       }
 
+      // Build emailJob based on decision — job-rejected has no CTA URL
+      const reviewedEmailJob = employer?.email
+        ? {
+            name: `job-${decision}-${jobId}`,
+            payload: {
+              to: employer.email,
+              templateId:
+                decision === "approved"
+                  ? "job-approved"
+                  : decision === "rejected"
+                    ? "job-rejected"
+                    : "job-changes-requested",
+              data: {
+                jobTitle,
+                companyName,
+                portalBaseUrl,
+                ...(decision === "approved"
+                  ? { jobDetailUrl: `${portalBaseUrl}/jobs/${jobId}` }
+                  : decision === "changes_requested"
+                    ? { jobEditUrl: `${portalBaseUrl}/jobs/${jobId}/edit` }
+                    : {}), // job-rejected: no CTA URL
+              },
+              locale: employerLocale,
+            },
+          }
+        : undefined;
+
+      if (!employer?.email) {
+        console.info(
+          JSON.stringify({
+            level: "info",
+            message: "portal.notification.job_reviewed.employer_email.skipped",
+            jobId,
+            decision,
+            reason: "no_email",
+          }),
+        );
+      }
+
       await dispatchNotification({
         userId: employerUserId,
         eventType,
@@ -523,6 +634,7 @@ if (globalForNotif.__portalNotifHandlersRegistered) {
           link: `/jobs/${jobId}`,
         },
         dedupKey: `job-reviewed:${jobId}:${decision}`,
+        ...(reviewedEmailJob ? { emailJob: reviewedEmailJob } : {}),
       }).catch((err: unknown) => {
         console.error(
           JSON.stringify({
@@ -537,7 +649,7 @@ if (globalForNotif.__portalNotifHandlersRegistered) {
     }),
   );
 
-  // ── portal.message.sent handler ──────────────────────────────────────────
+  // ── portal.message.sent handler ──────────────────────────────────────────────
   portalEventBus.on(
     "portal.message.sent",
     withHandlerGuard("notif:portal.message.sent", async (payload: PortalMessageSentEvent) => {
@@ -600,6 +712,7 @@ if (globalForNotif.__portalNotifHandlersRegistered) {
 
       // 3. Dispatch via routing pipeline
       // THROTTLE_WINDOWS["portal.message.received"] = 120s (router reads automatically)
+      // NOTE: email is intentionally OFF for portal.message.received per catalog defaults
       await dispatchNotification({
         userId: recipientId,
         eventType: "portal.message.received",
@@ -676,8 +789,12 @@ if (globalForNotif.__portalNotifHandlersRegistered) {
           // Proceed without dedup — fail-open
         }
 
-        // Step 2: DB lookup for jobTitle (fail-open — use fallback on error)
-        const [postingResult] = await Promise.allSettled([getJobPostingById(jobId)]);
+        // Step 2: DB lookups for jobTitle + companyName (via JOIN) and seeker email
+        const [postingResult, seekerResult] = await Promise.allSettled([
+          getJobPostingWithCompany(jobId),
+          findUserById(seekerUserId),
+        ]);
+
         if (postingResult.status === "rejected") {
           console.error(
             JSON.stringify({
@@ -689,10 +806,71 @@ if (globalForNotif.__portalNotifHandlersRegistered) {
             }),
           );
         }
-        const jobTitle =
-          postingResult.status === "fulfilled"
-            ? (postingResult.value?.title ?? "Unknown Position")
-            : "Unknown Position";
+
+        if (seekerResult.status === "rejected") {
+          console.warn(
+            JSON.stringify({
+              level: "warn",
+              message: "portal.notification.app_status_changed.seeker_lookup.failed",
+              applicationId,
+              seekerUserId,
+              error: String(seekerResult.reason),
+            }),
+          );
+        }
+
+        const postingWithCompany =
+          postingResult.status === "fulfilled" ? postingResult.value : null;
+        const seeker = seekerResult.status === "fulfilled" ? seekerResult.value : null;
+
+        const jobTitle = postingWithCompany?.posting.title ?? "Unknown Position";
+        const companyName = postingWithCompany?.company?.name ?? "Unknown Company";
+
+        const portalBaseUrl = process.env.NEXT_PUBLIC_PORTAL_URL ?? "https://portal.igbo.global"; // ci-allow-process-env
+        const seekerLocale: "en" | "ig" = seeker?.languagePreference === "ig" ? "ig" : "en";
+
+        // Status filter: only send email for meaningful transitions (not under_review —
+        // too noisy, no seeker action required at that stage)
+        const EMAIL_ELIGIBLE_STATUSES = new Set([
+          "shortlisted",
+          "interviewing",
+          "offered",
+          "hired",
+          "rejected",
+        ]);
+        const shouldEmailSeeker = EMAIL_ELIGIBLE_STATUSES.has(newStatus) && !!seeker?.email;
+
+        // Fail-open on missing seeker email: emailJob omitted, in-app dispatched regardless
+        const statusEmailJob = shouldEmailSeeker
+          ? {
+              name: `status-changed-${applicationId}-${newStatus}`,
+              payload: {
+                to: seeker!.email!,
+                templateId: "application-status-changed",
+                data: {
+                  seekerName: seeker!.name ?? seeker!.email,
+                  jobTitle,
+                  newStatus,
+                  companyName,
+                  applicationUrl: `${portalBaseUrl}/applications/${applicationId}`,
+                  portalBaseUrl,
+                },
+                locale: seekerLocale,
+              },
+            }
+          : undefined;
+
+        if (!shouldEmailSeeker) {
+          console.info(
+            JSON.stringify({
+              level: "info",
+              message: "portal.notification.app_status_changed.seeker_email.skipped",
+              applicationId,
+              newStatus,
+              reason: !EMAIL_ELIGIBLE_STATUSES.has(newStatus) ? "status_not_eligible" : "no_email",
+            }),
+          );
+        }
 
         // Step 3: Dispatch via routing pipeline
         await dispatchNotification({
@@ -704,6 +882,7 @@ if (globalForNotif.__portalNotifHandlersRegistered) {
             link: `/applications/${applicationId}`,
           },
           dedupKey: `status-changed:${applicationId}:${newStatus}`,
+          ...(statusEmailJob ? { emailJob: statusEmailJob } : {}),
         }).catch((err: unknown) => {
           console.error(
             JSON.stringify({
@@ -722,7 +901,7 @@ if (globalForNotif.__portalNotifHandlersRegistered) {
   portalEventBus.on(
     "job.expired",
     withHandlerGuard("notif:job.expired", async (payload: JobExpiredEvent) => {
-      const { jobId, employerUserId, title: jobTitle } = payload;
+      const { jobId, employerUserId, title: jobTitle, companyId } = payload;
 
       // Step 1: Redis NX dedup (MUST BE FIRST)
       try {
@@ -757,7 +936,72 @@ if (globalForNotif.__portalNotifHandlersRegistered) {
         // Proceed without dedup — fail-open
       }
 
-      // Step 2: No DB lookup needed — JobExpiredEvent carries employerUserId and title
+      // Step 2: Look up employer (for email + locale) and company (for companyName)
+      const [employerResult, companyResult] = await Promise.allSettled([
+        findUserById(employerUserId),
+        getCompanyById(companyId),
+      ]);
+
+      const employer = employerResult.status === "fulfilled" ? employerResult.value : null;
+      const company = companyResult.status === "fulfilled" ? companyResult.value : null;
+
+      if (employerResult.status === "rejected") {
+        console.warn(
+          JSON.stringify({
+            level: "warn",
+            message: "portal.notification.job_expired.employer_lookup.failed",
+            jobId,
+            employerUserId,
+            error: String(employerResult.reason),
+          }),
+        );
+      }
+
+      if (companyResult.status === "rejected") {
+        console.warn(
+          JSON.stringify({
+            level: "warn",
+            message: "portal.notification.job_expired.company_lookup.failed",
+            jobId,
+            companyId,
+            error: String(companyResult.reason),
+          }),
+        );
+      }
+
+      const companyName = company?.name ?? "Unknown Company";
+      const portalBaseUrl = process.env.NEXT_PUBLIC_PORTAL_URL ?? "https://portal.igbo.global"; // ci-allow-process-env
+      const employerLocale: "en" | "ig" = employer?.languagePreference === "ig" ? "ig" : "en";
+
+      // Fail-open on missing employer email: emailJob omitted, in-app dispatched regardless
+      const expiredEmailJob = employer?.email
+        ? {
+            name: `job-expired-${jobId}`,
+            payload: {
+              to: employer.email,
+              templateId: "job-expired",
+              data: {
+                jobTitle,
+                companyName,
+                renewUrl: `${portalBaseUrl}/jobs/new`,
+                portalBaseUrl,
+              },
+              locale: employerLocale,
+            },
+          }
+        : undefined;
+
+      if (!employer?.email) {
+        console.info(
+          JSON.stringify({
+            level: "info",
+            message: "portal.notification.job_expired.employer_email.skipped",
+            jobId,
+            reason: "no_email",
+          }),
+        );
+      }
+
       await dispatchNotification({
         userId: employerUserId,
         eventType: "portal.job.expired",
@@ -767,6 +1011,7 @@ if (globalForNotif.__portalNotifHandlersRegistered) {
           link: `/jobs/${jobId}`,
         },
         dedupKey: `job-expired:${jobId}`,
+        ...(expiredEmailJob ? { emailJob: expiredEmailJob } : {}),
       }).catch((err: unknown) => {
         console.error(
           JSON.stringify({

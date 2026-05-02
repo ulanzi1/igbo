@@ -51,6 +51,7 @@ describe("emailService.send", () => {
     process.env.EMAIL_FROM_NAME = "Test Portal";
     delete process.env.ENABLE_EMAIL_SENDING;
     mockSend.mockReset();
+    vi.useFakeTimers();
   });
 
   afterEach(() => {
@@ -58,6 +59,7 @@ describe("emailService.send", () => {
     delete process.env.EMAIL_FROM_ADDRESS;
     delete process.env.EMAIL_FROM_NAME;
     delete process.env.ENABLE_EMAIL_SENDING;
+    vi.useRealTimers();
   });
 
   it("skips sending when ENABLE_EMAIL_SENDING=false", async () => {
@@ -87,10 +89,16 @@ describe("emailService.send", () => {
     );
   });
 
-  it("throws when Resend returns an error", async () => {
+  it("throws when Resend returns an error (after all retries)", async () => {
     mockSend.mockResolvedValue({ data: null, error: { message: "Invalid API key" } });
 
-    await expect(emailService.send(MOCK_PAYLOAD)).rejects.toThrow("Resend API error");
+    const p = emailService.send(MOCK_PAYLOAD);
+    // Attach handler before advancing to prevent unhandled rejection warning
+    const assertion = expect(p).rejects.toThrow("Resend API error");
+    await vi.advanceTimersByTimeAsync(1000);
+    await vi.advanceTimersByTimeAsync(5000);
+    await vi.advanceTimersByTimeAsync(30000);
+    await assertion;
   });
 
   it("uses EMAIL_FROM_NAME and EMAIL_FROM_ADDRESS for from field", async () => {
@@ -130,6 +138,164 @@ describe("emailService.send", () => {
   it("throws when RESEND_API_KEY is missing", async () => {
     delete process.env.RESEND_API_KEY;
     await expect(emailService.send(MOCK_PAYLOAD)).rejects.toThrow("RESEND_API_KEY");
+  });
+});
+
+describe("emailService.send — retry logic", () => {
+  beforeEach(() => {
+    vi.mocked(renderTemplate).mockReturnValue({
+      subject: "Test Subject",
+      html: "<p>Test</p>",
+      text: "Test",
+    });
+    process.env.RESEND_API_KEY = "re_test_key";
+    process.env.EMAIL_FROM_ADDRESS = "noreply@test.com";
+    process.env.EMAIL_FROM_NAME = "Test Portal";
+    delete process.env.ENABLE_EMAIL_SENDING;
+    mockSend.mockReset();
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    delete process.env.RESEND_API_KEY;
+    delete process.env.EMAIL_FROM_ADDRESS;
+    delete process.env.EMAIL_FROM_NAME;
+    delete process.env.ENABLE_EMAIL_SENDING;
+    vi.useRealTimers();
+  });
+
+  it("succeeds on first attempt — no retry delay, send called once", async () => {
+    mockSend.mockResolvedValue({ data: { id: "r1" }, error: null });
+
+    await emailService.send(MOCK_PAYLOAD);
+
+    expect(mockSend).toHaveBeenCalledTimes(1);
+  });
+
+  it("succeeds on 2nd attempt after 1 failure — 1s delay", async () => {
+    mockSend
+      .mockResolvedValueOnce({ data: null, error: { message: "Temporary failure" } })
+      .mockResolvedValueOnce({ data: { id: "r2" }, error: null });
+
+    const p = emailService.send(MOCK_PAYLOAD);
+    await vi.advanceTimersByTimeAsync(1000); // past 1s delay
+    await p;
+
+    expect(mockSend).toHaveBeenCalledTimes(2);
+  });
+
+  it("succeeds on 3rd attempt after 2 failures — 1s + 5s delays", async () => {
+    mockSend
+      .mockResolvedValueOnce({ data: null, error: { message: "Fail 1" } })
+      .mockResolvedValueOnce({ data: null, error: { message: "Fail 2" } })
+      .mockResolvedValueOnce({ data: { id: "r3" }, error: null });
+
+    const p = emailService.send(MOCK_PAYLOAD);
+    await vi.advanceTimersByTimeAsync(1000); // past 1s
+    await vi.advanceTimersByTimeAsync(5000); // past 5s
+    await p;
+
+    expect(mockSend).toHaveBeenCalledTimes(3);
+  });
+
+  it("throws after all 3 retries exhausted — error propagated", async () => {
+    // 4 total calls: attempt 0, 1, 2, 3 (RETRY_DELAYS_MS has 3 entries → loop runs 4 times)
+    mockSend
+      .mockResolvedValueOnce({ data: null, error: { message: "Fail 1" } })
+      .mockResolvedValueOnce({ data: null, error: { message: "Fail 2" } })
+      .mockResolvedValueOnce({ data: null, error: { message: "Fail 3" } })
+      .mockResolvedValueOnce({ data: null, error: { message: "Fail 4" } });
+
+    const p = emailService.send(MOCK_PAYLOAD);
+    // Attach handler before advancing to prevent unhandled rejection warning
+    const assertion = expect(p).rejects.toThrow();
+    await vi.advanceTimersByTimeAsync(1000);
+    await vi.advanceTimersByTimeAsync(5000);
+    await vi.advanceTimersByTimeAsync(30000);
+    await assertion;
+    expect(mockSend).toHaveBeenCalledTimes(4); // initial + 3 retries
+  });
+
+  it("logs structured warn on each retry attempt", async () => {
+    const warnSpy = vi.spyOn(console, "warn");
+    mockSend
+      .mockResolvedValueOnce({ data: null, error: { message: "Fail 1" } })
+      .mockResolvedValueOnce({ data: { id: "r2" }, error: null });
+
+    const p = emailService.send(MOCK_PAYLOAD);
+    await vi.advanceTimersByTimeAsync(1000);
+    await p;
+
+    expect(warnSpy).toHaveBeenCalledTimes(1);
+    const warnArg = warnSpy.mock.calls[0]?.[0] as string;
+    const parsed = JSON.parse(warnArg) as Record<string, unknown>;
+    expect(parsed.level).toBe("warn");
+    expect(parsed.message).toBe("portal.email.send.retry");
+    expect(parsed.attempt).toBe(1);
+    expect(parsed.nextDelayMs).toBe(1000);
+  });
+
+  it("logs retries_exhausted error after all 3 fail", async () => {
+    const errorSpy = vi.spyOn(console, "error");
+    // mockResolvedValue applies to ALL calls (persistent default)
+    mockSend.mockResolvedValue({ data: null, error: { message: "Always fails" } });
+
+    const p = emailService.send(MOCK_PAYLOAD);
+    // Attach catch before advancing timers to prevent unhandled rejection warning
+    const caught = p.catch(() => {});
+    await vi.advanceTimersByTimeAsync(1000);
+    await vi.advanceTimersByTimeAsync(5000);
+    await vi.advanceTimersByTimeAsync(30000);
+    await caught;
+
+    const allErrorArgs = errorSpy.mock.calls.map((c) => {
+      try {
+        return JSON.parse(c[0] as string) as Record<string, unknown>;
+      } catch {
+        return null;
+      }
+    });
+    const exhausted = allErrorArgs.find(
+      (a) => a?.message === "portal.email.send.retries_exhausted",
+    );
+    expect(exhausted).toBeDefined();
+    expect(exhausted?.totalAttempts).toBe(4);
+  });
+
+  it("handles non-Error rejection without crashing retry loop", async () => {
+    // Simulate emails.send() rejecting with a plain object (not an Error instance)
+    // sendWithRetry must handle this without crashing
+    mockSend
+      .mockRejectedValueOnce({ code: 429, name: "RateLimitError" })
+      .mockResolvedValueOnce({ data: { id: "r4" }, error: null });
+
+    const p = emailService.send(MOCK_PAYLOAD);
+    await vi.advanceTimersByTimeAsync(1000); // past 1s delay between attempt 0 and 1
+    await p;
+
+    expect(mockSend).toHaveBeenCalledTimes(2);
+  });
+
+  it("retry delays are spaced correctly — 1s then 5s", async () => {
+    mockSend
+      .mockResolvedValueOnce({ data: null, error: { message: "Fail 1" } })
+      .mockResolvedValueOnce({ data: null, error: { message: "Fail 2" } })
+      .mockResolvedValueOnce({ data: { id: "r3" }, error: null });
+
+    const p = emailService.send(MOCK_PAYLOAD);
+
+    // After 999ms: 2nd attempt not yet started
+    await vi.advanceTimersByTimeAsync(999);
+    expect(mockSend).toHaveBeenCalledTimes(1);
+
+    // After 1000ms: 2nd attempt fires
+    await vi.advanceTimersByTimeAsync(1);
+    expect(mockSend).toHaveBeenCalledTimes(2);
+
+    // After 5s more: 3rd attempt fires
+    await vi.advanceTimersByTimeAsync(5000);
+    await p;
+    expect(mockSend).toHaveBeenCalledTimes(3);
   });
 });
 

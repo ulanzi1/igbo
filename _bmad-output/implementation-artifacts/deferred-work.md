@@ -92,3 +92,11 @@
 ## Deferred from: code review of p-6-1b-notification-routing-pipeline, Chunk 4: conversation-service (2026-04-30)
 
 - C4-W1: No access-control check in the `conv == null` early-return path of `getPortalConversationMessages` — when no conversation exists, any authenticated user who knows the `applicationId` receives `{ messages: [], hasMore: false }` without membership check. Mitigated by route-level `requireAuthenticatedSession()`. Revisit if function is called from contexts with weaker auth, or if `applicationId` confidentiality requirements increase. (`conversation-service.ts:459-462`)
+
+## Deferred from: code review of p-6-2-email-notifications (2026-05-01)
+
+- F5: `enqueueEmailJob` Redis dedup key persists after send failure — 15min window where email is permanently lost on event replay. Pre-existing design from P-2.5B. Outbox pattern (Story 6.5) will address by moving to transactional send-then-dedup. (`email-service.ts:167-177`)
+- F6: All email templates greet with company name instead of employer's personal name — produces grammatically awkward emails ("Hello Acme Corp"). Product decision, consistent across all 7 templates. Requires template interface change + handler data enrichment. (`application-submitted-employer.ts:14`, `job-approved.ts:13`, etc.)
+- F7: `job-rejected` template cannot include rejection reason — `JobReviewedEvent` lacks `reason` field. Template handles optional reason gracefully. Enriching the event payload is out of P-6.2 scope. (`job-rejected.ts:7`, `config/events.ts`)
+- F8: No retry jitter in `sendWithRetry` — thundering herd risk at scale with fixed 1s/5s/30s delays. Low impact at current volume. Revisit with outbox pattern (Story 6.5). (`email-service.ts:35`)
+- F9: No retry filtering by error type — retries permanent failures (401 invalid API key, 422 malformed payload). Acceptable for MVP. Revisit with outbox pattern. (`email-service.ts:80-100`)
