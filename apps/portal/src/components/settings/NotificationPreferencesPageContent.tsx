@@ -7,10 +7,13 @@ import { NotificationCategoryRow } from "./NotificationCategoryRow";
 import type { CategoryPreference } from "./NotificationCategoryRow";
 import { QuietHoursSection } from "./QuietHoursSection";
 import type { QuietHoursValues } from "./QuietHoursSection";
+import { DigestFrequencySelector } from "@/components/domain/digest-frequency-selector";
+import type { DigestFrequency } from "@/components/domain/digest-frequency-selector";
 import type {
   PortalNotificationCatalogEntry,
   PortalNotificationEventType,
 } from "@igbo/config/notifications";
+import { isLowPriority } from "@igbo/config/notifications";
 
 // Map portal event type → i18n key suffix for Portal.notificationPreferences.eventLabel.*
 const EVENT_TYPE_LABEL_MAP: Record<PortalNotificationEventType, string> = {
@@ -58,6 +61,14 @@ interface PreferencesApiResponse {
   };
 }
 
+/** Maps digestMode DB string to DigestFrequency union for the selector */
+function toDigestFrequency(digestMode: string, channelEmail: boolean): DigestFrequency {
+  if (!channelEmail && digestMode === "none") return "off";
+  if (digestMode === "daily") return "daily";
+  if (digestMode === "weekly") return "weekly";
+  return "none"; // instant delivery
+}
+
 type TierGroup = {
   tier: "system-critical" | "high" | "low";
   titleKey: string;
@@ -69,6 +80,7 @@ export function NotificationPreferencesPageContent() {
   const t = useTranslations("Portal.notificationPreferences");
 
   const [preferences, setPreferences] = useState<Record<string, CategoryPreference>>({});
+  const [digestModes, setDigestModes] = useState<Record<string, DigestFrequency>>({});
   const [catalog, setCatalog] = useState<Record<string, PortalNotificationCatalogEntry>>({});
   const [quietHours, setQuietHours] = useState<QuietHoursValues>({
     start: null,
@@ -94,14 +106,24 @@ export function NotificationPreferencesPageContent() {
 
         if (!cancelled) {
           const prefs: Record<string, CategoryPreference> = {};
+          const modes: Record<string, DigestFrequency> = {};
           for (const [eventType, pref] of Object.entries(prefsBody.data.preferences)) {
             prefs[eventType] = {
               channelInApp: pref.channelInApp,
               channelPush: pref.channelPush,
               channelEmail: pref.channelEmail,
             };
+            // For low-priority events at catalog defaults (email=false, digestMode="none"),
+            // show "Daily Digest" per spec AC #5 rather than "Off" (the raw mapping).
+            // When the user saves, the real preference will be written.
+            const rawFrequency = toDigestFrequency(pref.digestMode, pref.channelEmail);
+            modes[eventType] =
+              isLowPriority(eventType) && rawFrequency === "off" && pref.digestMode === "none"
+                ? "daily"
+                : rawFrequency;
           }
           setPreferences(prefs);
+          setDigestModes(modes);
           setCatalog(prefsBody.data.catalog);
           setQuietHours(quietBody.data);
           setLoading(false);
@@ -152,6 +174,49 @@ export function NotificationPreferencesPageContent() {
         [eventType]: {
           ...(prev[eventType] ?? { channelInApp: false, channelPush: false, channelEmail: false }),
           [channelKey]: !value,
+        },
+      }));
+      toast.error(t("saveError"));
+    }
+  }
+
+  async function handleDigestFrequencyChange(eventType: string, frequency: DigestFrequency) {
+    // Capture previous values before optimistic update for correct revert
+    const previousFrequency = digestModes[eventType] ?? "none";
+    const previousEmail = preferences[eventType]?.channelEmail ?? false;
+
+    // Optimistic update
+    setDigestModes((prev) => ({ ...prev, [eventType]: frequency }));
+
+    // Map frequency back to digestMode + channelEmail
+    const digestMode = frequency === "none" || frequency === "off" ? "none" : frequency;
+    const channelEmail = frequency !== "off";
+
+    // Also update channelEmail in preferences state
+    setPreferences((prev) => ({
+      ...prev,
+      [eventType]: {
+        ...(prev[eventType] ?? { channelInApp: true, channelPush: false, channelEmail: false }),
+        channelEmail,
+      },
+    }));
+
+    try {
+      const res = await fetch("/api/v1/notifications/preferences", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ eventType, digestMode, channelEmail }),
+      });
+      if (!res.ok) throw new Error("Failed");
+      toast.success(t("digest.digestPreferenceUpdated"));
+    } catch {
+      // Revert optimistic updates to captured pre-change values
+      setDigestModes((prev) => ({ ...prev, [eventType]: previousFrequency }));
+      setPreferences((prev) => ({
+        ...prev,
+        [eventType]: {
+          ...(prev[eventType] ?? { channelInApp: true, channelPush: false, channelEmail: false }),
+          channelEmail: previousEmail,
         },
       }));
       toast.error(t("saveError"));
@@ -239,16 +304,28 @@ export function NotificationPreferencesPageContent() {
               const descriptionKey =
                 EVENT_TYPE_DESCRIPTION_MAP[eventType as PortalNotificationEventType];
 
+              const currentFrequency = digestModes[eventType] ?? "none";
+
               return (
-                <NotificationCategoryRow
-                  key={eventType}
-                  eventType={eventType}
-                  catalogEntry={catalogEntry}
-                  preference={pref}
-                  onToggle={handleToggle}
-                  labelKey={labelKey}
-                  descriptionKey={descriptionKey}
-                />
+                <div key={eventType}>
+                  <NotificationCategoryRow
+                    eventType={eventType}
+                    catalogEntry={catalogEntry}
+                    preference={pref}
+                    onToggle={handleToggle}
+                    labelKey={labelKey}
+                    descriptionKey={descriptionKey}
+                  />
+                  {isLowPriority(eventType) && (
+                    <div className="pl-0 pb-3 border-b border-border last:border-0">
+                      <DigestFrequencySelector
+                        value={currentFrequency}
+                        onChange={(freq) => void handleDigestFrequencyChange(eventType, freq)}
+                        ariaLabel={t(labelKey)}
+                      />
+                    </div>
+                  )}
+                </div>
               );
             })}
           </div>

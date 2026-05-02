@@ -1539,6 +1539,20 @@
       "timeHoursAgo": "{count}h gara aga",
       "timeYesterday": "Ụnyaahụ",
       "timeDaysAgo": "{count}d gara aga"
+    },
+    "digest": {
+      "emailSubject": "Nkwurịta ọrụ gị — ihe {count} ọhụrụ",
+      "sectionRecommendations": "Ntụzi Ọrụ Ọhụrụ",
+      "sectionSavedSearches": "Nsonaazụ Achọchaa Ezipụtara",
+      "sectionActivitySummary": "Nchịkọta Ọrụ",
+      "viewAll": "Lee Ha Niile",
+      "noNewItems": "Enweghị ihe ọhụrụ kemgbe nkwurịta ikpeazụ gị",
+      "frequencyInstant": "Ozugbo",
+      "frequencyDaily": "Nkwurịta Kwa Ụbọchị",
+      "frequencyWeekly": "Nkwurịta Kwa Izu",
+      "frequencyOff": "Gbanyụọ",
+      "frequencyLabel": "Ọnụọgụ email",
+      "digestPreferenceUpdated": "Edegharịa ọnụọgụ nkwurịta"
     }
   },
   "Shell": {

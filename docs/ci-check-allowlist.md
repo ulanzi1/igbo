@@ -115,6 +115,7 @@ Add `// ci-allow-<reason>` above the relevant line, with a justification comment
 | `apps/portal/src/lib/s3-client.ts` | `process-env` | endpoint: process.env.HETZNER_S3_ENDPOINT, // ci-allow-process-env |
 | `apps/portal/src/lib/s3-client.ts` | `process-env` | credentials: { |
 | `apps/portal/src/lib/s3-client.ts` | `process-env` | accessKeyId: process.env.HETZNER_S3_ACCESS_KEY_ID ?? "", // ci-allow-process-env |
+| `apps/portal/src/services/digest-sender.ts` | `process-env` | — |
 | `apps/portal/src/services/email-service.ts` | `process-env` | function getResend(): Resend { |
 | `apps/portal/src/services/email-service.ts` | `process-env` | const rendered = renderTemplate(payload.templateId, payload.data, payload.locale ?? "en"); |
 | `apps/portal/src/services/email-service.ts` | `process-env` | const fromName = process.env.EMAIL_FROM_NAME ?? "OBIGBO Job Portal"; // ci-allow-process-env |
@@ -132,6 +133,7 @@ Add `// ci-allow-<reason>` above the relevant line, with a justification comment
 | `apps/portal/src/services/push-service.ts` | `process-env` | — |
 | `apps/portal/src/services/push-service.ts` | `process-env` | const contact = process.env.VAPID_CONTACT_EMAIL; // ci-allow-process-env |
 | `apps/portal/src/services/push-service.ts` | `process-env` | const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY; // ci-allow-process-env |
+| `apps/portal/src/templates/email/notification-digest.ts` | `process-env` | typeof process !== "undefined" |
 | `packages/auth/src/config.ts` | `redis-key` | auth-scope: raw Redis keys — internal session/challenge management |
 | `packages/auth/src/config.ts` | `redis-key` | const redis = getAuthRedis(); |
 | `packages/auth/src/config.ts` | `redis-key` | const redis = getAuthRedis(); |
