@@ -15,6 +15,7 @@ import {
   THROTTLE_WINDOWS,
   isSystemCritical,
   isKnownEventType,
+  isLowPriority,
 } from "@igbo/config/notifications";
 import type { PortalNotificationEventType } from "@igbo/config/notifications";
 import type { NotificationCreatedEvent } from "@igbo/config/events";
@@ -78,13 +79,18 @@ export async function resolveChannels(
 
     let prefs: Record<
       string,
-      { channelInApp: boolean; channelPush: boolean; channelEmail: boolean }
+      { channelInApp: boolean; channelPush: boolean; channelEmail: boolean; digestMode?: string }
     >;
     if (cached) {
       try {
         prefs = JSON.parse(cached) as Record<
           string,
-          { channelInApp: boolean; channelPush: boolean; channelEmail: boolean }
+          {
+            channelInApp: boolean;
+            channelPush: boolean;
+            channelEmail: boolean;
+            digestMode?: string;
+          }
         >;
       } catch {
         // Corrupted cache — evict and fall through to DB
@@ -103,11 +109,19 @@ export async function resolveChannels(
       return { ...catalogDefaults };
     }
 
-    return {
+    let channels = {
       inApp: userPref.channelInApp,
       push: userPref.channelPush,
       email: userPref.channelEmail,
     };
+
+    // Digest-mode enforcement (AC #7): suppress immediate email for low-priority digest users.
+    // The digest cron job handles batched email delivery for these users.
+    if (isLowPriority(eventType) && userPref.digestMode && userPref.digestMode !== "none") {
+      channels = { ...channels, email: false };
+    }
+
+    return channels;
   } catch (err) {
     // DB or parse error — fail-open with catalog defaults
     console.warn(

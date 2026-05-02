@@ -200,6 +200,61 @@ describe("resolveChannels()", () => {
     const ch = await resolveChannels("user-1", "portal.application.status_changed");
     expect(ch).toEqual({ inApp: true, push: false, email: true });
   });
+
+  // ── Digest-mode enforcement (AC #7) ─────────────────────────────────────────
+
+  it("digest mode: suppresses email for low-priority event with digestMode=daily", async () => {
+    mockGetNotificationPreferences.mockResolvedValue({
+      "portal.saved_search.new_results": {
+        channelInApp: true,
+        channelPush: false,
+        channelEmail: true,
+        digestMode: "daily",
+      },
+    });
+    const ch = await resolveChannels("user-1", "portal.saved_search.new_results");
+    expect(ch).toEqual({ inApp: true, push: false, email: false });
+  });
+
+  it("digest mode: suppresses email for low-priority event with digestMode=weekly", async () => {
+    mockGetNotificationPreferences.mockResolvedValue({
+      "portal.match.new_recommendations": {
+        channelInApp: true,
+        channelPush: false,
+        channelEmail: true,
+        digestMode: "weekly",
+      },
+    });
+    const ch = await resolveChannels("user-1", "portal.match.new_recommendations");
+    expect(ch).toEqual({ inApp: true, push: false, email: false });
+  });
+
+  it("digest mode: does NOT suppress email for low-priority event with digestMode=none (instant delivery)", async () => {
+    mockGetNotificationPreferences.mockResolvedValue({
+      "portal.saved_search.new_results": {
+        channelInApp: true,
+        channelPush: false,
+        channelEmail: true,
+        digestMode: "none",
+      },
+    });
+    const ch = await resolveChannels("user-1", "portal.saved_search.new_results");
+    expect(ch).toEqual({ inApp: true, push: false, email: true });
+  });
+
+  it("digest mode: does NOT suppress email for HIGH-priority event even with digestMode=daily", async () => {
+    // High-priority events bypass digest suppression
+    mockGetNotificationPreferences.mockResolvedValue({
+      "portal.application.status_changed": {
+        channelInApp: true,
+        channelPush: true,
+        channelEmail: true,
+        digestMode: "daily",
+      },
+    });
+    const ch = await resolveChannels("user-1", "portal.application.status_changed");
+    expect(ch).toEqual({ inApp: true, push: true, email: true });
+  });
 });
 
 // ── Step 2: applyPriorityRules ────────────────────────────────────────────────

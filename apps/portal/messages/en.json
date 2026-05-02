@@ -1539,6 +1539,20 @@
       "timeHoursAgo": "{count}h ago",
       "timeYesterday": "Yesterday",
       "timeDaysAgo": "{count}d ago"
+    },
+    "digest": {
+      "emailSubject": "Your job digest — {count} new items",
+      "sectionRecommendations": "New Job Recommendations",
+      "sectionSavedSearches": "Saved Search Results",
+      "sectionActivitySummary": "Activity Summary",
+      "viewAll": "View All",
+      "noNewItems": "No new items since your last digest",
+      "frequencyInstant": "Instant",
+      "frequencyDaily": "Daily Digest",
+      "frequencyWeekly": "Weekly Digest",
+      "frequencyOff": "Off",
+      "frequencyLabel": "Email frequency",
+      "digestPreferenceUpdated": "Digest frequency updated"
     }
   },
   "Shell": {

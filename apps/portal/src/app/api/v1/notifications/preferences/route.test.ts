@@ -32,6 +32,11 @@ vi.mock("@igbo/db", () => ({
   upsertNotificationPreference: (...args: unknown[]) => mockUpsertNotificationPreference(...args),
 }));
 
+const mockMarkDigestSent = vi.fn();
+vi.mock("@igbo/db/queries/notification-preferences", () => ({
+  markDigestSent: (...args: unknown[]) => mockMarkDigestSent(...args),
+}));
+
 const mockRedisClient = { del: vi.fn() };
 vi.mock("@/lib/redis", () => ({
   getRedisClient: vi.fn(() => mockRedisClient),
@@ -134,6 +139,8 @@ describe("PUT /api/v1/notifications/preferences", () => {
     vi.clearAllMocks();
     mockRequireAuthenticatedSession.mockResolvedValue({ userId: "user-1", role: "MEMBER" });
     mockUpsertNotificationPreference.mockResolvedValue(undefined);
+    mockMarkDigestSent.mockResolvedValue(undefined);
+    mockGetNotificationPreferences.mockResolvedValue({});
     mockRedisClient.del.mockResolvedValue(1);
   });
 
@@ -229,5 +236,95 @@ describe("PUT /api/v1/notifications/preferences", () => {
     await expect(
       PUT(makeReq("PUT", { eventType: "portal.application.status_changed", channelPush: false })),
     ).rejects.toMatchObject({ status: 401 });
+  });
+
+  // ── Task 6: digestMode watermark advance ────────────────────────────────────
+
+  it("rejects digestMode for non-low-priority events with 400", async () => {
+    const { PUT } = await import("./route");
+    await expect(
+      PUT(
+        makeReq("PUT", {
+          eventType: "portal.application.status_changed",
+          digestMode: "daily",
+        }),
+      ),
+    ).rejects.toMatchObject({ status: 400 });
+    expect(mockUpsertNotificationPreference).not.toHaveBeenCalled();
+  });
+
+  it("advances watermark when switching from cadence to instant (daily → none)", async () => {
+    mockGetNotificationPreferences.mockResolvedValue({
+      "portal.saved_search.new_results": {
+        channelInApp: true,
+        channelPush: false,
+        channelEmail: true,
+        digestMode: "daily",
+        quietHoursStart: null,
+        quietHoursEnd: null,
+        quietHoursTimezone: "UTC",
+        lastDigestAt: null,
+      },
+    });
+    const { PUT } = await import("./route");
+    await PUT(makeReq("PUT", { eventType: "portal.saved_search.new_results", digestMode: "none" }));
+    expect(mockMarkDigestSent).toHaveBeenCalledWith(
+      "user-1",
+      ["portal.saved_search.new_results"],
+      expect.any(Date),
+    );
+  });
+
+  it("does NOT advance watermark when switching cadence-to-cadence (daily → weekly)", async () => {
+    mockGetNotificationPreferences.mockResolvedValue({
+      "portal.saved_search.new_results": {
+        channelInApp: true,
+        channelPush: false,
+        channelEmail: true,
+        digestMode: "daily",
+        quietHoursStart: null,
+        quietHoursEnd: null,
+        quietHoursTimezone: "UTC",
+        lastDigestAt: null,
+      },
+    });
+    const { PUT } = await import("./route");
+    await PUT(
+      makeReq("PUT", { eventType: "portal.saved_search.new_results", digestMode: "weekly" }),
+    );
+    expect(mockMarkDigestSent).not.toHaveBeenCalled();
+  });
+
+  it("does NOT advance watermark when setting digestMode with no existing preference row (first-time)", async () => {
+    // mockGetNotificationPreferences already returns {} in beforeEach (no existing row)
+    const { PUT } = await import("./route");
+    await PUT(
+      makeReq("PUT", { eventType: "portal.saved_search.new_results", digestMode: "daily" }),
+    );
+    expect(mockMarkDigestSent).not.toHaveBeenCalled();
+  });
+
+  it("advances watermark when switching from instant to cadence (none → daily)", async () => {
+    mockGetNotificationPreferences.mockResolvedValue({
+      "portal.saved_search.new_results": {
+        channelInApp: true,
+        channelPush: false,
+        channelEmail: true,
+        digestMode: "none",
+        quietHoursStart: null,
+        quietHoursEnd: null,
+        quietHoursTimezone: "UTC",
+        lastDigestAt: null,
+      },
+    });
+    const { PUT } = await import("./route");
+    await PUT(
+      makeReq("PUT", { eventType: "portal.saved_search.new_results", digestMode: "daily" }),
+    );
+    expect(mockMarkDigestSent).toHaveBeenCalledWith(
+      "user-1",
+      ["portal.saved_search.new_results"],
+      expect.any(Date),
+    );
   });
 });

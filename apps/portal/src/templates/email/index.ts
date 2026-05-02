@@ -1,6 +1,7 @@
 import "server-only";
 import { render as renderApplicationConfirmation } from "./application-confirmation";
 import { render as renderSavedSearchDigest } from "./saved-search-digest";
+import { render as renderNotificationDigest } from "./notification-digest";
 import { render as renderApplicationSubmittedEmployer } from "./application-submitted-employer";
 import { render as renderApplicationStatusChanged } from "./application-status-changed";
 import { render as renderJobApproved } from "./job-approved";
@@ -15,6 +16,7 @@ export type { EmailTemplateResult, EmailTemplateRenderer };
 const REGISTRY: Record<string, EmailTemplateRenderer> = {
   "application-confirmation": renderApplicationConfirmation,
   "saved-search-digest": renderSavedSearchDigest,
+  "notification-digest": renderNotificationDigest,
   "application-submitted-employer": renderApplicationSubmittedEmployer,
   "application-status-changed": renderApplicationStatusChanged,
   "job-approved": renderJobApproved,

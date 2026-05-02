@@ -242,6 +242,30 @@ export async function getUndigestedNotifications(userId: string, type: string, s
     );
 }
 
+/**
+ * Portal-specific: fetch all undigested "system" notifications since a given date.
+ *
+ * Portal notifications are stored with `type = "system"` (the community notification_type enum),
+ * not with the portal event type string (e.g. "portal.saved_search.new_results").
+ * The original `getUndigestedNotifications` works for community (which stores real enum values)
+ * but always returns 0 rows for portal. This function filters by `type = "system"` instead.
+ *
+ * Callers classify notifications into digest sections using `idempotencyKey` prefixes.
+ */
+export async function getUndigestedPortalNotifications(userId: string, since: Date) {
+  return db
+    .select()
+    .from(platformNotifications)
+    .where(
+      and(
+        eq(platformNotifications.userId, userId),
+        eq(platformNotifications.type, "system" as never),
+        gt(platformNotifications.createdAt, since),
+      ),
+    )
+    .orderBy(asc(platformNotifications.createdAt));
+}
+
 export async function markDigestSent(userId: string, types: string[], sentAt: Date): Promise<void> {
   if (types.length === 0) return;
   await db
