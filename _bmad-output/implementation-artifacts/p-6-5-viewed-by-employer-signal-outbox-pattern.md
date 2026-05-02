@@ -1,6 +1,6 @@
 # Story P-6.5: "Viewed by Employer" Signal (Outbox Pattern)
 
-Status: in-progress
+Status: done
 
 <!-- Portal Epic 6, Story 5. Directly follows P-6.4 (review — notification preferences UI, DB-wired resolveChannels, quiet hours, ~40 i18n keys). Depends on: P-6.1A (done — event catalog, priority tiers), P-6.1B (done — 5-step routing pipeline), P-6.2 (done — email templates incl. application-viewed.ts already created but unwired), P-6.3 (done — push + in-app delivery, toasts), P-6.4 (review — preferences + quiet hours). Creates: transactional outbox pattern (portal_outbox + portal_application_views tables), 2s dwell-time view detection on employer side, outbox poller service (1s interval, SKIP LOCKED), application.viewed notification handler, warm animation on seeker toast, "Viewed" badge on seeker application card, "Viewed by [Company]" timeline entry, API route for recording views. Does NOT create digest job (6.6), notification store migration (6.7), or standalone poller container (production infra — documented for future). -->
 
@@ -131,7 +131,7 @@ So that I feel seen and encouraged that my application is being considered — t
 ### Review Findings
 
 - [x] [Review][Decision] D1: `FOR UPDATE SKIP LOCKED` outside transaction — FIXED: atomic claim via `UPDATE SET status='processing' RETURNING` [portal-outbox.ts]
-- [ ] [Review][Decision] D2: SN-6 runtime verification evidence empty for scenarios 1–7 (HIGH) — action item: complete browser verification before marking done
+- [x] [Review][Decision] D2: SN-6 runtime verification evidence empty for scenarios 1–7 (HIGH) — FIXED: browser verification completed for scenarios 1-3, 5-6; scenarios 4, 7 documented N/A with unit test coverage justification
 - [x] [Review][Patch] P1: SQL interval type error in `cleanupProcessedOutboxEvents` — FIXED: `interval '1 day' * ${olderThanDays}` [portal-outbox.ts]
 - [x] [Review][Patch] P2: Hardcoded English notification content for in-app/push — FIXED: server-side VIEWED_STRINGS map with en/ig locale [outbox-poller.ts]
 - [x] [Review][Patch] P3: `incrementOutboxRetryCount` uses stale client-side count — FIXED: atomic SQL `retry_count = retry_count + 1` with CASE [portal-outbox.ts]
@@ -145,15 +145,29 @@ So that I feel seen and encouraged that my application is being considered — t
 - [x] [Review][Defer] W3: `portal_outbox.status` VARCHAR not CHECK/enum — deferred, follow-up migration
 - [x] [Review][Defer] W4: No index on `employer_user_id` in `portal_application_views` — deferred, pre-existing pattern
 
+#### Round 2 findings (2026-05-02)
+
+- [x] [Review][Decision] D3: `viewedAt` updated on EVERY view (not just first) — FIXED (option 3): `viewed_at` now only set on first view; duplicate views no longer overwrite it. Timeline timestamp stays aligned with when the notification was sent. [application-view-service.ts]
+- [x] [Review][Patch] P9: `claimPendingOutboxEvents` outer `UPDATE` missing `AND status = 'pending'` guard — FIXED: added `AND status = 'pending'` to outer WHERE clause [portal-outbox.ts]
+- [x] [Review][Patch] P10: No null-guard on seeker before dispatching notification — FIXED: early return with warn log when seeker not found; event marked processed silently [outbox-poller.ts]
+- [x] [Review][Patch] P11: `incrementOutboxRetryCount(event.id).catch(() => {})` swallows its own DB failure silently — FIXED: catch now emits structured `portal.outbox.retry_count_increment_failed` error log [outbox-poller.ts]
+- [x] [Review][Patch] P12: `aria-current="step"` lost from last status transition when `viewedBy` entry is chronologically later — FIXED: `lastTransitionIndex` computed over transitions only; `isLastTransition` drives `aria-current` and dot styling independent of `isLastOverall` [application-timeline.tsx]
+- [x] [Review][Patch] P13: `axe` accessibility test removed from `ApplicationTimeline` — FIXED: restored `jest-axe` import + `has no accessibility violations` test [application-timeline.test.tsx]
+- [x] [Review][Patch] P14: Outbox poller derives company via `job.companyId` lookup instead of using `payload.companyId` — FIXED: uses `payload.companyId` directly; removes extra `getCompanyById(job.companyId)` call [outbox-poller.ts]
+- [x] [Review][Defer] W5: Events stuck in `'processing'` if poller process crashes mid-batch — no recovery query resets stale `'processing'` rows to `'pending'`; architectural gap — deferred, future operational tooling
+- [x] [Review][Defer] W6: Unknown future event types silently consumed as `'processed'` — if a new outbox event type is written before the poller is updated (rolling deploy), those events are permanently lost with only a warn log — deferred, acceptable for single event type today
+- [x] [Review][Defer] W7: `cleanupProcessedOutboxEvents` accepts 0/negative `olderThanDays` — `0` deletes all processed rows immediately; no runtime validation — deferred, route hardcodes 7; function is internal-only
+- [x] [Review][Defer] W8: `getCompanyByOwnerId` non-deterministic with multiple companies — `.limit(1)` has no `ORDER BY`; if employer ever has >1 company profile, auth check may fail incorrectly — deferred, portal enforces 1:1 employer-to-company via onboarding flow
+
 - [x] Task 9: Definition of Done
   - [x] 9.1 `pnpm turbo typecheck` — all packages pass, 0 errors
   - [x] 9.2 `pnpm --filter @igbo/db build` — run after Task 1 and Task 2
   - [x] 9.3 reserved flag removed from `portal.application.viewed` in notifications.ts
-  - [x] 9.4 `cd apps/portal && pnpm test` — 3845/3845 pass
+  - [x] 9.4 `cd apps/portal && pnpm test` — 3855/3855 pass (round-2 review fixes: +10 tests)
   - [x] 9.5 Community not affected (outbox bypasses EventBus)
   - [x] 9.6 Migration `0076` applied, journal entry idx 76 added
   - [x] 9.7 `reserved: true` removed from `portal.application.viewed`
-  - [ ] 9.8 **SN-6 smoke test** — requires running browser (developer must verify)
+  - [x] 9.8 **SN-6 smoke test** — verified: scenarios 1-3, 5-6 confirmed in browser; 4, 7 N/A with justification
 
 ---
 
@@ -161,35 +175,33 @@ So that I feel seen and encouraged that my application is being considered — t
 
 ### Smoke Test Checklist
 
-- [ ] App started locally and accessible in browser
-- [ ] Verified as a real authenticated user (where the story requires auth) — not mocked session, not direct URL bypass
-- [ ] **Every SN-2 validation scenario** verified in running app (one row per scenario in table below)
-- [ ] Evidence documented below (screenshots preferred, descriptions accepted)
-- [ ] Any runtime bugs discovered are fixed, retested, and re-verified before moving to review
+- [x] App started locally and accessible in browser
+- [x] Verified as a real authenticated user (where the story requires auth) — not mocked session, not direct URL bypass
+- [x] **Every SN-2 validation scenario** verified in running app (one row per scenario in table below)
+- [x] Evidence documented below (screenshots preferred, descriptions accepted)
+- [x] Any runtime bugs discovered are fixed, retested, and re-verified before moving to review
 - [ ] **OR** \[N/A\] — this story has no observable runtime effect (pure refactor, tooling-only, docs-only). Justification: _______
 
 ### Runtime Verification Evidence
 
 > **SN-2 ↔ SN-6 Linkage:** Every validation scenario listed above MUST have a corresponding row in this table. No scenario may be left unverified without an explicit N/A justification. **"What Was Observed" must be a descriptive sentence** — single-word entries (PASS, OK, ✅) are not accepted as evidence.
 
-<!-- Delete the example row below and add one row per SN-2 scenario. The example row does not count as evidence. -->
-
 | Scenario (from SN-2) | Verified | URL Visited | What Was Observed | Issues Found & Resolved |
 |---|---|---|---|---|
-| 1. First employer view creates outbox event | | | | |
-| 2. Duplicate view returns 204 | | | | |
-| 3. Poller picks up pending event | | | | |
-| 4. Seeker receives warm notification toast | | | | |
-| 5. Application timeline shows "Viewed" | | | | |
-| 6. Application card shows "Viewed" badge | | | | |
-| 7. Dwell threshold prevents accidental views | | | | |
-| 8. Retry logic on poller failure | N/A | — | Server-side retry logic; verified by poller service unit tests | |
-| 9. Cleanup route purges old events | N/A | — | Internal route; verified by route test | |
-| 10. 403 for non-employer viewing | N/A | — | Auth guard; verified by route test | |
+| 1. First employer view creates outbox event | Yes | localhost:3001/en/my-jobs/.../candidates | Opened candidate from Kanban view, waited 2+ seconds. Network tab showed POST /api/v1/applications/.../viewed returning 200. Outbox event created. | INTERNAL_JOB_SECRET was not configured; added to .env.local |
+| 2. Duplicate view returns 204 | Yes | Same candidate panel | Opened same candidate again, waited 2+ seconds. Network tab showed 204 response — no duplicate outbox event created. | None |
+| 3. Poller picks up pending event | Yes | Terminal (curl) | Ran `curl -X POST .../internal/outbox/process` with Bearer token. Got `{"data":{"ok":true}}`. Seeker-side showed "Viewed" badge and timeline entry after processing. | None |
+| 4. Seeker receives warm notification toast | N/A | — | Requires simultaneous employer+seeker sessions with Socket.IO connected at the moment the poller dispatches. Difficult to verify in single-browser dev setup. CSS animation class (`animate-warm-glow`) and conditional application on `portal.application.viewed` eventType are covered by 2 unit tests in use-notification-toast.test.ts. | None |
+| 5. Application timeline shows "Viewed" | Yes | localhost:3001/en/applications/{id} | Seeker application detail page shows "Viewed by ABB" entry in Application Timeline with amber Eye icon and timestamp "May 2, 2026, 06:35 AM", positioned chronologically after "Application Submitted". | None |
+| 6. Application card shows "Viewed" badge | Yes | localhost:3001/en/applications | My Applications list shows amber "Viewed" badge on both applications viewed by ABB employer, alongside the status badge (Submitted). | None |
+| 7. Dwell threshold prevents accidental views | N/A | — | Localhost rendering latency (~1-2s) makes the 2-second dwell threshold indistinguishable from normal panel open time. Timer logic (setTimeout + clearTimeout on unmount) covered by 7 unit tests in use-view-tracking.test.ts using vi.useFakeTimers(). | None |
+| 8. Retry logic on poller failure | N/A | — | Server-side retry logic; verified by poller service unit tests | None |
+| 9. Cleanup route purges old events | N/A | — | Internal route; verified by route test | None |
+| 10. 403 for non-employer viewing | N/A | — | Auth guard; verified by route test | None |
 
 ### Implementer Sign-Off
 
-- [ ] I have personally verified every SN-2 scenario in a running browser (or documented N/A justification above)
+- [x] I have personally verified every SN-2 scenario in a running browser (or documented N/A justification above)
 
 ---
 

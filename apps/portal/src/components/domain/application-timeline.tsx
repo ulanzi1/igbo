@@ -40,10 +40,18 @@ export function ApplicationTimeline({ transitions, viewedBy }: ApplicationTimeli
       : []),
   ].sort((a, b) => a.sortKey.getTime() - b.sortKey.getTime());
 
+  // Index of the last transition item — used for aria-current="step" and dot styling.
+  // Computed separately so a viewedBy entry that sorts after all transitions does not
+  // cause the last status transition to lose its aria-current="step" marker.
+  const lastTransitionIndex = items.reduce(
+    (last, item, idx) => (item.kind === "transition" ? idx : last),
+    -1,
+  );
+
   return (
     <ol aria-label={t("timelineTitle")} className="relative space-y-0">
       {items.map((item, index) => {
-        const isLatest = index === items.length - 1;
+        const isLastOverall = index === items.length - 1;
 
         if (item.kind === "viewed") {
           return (
@@ -52,7 +60,7 @@ export function ApplicationTimeline({ transitions, viewedBy }: ApplicationTimeli
               className="relative pl-8 pb-6"
               aria-label={tViewed("timelineAriaLabel")}
             >
-              {!isLatest && (
+              {!isLastOverall && (
                 <div
                   className="absolute left-[11px] top-6 h-full w-0.5 bg-border"
                   aria-hidden="true"
@@ -85,13 +93,14 @@ export function ApplicationTimeline({ transitions, viewedBy }: ApplicationTimeli
 
         // kind === "transition"
         const { transition } = item;
+        const isLastTransition = index === lastTransitionIndex;
         return (
           <li
             key={transition.id}
             className="relative pl-8 pb-6"
-            aria-current={isLatest ? "step" : undefined}
+            aria-current={isLastTransition ? "step" : undefined}
           >
-            {!isLatest && (
+            {!isLastOverall && (
               <div
                 className="absolute left-[11px] top-6 h-full w-0.5 bg-border"
                 aria-hidden="true"
@@ -99,15 +108,15 @@ export function ApplicationTimeline({ transitions, viewedBy }: ApplicationTimeli
             )}
             <div
               className={`absolute left-0 top-1 flex h-6 w-6 items-center justify-center rounded-full border-2 ${
-                isLatest ? "border-primary bg-primary" : "border-border bg-background"
+                isLastTransition ? "border-primary bg-primary" : "border-border bg-background"
               }`}
               aria-hidden="true"
             >
               <div
-                className={`h-2 w-2 rounded-full ${isLatest ? "bg-primary-foreground" : "bg-muted-foreground"}`}
+                className={`h-2 w-2 rounded-full ${isLastTransition ? "bg-primary-foreground" : "bg-muted-foreground"}`}
               />
             </div>
-            <div className={isLatest ? "font-semibold" : ""}>
+            <div className={isLastTransition ? "font-semibold" : ""}>
               <p className="text-sm font-medium text-foreground">
                 {transition.fromStatus === transition.toStatus && index === 0
                   ? t("timelineSubmitted")

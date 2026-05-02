@@ -55,7 +55,16 @@ export const processOutboxBatch = withHandlerGuard("notif:outbox.process", async
           error: String(err),
         }),
       );
-      await incrementOutboxRetryCount(event.id).catch(() => {});
+      await incrementOutboxRetryCount(event.id).catch((retryErr: unknown) => {
+        console.error(
+          JSON.stringify({
+            level: "error",
+            message: "portal.outbox.retry_count_increment_failed",
+            eventId: event.id,
+            error: String(retryErr),
+          }),
+        );
+      });
     }
   }
 });
@@ -97,7 +106,23 @@ async function processApplicationViewedEvent(event: PortalOutboxEvent): Promise<
 
   const seeker = seekerResult.status === "fulfilled" ? seekerResult.value : null;
   const job = jobResult.status === "fulfilled" ? jobResult.value : null;
-  const company = job?.companyId ? await getCompanyById(job.companyId).catch(() => null) : null;
+
+  // Guard: if seeker no longer exists (deleted/anonymized), consume the event silently
+  if (!seeker) {
+    console.warn(
+      JSON.stringify({
+        level: "warn",
+        message: "portal.outbox.seeker_not_found",
+        eventId: event.id,
+        seekerUserId: payload.seekerUserId,
+      }),
+    );
+    return;
+  }
+
+  // Use payload.companyId (captured at event-creation time) — avoids an extra job lookup
+  // and stays accurate even if the job posting was reassigned or deleted after the view
+  const company = await getCompanyById(payload.companyId).catch(() => null);
 
   const companyName = company?.name ?? "An employer";
   const jobTitle = job?.title ?? "your position";

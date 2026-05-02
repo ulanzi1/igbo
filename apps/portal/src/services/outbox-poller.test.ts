@@ -202,6 +202,41 @@ describe("outbox-poller", () => {
       expect(call.pushPayload?.title).toContain("hụrụ arịọ gị");
     });
 
+    it("consumes event silently (marks processed, no dispatch) when seeker not found", async () => {
+      vi.mocked(findUserById).mockResolvedValue(null);
+      vi.mocked(claimPendingOutboxEvents).mockResolvedValue([makeEvent()]);
+      const consoleSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+      const { processOutboxBatch } = await import("./outbox-poller");
+      await (processOutboxBatch as () => Promise<void>)();
+      expect(dispatchNotification).not.toHaveBeenCalled();
+      expect(markOutboxEventProcessed).toHaveBeenCalledWith("outbox-1");
+      expect(consoleSpy).toHaveBeenCalledWith(
+        expect.stringContaining("portal.outbox.seeker_not_found"),
+      );
+      consoleSpy.mockRestore();
+    });
+
+    it("uses payload.companyId for company lookup (not job.companyId)", async () => {
+      vi.mocked(claimPendingOutboxEvents).mockResolvedValue([makeEvent()]);
+      const { processOutboxBatch } = await import("./outbox-poller");
+      await (processOutboxBatch as () => Promise<void>)();
+      expect(getCompanyById).toHaveBeenCalledWith(COMPANY_ID);
+    });
+
+    it("logs structured error when retry count increment itself fails", async () => {
+      vi.mocked(claimPendingOutboxEvents).mockResolvedValue([makeEvent()]);
+      vi.mocked(dispatchNotification).mockRejectedValue(new Error("dispatch failed"));
+      vi.mocked(incrementOutboxRetryCount).mockRejectedValue(new Error("db unavailable"));
+      const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+      const { processOutboxBatch } = await import("./outbox-poller");
+      await (processOutboxBatch as () => Promise<void>)();
+      const calls = consoleSpy.mock.calls.map((c) => c[0] as string);
+      expect(calls.some((c) => c.includes("portal.outbox.retry_count_increment_failed"))).toBe(
+        true,
+      );
+      consoleSpy.mockRestore();
+    });
+
     it("concurrent invocations via SKIP LOCKED — second call fetches 0 rows (already claimed)", async () => {
       vi.mocked(claimPendingOutboxEvents)
         .mockResolvedValueOnce([makeEvent()])

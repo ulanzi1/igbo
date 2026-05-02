@@ -2,6 +2,9 @@
 import { describe, it, expect, vi, beforeAll } from "vitest";
 import { render, screen } from "@testing-library/react";
 import "@testing-library/jest-dom";
+import { axe, toHaveNoViolations } from "jest-axe";
+
+expect.extend(toHaveNoViolations);
 
 vi.mock("next-intl", () => ({
   useTranslations: () => (key: string, params?: Record<string, string>) => {
@@ -71,12 +74,12 @@ describe("ApplicationTimeline", () => {
 
   it("renders both viewed entry AND status transitions together without overlap", () => {
     const t1 = makeTransition({ id: "t1", createdAt: new Date("2026-01-01") });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const t2 = makeTransition({
       id: "t2",
       createdAt: new Date("2026-01-03"),
       fromStatus: "under_review",
       toStatus: "shortlisted",
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any);
     render(
       <ApplicationTimeline
@@ -90,12 +93,12 @@ describe("ApplicationTimeline", () => {
 
   it("sorts viewed entry chronologically between transitions", () => {
     const t1 = makeTransition({ id: "t1", createdAt: new Date("2026-01-01") });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const t2 = makeTransition({
       id: "t2",
       createdAt: new Date("2026-01-03"),
       fromStatus: "under_review",
       toStatus: "shortlisted",
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any);
     render(
       <ApplicationTimeline
@@ -195,5 +198,29 @@ describe("ApplicationTimeline", () => {
     // The viewed entry (last item) should NOT have aria-current
     const lastItem = items[items.length - 1]!;
     expect(lastItem).not.toHaveAttribute("aria-current", "step");
+  });
+
+  it("last transition keeps aria-current='step' even when viewedBy entry sorts after it", () => {
+    const t1 = makeTransition({ id: "t1", createdAt: new Date("2026-01-01") });
+    render(
+      <ApplicationTimeline
+        transitions={[t1]}
+        viewedBy={{ companyName: COMPANY_NAME, viewedAt: new Date("2026-01-05") }}
+      />,
+    );
+    const items = screen.getAllByRole("listitem");
+    // The transition entry (first item, chronologically before viewedBy) should still have aria-current
+    expect(items[0]).toHaveAttribute("aria-current", "step");
+  });
+
+  it("has no accessibility violations", async () => {
+    const { container } = render(
+      <ApplicationTimeline
+        transitions={[makeTransition()]}
+        viewedBy={{ companyName: COMPANY_NAME, viewedAt: VIEWED_AT }}
+      />,
+    );
+    const results = await axe(container);
+    expect(results).toHaveNoViolations();
   });
 });

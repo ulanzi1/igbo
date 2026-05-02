@@ -40,6 +40,7 @@ export async function claimPendingOutboxEvents(limit = 100): Promise<PortalOutbo
       FOR UPDATE SKIP LOCKED
       LIMIT ${limit}
     )
+    AND status = 'pending'
     RETURNING id, event_type, payload, status, retry_count, created_at, processed_at
   `);
   return Array.from(rows).map((row: any) => ({

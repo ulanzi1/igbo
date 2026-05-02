@@ -89,6 +89,15 @@ describe("portal-outbox queries", () => {
       const events = await claimPendingOutboxEvents();
       expect(events).toHaveLength(0);
     });
+
+    it("outer UPDATE includes AND status = 'pending' guard against concurrent race", async () => {
+      const { claimPendingOutboxEvents } = await import("./portal-outbox");
+      mockDb.execute.mockResolvedValue([] as any);
+      await claimPendingOutboxEvents(10);
+      const sqlArg = mockDb.execute.mock.calls[0]?.[0];
+      const sqlStr = JSON.stringify(sqlArg);
+      expect(sqlStr).toContain("AND status = 'pending'");
+    });
   });
 
   describe("markOutboxEventProcessed", () => {

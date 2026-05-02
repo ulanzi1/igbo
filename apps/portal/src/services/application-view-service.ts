@@ -13,7 +13,8 @@ import { eq } from "drizzle-orm";
  *
  * Performs an atomic transaction:
  * 1. Inserts into portal_application_views (ON CONFLICT DO NOTHING for idempotency)
- * 2. Updates portal_applications.viewed_at (always, even on duplicate views)
+ * 2. Updates portal_applications.viewed_at ONLY on first view (timestamp stays aligned
+ *    with when the seeker notification was sent — not overwritten by subsequent views)
  * 3. Inserts into portal_outbox ONLY on first view
  *
  * Authorization: the employer must own the company that owns the job posting.
@@ -39,24 +40,25 @@ export async function recordApplicationView(
     });
   }
 
-  // Step 3: Atomic transaction — dedup + viewed_at update + optional outbox insert
+  // Step 3: Atomic transaction — dedup + first-view-only viewed_at update + outbox insert
   return db.transaction(async (tx) => {
     // 3a. Insert dedup row (ON CONFLICT DO NOTHING)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Drizzle PgTransaction generic mismatch
     const { isFirstView } = await recordApplicationViewRow(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Drizzle PgTransaction generic mismatch
       tx as any,
       applicationId,
       employerUserId,
     );
 
-    // 3b. Always update viewed_at (denormalized convenience field)
-    await tx
-      .update(portalApplications)
-      .set({ viewedAt: new Date(), updatedAt: new Date() })
-      .where(eq(portalApplications.id, applicationId));
-
     if (isFirstView) {
-      // 3c. Insert outbox event ONLY on first view — guarantees at-most-one notification
+      // 3b. Set viewed_at ONLY on first view — keeps the timestamp aligned with when
+      //     the seeker notification was sent (not overwritten by subsequent views)
+      await tx
+        .update(portalApplications)
+        .set({ viewedAt: new Date(), updatedAt: new Date() })
+        .where(eq(portalApplications.id, applicationId));
+
+      // 3c. Insert outbox event — guarantees at-most-one notification
       // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Drizzle PgTransaction generic mismatch
       await insertOutboxEvent(tx as any, "portal.application.viewed", {
         applicationId,

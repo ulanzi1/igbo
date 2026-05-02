@@ -55,11 +55,9 @@ const mockCompany = { id: COMPANY_ID, ownerUserId: EMPLOYER_ID };
 
 function setupTransactionMock(isFirstView: boolean) {
   const tx = {
-    update: vi
-      .fn()
-      .mockReturnValue({
-        set: vi.fn().mockReturnValue({ where: vi.fn().mockResolvedValue(undefined) }),
-      }),
+    update: vi.fn().mockReturnValue({
+      set: vi.fn().mockReturnValue({ where: vi.fn().mockResolvedValue(undefined) }),
+    }),
     execute: vi.fn().mockResolvedValue({ count: isFirstView ? 1 : 0 }),
   };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -80,10 +78,11 @@ describe("application-view-service", () => {
 
   describe("recordApplicationView", () => {
     it("returns isFirstView=true and creates all 3 records on first view", async () => {
-      setupTransactionMock(true);
+      const tx = setupTransactionMock(true);
       const { recordApplicationView } = await import("./application-view-service");
       const result = await recordApplicationView(APP_ID, EMPLOYER_ID);
       expect(result.isFirstView).toBe(true);
+      expect(tx.update).toHaveBeenCalledOnce();
       expect(insertOutboxEvent).toHaveBeenCalledOnce();
       expect(insertOutboxEvent).toHaveBeenCalledWith(
         expect.anything(),
@@ -97,12 +96,13 @@ describe("application-view-service", () => {
       );
     });
 
-    it("returns isFirstView=false and does NOT insert outbox event on duplicate view", async () => {
-      setupTransactionMock(false);
+    it("returns isFirstView=false and does NOT insert outbox event or update viewed_at on duplicate view", async () => {
+      const tx = setupTransactionMock(false);
       const { recordApplicationView } = await import("./application-view-service");
       const result = await recordApplicationView(APP_ID, EMPLOYER_ID);
       expect(result.isFirstView).toBe(false);
       expect(insertOutboxEvent).not.toHaveBeenCalled();
+      expect(tx.update).not.toHaveBeenCalled();
     });
 
     it("throws 404 when application not found", async () => {
