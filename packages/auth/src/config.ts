@@ -31,7 +31,8 @@ export const CHALLENGE_TTL = 300; // 5 minutes
 export async function getChallenge(token: string): Promise<ChallengeData | null> {
   try {
     const redis = getAuthRedis();
-    const raw = await redis.get(`challenge:${token}`);
+    // auth-scope: raw Redis keys — internal session/challenge management
+    const raw = await redis.get(`challenge:${token}`); // ci-allow-redis-key
     return raw ? (JSON.parse(raw) as ChallengeData) : null;
   } catch {
     return null;
@@ -42,7 +43,7 @@ export async function getChallenge(token: string): Promise<ChallengeData | null>
 export async function consumeChallenge(token: string): Promise<ChallengeData | null> {
   try {
     const redis = getAuthRedis();
-    const raw = await redis.getdel(`challenge:${token}`);
+    const raw = await redis.getdel(`challenge:${token}`); // ci-allow-redis-key
     return raw ? (JSON.parse(raw) as ChallengeData) : null;
   } catch {
     return null;
@@ -51,13 +52,13 @@ export async function consumeChallenge(token: string): Promise<ChallengeData | n
 
 export async function setChallenge(token: string, data: ChallengeData): Promise<void> {
   const redis = getAuthRedis();
-  await redis.set(`challenge:${token}`, JSON.stringify(data), "EX", CHALLENGE_TTL);
+  await redis.set(`challenge:${token}`, JSON.stringify(data), "EX", CHALLENGE_TTL); // ci-allow-redis-key
 }
 
 export async function deleteChallenge(token: string): Promise<void> {
   try {
     const redis = getAuthRedis();
-    await redis.del(`challenge:${token}`);
+    await redis.del(`challenge:${token}`); // ci-allow-redis-key
   } catch {
     // Non-critical
   }
@@ -93,12 +94,12 @@ function buildAdapter(): Adapter {
       let deviceIp: string | null = null;
       try {
         const redis = getAuthRedis();
-        const deviceInfoRaw = await redis.get(`pending_session_device:${data.userId}`);
+        const deviceInfoRaw = await redis.get(`pending_session_device:${data.userId}`); // ci-allow-redis-key
         if (deviceInfoRaw) {
           const parsed = JSON.parse(deviceInfoRaw) as { deviceName?: string; deviceIp?: string };
           deviceName = parsed.deviceName ?? null;
           deviceIp = parsed.deviceIp ?? null;
-          await redis.del(`pending_session_device:${data.userId}`);
+          await redis.del(`pending_session_device:${data.userId}`); // ci-allow-redis-key
         }
       } catch {
         // Non-critical — session creates without device info
@@ -215,7 +216,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         try {
           const redis = getAuthRedis();
           await redis.set(
-            `pending_session_device:${user.id}`,
+            `pending_session_device:${user.id}`, // ci-allow-redis-key
             JSON.stringify({ deviceName: challenge.deviceName, deviceIp: challenge.deviceIp }),
             "EX",
             30,

@@ -21,7 +21,8 @@ const rateLimitConfig = {
 const getHandler = async () => {
   const { userId } = await requireAuthenticatedSession();
   const redis = getRedisClient();
-  const exists = await redis.exists(`dnd:${userId}`);
+  // community-scope: raw Redis keys — VD-4 trigger not yet reached
+  const exists = await redis.exists(`dnd:${userId}`); // ci-allow-redis-key
   return successResponse({ dnd: exists === 1 });
 };
 
@@ -46,7 +47,7 @@ const patchHandler = async (request: Request) => {
   }
 
   const redis = getRedisClient();
-  const key = `dnd:${userId}`;
+  const key = `dnd:${userId}`; // ci-allow-redis-key
 
   if (enabled) {
     await redis.set(key, "1");

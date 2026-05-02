@@ -17,7 +17,16 @@ const PAGE_SIZE = 20;
 
 export async function createNotification(
   data: NewPlatformNotification,
-): Promise<PlatformNotification> {
+): Promise<PlatformNotification | null> {
+  if (data.idempotencyKey) {
+    const [record] = await db
+      .insert(platformNotifications)
+      .values(data)
+      .onConflictDoNothing({ target: platformNotifications.idempotencyKey })
+      .returning();
+    return record ?? null; // null = conflict, no-op (duplicate idempotencyKey)
+  }
+  // Legacy path: no idempotency key — bare insert (throws on error)
   const [record] = await db.insert(platformNotifications).values(data).returning();
   if (!record) throw new Error("Insert returned no record");
   return record;

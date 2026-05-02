@@ -169,11 +169,12 @@ export async function GET(
 
   const redis = getRedisClient();
 
-  const stateValue = await redis.get(`social_link_state:${state}`);
+  // community-scope: raw Redis keys — VD-4 trigger not yet reached
+  const stateValue = await redis.get(`social_link_state:${state}`); // ci-allow-redis-key
   if (!stateValue) {
     return errorRedirect("en", provider);
   }
-  await redis.del(`social_link_state:${state}`);
+  await redis.del(`social_link_state:${state}`); // ci-allow-redis-key
 
   const parts = stateValue.split(":");
   const userId = parts[0];
@@ -185,8 +186,8 @@ export async function GET(
 
   let codeVerifier: string | undefined;
   if (provider === "twitter") {
-    const verifier = await redis.get(`social_link_pkce:${state}`);
-    await redis.del(`social_link_pkce:${state}`);
+    const verifier = await redis.get(`social_link_pkce:${state}`); // ci-allow-redis-key
+    await redis.del(`social_link_pkce:${state}`); // ci-allow-redis-key
     if (!verifier) {
       return errorRedirect(storedLocale, provider);
     }

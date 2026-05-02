@@ -38,7 +38,12 @@ export async function trackJobView(jobId: string, userId: string): Promise<boole
     if (result === "OK") {
       // New view — increment DB counter
       await incrementViewCount(jobId);
-      portalEventBus.emit("job.viewed", { jobId, userId, isNewView: true });
+      portalEventBus.emit("job.viewed", {
+        jobId,
+        userId,
+        isNewView: true,
+        emittedBy: "job-analytics-service",
+      });
       return true;
     }
 
@@ -159,6 +164,7 @@ export async function shareJobToCommunity(
     companyId,
     communityPostId: communityPost.id,
     employerUserId: userId,
+    emittedBy: "job-analytics-service",
   });
 
   return { success: true, communityPostId: communityPost.id };

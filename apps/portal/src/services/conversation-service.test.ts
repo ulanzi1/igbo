@@ -50,7 +50,7 @@ vi.mock("drizzle-orm", () => ({
   })),
 }));
 
-const mockPortalEventBus = vi.hoisted(() => ({ emit: vi.fn() }));
+const mockPortalEventBus = vi.hoisted(() => ({ emit: vi.fn(), validate: vi.fn() }));
 vi.mock("@/services/event-bus", () => ({
   portalEventBus: mockPortalEventBus,
 }));

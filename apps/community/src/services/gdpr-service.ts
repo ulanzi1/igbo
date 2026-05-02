@@ -69,7 +69,8 @@ export async function requestAccountDeletion(userId: string, password: string): 
   // Generate a cancellation token and store in Redis
   const cancellationToken = randomUUID();
   const redis = getRedisClient();
-  await redis.set(`gdpr:cancel:${userId}`, cancellationToken, "EX", CANCELLATION_TOKEN_TTL_SECONDS);
+  // community-scope: raw Redis keys — VD-4 trigger not yet reached
+  await redis.set(`gdpr:cancel:${userId}`, cancellationToken, "EX", CANCELLATION_TOKEN_TTL_SECONDS); // ci-allow-redis-key
 
   // Send cancellation email (fire-and-forget)
   enqueueEmailJob(`gdpr-cancel-${userId}`, {
@@ -98,7 +99,7 @@ export async function requestAccountDeletion(userId: string, password: string): 
 
 export async function cancelAccountDeletion(token: string, userId: string): Promise<void> {
   const redis = getRedisClient();
-  const storedToken = await redis.get(`gdpr:cancel:${userId}`);
+  const storedToken = await redis.get(`gdpr:cancel:${userId}`); // ci-allow-redis-key
 
   if (!storedToken || storedToken !== token) {
     throw new ApiError({
@@ -113,7 +114,7 @@ export async function cancelAccountDeletion(token: string, userId: string): Prom
   const user = await findUserById(userId);
   if (!user || user.accountStatus !== "PENDING_DELETION") {
     // Clean up the token since it's no longer valid for this state
-    await redis.del(`gdpr:cancel:${userId}`);
+    await redis.del(`gdpr:cancel:${userId}`); // ci-allow-redis-key
     throw new ApiError({
       title: "Conflict",
       status: 409,
@@ -126,7 +127,7 @@ export async function cancelAccountDeletion(token: string, userId: string): Prom
     .set({ accountStatus: "APPROVED", scheduledDeletionAt: null, updatedAt: new Date() })
     .where(eq(authUsers.id, userId));
 
-  await redis.del(`gdpr:cancel:${userId}`);
+  await redis.del(`gdpr:cancel:${userId}`); // ci-allow-redis-key
 }
 
 export async function anonymizeAccount(userId: string): Promise<void> {
@@ -198,7 +199,7 @@ export async function requestDataExport(userId: string): Promise<{ requestId: st
 
   // Store requestId in Redis so the job handler can find it
   const redis = getRedisClient();
-  await redis.set(`gdpr:export:${userId}`, request.id, "EX", 3600);
+  await redis.set(`gdpr:export:${userId}`, request.id, "EX", 3600); // ci-allow-redis-key
 
   // Enqueue the data export job (fire-and-forget)
   void runJob("data-export").catch((err: unknown) => {

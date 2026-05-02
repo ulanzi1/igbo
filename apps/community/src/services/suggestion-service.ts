@@ -47,7 +47,8 @@ async function getBidirectionalBlockIds(viewerUserId: string): Promise<string[]>
 }
 
 async function getDismissedUserIds(viewerUserId: string, redis: Redis): Promise<string[]> {
-  return redis.smembers(`suggestions:dismissed:${viewerUserId}`);
+  // community-scope: raw Redis keys — VD-4 trigger not yet reached
+  return redis.smembers(`suggestions:dismissed:${viewerUserId}`); // ci-allow-redis-key
 }
 
 interface CandidateRow {
@@ -179,7 +180,7 @@ export async function getMemberSuggestions(
   limit = 5,
 ): Promise<MemberSuggestion[]> {
   const redis = getRedisClient();
-  const cacheKey = `suggestions:${viewerUserId}`;
+  const cacheKey = `suggestions:${viewerUserId}`; // ci-allow-redis-key
 
   // 1. Check Redis cache
   const cached = await redis.get(cacheKey);
@@ -256,8 +257,8 @@ export async function dismissSuggestion(
   dismissedUserId: string,
 ): Promise<void> {
   const redis = getRedisClient();
-  await redis.sadd(`suggestions:dismissed:${viewerUserId}`, dismissedUserId);
-  await redis.expire(`suggestions:dismissed:${viewerUserId}`, SUGGESTION_DISMISS_TTL_SECONDS);
+  await redis.sadd(`suggestions:dismissed:${viewerUserId}`, dismissedUserId); // ci-allow-redis-key
+  await redis.expire(`suggestions:dismissed:${viewerUserId}`, SUGGESTION_DISMISS_TTL_SECONDS); // ci-allow-redis-key
   // Invalidate suggestions cache so next fetch excludes the dismissed member
-  await redis.del(`suggestions:${viewerUserId}`);
+  await redis.del(`suggestions:${viewerUserId}`); // ci-allow-redis-key
 }

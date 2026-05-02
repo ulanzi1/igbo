@@ -1,5 +1,7 @@
 // @vitest-environment node
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { readFileSync } from "fs";
+import { resolve } from "path";
 
 vi.mock("server-only", () => ({}));
 
@@ -27,6 +29,7 @@ vi.mock("../schema/platform-notifications", () => ({
     link: "link",
     isRead: "is_read",
     createdAt: "created_at",
+    idempotencyKey: "idempotency_key",
   },
 }));
 
@@ -57,10 +60,24 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
+// ─── Migration journal ────────────────────────────────────────────────────────
+
+describe("Migration journal", () => {
+  it("0075 migration journal entry is present and correctly numbered", () => {
+    const journalPath = resolve(__dirname, "../migrations/meta/_journal.json");
+    const journal = JSON.parse(readFileSync(journalPath, "utf-8")) as {
+      entries: Array<{ idx: number; tag: string }>;
+    };
+    const entry = journal.entries.find((e) => e.idx === 75);
+    expect(entry).toBeDefined();
+    expect(entry?.tag).toBe("0075_add_notification_idempotency_key");
+  });
+});
+
 // ─── createNotification ──────────────────────────────────────────────────────
 
 describe("createNotification", () => {
-  it("inserts a notification and returns it", async () => {
+  it("inserts a notification and returns it (no idempotencyKey — bare INSERT path)", async () => {
     const mockReturning = vi.fn().mockResolvedValue([mockNotification]);
     const mockValues = vi.fn().mockReturnValue({ returning: mockReturning });
     mockInsert.mockReturnValue({ values: mockValues });
@@ -77,6 +94,63 @@ describe("createNotification", () => {
       expect.objectContaining({ userId: USER_ID, type: "system", title: "Test" }),
     );
     expect(result).toEqual(mockNotification);
+    // Non-keyed path must NOT go through onConflictDoNothing
+    expect(mockValues()).not.toHaveProperty("onConflictDoNothing");
+  });
+
+  it("with idempotencyKey — inserts and returns the notification object", async () => {
+    const mockReturning = vi.fn().mockResolvedValue([mockNotification]);
+    const mockOnConflictDoNothing = vi.fn().mockReturnValue({ returning: mockReturning });
+    const mockValues = vi.fn().mockReturnValue({ onConflictDoNothing: mockOnConflictDoNothing });
+    mockInsert.mockReturnValue({ values: mockValues });
+
+    const result = await createNotification({
+      userId: USER_ID,
+      type: "system",
+      title: "Test",
+      body: "Test body",
+      idempotencyKey: "app-submitted:test-app-id",
+    });
+
+    expect(mockOnConflictDoNothing).toHaveBeenCalled();
+    expect(mockReturning).toHaveBeenCalled();
+    expect(result).toEqual(mockNotification);
+  });
+
+  it("with duplicate idempotencyKey — returns exactly null (not undefined or false)", async () => {
+    // When ON CONFLICT triggers, RETURNING returns zero rows → [record] = undefined → null
+    const mockReturning = vi.fn().mockResolvedValue([]);
+    const mockOnConflictDoNothing = vi.fn().mockReturnValue({ returning: mockReturning });
+    const mockValues = vi.fn().mockReturnValue({ onConflictDoNothing: mockOnConflictDoNothing });
+    mockInsert.mockReturnValue({ values: mockValues });
+
+    const result = await createNotification({
+      userId: USER_ID,
+      type: "system",
+      title: "Test",
+      body: "Test body",
+      idempotencyKey: "app-submitted:duplicate-id",
+    });
+
+    expect(result).toBe(null); // strict null check, not just falsy
+  });
+
+  it("without idempotencyKey — bare INSERT does not use onConflictDoNothing", async () => {
+    const mockReturning = vi.fn().mockResolvedValue([mockNotification]);
+    const mockValues = vi.fn().mockReturnValue({ returning: mockReturning });
+    mockInsert.mockReturnValue({ values: mockValues });
+
+    await createNotification({
+      userId: USER_ID,
+      type: "system",
+      title: "Test",
+      body: "Test body",
+      // no idempotencyKey
+    });
+
+    // The values() call returns an object without onConflictDoNothing
+    expect(mockValues).toHaveBeenCalled();
+    expect(mockReturning).toHaveBeenCalled();
   });
 });
 

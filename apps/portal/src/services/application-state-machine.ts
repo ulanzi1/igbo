@@ -172,6 +172,32 @@ export async function transition(
     });
   }
 
+  // Pre-validate event payload BEFORE transaction — fail fast without orphaned DB state
+  if (toStatus === "withdrawn") {
+    portalEventBus.validate("application.withdrawn", {
+      applicationId,
+      jobId: application.jobId,
+      seekerUserId: application.seekerUserId,
+      companyId: application.companyId,
+      previousStatus: fromStatus,
+      newStatus: "withdrawn",
+      actorUserId,
+      emittedBy: "application-state-machine",
+    });
+  } else {
+    portalEventBus.validate("application.status_changed", {
+      applicationId,
+      jobId: application.jobId,
+      seekerUserId: application.seekerUserId,
+      companyId: application.companyId,
+      previousStatus: fromStatus,
+      newStatus: toStatus,
+      actorUserId,
+      actorRole,
+      emittedBy: "application-state-machine",
+    });
+  }
+
   // Execute DB update + insert transition in a single transaction (AC-6)
   await db.transaction(async (tx) => {
     await tx
@@ -206,6 +232,7 @@ export async function transition(
       previousStatus: fromStatus,
       newStatus: "withdrawn",
       actorUserId,
+      emittedBy: "application-state-machine",
     });
   } else {
     portalEventBus.emit("application.status_changed", {
@@ -217,6 +244,7 @@ export async function transition(
       newStatus: toStatus,
       actorUserId,
       actorRole,
+      emittedBy: "application-state-machine",
     });
   }
 }

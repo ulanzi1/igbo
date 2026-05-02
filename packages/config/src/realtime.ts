@@ -41,10 +41,11 @@ export const ROOM_CONVERSATION = (conversationId: string) => `conversation:${con
 export const ROOM_PRESENCE = (userId: string) => `presence:${userId}`;
 
 // Redis key patterns
-export const REDIS_PRESENCE_KEY = (userId: string) => `user:${userId}:online`;
+// community-scope: raw Redis keys — realtime ephemeral state, VD-4 trigger not yet reached
+export const REDIS_PRESENCE_KEY = (userId: string) => `user:${userId}:online`; // ci-allow-redis-key
 /** Ephemeral typing state key — auto-expires after TYPING_EXPIRE_SECONDS */
 export const REDIS_TYPING_KEY = (conversationId: string, userId: string) =>
-  `typing:${conversationId}:${userId}`;
+  `typing:${conversationId}:${userId}`; // ci-allow-redis-key
 
 // Typing indicator TTL in seconds — auto-expires if typing:stop is missed
 export const TYPING_EXPIRE_SECONDS = 5;

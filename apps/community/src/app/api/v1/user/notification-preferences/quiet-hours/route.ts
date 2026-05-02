@@ -36,9 +36,10 @@ export const PUT = withApiHandler(async (req: Request) => {
   const nowInQh = await isUserInQuietHours(session.userId, new Date());
   const redis = getRedisClient();
   if (nowInQh) {
-    await redis.set(`dnd:${session.userId}`, "1", "EX", 5400); // 90 min TTL
+    // community-scope: raw Redis keys — VD-4 trigger not yet reached
+    await redis.set(`dnd:${session.userId}`, "1", "EX", 5400); // 90 min TTL // ci-allow-redis-key
   } else {
-    await redis.del(`dnd:${session.userId}`);
+    await redis.del(`dnd:${session.userId}`); // ci-allow-redis-key
   }
 
   return successResponse({ ok: true });
@@ -50,7 +51,7 @@ export const DELETE = withApiHandler(async (_req: Request) => {
 
   // Clear Redis DnD key
   const redis = getRedisClient();
-  await redis.del(`dnd:${session.userId}`);
+  await redis.del(`dnd:${session.userId}`); // ci-allow-redis-key
 
   return successResponse({ ok: true });
 });

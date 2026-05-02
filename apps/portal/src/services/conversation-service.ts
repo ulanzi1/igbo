@@ -266,6 +266,28 @@ export async function sendMessage(
   // Step 4: Map portal role to participant role
   const senderRole: "employer" | "seeker" = senderPortalRole === "EMPLOYER" ? "employer" : "seeker";
 
+  // Pre-validate event payload shape BEFORE transaction — fail fast without orphaned DB state
+  const recipientIdPreCheck =
+    senderRole === "employer" ? appCtx.seekerUserId : appCtx.employerUserId;
+  portalEventBus.validate("portal.message.sent", {
+    messageId: "pre-validate",
+    senderId,
+    conversationId: "pre-validate",
+    applicationId,
+    jobId: appCtx.jobId,
+    companyId: appCtx.companyId,
+    jobTitle: appCtx.jobTitle,
+    companyName: appCtx.companyName,
+    content: trimmedContent,
+    contentType: contentType ?? "text",
+    createdAt: new Date().toISOString(),
+    parentMessageId: parentMessageId ?? null,
+    recipientId: recipientIdPreCheck,
+    senderName: undefined,
+    senderRole,
+    emittedBy: "conversation-service",
+  });
+
   // Step 5: Look up existing conversation
   const existing = await getPortalConversationByApplicationId(applicationId);
 
@@ -418,6 +440,7 @@ export async function sendMessage(
     senderName: undefined,
     senderRole,
     attachments: attachmentsPayload,
+    emittedBy: "conversation-service",
   });
 
   return { conversationId, message, conversationCreated, attachments: attachmentsPayload };

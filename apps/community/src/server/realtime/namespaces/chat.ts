@@ -17,6 +17,7 @@ import { getMessagesSince } from "@igbo/db/queries/chat-messages";
 import { getAttachmentsForMessages } from "@igbo/db/queries/chat-message-attachments";
 import { getReactionsForMessages } from "@igbo/db/queries/chat-message-reactions";
 import { messageService } from "@/services/message-service";
+import { withHandlerGuard } from "@igbo/config/handler-guard";
 
 const MAX_ATTACHMENTS_PER_MESSAGE = 10;
 
@@ -57,8 +58,9 @@ export function setupChatNamespace(ns: Namespace, redis: Redis): void {
     // message:send — validate, persist, broadcast
     socket.on(
       "message:send",
-      async (payload: MessageSendPayload, ack?: (resp: unknown) => void) => {
-        try {
+      withHandlerGuard(
+        "chat:message:send",
+        async (payload: MessageSendPayload, ack?: (resp: unknown) => void) => {
           const {
             conversationId,
             content,
@@ -112,51 +114,47 @@ export function setupChatNamespace(ns: Namespace, redis: Redis): void {
           }
 
           let message;
-          if (hasAttachments) {
-            message = await messageService.sendMessageWithAttachments({
-              conversationId,
-              senderId: userId,
-              content: content.trim(),
-              contentType: contentType as "text" | "rich_text" | "system",
-              parentMessageId: parentMessageId ?? undefined,
-              attachmentFileUploadIds: attachmentFileUploadIds,
-            });
-          } else {
-            message = await messageService.sendMessage({
-              conversationId,
-              senderId: userId,
-              content: content.trim(),
-              contentType: contentType as "text" | "rich_text" | "system",
-              parentMessageId: parentMessageId ?? undefined,
-            });
+          try {
+            if (hasAttachments) {
+              message = await messageService.sendMessageWithAttachments({
+                conversationId,
+                senderId: userId,
+                content: content.trim(),
+                contentType: contentType as "text" | "rich_text" | "system",
+                parentMessageId: parentMessageId ?? undefined,
+                attachmentFileUploadIds: attachmentFileUploadIds,
+              });
+            } else {
+              message = await messageService.sendMessage({
+                conversationId,
+                senderId: userId,
+                content: content.trim(),
+                contentType: contentType as "text" | "rich_text" | "system",
+                parentMessageId: parentMessageId ?? undefined,
+              });
+            }
+          } catch (err) {
+            if (typeof ack === "function") ack({ error: "Failed to send message" });
+            throw err; // propagate to withHandlerGuard for structured logging
           }
 
           // message:new is emitted via EventBus bridge (chat.message.sent → message:new)
           // Do NOT emit directly here — that would cause duplicate delivery.
 
           if (typeof ack === "function") ack({ messageId: message.id });
-        } catch (err: unknown) {
-          console.error(
-            JSON.stringify({
-              level: "error",
-              message: "chat.message_send.failed",
-              userId,
-              error: String(err),
-            }),
-          );
-          if (typeof ack === "function") ack({ error: "Failed to send message" });
-        }
-      },
+        },
+      ),
     );
 
     // message:edit — validate, call service, let EventBus bridge broadcast message:edited
     socket.on(
       "message:edit",
-      async (
-        payload: { messageId: string; conversationId: string; content: string },
-        callback?: (resp: unknown) => void,
-      ) => {
-        try {
+      withHandlerGuard(
+        "chat:message:edit",
+        async (
+          payload: { messageId: string; conversationId: string; content: string },
+          callback?: (resp: unknown) => void,
+        ) => {
           const { messageId, conversationId, content } = payload ?? {};
 
           if (!conversationId || typeof conversationId !== "string") {
@@ -183,39 +181,34 @@ export function setupChatNamespace(ns: Namespace, redis: Redis): void {
             return;
           }
 
-          await messageService.updateMessage(messageId, userId, content.trim());
-          if (typeof callback === "function") callback({ ok: true });
-        } catch (err: unknown) {
-          console.error(
-            JSON.stringify({
-              level: "error",
-              message: "chat.message_edit.failed",
-              userId,
-              error: String(err),
-            }),
-          );
-          const code = (err as NodeJS.ErrnoException).code;
-          if (code === "NOT_FOUND") {
-            if (typeof callback === "function") callback({ error: "Message not found" });
-          } else if (code === "FORBIDDEN") {
-            if (typeof callback === "function") callback({ error: "Cannot edit this message" });
-          } else if (code === "GONE") {
-            if (typeof callback === "function") callback({ error: "Message has been deleted" });
-          } else {
-            if (typeof callback === "function") callback({ error: "Failed to edit message" });
+          try {
+            await messageService.updateMessage(messageId, userId, content.trim());
+            if (typeof callback === "function") callback({ ok: true });
+          } catch (err: unknown) {
+            const code = (err as NodeJS.ErrnoException).code;
+            if (code === "NOT_FOUND") {
+              if (typeof callback === "function") callback({ error: "Message not found" });
+            } else if (code === "FORBIDDEN") {
+              if (typeof callback === "function") callback({ error: "Cannot edit this message" });
+            } else if (code === "GONE") {
+              if (typeof callback === "function") callback({ error: "Message has been deleted" });
+            } else {
+              throw err; // Let the guard handle truly unexpected errors
+            }
           }
-        }
-      },
+        },
+      ),
     );
 
     // message:delete — validate, call service, let EventBus bridge broadcast message:deleted
     socket.on(
       "message:delete",
-      async (
-        payload: { messageId: string; conversationId: string },
-        callback?: (resp: unknown) => void,
-      ) => {
-        try {
+      withHandlerGuard(
+        "chat:message:delete",
+        async (
+          payload: { messageId: string; conversationId: string },
+          callback?: (resp: unknown) => void,
+        ) => {
           const { messageId, conversationId } = payload ?? {};
 
           if (!conversationId || typeof conversationId !== "string") {
@@ -234,218 +227,235 @@ export function setupChatNamespace(ns: Namespace, redis: Redis): void {
             return;
           }
 
-          await messageService.deleteMessage(messageId, userId);
-          if (typeof callback === "function") callback({ ok: true });
-        } catch (err: unknown) {
-          console.error(
-            JSON.stringify({
-              level: "error",
-              message: "chat.message_delete.failed",
-              userId,
-              error: String(err),
-            }),
-          );
-          const code = (err as NodeJS.ErrnoException).code;
-          if (code === "NOT_FOUND") {
-            if (typeof callback === "function") callback({ error: "Message not found" });
-          } else if (code === "FORBIDDEN") {
-            if (typeof callback === "function") callback({ error: "Cannot delete this message" });
-          } else if (code === "GONE") {
-            if (typeof callback === "function")
-              callback({ error: "Message has already been deleted" });
-          } else {
-            if (typeof callback === "function") callback({ error: "Failed to delete message" });
+          try {
+            await messageService.deleteMessage(messageId, userId);
+            if (typeof callback === "function") callback({ ok: true });
+          } catch (err: unknown) {
+            const code = (err as NodeJS.ErrnoException).code;
+            if (code === "NOT_FOUND") {
+              if (typeof callback === "function") callback({ error: "Message not found" });
+            } else if (code === "FORBIDDEN") {
+              if (typeof callback === "function") callback({ error: "Cannot delete this message" });
+            } else if (code === "GONE") {
+              if (typeof callback === "function")
+                callback({ error: "Message has already been deleted" });
+            } else {
+              throw err; // Let the guard handle truly unexpected errors
+            }
           }
-        }
-      },
+        },
+      ),
     );
 
     // typing:start — store in Redis and broadcast to room (excluding sender)
     socket.on(
       "typing:start",
-      async (payload: { conversationId: string }, ack?: (r: unknown) => void) => {
+      withHandlerGuard(
+        "chat:typing:start",
+        async (payload: { conversationId: string }, ack?: (r: unknown) => void) => {
+          const { conversationId } = payload ?? {};
+          if (!conversationId || typeof conversationId !== "string") {
+            if (typeof ack === "function") ack({ error: "Invalid conversationId" });
+            return;
+          }
+          const isMember = await isConversationMember(conversationId, userId, "community");
+          if (!isMember) {
+            if (typeof ack === "function") ack({ error: "Not a member" });
+            return;
+          }
+          // Store typing state in Redis with auto-expire (idempotent SET EX)
+          await redis.set(
+            REDIS_TYPING_KEY(conversationId, userId),
+            "1",
+            "EX",
+            TYPING_EXPIRE_SECONDS,
+          );
+          // Broadcast to room EXCLUDING sender
+          socket.to(ROOM_CONVERSATION(conversationId)).emit("typing:start", {
+            userId,
+            conversationId,
+            timestamp: new Date().toISOString(),
+          });
+          if (typeof ack === "function") ack({ ok: true });
+        },
+      ),
+    );
+
+    // typing:stop — delete Redis key and broadcast to room
+    socket.on(
+      "typing:stop",
+      withHandlerGuard("chat:typing:stop", async (payload: { conversationId: string }) => {
         const { conversationId } = payload ?? {};
-        if (!conversationId || typeof conversationId !== "string") {
-          if (typeof ack === "function") ack({ error: "Invalid conversationId" });
-          return;
-        }
+        if (!conversationId || typeof conversationId !== "string") return;
         const isMember = await isConversationMember(conversationId, userId, "community");
-        if (!isMember) {
-          if (typeof ack === "function") ack({ error: "Not a member" });
-          return;
-        }
-        // Store typing state in Redis with auto-expire (idempotent SET EX)
-        await redis.set(REDIS_TYPING_KEY(conversationId, userId), "1", "EX", TYPING_EXPIRE_SECONDS);
-        // Broadcast to room EXCLUDING sender
-        socket.to(ROOM_CONVERSATION(conversationId)).emit("typing:start", {
+        if (!isMember) return;
+        await redis.del(REDIS_TYPING_KEY(conversationId, userId));
+        socket.to(ROOM_CONVERSATION(conversationId)).emit("typing:stop", {
           userId,
           conversationId,
           timestamp: new Date().toISOString(),
         });
-        if (typeof ack === "function") ack({ ok: true });
-      },
+      }),
     );
-
-    // typing:stop — delete Redis key and broadcast to room
-    socket.on("typing:stop", async (payload: { conversationId: string }) => {
-      const { conversationId } = payload ?? {};
-      if (!conversationId || typeof conversationId !== "string") return;
-      const isMember = await isConversationMember(conversationId, userId, "community");
-      if (!isMember) return;
-      await redis.del(REDIS_TYPING_KEY(conversationId, userId));
-      socket.to(ROOM_CONVERSATION(conversationId)).emit("typing:stop", {
-        userId,
-        conversationId,
-        timestamp: new Date().toISOString(),
-      });
-    });
 
     // message:delivered — track in Redis and broadcast to room so sender sees delivery status
     socket.on(
       "message:delivered",
-      async (
-        payload: { messageId: string; conversationId: string },
-        ack?: (resp: unknown) => void,
-      ) => {
-        const { messageId, conversationId } = payload ?? {};
-        if (
-          !messageId ||
-          typeof messageId !== "string" ||
-          !conversationId ||
-          typeof conversationId !== "string"
-        ) {
-          if (typeof ack === "function") ack({ error: "Invalid payload" });
-          return;
-        }
-        const isMember = await isConversationMember(conversationId, userId, "community");
-        if (!isMember) {
-          if (typeof ack === "function") ack({ error: "Not a member" });
-          return;
-        }
-        // Track delivery in Redis (volatile; not critical to persist)
-        await redis.set(`delivered:${messageId}:${userId}`, "1", "EX", 86_400); // 24h TTL
-        // Broadcast to conversation room so sender sees the update
-        socket.to(ROOM_CONVERSATION(conversationId)).emit("message:delivered", {
-          messageId,
-          conversationId,
-          deliveredBy: userId,
-          timestamp: new Date().toISOString(),
-        });
-        if (typeof ack === "function") ack({ ok: true });
-      },
+      withHandlerGuard(
+        "chat:message:delivered",
+        async (
+          payload: { messageId: string; conversationId: string },
+          ack?: (resp: unknown) => void,
+        ) => {
+          const { messageId, conversationId } = payload ?? {};
+          if (
+            !messageId ||
+            typeof messageId !== "string" ||
+            !conversationId ||
+            typeof conversationId !== "string"
+          ) {
+            if (typeof ack === "function") ack({ error: "Invalid payload" });
+            return;
+          }
+          const isMember = await isConversationMember(conversationId, userId, "community");
+          if (!isMember) {
+            if (typeof ack === "function") ack({ error: "Not a member" });
+            return;
+          }
+          // Track delivery in Redis (volatile; not critical to persist)
+          // community-scope: raw Redis keys — VD-4 trigger not yet reached
+          await redis.set(`delivered:${messageId}:${userId}`, "1", "EX", 86_400); // 24h TTL // ci-allow-redis-key
+          // Broadcast to conversation room so sender sees the update
+          socket.to(ROOM_CONVERSATION(conversationId)).emit("message:delivered", {
+            messageId,
+            conversationId,
+            deliveredBy: userId,
+            timestamp: new Date().toISOString(),
+          });
+          if (typeof ack === "function") ack({ ok: true });
+        },
+      ),
     );
 
     // message:read — update last_read_at in DB and broadcast to all room members
     socket.on(
       "message:read",
-      async (payload: { conversationId: string }, ack?: (r: unknown) => void) => {
-        const { conversationId } = payload ?? {};
-        if (!conversationId || typeof conversationId !== "string") {
-          if (typeof ack === "function") ack({ error: "Invalid conversationId" });
-          return;
-        }
-        const isMember = await isConversationMember(conversationId, userId, "community");
-        if (!isMember) {
-          if (typeof ack === "function") ack({ error: "Not a member" });
-          return;
-        }
-        const now = new Date();
-        await markConversationRead(conversationId, userId);
-        // Broadcast to ALL members in the room (including sender, so unread count updates)
-        ns.to(ROOM_CONVERSATION(conversationId)).emit("message:read", {
-          conversationId,
-          readerId: userId,
-          lastReadAt: now.toISOString(),
-          timestamp: now.toISOString(),
-        });
-        if (typeof ack === "function") ack({ ok: true });
-      },
+      withHandlerGuard(
+        "chat:message:read",
+        async (payload: { conversationId: string }, ack?: (r: unknown) => void) => {
+          const { conversationId } = payload ?? {};
+          if (!conversationId || typeof conversationId !== "string") {
+            if (typeof ack === "function") ack({ error: "Invalid conversationId" });
+            return;
+          }
+          const isMember = await isConversationMember(conversationId, userId, "community");
+          if (!isMember) {
+            if (typeof ack === "function") ack({ error: "Not a member" });
+            return;
+          }
+          const now = new Date();
+          await markConversationRead(conversationId, userId);
+          // Broadcast to ALL members in the room (including sender, so unread count updates)
+          ns.to(ROOM_CONVERSATION(conversationId)).emit("message:read", {
+            conversationId,
+            readerId: userId,
+            lastReadAt: now.toISOString(),
+            timestamp: now.toISOString(),
+          });
+          if (typeof ack === "function") ack({ ok: true });
+        },
+      ),
     );
 
     // sync:request — reconnection gap sync
-    socket.on("sync:request", async (payload: SyncRequestPayload) => {
-      try {
-        const lastTs = payload?.lastReceivedAt ? new Date(payload.lastReceivedAt) : null;
+    // NOTE: try/catch is kept inside the guard so DB errors still emit sync:full_refresh
+    // (guard alone would log but not send the fallback signal to the client)
+    socket.on(
+      "sync:request",
+      withHandlerGuard("chat:sync:request", async (payload: SyncRequestPayload) => {
+        try {
+          const lastTs = payload?.lastReceivedAt ? new Date(payload.lastReceivedAt) : null;
 
-        if (!lastTs || isNaN(lastTs.getTime())) {
-          socket.emit("sync:full_refresh", { timestamp: new Date().toISOString() });
-          return;
-        }
-
-        const gapMs = Date.now() - lastTs.getTime();
-        if (gapMs > CHAT_REPLAY_WINDOW_MS) {
-          socket.emit("sync:full_refresh", { timestamp: new Date().toISOString() });
-          return;
-        }
-
-        // Replay missed messages for all user's conversations
-        const conversationIds = await getUserConversationIds(userId);
-        for (const conversationId of conversationIds) {
-          const missed = await getMessagesSince(conversationId, lastTs, 100);
-          if (missed.length === 0) continue;
-
-          // Batch-load attachments and reactions (avoid N+1)
-          const messageIds = missed.map((m) => m.id);
-          const [allAttachments, allReactions] = await Promise.all([
-            getAttachmentsForMessages(messageIds),
-            getReactionsForMessages(messageIds),
-          ]);
-
-          const attachmentsByMsgId = new Map<string, typeof allAttachments>();
-          for (const a of allAttachments) {
-            const list = attachmentsByMsgId.get(a.messageId) ?? [];
-            list.push(a);
-            attachmentsByMsgId.set(a.messageId, list);
+          if (!lastTs || isNaN(lastTs.getTime())) {
+            socket.emit("sync:full_refresh", { timestamp: new Date().toISOString() });
+            return;
           }
 
-          const reactionsByMsgId = new Map<string, typeof allReactions>();
-          for (const r of allReactions) {
-            const list = reactionsByMsgId.get(r.messageId) ?? [];
-            list.push(r);
-            reactionsByMsgId.set(r.messageId, list);
+          const gapMs = Date.now() - lastTs.getTime();
+          if (gapMs > CHAT_REPLAY_WINDOW_MS) {
+            socket.emit("sync:full_refresh", { timestamp: new Date().toISOString() });
+            return;
           }
 
-          const hasMore = missed.length === 100;
-          socket.emit("sync:replay", {
-            messages: missed.map((m) => ({
-              messageId: m.id,
-              conversationId: m.conversationId,
-              senderId: m.senderId,
-              // Blank content for soft-deleted messages (data privacy)
-              content: m.deletedAt !== null ? "" : m.content,
-              contentType: m.contentType,
-              createdAt: m.createdAt.toISOString(),
-              parentMessageId: m.parentMessageId ?? null,
-              editedAt: m.editedAt ? m.editedAt.toISOString() : null,
-              deletedAt: m.deletedAt ? m.deletedAt.toISOString() : null,
-              attachments: (attachmentsByMsgId.get(m.id) ?? []).map((a) => ({
-                id: a.id,
-                fileUrl: a.fileUrl,
-                fileName: a.fileName,
-                fileType: a.fileType,
-                fileSize: a.fileSize,
+          // Replay missed messages for all user's conversations
+          const conversationIds = await getUserConversationIds(userId);
+          for (const conversationId of conversationIds) {
+            const missed = await getMessagesSince(conversationId, lastTs, 100);
+            if (missed.length === 0) continue;
+
+            // Batch-load attachments and reactions (avoid N+1)
+            const messageIds = missed.map((m) => m.id);
+            const [allAttachments, allReactions] = await Promise.all([
+              getAttachmentsForMessages(messageIds),
+              getReactionsForMessages(messageIds),
+            ]);
+
+            const attachmentsByMsgId = new Map<string, typeof allAttachments>();
+            for (const a of allAttachments) {
+              const list = attachmentsByMsgId.get(a.messageId) ?? [];
+              list.push(a);
+              attachmentsByMsgId.set(a.messageId, list);
+            }
+
+            const reactionsByMsgId = new Map<string, typeof allReactions>();
+            for (const r of allReactions) {
+              const list = reactionsByMsgId.get(r.messageId) ?? [];
+              list.push(r);
+              reactionsByMsgId.set(r.messageId, list);
+            }
+
+            const hasMore = missed.length === 100;
+            socket.emit("sync:replay", {
+              messages: missed.map((m) => ({
+                messageId: m.id,
+                conversationId: m.conversationId,
+                senderId: m.senderId,
+                // Blank content for soft-deleted messages (data privacy)
+                content: m.deletedAt !== null ? "" : m.content,
+                contentType: m.contentType,
+                createdAt: m.createdAt.toISOString(),
+                parentMessageId: m.parentMessageId ?? null,
+                editedAt: m.editedAt ? m.editedAt.toISOString() : null,
+                deletedAt: m.deletedAt ? m.deletedAt.toISOString() : null,
+                attachments: (attachmentsByMsgId.get(m.id) ?? []).map((a) => ({
+                  id: a.id,
+                  fileUrl: a.fileUrl,
+                  fileName: a.fileName,
+                  fileType: a.fileType,
+                  fileSize: a.fileSize,
+                })),
+                reactions: (reactionsByMsgId.get(m.id) ?? []).map((r) => ({
+                  emoji: r.emoji,
+                  userId: r.userId,
+                  createdAt: r.createdAt.toISOString(),
+                })),
               })),
-              reactions: (reactionsByMsgId.get(m.id) ?? []).map((r) => ({
-                emoji: r.emoji,
-                userId: r.userId,
-                createdAt: r.createdAt.toISOString(),
-              })),
-            })),
-            hasMore,
-          });
+              hasMore,
+            });
+          }
+        } catch (err: unknown) {
+          console.error(
+            JSON.stringify({
+              level: "error",
+              message: "chat.sync_request.failed",
+              userId,
+              error: String(err),
+            }),
+          );
+          socket.emit("sync:full_refresh", { timestamp: new Date().toISOString() });
         }
-      } catch (err: unknown) {
-        console.error(
-          JSON.stringify({
-            level: "error",
-            message: "chat.sync_request.failed",
-            userId,
-            error: String(err),
-          }),
-        );
-        socket.emit("sync:full_refresh", { timestamp: new Date().toISOString() });
-      }
-    });
+      }),
+    );
   });
 }
 

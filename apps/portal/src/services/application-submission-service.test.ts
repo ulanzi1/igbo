@@ -18,7 +18,7 @@ vi.mock("@/lib/redis", () => ({
   getRedisClient: vi.fn(),
 }));
 vi.mock("@/services/event-bus", () => ({
-  portalEventBus: { emit: vi.fn() },
+  portalEventBus: { emit: vi.fn(), validate: vi.fn() },
 }));
 
 import { db } from "@igbo/db";

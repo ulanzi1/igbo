@@ -111,7 +111,7 @@ export const GET = withApiHandler(async (request: Request) => {
 
   const locale = request.headers.get("accept-language")?.split(",")[0]?.split("-")[0] ?? "en";
   await redis.set(
-    `social_link_state:${state}`,
+    `social_link_state:${state}`, // ci-allow-redis-key
     `${userId}:${provider.toUpperCase()}:${locale}`,
     "EX",
     600,
@@ -122,7 +122,8 @@ export const GET = withApiHandler(async (request: Request) => {
   if (provider === "twitter") {
     const codeVerifier = generateCodeVerifier();
     codeChallenge = generateCodeChallenge(codeVerifier);
-    await redis.set(`social_link_pkce:${state}`, codeVerifier, "EX", 600);
+    // community-scope: raw Redis keys — VD-4 trigger not yet reached
+    await redis.set(`social_link_pkce:${state}`, codeVerifier, "EX", 600); // ci-allow-redis-key
   }
 
   const authorizationUrl = buildAuthorizationUrl(provider, state, redirectUri, codeChallenge);

@@ -21,7 +21,8 @@ import type {
 } from "@/types/events";
 import type { Keyword } from "@/lib/moderation-scanner";
 
-const REDIS_KEYWORDS_KEY = "moderation:keywords:active";
+// community-scope: raw Redis keys — VD-4 trigger not yet reached
+const REDIS_KEYWORDS_KEY = "moderation:keywords:active"; // ci-allow-redis-key
 const REDIS_KEYWORDS_TTL = 300; // 5 minutes
 
 /**
@@ -117,8 +118,8 @@ function recordFailureMetric() {
   } catch {
     return; // Redis client unavailable — metric recording silently skipped
   }
-  redis.incr("moderation:failed:total").catch(() => {});
-  redis.set("moderation:failed:last_error_at", new Date().toISOString()).catch(() => {});
+  redis.incr("moderation:failed:total").catch(() => {}); // ci-allow-redis-key
+  redis.set("moderation:failed:last_error_at", new Date().toISOString()).catch(() => {}); // ci-allow-redis-key
 }
 
 export async function handlePostPublished(payload: PostPublishedEvent): Promise<void> {

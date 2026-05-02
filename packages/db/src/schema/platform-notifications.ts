@@ -33,6 +33,7 @@ export const platformNotifications = pgTable(
     link: text("link"),
     isRead: boolean("is_read").notNull().default(false),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    idempotencyKey: varchar("idempotency_key", { length: 255 }),
   },
   (t) => [
     index("idx_platform_notifications_user_id_created_at").on(t.userId, t.createdAt.desc()),

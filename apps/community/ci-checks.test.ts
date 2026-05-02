@@ -20,6 +20,7 @@ import {
   KNOWN_VIOLATIONS,
 } from "../../scripts/ci-checks/check-next-link-import";
 import { scanRealtimeServerOnly } from "../../scripts/ci-checks/check-realtime-server-only";
+import { scanForRawRedisKeys } from "../../scripts/ci-checks/check-redis-keys";
 
 let tmpDir: string;
 
@@ -1182,12 +1183,123 @@ describe("scanRealtimeServerOnly", () => {
   });
 });
 
+// ─── Redis key scanner ────────────────────────────────────────────────────────
+
+describe("scanForRawRedisKeys", () => {
+  it("returns empty when no files exist", () => {
+    const results = scanForRawRedisKeys(tmpDir);
+    expect(results).toEqual([]);
+  });
+
+  it("detects template literal Redis key with colon separators", () => {
+    createFile(
+      "apps/portal/src/services/my-service.ts",
+      `const key = \`dedup:portal:\${id}\`;\nredis.set(key, "1");`,
+    );
+    const results = scanForRawRedisKeys(tmpDir);
+    expect(results).toHaveLength(1);
+    expect(results[0]!.check).toBe("redis-key");
+    expect(results[0]!.file).toContain("my-service.ts");
+  });
+
+  it("detects string literal passed to Redis method call", () => {
+    createFile("apps/portal/src/services/my-service.ts", `await redis.get("portal:session:abc");`);
+    const results = scanForRawRedisKeys(tmpDir);
+    expect(results).toHaveLength(1);
+    expect(results[0]!.check).toBe("redis-key");
+  });
+
+  it("detects constant assignment with Redis key pattern", () => {
+    createFile("apps/portal/src/services/my-service.ts", `const DEDUP_KEY = "dedup:portal:notif";`);
+    const results = scanForRawRedisKeys(tmpDir);
+    expect(results).toHaveLength(1);
+    expect(results[0]!.check).toBe("redis-key");
+  });
+
+  it("exempts lines using createRedisKey()", () => {
+    createFile(
+      "apps/portal/src/services/my-service.ts",
+      `const key = createRedisKey("portal", "dedup", \`notif:\${id}\`);`,
+    );
+    const results = scanForRawRedisKeys(tmpDir);
+    expect(results).toEqual([]);
+  });
+
+  it("exempts lines with ci-allow-redis-key marker", () => {
+    createFile(
+      "apps/community/src/services/my-service.ts",
+      `const key = \`lockout:\${userId}\`; // ci-allow-redis-key — community scope`,
+    );
+    const results = scanForRawRedisKeys(tmpDir);
+    expect(results).toEqual([]);
+  });
+
+  it("exempts test files", () => {
+    createFile(
+      "apps/portal/src/services/my-service.test.ts",
+      `const key = \`dedup:portal:\${id}\`;`,
+    );
+    const results = scanForRawRedisKeys(tmpDir);
+    expect(results).toEqual([]);
+  });
+
+  it("exempts packages/config/src/redis.ts itself", () => {
+    createFile("packages/config/src/redis.ts", `return \`\${app}:\${domain}:\${id}\`;`);
+    const results = scanForRawRedisKeys(tmpDir);
+    expect(results).toEqual([]);
+  });
+
+  it("exempts cache-registry.ts generic operations", () => {
+    createFile(
+      "apps/portal/src/lib/cache-registry.ts",
+      `await redis.get(key);\nawait redis.set(key, value);`,
+    );
+    const results = scanForRawRedisKeys(tmpDir);
+    expect(results).toEqual([]);
+  });
+
+  it("exempts registerCacheNamespace SCAN patterns", () => {
+    createFile(
+      "apps/portal/src/services/job-search-service.ts",
+      `registerCacheNamespace("job-search", ["portal:job-search:*"]);`,
+    );
+    const results = scanForRawRedisKeys(tmpDir);
+    expect(results).toEqual([]);
+  });
+
+  it("exempts pub/sub channel patterns (eventbus:)", () => {
+    createFile(
+      "apps/portal/src/services/event-bus.ts",
+      "publisher.publish(`eventbus:${event}`, JSON.stringify(payload));",
+    );
+    const results = scanForRawRedisKeys(tmpDir);
+    expect(results).toEqual([]);
+  });
+
+  it("detects multiple violations in a single file", () => {
+    createFile(
+      "apps/portal/src/services/bad-service.ts",
+      `const k1 = \`dedup:portal:a:\${id}\`;\nconst k2 = \`dedup:portal:b:\${id}\`;\nconst k3 = \`throttle:portal:\${id}\`;`,
+    );
+    const results = scanForRawRedisKeys(tmpDir);
+    expect(results).toHaveLength(3);
+    expect(results.every((r) => r.check === "redis-key")).toBe(true);
+  });
+
+  it("detects violations in packages/ (not just apps/)", () => {
+    createFile("packages/auth/src/config.ts", `const key = \`challenge:\${sessionId}\`;`);
+    const results = scanForRawRedisKeys(tmpDir);
+    expect(results).toHaveLength(1);
+    expect(results[0]!.file).toContain("packages/auth");
+  });
+});
+
 // ─── Integration canary ───────────────────────────────────────────────────────
 
 describe("integration canary — real codebase", () => {
   const ROOT = resolve(__dirname, "../..");
 
-  it("all seven scanners report zero violations against current codebase", () => {
+  it("all eight scanners report zero violations against current codebase", () => {
     // next-link-import: filter out known violations (they are warnings, not failures)
     const knownSet = new Set(KNOWN_VIOLATIONS);
     const nextLinkNew = scanNextLinkImports(ROOT).filter((r) => !knownSet.has(r.file));
@@ -1200,6 +1312,7 @@ describe("integration canary — real codebase", () => {
       ...scanUnsanitizedHtml(ROOT),
       ...nextLinkNew,
       ...scanRealtimeServerOnly(ROOT),
+      ...scanForRawRedisKeys(ROOT),
     ];
     expect(
       results,

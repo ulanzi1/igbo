@@ -10,6 +10,7 @@ import {
   KNOWN_VIOLATIONS as NEXT_LINK_KNOWN_VIOLATIONS,
 } from "./check-next-link-import";
 import { scanRealtimeServerOnly } from "./check-realtime-server-only";
+import { scanForRawRedisKeys } from "./check-redis-keys";
 import type { CheckResult } from "./types";
 
 // All known ci-allow-<reason> tags (existing + new)
@@ -19,6 +20,7 @@ const ALL_ALLOW_REASONS = [
   "literal-jsx",
   "unsanitized-html",
   "next-link-import",
+  "redis-key",
 ] as const;
 
 const ALLOWLIST_MARKER_REGEX = /\/\/\s*ci-allow-([\w-]+)/;
@@ -209,6 +211,7 @@ function run(): void {
   const realtimeServerOnly = disabledChecks.has("realtime-server-only")
     ? []
     : scanRealtimeServerOnly(rootDir);
+  const redisKeys = disabledChecks.has("redis-key") ? [] : scanForRawRedisKeys(rootDir);
 
   // next-link-import scanner with known-violation filtering
   const nextLinkAll = disabledChecks.has("next-link-import") ? [] : scanNextLinkImports(rootDir);
@@ -245,6 +248,7 @@ function run(): void {
     ...unsanitizedHtml,
     ...nextLinkNew,
     ...realtimeServerOnly,
+    ...redisKeys,
     ...registryViolations,
   ];
 
@@ -279,6 +283,7 @@ function run(): void {
     "unsanitized-html-extraction-failed",
     "next-link-import",
     "realtime-server-only",
+    "redis-key",
     "allowlist-registry-drift",
   ];
   for (const check of checkOrder) {
@@ -308,6 +313,7 @@ function run(): void {
     "unsanitized-html-extraction-failed",
     "next-link-import",
     "realtime-server-only",
+    "redis-key",
     "allowlist-registry-drift",
   ]) {
     const count = allResults.filter((r) => r.check === check).length;

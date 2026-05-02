@@ -4,6 +4,8 @@ import {
   getUserPushSubscriptions,
   deletePushSubscriptionByEndpoint,
 } from "@igbo/db/queries/push-subscriptions";
+import { getRedisClient } from "@/lib/redis";
+import { createRedisKey } from "@igbo/config/redis";
 
 export interface PortalPushPayload {
   title: string;
@@ -62,12 +64,47 @@ function ensureVapidConfigured(): boolean {
 /**
  * Sends a push notification to all active subscriptions for a user.
  * Fire-and-forget — never throws. Cleans up invalid subscriptions (410/404).
+ *
+ * Includes Redis NX dedup when `tag` is defined to prevent duplicate sends on
+ * event replay. Returns true when sent, false when deduped.
+ * Fail-open: if Redis is unavailable, proceeds with the send.
  */
 export async function sendPushNotification(
   userId: string,
   payload: PortalPushPayload,
-): Promise<void> {
-  if (!ensureVapidConfigured()) return;
+): Promise<boolean> {
+  if (!ensureVapidConfigured()) return false;
+
+  // Redis NX dedup — only when tag is defined (tag is the natural dedup key)
+  if (payload.tag !== undefined) {
+    try {
+      const redis = getRedisClient();
+      const dedupKey = createRedisKey("portal", "dedup", `push:${userId}:${payload.tag}`);
+      const acquired = await redis.set(dedupKey, "1", "EX", 15 * 60, "NX");
+      if (acquired === null) {
+        console.info(
+          JSON.stringify({
+            level: "info",
+            message: "portal.push-service.dedup_skipped",
+            userId,
+            tag: payload.tag,
+          }),
+        );
+        return false;
+      }
+    } catch (redisErr: unknown) {
+      console.error(
+        JSON.stringify({
+          level: "error",
+          message: "portal.push-service.dedup_check.error",
+          userId,
+          tag: payload.tag,
+          error: String(redisErr),
+        }),
+      );
+      // Fail-open — proceed with send
+    }
+  }
 
   let subscriptions: Awaited<ReturnType<typeof getUserPushSubscriptions>>;
   try {
@@ -81,9 +118,9 @@ export async function sendPushNotification(
         error: String(err),
       }),
     );
-    return;
+    return false;
   }
-  if (subscriptions.length === 0) return;
+  if (subscriptions.length === 0) return false;
 
   for (const sub of subscriptions) {
     const pushSub = {
@@ -135,4 +172,5 @@ export async function sendPushNotification(
       }
     }
   }
+  return true;
 }
