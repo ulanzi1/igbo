@@ -3,6 +3,22 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import React from "react";
 
+vi.mock("@/i18n/navigation", () => ({
+  Link: ({
+    href,
+    children,
+    ...rest
+  }: {
+    href: string;
+    children: React.ReactNode;
+    [k: string]: unknown;
+  }) => (
+    <a href={href} {...rest}>
+      {children}
+    </a>
+  ),
+}));
+
 vi.mock("next-intl", () => ({
   useTranslations: () => (key: string, params?: Record<string, unknown>) => {
     if (key === "badgeAriaLabel") {
@@ -45,5 +61,12 @@ describe("NotificationBadge", () => {
     render(<NotificationBadge />);
     const badge = screen.getByTestId("notification-badge-count");
     expect(badge).toHaveTextContent("99+");
+  });
+
+  it("wraps in a link to /notifications", () => {
+    countState.value = 0;
+    render(<NotificationBadge />);
+    const link = screen.getByRole("link");
+    expect(link).toHaveAttribute("href", "/notifications");
   });
 });

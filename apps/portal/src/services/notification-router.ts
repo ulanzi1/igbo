@@ -1,5 +1,6 @@
 import "server-only";
-import { createNotification } from "@igbo/db/queries/notifications";
+import { createPortalNotification } from "@igbo/db/queries/portal-notifications";
+import { invalidateUnreadCount } from "@/services/notification-count-service";
 import {
   getNotificationPreferences,
   isUserInQuietHours,
@@ -255,12 +256,13 @@ export async function dispatchInApp(
   content: NotificationContent,
   dedupKey: string,
 ): Promise<void> {
-  const notif = await createNotification({
+  const notif = await createPortalNotification({
     userId,
-    type: "system",
+    eventType,
     title: content.title,
     body: content.body,
     link: content.link,
+    payloadJson: content,
     idempotencyKey: dedupKey,
   });
 
@@ -278,6 +280,9 @@ export async function dispatchInApp(
     return;
   }
 
+  // Invalidate cached unread count after new notification
+  invalidateUnreadCount(userId).catch(() => {});
+
   // Publish for real-time delivery via eventbus-bridge → /notifications:notification:new
   const payload: NotificationCreatedEvent = {
     eventId: notif.id,
@@ -285,7 +290,7 @@ export async function dispatchInApp(
     timestamp: notif.createdAt.toISOString(),
     notificationId: notif.id,
     userId,
-    type: "system",
+    type: eventType,
     title: content.title,
     body: content.body,
     link: content.link,

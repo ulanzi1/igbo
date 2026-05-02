@@ -35,7 +35,9 @@ export type RedisDomain =
   // Portal feature domains — sitemap.ts
   | "sitemap"
   // Portal feature domains — notification-router.ts, preferences/route.ts
-  | "notif-prefs";
+  | "notif-prefs"
+  // Portal feature domains — notification-count-service.ts
+  | "notif-unread";
 
 /**
  * Creates a namespaced Redis key following the convention: `{app}:{domain}:{id}`.

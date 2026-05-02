@@ -51,6 +51,7 @@ import * as portalPostingReportsSchema from "./schema/portal-posting-reports";
 import * as portalEmployerVerificationsSchema from "./schema/portal-employer-verifications";
 import * as portalSavedSearchesSchema from "./schema/portal-saved-searches";
 import * as portalOutboxSchema from "./schema/portal-outbox";
+import * as portalNotificationsSchema from "./schema/portal-notifications";
 import * as portalJobSearchQueries from "./queries/portal-job-search";
 
 const schemaMap = {
@@ -105,6 +106,7 @@ const schemaMap = {
   ...portalEmployerVerificationsSchema,
   ...portalSavedSearchesSchema,
   ...portalOutboxSchema,
+  ...portalNotificationsSchema,
 };
 
 /** Factory — for tests and custom connection strings */
@@ -148,6 +150,19 @@ export { portalJobSearchQueries };
 export * from "./queries/portal-conversations";
 export * from "./queries/push-subscriptions";
 export { getUnreadNotificationCount } from "./queries/notifications";
+export {
+  createPortalNotification,
+  getPortalNotifications,
+  getPortalNotificationById,
+  markPortalNotificationRead,
+  markAllPortalNotificationsRead,
+  dismissPortalNotification,
+  getPortalUnreadCount,
+  deleteOldPortalNotifications,
+  encodeCursor,
+  decodeCursor,
+} from "./queries/portal-notifications";
+export type { PortalNotification, NewPortalNotification } from "./queries/portal-notifications";
 export {
   getNotificationPreferences,
   upsertNotificationPreference,

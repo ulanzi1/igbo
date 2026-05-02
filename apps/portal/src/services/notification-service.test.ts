@@ -72,8 +72,8 @@ vi.mock("@/services/notification-router", () => ({
 
 // F15: needed to test real dispatchNotification channel isolation end-to-end
 const mockCreateNotification = vi.fn();
-vi.mock("@igbo/db/queries/notifications", () => ({
-  createNotification: mockCreateNotification,
+vi.mock("@igbo/db/queries/portal-notifications", () => ({
+  createPortalNotification: mockCreateNotification,
 }));
 
 const mockSendPushNotification = vi.fn();

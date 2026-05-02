@@ -21,15 +21,15 @@ vi.mock("@/lib/api-error", () => ({
 const mockAuth = vi.fn();
 vi.mock("@igbo/auth", () => ({ auth: (...args: unknown[]) => mockAuth(...args) }));
 
-const mockGetUnreadNotificationCount = vi.fn();
-vi.mock("@igbo/db", () => ({
-  getUnreadNotificationCount: (...args: unknown[]) => mockGetUnreadNotificationCount(...args),
+const mockGetCachedUnreadCount = vi.fn();
+vi.mock("@/services/notification-count-service", () => ({
+  getCachedUnreadCount: (...args: unknown[]) => mockGetCachedUnreadCount(...args),
 }));
 
 describe("GET /api/v1/notifications/unread-count", () => {
-  it("returns count for authenticated user", async () => {
+  it("returns cached count for authenticated user", async () => {
     mockAuth.mockResolvedValue({ user: { id: "user-1" } });
-    mockGetUnreadNotificationCount.mockResolvedValue(5);
+    mockGetCachedUnreadCount.mockResolvedValue(5);
 
     const { GET } = await import("./route");
     const req = new Request("https://portal.igbo.com/api/v1/notifications/unread-count");
@@ -38,7 +38,7 @@ describe("GET /api/v1/notifications/unread-count", () => {
     expect(res.status).toBe(200);
     const body = (await res.json()) as { data: { count: number } };
     expect(body.data.count).toBe(5);
-    expect(mockGetUnreadNotificationCount).toHaveBeenCalledWith("user-1");
+    expect(mockGetCachedUnreadCount).toHaveBeenCalledWith("user-1");
   });
 
   it("throws 401 when unauthenticated", async () => {

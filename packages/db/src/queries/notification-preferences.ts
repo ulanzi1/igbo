@@ -1,9 +1,10 @@
 import "server-only";
-import { and, asc, eq, gt, inArray, isNotNull, ne } from "drizzle-orm";
+import { and, asc, eq, gt, inArray, isNotNull, isNull, ne } from "drizzle-orm";
 import { toZonedTime } from "date-fns-tz";
 import { db } from "../index";
 import { platformNotificationPreferences } from "../schema/platform-notification-preferences";
 import { platformNotifications } from "../schema/platform-notifications";
+import { portalNotifications } from "../schema/portal-notifications";
 export type { NotificationTypeKey, ChannelPrefs } from "@igbo/config/notifications";
 import type { ChannelPrefs } from "@igbo/config/notifications";
 import { NOTIFICATION_TYPES, DEFAULT_PREFERENCES } from "@igbo/config/notifications";
@@ -243,27 +244,33 @@ export async function getUndigestedNotifications(userId: string, type: string, s
 }
 
 /**
- * Portal-specific: fetch all undigested "system" notifications since a given date.
+ * Portal-specific: fetch all undigested portal notifications since a given date.
  *
- * Portal notifications are stored with `type = "system"` (the community notification_type enum),
- * not with the portal event type string (e.g. "portal.saved_search.new_results").
- * The original `getUndigestedNotifications` works for community (which stores real enum values)
- * but always returns 0 rows for portal. This function filters by `type = "system"` instead.
+ * After P-6.7, portal notifications are stored in `portal_notifications` with an `eventType`
+ * column holding the actual portal event type string (e.g. "portal.saved_search.new_results").
+ * Only non-dismissed notifications are included so dismissed items don't appear in digest emails.
  *
  * Callers classify notifications into digest sections using `idempotencyKey` prefixes.
  */
 export async function getUndigestedPortalNotifications(userId: string, since: Date) {
   return db
-    .select()
-    .from(platformNotifications)
+    .select({
+      id: portalNotifications.id,
+      title: portalNotifications.title,
+      body: portalNotifications.body,
+      link: portalNotifications.link,
+      idempotencyKey: portalNotifications.idempotencyKey,
+      createdAt: portalNotifications.createdAt,
+    })
+    .from(portalNotifications)
     .where(
       and(
-        eq(platformNotifications.userId, userId),
-        eq(platformNotifications.type, "system" as never),
-        gt(platformNotifications.createdAt, since),
+        eq(portalNotifications.userId, userId),
+        gt(portalNotifications.createdAt, since),
+        isNull(portalNotifications.dismissedAt),
       ),
     )
-    .orderBy(asc(platformNotifications.createdAt));
+    .orderBy(asc(portalNotifications.createdAt));
 }
 
 export async function markDigestSent(userId: string, types: string[], sentAt: Date): Promise<void> {

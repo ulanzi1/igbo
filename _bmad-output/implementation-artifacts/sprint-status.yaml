@@ -363,7 +363,7 @@ development_status:
   p-6-4-notification-preferences-priority-hierarchy: done
   p-6-5-viewed-by-employer-signal-outbox-pattern: done
   p-6-6-daily-weekly-digest: done
-  p-6-7-notification-store-read-state-management: backlog
+  p-6-7-notification-store-read-state-management: done
   portal-epic-6-retrospective: optional
 
   # Portal Epic 7: Smart Matching & Recommendations
