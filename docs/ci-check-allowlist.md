@@ -128,6 +128,7 @@ Add `// ci-allow-<reason>` above the relevant line, with a justification comment
 | `apps/portal/src/services/notification-service.ts` | `process-env` | — |
 | `apps/portal/src/services/notification-service.ts` | `process-env` | — |
 | `apps/portal/src/services/notification-service.ts` | `process-env` | const companyName = company?.name ?? "Unknown Company"; |
+| `apps/portal/src/services/outbox-poller.ts` | `process-env` | — |
 | `apps/portal/src/services/push-service.ts` | `process-env` | — |
 | `apps/portal/src/services/push-service.ts` | `process-env` | const contact = process.env.VAPID_CONTACT_EMAIL; // ci-allow-process-env |
 | `apps/portal/src/services/push-service.ts` | `process-env` | const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY; // ci-allow-process-env |
