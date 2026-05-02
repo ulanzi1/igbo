@@ -12,6 +12,7 @@ import { buildSignInUrl } from "@/lib/guest-utils";
 import { RoleSwitcher } from "./role-switcher";
 import { UnreadMessageBadge } from "./UnreadMessageBadge";
 import { NotificationBadge } from "./NotificationBadge";
+import { UserProfileDropdown } from "./UserProfileDropdown";
 
 function getCommunityUrl() {
   return process.env.NEXT_PUBLIC_COMMUNITY_URL ?? "http://localhost:3000";
@@ -46,11 +47,6 @@ export function PortalTopNav({ className }: { className?: string }) {
     { key: "myApplications", href: `/${locale}/applications`, label: t("myApplications") },
     { key: "savedSearches", href: `/${locale}/saved-searches`, label: t("savedSearches") },
     { key: "conversations", href: `/${locale}/conversations`, label: t("messages") },
-    {
-      key: "notificationSettings",
-      href: `/${locale}/settings/notifications`,
-      label: t("notificationSettings"),
-    },
   ];
 
   const employerLinks: NavLink[] = [
@@ -62,11 +58,6 @@ export function PortalTopNav({ className }: { className?: string }) {
     },
     { key: "companyProfile", href: `/${locale}/company-profile`, label: t("companyProfile") },
     { key: "conversations", href: `/${locale}/conversations`, label: t("messages") },
-    {
-      key: "notificationSettings",
-      href: `/${locale}/settings/notifications`,
-      label: t("notificationSettings"),
-    },
   ];
 
   const adminLinks: NavLink[] = [
@@ -184,18 +175,11 @@ export function PortalTopNav({ className }: { className?: string }) {
             </div>
           )}
 
-          {/* Logout button for authenticated users */}
+          {/* User profile dropdown — authenticated users only */}
           {isAuthenticated && (
-            <button
-              type="button"
-              onClick={() => void signOut({ callbackUrl: communityUrl })}
-              aria-label={t("logout")}
-              data-testid="logout-button"
-              className="hidden sm:flex items-center gap-1.5 min-h-[44px] px-3 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <LogOutIcon className="size-4" aria-hidden="true" />
-              {t("logout")}
-            </button>
+            <div className="hidden sm:flex">
+              <UserProfileDropdown />
+            </div>
           )}
 
           {/* Mobile hamburger — client-only to avoid Radix aria-controls hydration mismatch */}

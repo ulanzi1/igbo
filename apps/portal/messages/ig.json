@@ -36,7 +36,8 @@
       "logout": "Pụọ",
       "discover": "Chọpụta Ọrụ",
       "employerApplications": "Ngwa",
-      "notificationSettings": "Ntọala Ọchịchọ"
+      "notificationSettings": "Ntọala Ọchịchọ",
+      "userMenuAriaLabel": "Ndepụta onye ọrụ"
     },
     "role": {
       "seeker": "Onye Na-achọ Ọrụ",

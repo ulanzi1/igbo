@@ -33,7 +33,10 @@ vi.mock("@/components/layout/NotificationBadge", () => ({
   NotificationBadge: () => <span data-testid="notification-badge" />,
 }));
 
-import { fireEvent } from "@testing-library/react";
+vi.mock("@/components/layout/UserProfileDropdown", () => ({
+  UserProfileDropdown: () => <button data-testid="user-profile-trigger">Profile</button>,
+}));
+
 import userEvent from "@testing-library/user-event";
 import { useSession } from "next-auth/react";
 import { PortalTopNav } from "./portal-top-nav";
@@ -94,14 +97,10 @@ describe("PortalTopNav", () => {
       expect(screen.getByRole("button", { name: "switchRoleLabel" })).toBeInTheDocument();
     });
 
-    it("renders notification settings link for seeker", () => {
+    it("does not render notification settings in top nav (moved to profile dropdown)", () => {
       setSession({ user: { activePortalRole: "JOB_SEEKER", portalRoles: ["JOB_SEEKER"] } });
       render(<PortalTopNav />);
-      const links = screen.getAllByText("notificationSettings").map((el) => el.closest("a"));
-      const settingsLinks = links.filter((l) =>
-        l?.getAttribute("href")?.includes("/settings/notifications"),
-      );
-      expect(settingsLinks.length).toBeGreaterThan(0);
+      expect(screen.queryByText("notificationSettings")).not.toBeInTheDocument();
     });
   });
 
@@ -138,14 +137,10 @@ describe("PortalTopNav", () => {
       expect(screen.getByRole("button", { name: "switchRoleLabel" })).toBeInTheDocument();
     });
 
-    it("renders notification settings link for employer", () => {
+    it("does not render notification settings in top nav (moved to profile dropdown)", () => {
       setSession({ user: { activePortalRole: "EMPLOYER", portalRoles: ["EMPLOYER"] } });
       render(<PortalTopNav />);
-      const links = screen.getAllByText("notificationSettings").map((el) => el.closest("a"));
-      const settingsLinks = links.filter((l) =>
-        l?.getAttribute("href")?.includes("/settings/notifications"),
-      );
-      expect(settingsLinks.length).toBeGreaterThan(0);
+      expect(screen.queryByText("notificationSettings")).not.toBeInTheDocument();
     });
   });
 
@@ -262,24 +257,17 @@ describe("PortalTopNav", () => {
     });
   });
 
-  describe("logout button", () => {
-    it("renders logout button for authenticated users", () => {
+  describe("user profile dropdown", () => {
+    it("renders user profile dropdown for authenticated users", () => {
       setSession({ user: { activePortalRole: "JOB_SEEKER", portalRoles: ["JOB_SEEKER"] } });
       render(<PortalTopNav />);
-      expect(screen.getByTestId("logout-button")).toBeInTheDocument();
+      expect(screen.getByTestId("user-profile-trigger")).toBeInTheDocument();
     });
 
-    it("does not render logout button for guests", () => {
+    it("does not render user profile dropdown for guests", () => {
       setGuest();
       render(<PortalTopNav />);
-      expect(screen.queryByTestId("logout-button")).not.toBeInTheDocument();
-    });
-
-    it("calls signOut with community URL on click", () => {
-      setSession({ user: { activePortalRole: "EMPLOYER", portalRoles: ["EMPLOYER"] } });
-      render(<PortalTopNav />);
-      fireEvent.click(screen.getByTestId("logout-button"));
-      expect(mockSignOut).toHaveBeenCalledWith({ callbackUrl: "http://localhost:3000" });
+      expect(screen.queryByTestId("user-profile-trigger")).not.toBeInTheDocument();
     });
   });
 
