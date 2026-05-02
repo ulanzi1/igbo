@@ -430,6 +430,15 @@ describe("notification-service — application.submitted handler", () => {
     );
     expect(appSubmittedCalls).toHaveLength(1);
   });
+
+  it("publishNotificationCreated includes eventType: 'portal.application.submitted' in payload", async () => {
+    const handler = await getHandler();
+    await handler(BASE_PAYLOAD);
+
+    expect(mockRedisPublish).toHaveBeenCalled();
+    const publishArg = JSON.parse(mockRedisPublish.mock.calls[0]![1] as string);
+    expect(publishArg.eventType).toBe("portal.application.submitted");
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -770,6 +779,15 @@ describe("notification-service — saved_search.new_result handler", () => {
     await handler(SAVED_SEARCH_PAYLOAD);
 
     expect(mockRedisPublish).toHaveBeenCalled();
+  });
+
+  it("publishNotificationCreated includes eventType: 'portal.saved_search.new_results' in payload", async () => {
+    const handler = await getHandler("saved_search.new_result");
+    await handler(SAVED_SEARCH_PAYLOAD);
+
+    expect(mockRedisPublish).toHaveBeenCalled();
+    const publishArg = JSON.parse(mockRedisPublish.mock.calls[0]![1] as string);
+    expect(publishArg.eventType).toBe("portal.saved_search.new_results");
   });
 });
 
@@ -1168,5 +1186,14 @@ describe("notification-service — portal.message.sent handler", () => {
 
     expect(mockRedisPublish).toHaveBeenCalled();
     expect(mockSendPushNotification).toHaveBeenCalled();
+  });
+
+  it("publishNotificationCreated includes eventType: 'portal.message.received' in payload", async () => {
+    const handler = await getHandler("portal.message.sent");
+    await handler(MSG_PAYLOAD);
+
+    expect(mockRedisPublish).toHaveBeenCalled();
+    const publishArg = JSON.parse(mockRedisPublish.mock.calls[0]![1] as string);
+    expect(publishArg.eventType).toBe("portal.message.received");
   });
 });

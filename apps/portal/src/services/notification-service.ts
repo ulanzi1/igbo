@@ -19,7 +19,9 @@ import type {
   PortalMessageSentEvent,
   NotificationCreatedEvent,
 } from "@igbo/config/events";
+import type { PortalNotificationEventType } from "@igbo/config/notifications";
 
+// TODO(6.1B): System-critical events need 24h dedup TTL (vs current 15min NOTIF_DEDUP_TTL_SECONDS). Implement per-tier TTL after routing pipeline handles priority tiers.
 const NOTIF_DEDUP_TTL_SECONDS = 15 * 60; // 15 minutes
 const MSG_THROTTLE_TTL_SECONDS = 30; // 30-second fixed window
 
@@ -38,6 +40,7 @@ async function publishNotificationCreated(
   body: string,
   link: string | undefined,
   timestamp: string,
+  eventType?: PortalNotificationEventType,
 ): Promise<void> {
   const payload: NotificationCreatedEvent = {
     eventId: notifId, // re-use notifId as unique eventId for this publish
@@ -49,6 +52,7 @@ async function publishNotificationCreated(
     title,
     body,
     link,
+    eventType,
   };
   const redis = getRedisClient();
   await redis.publish("eventbus:notification.created", JSON.stringify(payload));
@@ -237,6 +241,7 @@ if (globalForNotif.__portalNotifHandlersRegistered) {
               notifBody,
               notifLink,
               notif.createdAt.toISOString(),
+              "portal.application.submitted",
             );
           } catch (publishErr: unknown) {
             console.error(
@@ -483,6 +488,7 @@ if (globalForNotif.__portalNotifHandlersRegistered) {
               notifBody,
               notifLink,
               notif.createdAt.toISOString(),
+              "portal.saved_search.new_results",
             );
           } catch (publishErr: unknown) {
             console.error(
@@ -660,6 +666,7 @@ if (globalForNotif.__portalNotifHandlersRegistered) {
             notifBody,
             notifLink,
             notif.createdAt.toISOString(),
+            "portal.message.received",
           );
         } catch (publishErr: unknown) {
           console.error(

@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { z } from "zod/v4";
+import type { PortalNotificationEventType } from "./notifications.js";
 
 /**
  * Base event envelope — ALL cross-app events extend this.
@@ -299,6 +300,13 @@ export interface NotificationCreatedEvent extends BaseEvent {
   title: string;
   body: string;
   link?: string;
+  /**
+   * The originating portal notification event type from PORTAL_NOTIFICATION_CATALOG.
+   * Used by 6.3 (toast management) and 6.4 (preference filtering) to route
+   * and filter notifications client-side. Optional for backward compat with
+   * existing code that doesn't yet pass it.
+   */
+  eventType?: PortalNotificationEventType;
 }
 
 /** Community events the portal receives via event-bridge (Redis pub/sub). */
