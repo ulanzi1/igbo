@@ -1097,7 +1097,12 @@
       },
       "newMessage": "{senderName} sent you a message about {jobTitle}",
       "newMessageBatch": "{senderName} sent you {count} new messages about {jobTitle}",
-      "newMessagePreview": "New message about {jobTitle}"
+      "newMessagePreview": "New message about {jobTitle}",
+      "unreadCount": "{count} unread notifications",
+      "noUnread": "No unread notifications",
+      "viewAction": "View",
+      "bellLabel": "Notifications",
+      "badgeAriaLabel": "{count, plural, =0 {No unread notifications} one {1 unread notification} other {# unread notifications}}"
     },
     "chooseRole": {
       "title": "Choose Your Path",

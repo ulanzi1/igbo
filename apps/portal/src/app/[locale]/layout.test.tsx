@@ -30,6 +30,9 @@ vi.mock("next-auth/react", () => ({
 vi.mock("@/providers/SocketProvider", () => ({
   SocketProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
+vi.mock("@/providers/NotificationToastProvider", () => ({
+  NotificationToastProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}));
 
 // Capture DensityProvider props for assertion
 let capturedDefaultDensity: string | undefined;

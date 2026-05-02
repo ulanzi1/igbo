@@ -1097,7 +1097,12 @@
       },
       "newMessage": "{senderName} zigara gị ozi banyere {jobTitle}",
       "newMessageBatch": "{senderName} zigara gị ozi ọhụrụ {count} banyere {jobTitle}",
-      "newMessagePreview": "Ozi ọhụrụ banyere {jobTitle}"
+      "newMessagePreview": "Ozi ọhụrụ banyere {jobTitle}",
+      "unreadCount": "Ọchịchọ {count} a agụghị",
+      "noUnread": "Ọ dịghị ọchịchọ a agụghị",
+      "viewAction": "Lee",
+      "bellLabel": "Ọchịchọ",
+      "badgeAriaLabel": "{count, plural, =0 {Ọ dịghị ọchịchọ a agụghị} one {Ọchịchọ 1 a agụghị} other {Ọchịchọ # a agụghị}}"
     },
     "chooseRole": {
       "title": "Họrọ Ụzọ Gị",

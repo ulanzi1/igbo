@@ -100,3 +100,13 @@
 - F7: `job-rejected` template cannot include rejection reason — `JobReviewedEvent` lacks `reason` field. Template handles optional reason gracefully. Enriching the event payload is out of P-6.2 scope. (`job-rejected.ts:7`, `config/events.ts`)
 - F8: No retry jitter in `sendWithRetry` — thundering herd risk at scale with fixed 1s/5s/30s delays. Low impact at current volume. Revisit with outbox pattern (Story 6.5). (`email-service.ts:35`)
 - F9: No retry filtering by error type — retries permanent failures (401 invalid API key, 422 malformed payload). Acceptable for MVP. Revisit with outbox pattern. (`email-service.ts:80-100`)
+
+## Deferred from: code review of p-6-3-push-in-app-notifications-delivery-guarantees (2026-05-01)
+
+- F16: `notification:read` dual-emitted to `/portal` namespace but no portal client listener registered — badge decrement on read intentionally deferred to P-6.7 per spec AC #6. (`use-notification-toast.ts`)
+- F17: `unread:update` event emitted to `/portal` but portal badge uses `notification:new` increment, not `unread:update` — unused signal on portal side; intentional design. (`eventbus-bridge.ts`)
+- F18: `application.withdrawn` handler sends no employer email — asymmetric with all other handlers. Pre-existing gap predating P-6.3. (`notification-service.ts`, withdrawn handler)
+- F19: `application.status_changed` pushPayload wired for all statuses including non-email-eligible ones (e.g., `under_review`). Email has `EMAIL_ELIGIBLE_STATUSES` filter; push does not. Design inconsistency; push filtering out of P-6.3 scope. (`notification-service.ts:900-907`)
+- F20: `job.reviewed` handler accesses `company.ownerUserId` before null guard on line 546 — valid left-join miss could throw TypeError. Pre-existing bug predating P-6.3. (`notification-service.ts:546`)
+- F21: `status_changed` push body exposes raw DB enum value to OS-level push notification (lock screen visible). Pre-existing pattern from P-6.1B in-app content. Requires locale-aware status label mapping (tracked as F10/C3-W2). (`notification-service.ts:902`)
+- F23: `syncFromServer` fires on every socket `connect` event with no debounce — thundering herd on mass reconnect. Acceptable at current scale. (`use-notification-toast.ts:53`)

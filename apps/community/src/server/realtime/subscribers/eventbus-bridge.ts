@@ -79,8 +79,7 @@ function routeToNamespace(io: Server, eventName: string, payload: unknown): void
     case "notification.created": {
       const notifPayload = payload as NotificationCreatedEvent;
       if (!notifPayload?.userId) break;
-      // Emit full notification shape matching PlatformNotification for client cache update
-      notificationsNs.to(ROOM_USER(notifPayload.userId)).emit("notification:new", {
+      const notifShape = {
         id: notifPayload.notificationId,
         userId: notifPayload.userId,
         type: notifPayload.type,
@@ -89,23 +88,32 @@ function routeToNamespace(io: Server, eventName: string, payload: unknown): void
         link: notifPayload.link ?? null,
         isRead: false,
         createdAt: notifPayload.timestamp,
-      });
+      };
+      // Emit full notification shape matching PlatformNotification for client cache update
+      notificationsNs.to(ROOM_USER(notifPayload.userId)).emit("notification:new", notifShape);
+      // Also emit to /portal namespace so portal SocketProvider receives notifications
+      // without requiring a second socket connection (P-6.3 dual-emit)
+      portalNs.to(ROOM_USER(notifPayload.userId)).emit("notification:new", notifShape);
       // Also send unread count update (client will increment)
-      notificationsNs.to(ROOM_USER(notifPayload.userId)).emit("unread:update", {
+      const unreadPayload = {
         userId: notifPayload.userId,
         increment: 1,
         timestamp: notifPayload.timestamp,
-      });
+      };
+      notificationsNs.to(ROOM_USER(notifPayload.userId)).emit("unread:update", unreadPayload);
+      portalNs.to(ROOM_USER(notifPayload.userId)).emit("unread:update", unreadPayload);
       break;
     }
     case "notification.read": {
       const readPayload = payload as NotificationReadEvent;
       if (!readPayload?.userId) break;
       // Notify client to update read state (multi-tab/device sync)
-      notificationsNs.to(ROOM_USER(readPayload.userId)).emit("notification:read", {
+      const readShape = {
         notificationId: readPayload.notificationId,
         timestamp: readPayload.timestamp,
-      });
+      };
+      notificationsNs.to(ROOM_USER(readPayload.userId)).emit("notification:read", readShape);
+      portalNs.to(ROOM_USER(readPayload.userId)).emit("notification:read", readShape);
       break;
     }
     // Convention: {app}.{domain}.{action} — community uses chat.*, portal uses portal.*

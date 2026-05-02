@@ -22,6 +22,10 @@ vi.mock("@/components/layout/UnreadMessageBadge", () => ({
   UnreadMessageBadge: () => <span data-testid="unread-message-badge" />,
 }));
 
+vi.mock("@/components/layout/NotificationBadge", () => ({
+  NotificationBadge: () => <span data-testid="notification-badge" />,
+}));
+
 import { useSession } from "next-auth/react";
 import { usePathname } from "next/navigation";
 import { PortalBottomNav } from "./portal-bottom-nav";

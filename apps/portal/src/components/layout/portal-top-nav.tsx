@@ -11,6 +11,7 @@ import { useActivePortalRole } from "@/hooks/use-active-portal-role";
 import { buildSignInUrl } from "@/lib/guest-utils";
 import { RoleSwitcher } from "./role-switcher";
 import { UnreadMessageBadge } from "./UnreadMessageBadge";
+import { NotificationBadge } from "./NotificationBadge";
 
 function getCommunityUrl() {
   return process.env.NEXT_PUBLIC_COMMUNITY_URL ?? "http://localhost:3000";
@@ -166,6 +167,13 @@ export function PortalTopNav({ className }: { className?: string }) {
             </>
           )}
 
+          {/* Notification badge — authenticated users only */}
+          {isAuthenticated && (
+            <div className="hidden sm:flex items-center justify-center min-h-[44px] min-w-[44px] px-2 text-muted-foreground">
+              <NotificationBadge />
+            </div>
+          )}
+
           {/* Logout button for authenticated users */}
           {isAuthenticated && (
             <button
@@ -216,6 +224,11 @@ export function PortalTopNav({ className }: { className?: string }) {
                     </a>
                   ))}
                   <div className="border-t border-border my-2" />
+                  {isAuthenticated && (
+                    <div className="flex items-center gap-2 min-h-[44px] px-4">
+                      <NotificationBadge />
+                    </div>
+                  )}
                   <a
                     href={communityUrl}
                     onClick={() => setMobileMenuOpen(false)}
