@@ -110,3 +110,15 @@
 - F20: `job.reviewed` handler accesses `company.ownerUserId` before null guard on line 546 — valid left-join miss could throw TypeError. Pre-existing bug predating P-6.3. (`notification-service.ts:546`)
 - F21: `status_changed` push body exposes raw DB enum value to OS-level push notification (lock screen visible). Pre-existing pattern from P-6.1B in-app content. Requires locale-aware status label mapping (tracked as F10/C3-W2). (`notification-service.ts:902`)
 - F23: `syncFromServer` fires on every socket `connect` event with no debounce — thundering herd on mass reconnect. Acceptable at current scale. (`use-notification-toast.ts:53`)
+
+## Deferred from: code review of p-6-4-notification-preferences-priority-hierarchy (2026-05-01)
+
+- W1: Race condition — resolveChannels cache write after concurrent PUT del re-caches stale data for up to 60s. Bounded by TTL. (`notification-router.ts resolveChannels`)
+- W2: setQuietHours UPDATE-then-SELECT is non-atomic — concurrent requests could race between UPDATE and SELECT. Pre-existing DB code. (`notification-preferences.ts`)
+- W3: upsertNotificationPreference INSERT defaults (inApp:true, email:false, push:false) don't match catalog defaults for the event type. Pre-existing DB code. (`notification-preferences.ts`)
+- W4: Optimistic revert on failed toggle uses `!value` — rapid toggles can drift UI state from server state. Minor UI glitch, no data corruption. (`NotificationPreferencesPageContent.tsx handleToggle`)
+- W5: DST transition causes ~1 hour of incorrect quiet hours behavior — `isInQuietHours` uses minute-based comparison that doesn't account for spring-forward/fall-back. Pre-existing in `notification-preferences.ts`.
+- W6: GET /quiet-hours reads `Object.values(prefs)[0]` — non-deterministic if rows diverge; safe in practice since `setQuietHours` updates all rows atomically. Inline code comment documents the limitation. (`quiet-hours/route.ts:44`)
+- W7: `urgencyOverride` in `NotificationPayload` is unused — `applyPriorityRules` result is overwritten by `resolveChannels` in `dispatchNotification` pipeline; pre-existing design, any caller setting `urgencyOverride` has no effect. (`notification-router.ts`)
+- W8: `digestMode` defaults to `"none"` for all event types including low-priority — AC #1 specifies "default digest" for low-priority; `digestMode` is not yet consumed by any job; will be addressed in P-6.6. (`preferences/route.ts`)
+- W9: `applyQuietHours` calls `isSystemCritical` outside try/catch — `applyPriorityRules` wraps the same call in try/catch for consistency; `isSystemCritical` is synchronous and reads a constant catalog so throwing in production is essentially impossible. (`notification-router.ts`)

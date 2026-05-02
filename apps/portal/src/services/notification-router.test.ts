@@ -9,6 +9,10 @@ const {
   mockEnqueueEmailJob,
   mockRedisSet,
   mockRedisPublish,
+  mockRedisGet,
+  mockRedisDelete,
+  mockGetNotificationPreferences,
+  mockIsUserInQuietHours,
   redisNxStore,
 } = vi.hoisted(() => {
   // Stateful Redis NX map: first SET NX returns "OK", second returns null
@@ -30,12 +34,21 @@ const {
     mockEnqueueEmailJob: vi.fn(),
     mockRedisSet,
     mockRedisPublish: vi.fn(),
+    mockRedisGet: vi.fn(),
+    mockRedisDelete: vi.fn(),
+    mockGetNotificationPreferences: vi.fn(),
+    mockIsUserInQuietHours: vi.fn(),
     redisNxStore,
   };
 });
 
 vi.mock("@igbo/db/queries/notifications", () => ({
   createNotification: mockCreateNotification,
+}));
+
+vi.mock("@igbo/db/queries/notification-preferences", () => ({
+  getNotificationPreferences: mockGetNotificationPreferences,
+  isUserInQuietHours: mockIsUserInQuietHours,
 }));
 
 vi.mock("@/services/push-service", () => ({
@@ -50,6 +63,8 @@ vi.mock("@/lib/redis", () => ({
   getRedisClient: vi.fn(() => ({
     set: mockRedisSet,
     publish: mockRedisPublish,
+    get: mockRedisGet,
+    del: mockRedisDelete,
   })),
 }));
 
@@ -62,6 +77,7 @@ vi.mock("@igbo/config/redis", () => ({
 import {
   resolveChannels,
   applyPriorityRules,
+  applyQuietHours,
   checkThrottle,
   dispatchInApp,
   dispatchNotification,
@@ -87,29 +103,102 @@ function makeOptions(overrides: Partial<DispatchOptions> = {}): DispatchOptions 
 // ── Step 1: resolveChannels ───────────────────────────────────────────────────
 
 describe("resolveChannels()", () => {
-  it("returns catalog defaultChannels for a known high-priority event", () => {
-    const ch = resolveChannels("user-1", "portal.application.status_changed");
+  beforeEach(() => {
+    // Clear call counts so "not been called" assertions are accurate
+    mockRedisGet.mockClear();
+    mockGetNotificationPreferences.mockClear();
+    mockRedisSet.mockClear();
+    // Default: cache miss → DB returns no saved prefs
+    mockRedisGet.mockResolvedValue(null);
+    mockGetNotificationPreferences.mockResolvedValue({});
+  });
+
+  it("returns catalog defaultChannels for a known high-priority event (no user prefs)", async () => {
+    const ch = await resolveChannels("user-1", "portal.application.status_changed");
     expect(ch).toEqual({ inApp: true, push: true, email: true });
   });
 
-  it("returns catalog defaultChannels for a known system-critical event", () => {
-    const ch = resolveChannels("user-1", "portal.application.submitted");
+  it("returns catalog defaultChannels for a known system-critical event (no user prefs)", async () => {
+    const ch = await resolveChannels("user-1", "portal.application.submitted");
     expect(ch).toEqual({ inApp: true, push: true, email: true });
   });
 
-  it("returns catalog defaultChannels for a known low-priority event (push: false)", () => {
-    const ch = resolveChannels("user-1", "portal.saved_search.new_results");
+  it("returns catalog defaultChannels for a known low-priority event (push: false)", async () => {
+    const ch = await resolveChannels("user-1", "portal.saved_search.new_results");
     expect(ch).toEqual({ inApp: true, push: false, email: false });
   });
 
-  it("returns all-disabled for unknown event type (fail-closed)", () => {
-    const ch = resolveChannels("user-1", "portal.unknown.event");
+  it("returns all-disabled for unknown event type (fail-closed)", async () => {
+    const ch = await resolveChannels("user-1", "portal.unknown.event");
     expect(ch).toEqual({ inApp: false, push: false, email: false });
   });
 
-  it("returns all-disabled for empty string event type", () => {
-    const ch = resolveChannels("user-1", "");
+  it("returns all-disabled for empty string event type", async () => {
+    const ch = await resolveChannels("user-1", "");
     expect(ch).toEqual({ inApp: false, push: false, email: false });
+  });
+
+  it("returns user preference when saved — email disabled", async () => {
+    mockGetNotificationPreferences.mockResolvedValue({
+      "portal.job.expired": { channelInApp: true, channelPush: true, channelEmail: false },
+    });
+    const ch = await resolveChannels("user-1", "portal.job.expired");
+    expect(ch).toEqual({ inApp: true, push: true, email: false });
+  });
+
+  it("returns catalog defaults for event types not in saved prefs", async () => {
+    // Only portal.job.expired saved; portal.application.status_changed falls back to catalog
+    mockGetNotificationPreferences.mockResolvedValue({
+      "portal.job.expired": { channelInApp: true, channelPush: false, channelEmail: false },
+    });
+    const ch = await resolveChannels("user-1", "portal.application.status_changed");
+    // catalog default: { inApp: true, push: true, email: true }
+    expect(ch).toEqual({ inApp: true, push: true, email: true });
+  });
+
+  it("returns all-false for unknown event type even with saved prefs (unknown short-circuits before DB)", async () => {
+    const ch = await resolveChannels("user-1", "portal.totally.unknown");
+    // Unknown event type returns all-false before Redis/DB check
+    expect(mockGetNotificationPreferences).not.toHaveBeenCalled();
+    expect(ch).toEqual({ inApp: false, push: false, email: false });
+  });
+
+  it("uses cached value from Redis when available (no DB call)", async () => {
+    const cached = {
+      "portal.job.approved": { channelInApp: true, channelPush: false, channelEmail: false },
+    };
+    mockRedisGet.mockResolvedValue(JSON.stringify(cached));
+    const ch = await resolveChannels("user-1", "portal.job.approved");
+    expect(mockGetNotificationPreferences).not.toHaveBeenCalled();
+    expect(ch).toEqual({ inApp: true, push: false, email: false });
+  });
+
+  it("fails-open with catalog defaults when getNotificationPreferences throws", async () => {
+    mockGetNotificationPreferences.mockRejectedValue(new Error("DB down"));
+    const ch = await resolveChannels("user-1", "portal.application.status_changed");
+    // Fail-open: returns catalog defaults
+    expect(ch).toEqual({ inApp: true, push: true, email: true });
+  });
+
+  it("fails-open with catalog defaults when Redis.get throws and DB also throws", async () => {
+    mockRedisGet.mockRejectedValue(new Error("Redis down"));
+    mockGetNotificationPreferences.mockRejectedValue(new Error("DB down"));
+    const ch = await resolveChannels("user-1", "portal.job.approved");
+    // Fail-open: returns catalog defaults
+    expect(ch).toEqual({ inApp: true, push: true, email: true });
+  });
+
+  it("partial prefs: only push toggled — inApp+email from catalog", async () => {
+    // Only channelPush is changed (false); inApp and email take user saved values
+    mockGetNotificationPreferences.mockResolvedValue({
+      "portal.application.status_changed": {
+        channelInApp: true,
+        channelPush: false,
+        channelEmail: true,
+      },
+    });
+    const ch = await resolveChannels("user-1", "portal.application.status_changed");
+    expect(ch).toEqual({ inApp: true, push: false, email: true });
   });
 });
 
@@ -144,6 +233,49 @@ describe("applyPriorityRules()", () => {
     const channels = { inApp: true, push: true, email: true };
     const result = applyPriorityRules("portal.unknown", channels);
     expect(result).toEqual(channels);
+  });
+});
+
+// ── Step 2.5: applyQuietHours ─────────────────────────────────────────────────
+
+describe("applyQuietHours()", () => {
+  beforeEach(() => {
+    mockIsUserInQuietHours.mockResolvedValue(false);
+  });
+
+  it("suppresses push and email when user is in quiet hours", async () => {
+    mockIsUserInQuietHours.mockResolvedValue(true);
+    const channels = { inApp: true, push: true, email: true };
+    const result = await applyQuietHours("user-1", "portal.application.status_changed", channels);
+    expect(result).toEqual({ inApp: true, push: false, email: false });
+  });
+
+  it("does NOT suppress in-app during quiet hours", async () => {
+    mockIsUserInQuietHours.mockResolvedValue(true);
+    const channels = { inApp: true, push: true, email: true };
+    const result = await applyQuietHours("user-1", "portal.application.status_changed", channels);
+    expect(result.inApp).toBe(true);
+  });
+
+  it("does NOT suppress system-critical events during quiet hours", async () => {
+    mockIsUserInQuietHours.mockResolvedValue(true);
+    const channels = { inApp: true, push: true, email: true };
+    const result = await applyQuietHours("user-1", "portal.application.submitted", channels);
+    expect(result).toEqual({ inApp: true, push: true, email: true });
+  });
+
+  it("does NOT suppress when user is NOT in quiet hours", async () => {
+    mockIsUserInQuietHours.mockResolvedValue(false);
+    const channels = { inApp: true, push: true, email: true };
+    const result = await applyQuietHours("user-1", "portal.job.approved", channels);
+    expect(result).toEqual({ inApp: true, push: true, email: true });
+  });
+
+  it("fails-open (no suppression) when isUserInQuietHours throws", async () => {
+    mockIsUserInQuietHours.mockRejectedValue(new Error("DB down"));
+    const channels = { inApp: true, push: true, email: true };
+    const result = await applyQuietHours("user-1", "portal.job.approved", channels);
+    expect(result).toEqual({ inApp: true, push: true, email: true });
   });
 });
 
@@ -301,6 +433,11 @@ describe("dispatchNotification()", () => {
   beforeEach(() => {
     vi.resetAllMocks();
     redisNxStore.clear();
+    // Set up defaults for the new async dependencies
+    mockRedisGet.mockResolvedValue(null); // cache miss
+    mockGetNotificationPreferences.mockResolvedValue({}); // no saved prefs
+    mockIsUserInQuietHours.mockResolvedValue(false); // not in quiet hours
+    // Existing defaults
     mockCreateNotification.mockResolvedValue(BASE_NOTIF);
     mockRedisPublish.mockResolvedValue(1);
     mockSendPushNotification.mockResolvedValue(undefined);
@@ -466,15 +603,11 @@ describe("dispatchNotification()", () => {
     expect(mockEnqueueEmailJob).not.toHaveBeenCalled();
   });
 
-  it("event with no throttle window (portal.job.approved) → no Redis SET call for throttle", async () => {
+  it("event with no throttle window (portal.job.approved) → no Redis SET NX call for throttle", async () => {
     await dispatchNotification(makeOptions({ eventType: "portal.job.approved" }));
-    // Redis SET is only called by dispatchInApp (in-app) or throttle.
-    // portal.job.approved has no throttle window, so SET is only for createNotification (none directly).
-    // Actually createNotification doesn't call Redis directly — the throttle check doesn't run.
-    // mockRedisSet should NOT be called for throttle (it would be in store for dedupKey but not via router).
-    // Since this event has no THROTTLE_WINDOWS entry, no SET NX for throttle.
-    // (createNotification is mocked, so no Redis there either)
-    expect(mockRedisSet).not.toHaveBeenCalled();
+    // Only non-NX SET calls (cache warming from resolveChannels) should be present
+    const nxCalls = mockRedisSet.mock.calls.filter((c: unknown[]) => c[4] === "NX");
+    expect(nxCalls).toHaveLength(0);
   });
 
   it("Promise.allSettled result — no exception even when rejected", async () => {
@@ -511,5 +644,110 @@ describe("dispatchNotification()", () => {
     // Third call: throttle key expired → notification dispatched again
     await dispatchNotification(makeOptions({ eventType: "portal.application.status_changed" }));
     expect(mockCreateNotification).toHaveBeenCalledTimes(2);
+  });
+
+  // ── Async regression tests: confirm await chain is intact ─────────────────
+
+  it("dispatchNotification with unknown event type → zero sender calls (all-false channel set)", async () => {
+    await dispatchNotification({
+      userId: "user-1",
+      // @ts-expect-error intentionally unknown
+      eventType: "portal.unknown.xyz",
+      content: { title: "T", body: "B" },
+      dedupKey: "k",
+      pushPayload: { title: "T", body: "B", link: "/" },
+      emailJob: { name: "e", payload: { to: "x@x.com", templateId: "t", data: {} } },
+    });
+    expect(mockCreateNotification).not.toHaveBeenCalled();
+    expect(mockSendPushNotification).not.toHaveBeenCalled();
+    expect(mockEnqueueEmailJob).not.toHaveBeenCalled();
+  });
+
+  it("resolveChannels DB prefs used — email disabled, push+inApp dispatched", async () => {
+    mockGetNotificationPreferences.mockResolvedValue({
+      "portal.application.status_changed": {
+        channelInApp: true,
+        channelPush: true,
+        channelEmail: false,
+      },
+    });
+    await dispatchNotification(
+      makeOptions({
+        eventType: "portal.application.status_changed",
+        pushPayload: { title: "T", body: "B", link: "/" },
+        emailJob: { name: "e", payload: { to: "x@x.com", templateId: "t", data: {} } },
+      }),
+    );
+    expect(mockCreateNotification).toHaveBeenCalled(); // inApp
+    expect(mockSendPushNotification).toHaveBeenCalled(); // push
+    expect(mockEnqueueEmailJob).not.toHaveBeenCalled(); // email disabled
+  });
+
+  it("resolveChannels DB prefs used — all channels disabled, dispatch returns early", async () => {
+    mockGetNotificationPreferences.mockResolvedValue({
+      "portal.job.approved": {
+        channelInApp: false,
+        channelPush: false,
+        channelEmail: false,
+      },
+    });
+    await dispatchNotification(
+      makeOptions({
+        eventType: "portal.job.approved",
+        pushPayload: { title: "T", body: "B", link: "/" },
+        emailJob: { name: "e", payload: { to: "x@x.com", templateId: "t", data: {} } },
+      }),
+    );
+    expect(mockCreateNotification).not.toHaveBeenCalled();
+    expect(mockSendPushNotification).not.toHaveBeenCalled();
+    expect(mockEnqueueEmailJob).not.toHaveBeenCalled();
+  });
+
+  it("resolveChannels DB prefs used — only inApp enabled, push+email dispatchers not called", async () => {
+    mockGetNotificationPreferences.mockResolvedValue({
+      "portal.application.withdrawn": {
+        channelInApp: true,
+        channelPush: false,
+        channelEmail: false,
+      },
+    });
+    await dispatchNotification(
+      makeOptions({
+        eventType: "portal.application.withdrawn",
+        pushPayload: { title: "T", body: "B", link: "/" },
+        emailJob: { name: "e", payload: { to: "x@x.com", templateId: "t", data: {} } },
+      }),
+    );
+    expect(mockCreateNotification).toHaveBeenCalled(); // inApp dispatched
+    expect(mockSendPushNotification).not.toHaveBeenCalled();
+    expect(mockEnqueueEmailJob).not.toHaveBeenCalled();
+  });
+
+  it("quiet hours: suppresses push+email for high-priority event — in-app still sent", async () => {
+    mockIsUserInQuietHours.mockResolvedValue(true);
+    await dispatchNotification(
+      makeOptions({
+        eventType: "portal.application.status_changed",
+        pushPayload: { title: "T", body: "B", link: "/" },
+        emailJob: { name: "e", payload: { to: "x@x.com", templateId: "t", data: {} } },
+      }),
+    );
+    expect(mockCreateNotification).toHaveBeenCalled(); // in-app delivered
+    expect(mockSendPushNotification).not.toHaveBeenCalled(); // push suppressed
+    expect(mockEnqueueEmailJob).not.toHaveBeenCalled(); // email suppressed
+  });
+
+  it("quiet hours: does NOT suppress system-critical — all channels delivered", async () => {
+    mockIsUserInQuietHours.mockResolvedValue(true);
+    await dispatchNotification(
+      makeOptions({
+        eventType: "portal.application.submitted",
+        pushPayload: { title: "T", body: "B", link: "/" },
+        emailJob: { name: "e", payload: { to: "x@x.com", templateId: "t", data: {} } },
+      }),
+    );
+    expect(mockCreateNotification).toHaveBeenCalled(); // in-app
+    expect(mockSendPushNotification).toHaveBeenCalled(); // push not suppressed
+    expect(mockEnqueueEmailJob).toHaveBeenCalled(); // email not suppressed
   });
 });

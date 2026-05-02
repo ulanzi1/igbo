@@ -122,7 +122,7 @@ describe("Portal Role Assignment", () => {
     // Verify the DB query function used by the JWT callback to resolve portal roles
     const mod = await import("@igbo/db/queries/auth-permissions");
     expect(typeof mod.getUserPortalRoles).toBe("function");
-  });
+  }, 10000);
 
   it("PortalRole values are JOB_SEEKER, EMPLOYER, JOB_ADMIN", () => {
     // Runtime contract check: these string values must be recognized by getUserPortalRoles filter

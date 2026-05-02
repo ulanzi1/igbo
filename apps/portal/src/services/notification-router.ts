@@ -1,5 +1,9 @@
 import "server-only";
 import { createNotification } from "@igbo/db/queries/notifications";
+import {
+  getNotificationPreferences,
+  isUserInQuietHours,
+} from "@igbo/db/queries/notification-preferences";
 import { sendPushNotification } from "@/services/push-service";
 import type { PortalPushPayload } from "@/services/push-service";
 import { enqueueEmailJob } from "@/services/email-service";
@@ -50,18 +54,73 @@ export interface DispatchOptions {
 // Step 1 — Resolve preferences
 // ---------------------------------------------------------------------------
 
+const PREFS_CACHE_TTL_SECONDS = 60;
+
 /**
- * Returns default channel settings for the given event type.
- * Falls back to all-disabled if eventType is not in the catalog (fail-closed).
+ * Returns channel settings for the given event type by querying user preferences
+ * from the DB. Falls back to catalog defaults on DB error (fail-open).
+ * Preferences are cached in Redis for 60s to avoid a DB read on every dispatch.
  */
-export function resolveChannels(
-  _userId: string,
+export async function resolveChannels(
+  userId: string,
   eventType: string,
-): { inApp: boolean; push: boolean; email: boolean } {
+): Promise<{ inApp: boolean; push: boolean; email: boolean }> {
   if (!isKnownEventType(eventType)) {
     return { inApp: false, push: false, email: false };
   }
-  return PORTAL_NOTIFICATION_CATALOG[eventType].defaultChannels;
+
+  const catalogDefaults = PORTAL_NOTIFICATION_CATALOG[eventType].defaultChannels;
+  const cacheKey = createRedisKey("portal", "notif-prefs", userId);
+
+  try {
+    const redis = getRedisClient();
+    const cached = await redis.get(cacheKey);
+
+    let prefs: Record<
+      string,
+      { channelInApp: boolean; channelPush: boolean; channelEmail: boolean }
+    >;
+    if (cached) {
+      try {
+        prefs = JSON.parse(cached) as Record<
+          string,
+          { channelInApp: boolean; channelPush: boolean; channelEmail: boolean }
+        >;
+      } catch {
+        // Corrupted cache — evict and fall through to DB
+        redis.del(cacheKey).catch(() => {});
+        prefs = await getNotificationPreferences(userId);
+        redis.set(cacheKey, JSON.stringify(prefs), "EX", PREFS_CACHE_TTL_SECONDS).catch(() => {});
+      }
+    } else {
+      prefs = await getNotificationPreferences(userId);
+      // Warm the cache — fire and forget, don't fail if Redis is down
+      redis.set(cacheKey, JSON.stringify(prefs), "EX", PREFS_CACHE_TTL_SECONDS).catch(() => {});
+    }
+
+    const userPref = prefs[eventType];
+    if (!userPref) {
+      return { ...catalogDefaults };
+    }
+
+    return {
+      inApp: userPref.channelInApp,
+      push: userPref.channelPush,
+      email: userPref.channelEmail,
+    };
+  } catch (err) {
+    // DB or parse error — fail-open with catalog defaults
+    console.warn(
+      JSON.stringify({
+        level: "warn",
+        message: "portal.notification.router.preferences_fetch_error",
+        userId,
+        eventType,
+        error: String(err),
+      }),
+    );
+    return { ...catalogDefaults };
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -91,6 +150,55 @@ export function applyPriorityRules(
       }),
     );
   }
+  return channels;
+}
+
+// ---------------------------------------------------------------------------
+// Step 2.5 — Quiet hours check
+// ---------------------------------------------------------------------------
+
+/**
+ * Suppresses push and email channels during user's quiet hours.
+ * In-app is always delivered. System-critical events bypass quiet hours.
+ * Fail-open: if DB throws, quiet hours are NOT applied (over-notify > silent drop).
+ */
+export async function applyQuietHours(
+  userId: string,
+  eventType: string,
+  channels: { inApp: boolean; push: boolean; email: boolean },
+): Promise<{ inApp: boolean; push: boolean; email: boolean }> {
+  if (isSystemCritical(eventType)) {
+    return channels;
+  }
+
+  try {
+    const inQuietHours = await isUserInQuietHours(userId, new Date());
+    if (inQuietHours) {
+      const suppressed = { ...channels, push: false, email: false };
+      console.info(
+        JSON.stringify({
+          level: "info",
+          message: "portal.notification.router.quiet_hours_suppression",
+          userId,
+          eventType,
+          channelsAfterSuppression: suppressed,
+        }),
+      );
+      return suppressed;
+    }
+  } catch (err) {
+    // Fail-open: if quiet hours check fails, don't suppress
+    console.warn(
+      JSON.stringify({
+        level: "warn",
+        message: "portal.notification.router.quiet_hours_check_error",
+        userId,
+        eventType,
+        error: String(err),
+      }),
+    );
+  }
+
   return channels;
 }
 
@@ -180,8 +288,9 @@ export async function dispatchInApp(
 /**
  * Centralized 5-step notification routing pipeline.
  *
- * Step 1 — Resolve preferences (catalog defaults; no DB query until Story 6.4)
+ * Step 1 — Resolve preferences (DB query + Redis cache; catalog defaults on error)
  * Step 2 — Apply priority rules (system-critical overrides all channels to enabled)
+ * Step 2.5 — Quiet hours check (suppress push+email for non-system-critical during quiet hours)
  * Step 3 — Noise guard (atomic Redis SET NX EX; fail-open if Redis down)
  * Step 4 — Channel decision (omitted payload = skip that channel)
  * Step 5 — Dispatch via Promise.allSettled (channel failures are independent)
@@ -190,10 +299,13 @@ export async function dispatchNotification(options: DispatchOptions): Promise<vo
   const { userId, eventType, content, dedupKey, emailJob, pushPayload, throttleKey } = options;
 
   // ── Step 1: Resolve preferences ─────────────────────────────────────────
-  let channels = resolveChannels(userId, eventType);
+  let channels = await resolveChannels(userId, eventType);
 
   // ── Step 2: Apply priority rules ─────────────────────────────────────────
   channels = applyPriorityRules(eventType, channels);
+
+  // ── Step 2.5: Quiet hours check ───────────────────────────────────────────
+  channels = await applyQuietHours(userId, eventType, channels);
 
   // ── Step 3: Noise guard ───────────────────────────────────────────────────
   const throttleWindow = THROTTLE_WINDOWS[eventType];

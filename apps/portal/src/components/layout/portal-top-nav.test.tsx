@@ -93,6 +93,16 @@ describe("PortalTopNav", () => {
       render(<PortalTopNav />);
       expect(screen.getByRole("button", { name: "switchRoleLabel" })).toBeInTheDocument();
     });
+
+    it("renders notification settings link for seeker", () => {
+      setSession({ user: { activePortalRole: "JOB_SEEKER", portalRoles: ["JOB_SEEKER"] } });
+      render(<PortalTopNav />);
+      const links = screen.getAllByText("notificationSettings").map((el) => el.closest("a"));
+      const settingsLinks = links.filter((l) =>
+        l?.getAttribute("href")?.includes("/settings/notifications"),
+      );
+      expect(settingsLinks.length).toBeGreaterThan(0);
+    });
   });
 
   describe("employer role", () => {
@@ -127,6 +137,16 @@ describe("PortalTopNav", () => {
       // RoleSwitcher trigger button rendered for multi-role
       expect(screen.getByRole("button", { name: "switchRoleLabel" })).toBeInTheDocument();
     });
+
+    it("renders notification settings link for employer", () => {
+      setSession({ user: { activePortalRole: "EMPLOYER", portalRoles: ["EMPLOYER"] } });
+      render(<PortalTopNav />);
+      const links = screen.getAllByText("notificationSettings").map((el) => el.closest("a"));
+      const settingsLinks = links.filter((l) =>
+        l?.getAttribute("href")?.includes("/settings/notifications"),
+      );
+      expect(settingsLinks.length).toBeGreaterThan(0);
+    });
   });
 
   describe("admin role", () => {
@@ -148,6 +168,12 @@ describe("PortalTopNav", () => {
       setSession({ user: { activePortalRole: "JOB_ADMIN", portalRoles: ["JOB_ADMIN"] } });
       render(<PortalTopNav />);
       expect(screen.queryByText("settings")).not.toBeInTheDocument();
+    });
+
+    it("does not render notification settings link for admin", () => {
+      setSession({ user: { activePortalRole: "JOB_ADMIN", portalRoles: ["JOB_ADMIN"] } });
+      render(<PortalTopNav />);
+      expect(screen.queryByText("notificationSettings")).not.toBeInTheDocument();
     });
 
     it("renders audit log nav link for admin", () => {

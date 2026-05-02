@@ -30,13 +30,26 @@ vi.mock("@/services/email-service", () => ({
   enqueueEmailJob: mockEnqueueEmailJob,
 }));
 
+const mockRedisGet = vi.fn();
 const mockRedisSet = vi.fn();
 const mockRedisPublish = vi.fn();
 vi.mock("@/lib/redis", () => ({
   getRedisClient: vi.fn(() => ({
+    get: mockRedisGet,
     set: mockRedisSet,
     publish: mockRedisPublish,
   })),
+}));
+
+// F15: real dispatchNotification (via vi.importActual) calls resolveChannels + applyQuietHours
+// which import from @igbo/db/queries/notification-preferences. Mock here so no real DB call.
+const mockGetNotificationPreferences = vi.fn();
+const mockIsUserInQuietHours = vi.fn();
+vi.mock("@igbo/db/queries/notification-preferences", () => ({
+  getNotificationPreferences: (...args: unknown[]) => mockGetNotificationPreferences(...args),
+  isUserInQuietHours: (...args: unknown[]) => mockIsUserInQuietHours(...args),
+  upsertNotificationPreference: vi.fn(),
+  setQuietHours: vi.fn(),
 }));
 
 const mockGetSavedSearchById = vi.fn();
@@ -1642,6 +1655,12 @@ describe("notification-service — channel isolation (P-6.3 SN-2 scenario 3)", (
   beforeEach(() => {
     vi.resetAllMocks();
     mockRedisSet.mockResolvedValue("OK");
+    // resolveChannels uses redis.get for preference cache (fail-open if missing)
+    mockRedisGet.mockResolvedValue(null);
+    // applyQuietHours calls isUserInQuietHours — return false (not in quiet hours)
+    mockIsUserInQuietHours.mockResolvedValue(false);
+    // resolveChannels DB fallback: return no rows (use catalog defaults)
+    mockGetNotificationPreferences.mockResolvedValue({});
     mockDispatchNotification.mockResolvedValue(undefined);
     mockFindUserById.mockResolvedValue({
       id: "user-1",

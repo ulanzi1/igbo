@@ -146,3 +146,9 @@ export { portalJobSearchQueries };
 export * from "./queries/portal-conversations";
 export * from "./queries/push-subscriptions";
 export { getUnreadNotificationCount } from "./queries/notifications";
+export {
+  getNotificationPreferences,
+  upsertNotificationPreference,
+  setQuietHours,
+  isUserInQuietHours,
+} from "./queries/notification-preferences";
