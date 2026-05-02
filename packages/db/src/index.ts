@@ -50,6 +50,7 @@ import * as portalAdminFlagsSchema from "./schema/portal-admin-flags";
 import * as portalPostingReportsSchema from "./schema/portal-posting-reports";
 import * as portalEmployerVerificationsSchema from "./schema/portal-employer-verifications";
 import * as portalSavedSearchesSchema from "./schema/portal-saved-searches";
+import * as portalOutboxSchema from "./schema/portal-outbox";
 import * as portalJobSearchQueries from "./queries/portal-job-search";
 
 const schemaMap = {
@@ -103,6 +104,7 @@ const schemaMap = {
   ...portalPostingReportsSchema,
   ...portalEmployerVerificationsSchema,
   ...portalSavedSearchesSchema,
+  ...portalOutboxSchema,
 };
 
 /** Factory — for tests and custom connection strings */
@@ -152,3 +154,15 @@ export {
   setQuietHours,
   isUserInQuietHours,
 } from "./queries/notification-preferences";
+export {
+  insertOutboxEvent,
+  claimPendingOutboxEvents,
+  markOutboxEventProcessed,
+  incrementOutboxRetryCount,
+  cleanupProcessedOutboxEvents,
+} from "./queries/portal-outbox";
+export {
+  recordApplicationViewRow,
+  getApplicationViewedAt,
+  hasEmployerViewedApplication,
+} from "./queries/portal-application-views";

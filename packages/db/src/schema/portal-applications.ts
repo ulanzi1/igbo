@@ -42,6 +42,8 @@ export const portalApplications = pgTable("portal_applications", {
   }),
   coverLetterText: text("cover_letter_text"),
   portfolioLinksJson: jsonb("portfolio_links_json").$type<string[]>().notNull().default([]),
+  // Added in P-6.5 migration 0076 — null means "not yet viewed by any employer"
+  viewedAt: timestamp("viewed_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });

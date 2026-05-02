@@ -3,6 +3,7 @@ import { auth } from "@igbo/auth";
 import { redirect } from "next/navigation";
 import { getApplicationsWithJobDataBySeekerId } from "@igbo/db/queries/portal-applications";
 import { ApplicationStatusBadge } from "@/components/domain/application-status-badge";
+import { Badge } from "@/components/ui/badge";
 import { Link } from "@/i18n/navigation";
 import type { PortalApplicationStatus } from "@igbo/db/schema/portal-applications";
 
@@ -34,6 +35,7 @@ export default async function ApplicationsPage({ params, searchParams }: PagePro
   const { locale } = await params;
   const { status: rawStatus } = await searchParams;
   const t = await getTranslations("Portal.applications");
+  const tViewed = await getTranslations("Portal.viewed");
 
   const session = await auth();
   if (!session?.user || session.user.activePortalRole !== "JOB_SEEKER") {
@@ -147,7 +149,18 @@ export default async function ApplicationsPage({ params, searchParams }: PagePro
                       {application.companyName ?? "—"}
                     </p>
                   </div>
-                  <ApplicationStatusBadge status={application.status} />
+                  <div className="flex items-center gap-2">
+                    {application.viewedAt && (
+                      <Badge
+                        variant="secondary"
+                        className="text-xs bg-amber-50 text-amber-700 border-amber-200"
+                        data-testid="viewed-badge"
+                      >
+                        {tViewed("badge")}
+                      </Badge>
+                    )}
+                    <ApplicationStatusBadge status={application.status} />
+                  </div>
                 </div>
                 <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
                   <span>{t("appliedOn", { date: dateFormat.format(application.createdAt) })}</span>

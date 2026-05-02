@@ -160,3 +160,35 @@
     }
   }
 }
+
+/* P-6.5: Warm glow animation for "Viewed by Employer" notification toast.
+   The platform's defining emotional moment — a gentle amber pulse to signal
+   that an employer intentionally viewed the seeker's application. */
+@keyframes warm-glow {
+  0% {
+    background-color: transparent;
+    box-shadow: none;
+  }
+  30% {
+    background-color: rgba(212, 99, 31, 0.08);
+    box-shadow: 0 0 12px rgba(212, 99, 31, 0.15);
+  }
+  70% {
+    background-color: rgba(212, 99, 31, 0.08);
+    box-shadow: 0 0 12px rgba(212, 99, 31, 0.15);
+  }
+  100% {
+    background-color: transparent;
+    box-shadow: none;
+  }
+}
+
+.animate-warm-glow {
+  animation: warm-glow 2.5s ease-in-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-warm-glow {
+    animation: none;
+  }
+}

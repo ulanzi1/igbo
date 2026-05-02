@@ -1165,6 +1165,17 @@
         "notConfigured": "Atọlabeghi"
       }
     },
+    "viewed": {
+      "badge": "Ahụrụ",
+      "timelineEntry": "{companyName} hụrụ arịọ gị",
+      "toastTitle": "{companyName} hụrụ arịọ gị",
+      "toastBody": "Arịọ gị maka {jobTitle} ahụrụla",
+      "notificationTitle": "{companyName} hụrụ arịọ gị",
+      "notificationBody": "Onye ọrụ hụrụ arịọ gị maka {jobTitle}",
+      "emailSubject": "{companyName} hụrụ arịọ gị maka {jobTitle}",
+      "timelineAriaLabel": "Ọnọdụ oge nhụta ọrụ",
+      "viewedAtLabel": "Ahụrụ"
+    },
     "chooseRole": {
       "title": "Họrọ Ụzọ Gị",
       "subtitle": "Kedu ka ị ga-esi jiri OBIGBO Job Portal?",

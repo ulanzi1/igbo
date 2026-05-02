@@ -360,8 +360,8 @@ development_status:
   p-6-1b-notification-routing-pipeline: done
   p-6-2-email-notifications: done
   p-6-3-push-in-app-notifications-delivery-guarantees: done
-  p-6-4-notification-preferences-priority-hierarchy: review
-  p-6-5-viewed-by-employer-signal-outbox-pattern: backlog
+  p-6-4-notification-preferences-priority-hierarchy: done
+  p-6-5-viewed-by-employer-signal-outbox-pattern: in-progress
   p-6-6-daily-weekly-digest: backlog
   p-6-7-notification-store-read-state-management: backlog
   portal-epic-6-retrospective: optional

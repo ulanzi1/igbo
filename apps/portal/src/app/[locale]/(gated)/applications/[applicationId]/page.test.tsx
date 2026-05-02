@@ -45,8 +45,18 @@ vi.mock("@/components/domain/application-status-badge", () => ({
   ),
 }));
 vi.mock("@/components/domain/application-timeline", () => ({
-  ApplicationTimeline: ({ transitions }: { transitions: unknown[] }) => (
-    <div data-testid="application-timeline" data-count={transitions.length} />
+  ApplicationTimeline: ({
+    transitions,
+    viewedBy,
+  }: {
+    transitions: unknown[];
+    viewedBy?: { companyName: string; viewedAt: Date | string } | null;
+  }) => (
+    <div
+      data-testid="application-timeline"
+      data-count={transitions.length}
+      data-viewed-by={viewedBy ? viewedBy.companyName : "none"}
+    />
   ),
 }));
 vi.mock("@/components/ui/card", () => ({
@@ -122,6 +132,7 @@ const mockApplication = {
   companyId: "cp-1",
   companyName: "Acme Corp",
   cvLabel: "Main CV",
+  viewedAt: null as Date | null,
 };
 
 const mockTransitions = [
@@ -331,5 +342,26 @@ describe("ApplicationDetailPage", () => {
     await expect(renderPage()).resolves.toBeDefined();
     const section = screen.getByTestId("application-messaging-section");
     expect(section).toHaveAttribute("data-conversation-exists", "false");
+  });
+
+  it("passes viewedBy with company name when application.viewedAt is set", async () => {
+    vi.mocked(getApplicationDetailForSeeker).mockResolvedValue({
+      ...mockApplication,
+      viewedAt: new Date("2026-01-10T12:00:00Z"),
+      companyName: "Acme Corp",
+    } as never);
+    await renderPage();
+    const timeline = screen.getByTestId("application-timeline");
+    expect(timeline).toHaveAttribute("data-viewed-by", "Acme Corp");
+  });
+
+  it("passes viewedBy=null when application.viewedAt is null", async () => {
+    vi.mocked(getApplicationDetailForSeeker).mockResolvedValue({
+      ...mockApplication,
+      viewedAt: null,
+    } as never);
+    await renderPage();
+    const timeline = screen.getByTestId("application-timeline");
+    expect(timeline).toHaveAttribute("data-viewed-by", "none");
   });
 });
