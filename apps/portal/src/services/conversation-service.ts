@@ -85,10 +85,10 @@ async function getApplicationContext(applicationId: string): Promise<Application
       a.seeker_user_id,
       a.status,
       j.id AS job_id,
-      j.employer_user_id,
+      c.owner_user_id AS employer_user_id,
       j.title AS job_title,
       c.id AS company_id,
-      c.company_name
+      c.name AS company_name
     FROM portal_applications a
     JOIN portal_job_postings j ON j.id = a.job_id
     JOIN portal_company_profiles c ON c.id = j.company_id
@@ -457,7 +457,9 @@ export async function getPortalConversationMessages(
 ): Promise<{ messages: PortalMessageWithAttachments[]; hasMore: boolean }> {
   const conv = await getPortalConversationByApplicationId(applicationId);
   if (!conv) {
-    throw new ApiError({ title: "Not Found", status: 404 });
+    // No conversation created yet — return empty rather than 404
+    // so the UI can render the "send first message" state.
+    return { messages: [], hasMore: false };
   }
 
   const isMember = await isConversationMember(conv.conversation.id, userId, "portal");

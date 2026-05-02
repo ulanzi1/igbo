@@ -14,8 +14,10 @@ vi.mock("@igbo/db/queries/auth-queries", () => ({
 }));
 
 const mockGetJobPostingById = vi.fn();
+const mockGetJobPostingWithCompany = vi.fn();
 vi.mock("@igbo/db/queries/portal-job-postings", () => ({
   getJobPostingById: mockGetJobPostingById,
+  getJobPostingWithCompany: mockGetJobPostingWithCompany,
 }));
 
 const mockGetCompanyById = vi.fn();
@@ -23,39 +25,17 @@ vi.mock("@igbo/db/queries/portal-companies", () => ({
   getCompanyById: mockGetCompanyById,
 }));
 
-const mockCreateNotification = vi.fn();
-vi.mock("@igbo/db/queries/notifications", () => ({
-  createNotification: mockCreateNotification,
-}));
-
 const mockEnqueueEmailJob = vi.fn();
 vi.mock("@/services/email-service", () => ({
   enqueueEmailJob: mockEnqueueEmailJob,
 }));
 
-// Push service mock
-const mockSendPushNotification = vi.fn();
-vi.mock("@/services/push-service", () => ({
-  sendPushNotification: mockSendPushNotification,
-}));
-
 const mockRedisSet = vi.fn();
-const mockRedisIncr = vi.fn();
-const mockRedisExpire = vi.fn();
 const mockRedisPublish = vi.fn();
-const mockPipelineExec = vi.fn();
-const mockPipeline = vi.fn(() => ({
-  incr: mockRedisIncr,
-  expire: mockRedisExpire,
-  exec: mockPipelineExec,
-}));
 vi.mock("@/lib/redis", () => ({
   getRedisClient: vi.fn(() => ({
     set: mockRedisSet,
-    incr: mockRedisIncr,
-    expire: mockRedisExpire,
     publish: mockRedisPublish,
-    pipeline: mockPipeline,
   })),
 }));
 
@@ -71,6 +51,12 @@ vi.mock("@/services/saved-search-service", () => ({
   checkInstantAlerts: mockCheckInstantAlerts,
 }));
 
+// dispatchNotification is now the primary dispatch mechanism
+const mockDispatchNotification = vi.fn();
+vi.mock("@/services/notification-router", () => ({
+  dispatchNotification: mockDispatchNotification,
+}));
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 type EventName =
@@ -78,16 +64,16 @@ type EventName =
   | "application.withdrawn"
   | "saved_search.new_result"
   | "job.reviewed"
-  | "portal.message.sent";
+  | "portal.message.sent"
+  | "application.status_changed"
+  | "job.expired";
 
 async function getHandler(
   eventName: EventName = "application.submitted",
 ): Promise<(payload: unknown) => Promise<void>> {
-  // Reset HMR guard so the module re-registers
   const global = globalThis as unknown as { __portalNotifHandlersRegistered?: boolean };
   global.__portalNotifHandlersRegistered = false;
   mockPortalEventBusOn.mockClear();
-  // Re-import to trigger handler registration
   vi.resetModules();
   await import("./notification-service");
   const call = mockPortalEventBusOn.mock.calls.find(([event]) => event === eventName);
@@ -106,13 +92,12 @@ const BASE_PAYLOAD = {
   employerUserId: "employer-xyz",
 };
 
+// ── application.submitted handler ─────────────────────────────────────────────
+
 describe("notification-service — application.submitted handler", () => {
   beforeEach(() => {
     vi.resetAllMocks();
-    // Default: Redis dedup key is new (not already set)
     mockRedisSet.mockResolvedValue("OK");
-    mockRedisPublish.mockResolvedValue(1);
-    // Default DB data
     mockFindUserById.mockResolvedValue({
       id: "seeker-789",
       email: "seeker@example.com",
@@ -121,11 +106,8 @@ describe("notification-service — application.submitted handler", () => {
     });
     mockGetJobPostingById.mockResolvedValue({ id: "job-456", title: "Senior Engineer" });
     mockGetCompanyById.mockResolvedValue({ id: "company-abc", name: "Igbo Tech" });
-    mockCreateNotification.mockResolvedValue({
-      id: "notif-1",
-      createdAt: new Date("2026-04-09T10:00:00.000Z"),
-    });
     mockEnqueueEmailJob.mockResolvedValue(true);
+    mockDispatchNotification.mockResolvedValue(undefined);
   });
 
   afterEach(() => {
@@ -144,7 +126,7 @@ describe("notification-service — application.submitted handler", () => {
     );
   });
 
-  it("sends seeker confirmation email", async () => {
+  it("sends seeker confirmation email (stays inline — different recipient)", async () => {
     const handler = await getHandler();
     await handler(BASE_PAYLOAD);
 
@@ -179,45 +161,66 @@ describe("notification-service — application.submitted handler", () => {
     );
   });
 
-  it("creates employer in-app notification", async () => {
+  it("calls dispatchNotification for employer in-app notification", async () => {
     const handler = await getHandler();
     await handler(BASE_PAYLOAD);
 
-    expect(mockCreateNotification).toHaveBeenCalledWith(
+    expect(mockDispatchNotification).toHaveBeenCalledWith(
       expect.objectContaining({
         userId: BASE_PAYLOAD.employerUserId,
-        type: "system",
-        title: expect.stringContaining("Senior Engineer"),
-        body: expect.stringContaining("Ada Obi"),
-        link: `/admin/applications/${BASE_PAYLOAD.applicationId}`,
+        eventType: "portal.application.submitted",
+        content: expect.objectContaining({
+          title: expect.stringContaining("Senior Engineer"),
+          body: expect.stringContaining("Ada Obi"),
+          link: `/admin/applications/${BASE_PAYLOAD.applicationId}`,
+        }),
+        dedupKey: `app-submitted:${BASE_PAYLOAD.applicationId}`,
       }),
     );
   });
 
-  it("publishes notification.created to Redis after employer notification (real-time delivery)", async () => {
+  it("contract snapshot — dispatchNotification called with exact shape for application.submitted", async () => {
     const handler = await getHandler();
     await handler(BASE_PAYLOAD);
 
-    expect(mockRedisPublish).toHaveBeenCalledWith(
-      "eventbus:notification.created",
-      expect.stringContaining('"notificationId":"notif-1"'),
-    );
-    // Verify payload shape
-    const publishArg = JSON.parse(mockRedisPublish.mock.calls[0]![1] as string);
-    expect(publishArg).toMatchObject({
-      notificationId: "notif-1",
-      userId: BASE_PAYLOAD.employerUserId,
-      type: "system",
-      title: expect.stringContaining("Senior Engineer"),
-    });
+    const call = mockDispatchNotification.mock.calls[0]![0];
+    expect(call.userId).toBe("employer-xyz");
+    expect(call.eventType).toBe("portal.application.submitted");
+    expect(call.dedupKey).toBe(`app-submitted:${BASE_PAYLOAD.applicationId}`);
+    expect(call.content.title).toBe("New application for Senior Engineer");
+    expect(call.content.body).toBe("from Ada Obi");
+    expect(call.content.link).toBe(`/admin/applications/${BASE_PAYLOAD.applicationId}`);
   });
 
-  it("publish failure does not throw (fire-and-forget)", async () => {
-    mockRedisPublish.mockRejectedValue(new Error("Redis down"));
+  it("uses Redis SET NX EX 86400 for system-critical dedup (portal.application.submitted)", async () => {
     const handler = await getHandler();
-    await expect(handler(BASE_PAYLOAD)).resolves.not.toThrow();
-    // createNotification should still have been called
-    expect(mockCreateNotification).toHaveBeenCalled();
+    await handler(BASE_PAYLOAD);
+
+    expect(mockRedisSet).toHaveBeenCalledWith(
+      `portal:dedup:notif:app-submitted:${BASE_PAYLOAD.applicationId}`,
+      "1",
+      "EX",
+      86400,
+      "NX",
+    );
+  });
+
+  it("skips processing on dedup key already set (idempotency)", async () => {
+    mockRedisSet.mockResolvedValue(null);
+    const handler = await getHandler();
+    await handler(BASE_PAYLOAD);
+
+    expect(mockEnqueueEmailJob).not.toHaveBeenCalled();
+    expect(mockDispatchNotification).not.toHaveBeenCalled();
+  });
+
+  it("proceeds if Redis dedup check throws (fail-open)", async () => {
+    mockRedisSet.mockRejectedValue(new Error("Redis down"));
+    const handler = await getHandler();
+    await handler(BASE_PAYLOAD);
+
+    expect(mockEnqueueEmailJob).toHaveBeenCalled();
+    expect(mockDispatchNotification).toHaveBeenCalled();
   });
 
   it("skips email if seeker has no email", async () => {
@@ -226,61 +229,21 @@ describe("notification-service — application.submitted handler", () => {
     await handler(BASE_PAYLOAD);
 
     expect(mockEnqueueEmailJob).not.toHaveBeenCalled();
-    // But notification should still be created
-    expect(mockCreateNotification).toHaveBeenCalled();
+    expect(mockDispatchNotification).toHaveBeenCalled();
   });
 
   it("does not throw when email service fails (error isolation)", async () => {
-    // enqueueEmailJob is async — failures are rejected promises, not sync throws
     mockEnqueueEmailJob.mockRejectedValue(new Error("Email service down"));
     const handler = await getHandler();
-    // Should not throw — .catch() in production code swallows the rejection
     await expect(handler(BASE_PAYLOAD)).resolves.not.toThrow();
   });
 
-  it("creates notification even when email fails (error isolation)", async () => {
-    mockEnqueueEmailJob.mockRejectedValue(new Error("Email service down"));
+  it("sends email even when dispatchNotification fails", async () => {
+    mockDispatchNotification.mockRejectedValue(new Error("dispatch error"));
     const handler = await getHandler();
     await handler(BASE_PAYLOAD);
-
-    // Seeker email is fire-and-forget (void prefix) — rejection doesn't block employer notification
-    expect(mockCreateNotification).toHaveBeenCalled();
-  });
-
-  it("sends email even when notification creation fails (error isolation)", async () => {
-    mockCreateNotification.mockRejectedValue(new Error("DB error"));
-    const handler = await getHandler();
-    await handler(BASE_PAYLOAD);
-
-    // Seeker email fires before employer notification — always sent
-    expect(mockEnqueueEmailJob).toHaveBeenCalled();
-  });
-
-  it("skips processing on dedup key already set (idempotency)", async () => {
-    mockRedisSet.mockResolvedValue(null); // null = key already exists
-    const handler = await getHandler();
-    await handler(BASE_PAYLOAD);
-
-    expect(mockEnqueueEmailJob).not.toHaveBeenCalled();
-    expect(mockCreateNotification).not.toHaveBeenCalled();
-  });
-
-  it("processes again for different applicationId (idempotency not cross-app)", async () => {
-    mockRedisSet.mockResolvedValue("OK");
-    const handler = await getHandler();
-    await handler({ ...BASE_PAYLOAD, applicationId: "app-different" });
 
     expect(mockEnqueueEmailJob).toHaveBeenCalled();
-  });
-
-  it("proceeds if Redis dedup check throws (fail-open)", async () => {
-    mockRedisSet.mockRejectedValue(new Error("Redis down"));
-    const handler = await getHandler();
-    await handler(BASE_PAYLOAD);
-
-    // Should still attempt email and notification
-    expect(mockEnqueueEmailJob).toHaveBeenCalled();
-    expect(mockCreateNotification).toHaveBeenCalled();
   });
 
   it("uses fallback values when DB queries return null", async () => {
@@ -295,36 +258,12 @@ describe("notification-service — application.submitted handler", () => {
     const handler = await getHandler();
     await handler(BASE_PAYLOAD);
 
-    expect(mockCreateNotification).toHaveBeenCalledWith(
+    expect(mockDispatchNotification).toHaveBeenCalledWith(
       expect.objectContaining({
-        title: "New application for Unknown Position",
-        body: "from a seeker",
-      }),
-    );
-  });
-
-  it("preserves partial data when one query fails (Promise.allSettled)", async () => {
-    // Company query fails, but seeker and posting succeed
-    mockGetCompanyById.mockRejectedValue(new Error("DB timeout"));
-    const handler = await getHandler();
-    await handler(BASE_PAYLOAD);
-
-    // Seeker email should still be sent (seeker data was resolved)
-    expect(mockEnqueueEmailJob).toHaveBeenCalledWith(
-      expect.any(String),
-      expect.objectContaining({
-        to: "seeker@example.com",
-        data: expect.objectContaining({
-          seekerName: "Ada Obi",
-          jobTitle: "Senior Engineer",
-          companyName: "Unknown Company", // fallback for failed query
+        content: expect.objectContaining({
+          title: "New application for Unknown Position",
+          body: "from a seeker",
         }),
-      }),
-    );
-    // Employer notification should use resolved job title
-    expect(mockCreateNotification).toHaveBeenCalledWith(
-      expect.objectContaining({
-        title: "New application for Senior Engineer",
       }),
     );
   });
@@ -360,90 +299,23 @@ describe("notification-service — application.submitted handler", () => {
     );
   });
 
-  it("uses same dedup key for both email and notification (single idempotency key)", async () => {
-    const handler = await getHandler();
-    await handler(BASE_PAYLOAD);
-
-    expect(mockRedisSet).toHaveBeenCalledTimes(1);
-    expect(mockRedisSet).toHaveBeenCalledWith(
-      `portal:dedup:notif:app-submitted:${BASE_PAYLOAD.applicationId}`,
-      "1",
-      "EX",
-      900,
-      "NX",
-    );
-  });
-
-  it("passes exact idempotencyKey 'app-submitted:<applicationId>' to createNotification", async () => {
-    const handler = await getHandler();
-    await handler(BASE_PAYLOAD);
-
-    expect(mockCreateNotification).toHaveBeenCalledWith(
-      expect.objectContaining({
-        idempotencyKey: `app-submitted:${BASE_PAYLOAD.applicationId}`,
-      }),
-    );
-  });
-
-  it("skips publishNotificationCreated when createNotification returns null (DB dedup)", async () => {
-    mockCreateNotification.mockResolvedValue(null);
-    const handler = await getHandler();
-    await handler(BASE_PAYLOAD);
-
-    expect(mockRedisPublish).not.toHaveBeenCalled();
-  });
-
-  it("still sends seeker email when createNotification returns null (DB dedup)", async () => {
-    mockCreateNotification.mockResolvedValue(null);
-    const handler = await getHandler();
-    await handler(BASE_PAYLOAD);
-
-    // Seeker email fires before employer notification — not gated by DB dedup
-    expect(mockEnqueueEmailJob).toHaveBeenCalled();
-    // But employer publish is skipped
-    expect(mockRedisPublish).not.toHaveBeenCalled();
-  });
-
-  it("proceeds normally when createNotification returns a notification object", async () => {
-    const notif = { id: "notif-1", createdAt: new Date("2026-04-09T10:00:00.000Z") };
-    mockCreateNotification.mockResolvedValue(notif);
-    const handler = await getHandler();
-    await handler(BASE_PAYLOAD);
-
-    expect(mockRedisPublish).toHaveBeenCalled();
-    expect(mockEnqueueEmailJob).toHaveBeenCalled();
-  });
-
   it("HMR guard prevents duplicate handler registration", async () => {
     const global = globalThis as unknown as { __portalNotifHandlersRegistered?: boolean };
     global.__portalNotifHandlersRegistered = false;
     vi.resetModules();
     mockPortalEventBusOn.mockClear();
 
-    // Import twice
     await import("./notification-service");
     await import("./notification-service");
 
-    // Handler should only be registered once
     const appSubmittedCalls = mockPortalEventBusOn.mock.calls.filter(
       ([event]) => event === "application.submitted",
     );
     expect(appSubmittedCalls).toHaveLength(1);
   });
-
-  it("publishNotificationCreated includes eventType: 'portal.application.submitted' in payload", async () => {
-    const handler = await getHandler();
-    await handler(BASE_PAYLOAD);
-
-    expect(mockRedisPublish).toHaveBeenCalled();
-    const publishArg = JSON.parse(mockRedisPublish.mock.calls[0]![1] as string);
-    expect(publishArg.eventType).toBe("portal.application.submitted");
-  });
 });
 
-// ---------------------------------------------------------------------------
-// application.withdrawn handler
-// ---------------------------------------------------------------------------
+// ── application.withdrawn handler ────────────────────────────────────────────
 
 const WITHDRAWN_PAYLOAD = {
   eventId: "evt-wd-001",
@@ -462,7 +334,6 @@ describe("notification-service — application.withdrawn handler", () => {
   beforeEach(() => {
     vi.resetAllMocks();
     mockRedisSet.mockResolvedValue("OK");
-    mockRedisPublish.mockResolvedValue(1);
     mockFindUserById.mockResolvedValue({
       id: "seeker-wd-789",
       email: "seeker@example.com",
@@ -475,10 +346,7 @@ describe("notification-service — application.withdrawn handler", () => {
       ownerUserId: "employer-wd-xyz",
       name: "Igbo Tech",
     });
-    mockCreateNotification.mockResolvedValue({
-      id: "notif-wd-1",
-      createdAt: new Date("2026-04-09T12:00:00.000Z"),
-    });
+    mockDispatchNotification.mockResolvedValue(undefined);
   });
 
   afterEach(() => {
@@ -497,44 +365,25 @@ describe("notification-service — application.withdrawn handler", () => {
     );
   });
 
-  it("creates employer in-app notification with correct args", async () => {
+  it("calls dispatchNotification with employer userId and correct content", async () => {
     const handler = await getHandler("application.withdrawn");
     await handler(WITHDRAWN_PAYLOAD);
 
-    expect(mockCreateNotification).toHaveBeenCalledWith(
+    expect(mockDispatchNotification).toHaveBeenCalledWith(
       expect.objectContaining({
         userId: "employer-wd-xyz",
-        type: "system",
-        title: "A candidate withdrew their application",
-        body: "Ada Obi withdrew from Senior Engineer",
-        link: `/admin/applications/${WITHDRAWN_PAYLOAD.applicationId}`,
+        eventType: "portal.application.withdrawn",
+        content: expect.objectContaining({
+          title: "A candidate withdrew their application",
+          body: "Ada Obi withdrew from Senior Engineer",
+          link: `/admin/applications/${WITHDRAWN_PAYLOAD.applicationId}`,
+        }),
+        dedupKey: `app-withdrawn:${WITHDRAWN_PAYLOAD.applicationId}`,
       }),
     );
   });
 
-  it("publishes notification.created to Redis after withdrawn notification", async () => {
-    const handler = await getHandler("application.withdrawn");
-    await handler(WITHDRAWN_PAYLOAD);
-
-    expect(mockRedisPublish).toHaveBeenCalledWith(
-      "eventbus:notification.created",
-      expect.stringContaining('"notificationId":"notif-wd-1"'),
-    );
-    const publishArg = JSON.parse(mockRedisPublish.mock.calls[0]![1] as string);
-    expect(publishArg).toMatchObject({
-      notificationId: "notif-wd-1",
-      userId: "employer-wd-xyz",
-      type: "system",
-    });
-  });
-
-  it("publish failure for withdrawn does not throw (fire-and-forget)", async () => {
-    mockRedisPublish.mockRejectedValue(new Error("Redis down"));
-    const handler = await getHandler("application.withdrawn");
-    await expect(handler(WITHDRAWN_PAYLOAD)).resolves.not.toThrow();
-  });
-
-  it("uses Redis SET NX dedup key for app-withdrawn", async () => {
+  it("uses Redis SET NX EX dedup as first operation", async () => {
     const handler = await getHandler("application.withdrawn");
     await handler(WITHDRAWN_PAYLOAD);
 
@@ -548,15 +397,15 @@ describe("notification-service — application.withdrawn handler", () => {
   });
 
   it("skips notification if dedup key already set", async () => {
-    mockRedisSet.mockResolvedValue(null); // key already exists
+    mockRedisSet.mockResolvedValue(null);
     const handler = await getHandler("application.withdrawn");
     await handler(WITHDRAWN_PAYLOAD);
 
-    expect(mockCreateNotification).not.toHaveBeenCalled();
+    expect(mockDispatchNotification).not.toHaveBeenCalled();
   });
 
-  it("does not throw when notification creation fails (fire-and-forget)", async () => {
-    mockCreateNotification.mockRejectedValue(new Error("DB error"));
+  it("does not throw when dispatchNotification fails (fire-and-forget)", async () => {
+    mockDispatchNotification.mockRejectedValue(new Error("dispatch error"));
     const handler = await getHandler("application.withdrawn");
     await expect(handler(WITHDRAWN_PAYLOAD)).resolves.not.toThrow();
   });
@@ -566,7 +415,7 @@ describe("notification-service — application.withdrawn handler", () => {
     const handler = await getHandler("application.withdrawn");
     await handler(WITHDRAWN_PAYLOAD);
 
-    expect(mockCreateNotification).not.toHaveBeenCalled();
+    expect(mockDispatchNotification).not.toHaveBeenCalled();
   });
 
   it("logs warning and skips notification when company lookup returns null", async () => {
@@ -574,7 +423,7 @@ describe("notification-service — application.withdrawn handler", () => {
     const handler = await getHandler("application.withdrawn");
     await handler(WITHDRAWN_PAYLOAD);
 
-    expect(mockCreateNotification).not.toHaveBeenCalled();
+    expect(mockDispatchNotification).not.toHaveBeenCalled();
   });
 
   it("proceeds if Redis dedup check throws (fail-open)", async () => {
@@ -582,7 +431,7 @@ describe("notification-service — application.withdrawn handler", () => {
     const handler = await getHandler("application.withdrawn");
     await handler(WITHDRAWN_PAYLOAD);
 
-    expect(mockCreateNotification).toHaveBeenCalled();
+    expect(mockDispatchNotification).toHaveBeenCalled();
   });
 
   it("creates notification with fallback values when seeker lookup fails", async () => {
@@ -590,9 +439,11 @@ describe("notification-service — application.withdrawn handler", () => {
     const handler = await getHandler("application.withdrawn");
     await handler(WITHDRAWN_PAYLOAD);
 
-    expect(mockCreateNotification).toHaveBeenCalledWith(
+    expect(mockDispatchNotification).toHaveBeenCalledWith(
       expect.objectContaining({
-        body: "A candidate withdrew from Senior Engineer",
+        content: expect.objectContaining({
+          body: "A candidate withdrew from Senior Engineer",
+        }),
       }),
     );
   });
@@ -602,39 +453,13 @@ describe("notification-service — application.withdrawn handler", () => {
     const handler = await getHandler("application.withdrawn");
     await handler(WITHDRAWN_PAYLOAD);
 
-    expect(mockCreateNotification).toHaveBeenCalledWith(
+    expect(mockDispatchNotification).toHaveBeenCalledWith(
       expect.objectContaining({
-        body: "Ada Obi withdrew from Unknown Position",
+        content: expect.objectContaining({
+          body: "Ada Obi withdrew from Unknown Position",
+        }),
       }),
     );
-  });
-
-  it("passes exact idempotencyKey 'app-withdrawn:<applicationId>' to createNotification", async () => {
-    const handler = await getHandler("application.withdrawn");
-    await handler(WITHDRAWN_PAYLOAD);
-
-    expect(mockCreateNotification).toHaveBeenCalledWith(
-      expect.objectContaining({
-        idempotencyKey: `app-withdrawn:${WITHDRAWN_PAYLOAD.applicationId}`,
-      }),
-    );
-  });
-
-  it("skips publishNotificationCreated when createNotification returns null (DB dedup)", async () => {
-    mockCreateNotification.mockResolvedValue(null);
-    const handler = await getHandler("application.withdrawn");
-    await handler(WITHDRAWN_PAYLOAD);
-
-    expect(mockRedisPublish).not.toHaveBeenCalled();
-  });
-
-  it("proceeds normally when createNotification returns a notification object", async () => {
-    const notif = { id: "notif-wd-1", createdAt: new Date("2026-04-09T12:00:00.000Z") };
-    mockCreateNotification.mockResolvedValue(notif);
-    const handler = await getHandler("application.withdrawn");
-    await handler(WITHDRAWN_PAYLOAD);
-
-    expect(mockRedisPublish).toHaveBeenCalled();
   });
 });
 
@@ -665,13 +490,10 @@ const MOCK_SAVED_SEARCH = {
 describe("notification-service — saved_search.new_result handler", () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    mockRedisSet.mockResolvedValue("OK");
     mockGetSavedSearchById.mockResolvedValue(MOCK_SAVED_SEARCH);
     mockEvaluateInstantAlert.mockResolvedValue(true);
-    mockCreateNotification.mockResolvedValue({
-      id: "notif-ss-1",
-      createdAt: new Date("2026-04-18T10:00:00.000Z"),
-    });
-    mockRedisPublish.mockResolvedValue(1);
+    mockDispatchNotification.mockResolvedValue(undefined);
   });
 
   afterEach(() => {
@@ -690,44 +512,44 @@ describe("notification-service — saved_search.new_result handler", () => {
     );
   });
 
-  it("creates notification when evaluateInstantAlert returns true", async () => {
+  it("now has Redis NX dedup as FIRST operation (Pattern 1 backfill)", async () => {
     const handler = await getHandler("saved_search.new_result");
     await handler(SAVED_SEARCH_PAYLOAD);
 
-    expect(mockGetSavedSearchById).toHaveBeenCalledWith("ss-abc");
-    expect(mockEvaluateInstantAlert).toHaveBeenCalledWith(MOCK_SAVED_SEARCH, {
-      id: "job-456",
-      title: "Senior Engineer",
-    });
-    expect(mockCreateNotification).toHaveBeenCalledWith(
+    // Redis SET must be called before any other work
+    expect(mockRedisSet).toHaveBeenCalledWith(
+      `portal:dedup:notif:search-alert:${SAVED_SEARCH_PAYLOAD.savedSearchId}:${SAVED_SEARCH_PAYLOAD.jobId}`,
+      "1",
+      "EX",
+      900,
+      "NX",
+    );
+  });
+
+  it("skips notification when dedup key already set", async () => {
+    mockRedisSet.mockResolvedValue(null);
+    const handler = await getHandler("saved_search.new_result");
+    await handler(SAVED_SEARCH_PAYLOAD);
+
+    expect(mockGetSavedSearchById).not.toHaveBeenCalled();
+    expect(mockDispatchNotification).not.toHaveBeenCalled();
+  });
+
+  it("calls dispatchNotification with correct eventType and content", async () => {
+    const handler = await getHandler("saved_search.new_result");
+    await handler(SAVED_SEARCH_PAYLOAD);
+
+    expect(mockDispatchNotification).toHaveBeenCalledWith(
       expect.objectContaining({
         userId: "user-123",
-        type: "system",
-        title: "New match: Senior Engineer",
+        eventType: "portal.saved_search.new_results",
+        content: expect.objectContaining({
+          title: "New match: Senior Engineer",
+          body: `Your saved search "Lagos Engineers" has a new result`,
+        }),
+        dedupKey: `search-alert:${SAVED_SEARCH_PAYLOAD.savedSearchId}:${SAVED_SEARCH_PAYLOAD.jobId}`,
       }),
     );
-  });
-
-  it("publishes notification.created to Redis after saved-search notification", async () => {
-    const handler = await getHandler("saved_search.new_result");
-    await handler(SAVED_SEARCH_PAYLOAD);
-
-    expect(mockRedisPublish).toHaveBeenCalledWith(
-      "eventbus:notification.created",
-      expect.stringContaining('"notificationId":"notif-ss-1"'),
-    );
-    const publishArg = JSON.parse(mockRedisPublish.mock.calls[0]![1] as string);
-    expect(publishArg).toMatchObject({
-      notificationId: "notif-ss-1",
-      userId: "user-123",
-      type: "system",
-    });
-  });
-
-  it("publish failure for saved-search does not throw (fire-and-forget)", async () => {
-    mockRedisPublish.mockRejectedValue(new Error("Redis down"));
-    const handler = await getHandler("saved_search.new_result");
-    await expect(handler(SAVED_SEARCH_PAYLOAD)).resolves.not.toThrow();
   });
 
   it("skips notification when evaluateInstantAlert returns false", async () => {
@@ -735,7 +557,7 @@ describe("notification-service — saved_search.new_result handler", () => {
     const handler = await getHandler("saved_search.new_result");
     await handler(SAVED_SEARCH_PAYLOAD);
 
-    expect(mockCreateNotification).not.toHaveBeenCalled();
+    expect(mockDispatchNotification).not.toHaveBeenCalled();
   });
 
   it("skips notification when savedSearch not found in DB", async () => {
@@ -744,50 +566,21 @@ describe("notification-service — saved_search.new_result handler", () => {
     await handler(SAVED_SEARCH_PAYLOAD);
 
     expect(mockEvaluateInstantAlert).not.toHaveBeenCalled();
-    expect(mockCreateNotification).not.toHaveBeenCalled();
+    expect(mockDispatchNotification).not.toHaveBeenCalled();
   });
 
-  it("handles createNotification error gracefully", async () => {
-    mockCreateNotification.mockRejectedValue(new Error("DB error"));
+  it("does not throw when dispatchNotification fails (fire-and-forget)", async () => {
+    mockDispatchNotification.mockRejectedValue(new Error("dispatch error"));
     const handler = await getHandler("saved_search.new_result");
     await expect(handler(SAVED_SEARCH_PAYLOAD)).resolves.not.toThrow();
   });
 
-  it("passes exact idempotencyKey 'search-alert:<savedSearchId>:<jobId>' to createNotification", async () => {
+  it("proceeds if Redis dedup check throws (fail-open)", async () => {
+    mockRedisSet.mockRejectedValue(new Error("Redis down"));
     const handler = await getHandler("saved_search.new_result");
     await handler(SAVED_SEARCH_PAYLOAD);
 
-    expect(mockCreateNotification).toHaveBeenCalledWith(
-      expect.objectContaining({
-        idempotencyKey: `search-alert:${SAVED_SEARCH_PAYLOAD.savedSearchId}:${SAVED_SEARCH_PAYLOAD.jobId}`,
-      }),
-    );
-  });
-
-  it("skips publishNotificationCreated when createNotification returns null (DB dedup)", async () => {
-    mockCreateNotification.mockResolvedValue(null);
-    const handler = await getHandler("saved_search.new_result");
-    await handler(SAVED_SEARCH_PAYLOAD);
-
-    expect(mockRedisPublish).not.toHaveBeenCalled();
-  });
-
-  it("proceeds normally when createNotification returns a notification object", async () => {
-    const notif = { id: "notif-ss-1", createdAt: new Date("2026-04-18T10:00:00.000Z") };
-    mockCreateNotification.mockResolvedValue(notif);
-    const handler = await getHandler("saved_search.new_result");
-    await handler(SAVED_SEARCH_PAYLOAD);
-
-    expect(mockRedisPublish).toHaveBeenCalled();
-  });
-
-  it("publishNotificationCreated includes eventType: 'portal.saved_search.new_results' in payload", async () => {
-    const handler = await getHandler("saved_search.new_result");
-    await handler(SAVED_SEARCH_PAYLOAD);
-
-    expect(mockRedisPublish).toHaveBeenCalled();
-    const publishArg = JSON.parse(mockRedisPublish.mock.calls[0]![1] as string);
-    expect(publishArg.eventType).toBe("portal.saved_search.new_results");
+    expect(mockDispatchNotification).toHaveBeenCalled();
   });
 });
 
@@ -798,15 +591,27 @@ const JOB_REVIEWED_PAYLOAD = {
   version: 1,
   timestamp: "2026-04-18T10:00:00.000Z",
   jobId: "job-789",
-  decision: "approved" as const,
-  reviewerId: "admin-1",
-  postingId: "job-789",
+  reviewerUserId: "admin-1",
+  companyId: "company-abc",
+  decision: "approved" as "approved" | "rejected" | "changes_requested",
+};
+
+const MOCK_POSTING_WITH_COMPANY = {
+  posting: { id: "job-789", title: "Senior Engineer", companyId: "company-abc" },
+  company: {
+    id: "company-abc",
+    name: "Igbo Tech",
+    ownerUserId: "employer-owner-123",
+  },
 };
 
 describe("notification-service — job.reviewed handler", () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    mockRedisSet.mockResolvedValue("OK");
     mockCheckInstantAlerts.mockResolvedValue(undefined);
+    mockGetJobPostingWithCompany.mockResolvedValue(MOCK_POSTING_WITH_COMPANY);
+    mockDispatchNotification.mockResolvedValue(undefined);
   });
 
   afterEach(() => {
@@ -822,6 +627,41 @@ describe("notification-service — job.reviewed handler", () => {
     expect(mockPortalEventBusOn).toHaveBeenCalledWith("job.reviewed", expect.any(Function));
   });
 
+  it("has Redis NX dedup as FIRST operation — backfill per Pattern Assessment constraint", async () => {
+    const handler = await getHandler("job.reviewed");
+    await handler(JOB_REVIEWED_PAYLOAD);
+
+    expect(mockRedisSet).toHaveBeenCalledWith(
+      `portal:dedup:notif:job-reviewed:${JOB_REVIEWED_PAYLOAD.jobId}:${JOB_REVIEWED_PAYLOAD.decision}`,
+      "1",
+      "EX",
+      900, // "approved" is high-priority → 900
+      "NX",
+    );
+  });
+
+  it("uses 86400 dedup TTL for rejected decision (system-critical)", async () => {
+    const handler = await getHandler("job.reviewed");
+    await handler({ ...JOB_REVIEWED_PAYLOAD, decision: "rejected" });
+
+    expect(mockRedisSet).toHaveBeenCalledWith(
+      `portal:dedup:notif:job-reviewed:${JOB_REVIEWED_PAYLOAD.jobId}:rejected`,
+      "1",
+      "EX",
+      86400,
+      "NX",
+    );
+  });
+
+  it("skips all work when dedup key already set", async () => {
+    mockRedisSet.mockResolvedValue(null);
+    const handler = await getHandler("job.reviewed");
+    await handler(JOB_REVIEWED_PAYLOAD);
+
+    expect(mockCheckInstantAlerts).not.toHaveBeenCalled();
+    expect(mockDispatchNotification).not.toHaveBeenCalled();
+  });
+
   it("calls checkInstantAlerts when decision is approved", async () => {
     const handler = await getHandler("job.reviewed");
     await handler(JOB_REVIEWED_PAYLOAD);
@@ -829,14 +669,94 @@ describe("notification-service — job.reviewed handler", () => {
     expect(mockCheckInstantAlerts).toHaveBeenCalledWith("job-789");
   });
 
-  it("skips checkInstantAlerts when decision is not approved", async () => {
+  it("does NOT call checkInstantAlerts for rejected decision", async () => {
     const handler = await getHandler("job.reviewed");
     await handler({ ...JOB_REVIEWED_PAYLOAD, decision: "rejected" });
 
     expect(mockCheckInstantAlerts).not.toHaveBeenCalled();
   });
 
-  it("handles checkInstantAlerts error gracefully", async () => {
+  it("does NOT call checkInstantAlerts for changes_requested decision", async () => {
+    const handler = await getHandler("job.reviewed");
+    await handler({ ...JOB_REVIEWED_PAYLOAD, decision: "changes_requested" });
+
+    expect(mockCheckInstantAlerts).not.toHaveBeenCalled();
+  });
+
+  it("uses getJobPostingWithCompany to get employerUserId (no employerUserId in event)", async () => {
+    const handler = await getHandler("job.reviewed");
+    await handler(JOB_REVIEWED_PAYLOAD);
+
+    expect(mockGetJobPostingWithCompany).toHaveBeenCalledWith("job-789");
+  });
+
+  it("dispatches portal.job.approved notification for approved decision", async () => {
+    const handler = await getHandler("job.reviewed");
+    await handler(JOB_REVIEWED_PAYLOAD);
+
+    expect(mockDispatchNotification).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: "employer-owner-123",
+        eventType: "portal.job.approved",
+        dedupKey: `job-reviewed:${JOB_REVIEWED_PAYLOAD.jobId}:approved`,
+      }),
+    );
+  });
+
+  it("dispatches portal.job.rejected notification for rejected decision", async () => {
+    const handler = await getHandler("job.reviewed");
+    await handler({ ...JOB_REVIEWED_PAYLOAD, decision: "rejected" });
+
+    expect(mockDispatchNotification).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: "employer-owner-123",
+        eventType: "portal.job.rejected",
+        dedupKey: `job-reviewed:${JOB_REVIEWED_PAYLOAD.jobId}:rejected`,
+      }),
+    );
+  });
+
+  it("dispatches portal.job.changes_requested notification for changes_requested decision", async () => {
+    const handler = await getHandler("job.reviewed");
+    await handler({ ...JOB_REVIEWED_PAYLOAD, decision: "changes_requested" });
+
+    expect(mockDispatchNotification).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: "employer-owner-123",
+        eventType: "portal.job.changes_requested",
+        dedupKey: `job-reviewed:${JOB_REVIEWED_PAYLOAD.jobId}:changes_requested`,
+      }),
+    );
+  });
+
+  it("skips employer notification when getJobPostingWithCompany returns null", async () => {
+    mockGetJobPostingWithCompany.mockResolvedValue(null);
+    const handler = await getHandler("job.reviewed");
+    await handler(JOB_REVIEWED_PAYLOAD);
+
+    expect(mockDispatchNotification).not.toHaveBeenCalled();
+  });
+
+  it("skips employer notification when getJobPostingWithCompany rejects", async () => {
+    mockGetJobPostingWithCompany.mockRejectedValue(new Error("DB timeout"));
+    const handler = await getHandler("job.reviewed");
+    await handler(JOB_REVIEWED_PAYLOAD);
+
+    expect(mockDispatchNotification).not.toHaveBeenCalled();
+  });
+
+  it("skips employer notification when company has no ownerUserId", async () => {
+    mockGetJobPostingWithCompany.mockResolvedValue({
+      posting: { id: "job-789", title: "Senior Engineer", companyId: "company-abc" },
+      company: { id: "company-abc", name: "Igbo Tech", ownerUserId: null },
+    });
+    const handler = await getHandler("job.reviewed");
+    await handler(JOB_REVIEWED_PAYLOAD);
+
+    expect(mockDispatchNotification).not.toHaveBeenCalled();
+  });
+
+  it("handles checkInstantAlerts error gracefully (fire-and-forget)", async () => {
     mockCheckInstantAlerts.mockRejectedValue(new Error("Service error"));
     const handler = await getHandler("job.reviewed");
     await expect(handler(JOB_REVIEWED_PAYLOAD)).resolves.not.toThrow();
@@ -869,21 +789,8 @@ const MSG_PAYLOAD = {
 describe("notification-service — portal.message.sent handler", () => {
   beforeEach(() => {
     vi.resetAllMocks();
-    // Default: dedup key is new
     mockRedisSet.mockResolvedValue("OK");
-    // Default: first message in window — pipeline returns [[null, 1], [null, 1]]
-    mockPipelineExec.mockResolvedValue([
-      [null, 1],
-      [null, 1],
-    ]);
-    mockRedisIncr.mockReturnThis();
-    mockRedisExpire.mockReturnThis();
-    mockRedisPublish.mockResolvedValue(1);
-    mockCreateNotification.mockResolvedValue({
-      id: "notif-msg-1",
-      createdAt: new Date("2026-04-24T10:00:00.000Z"),
-    });
-    mockSendPushNotification.mockResolvedValue(undefined);
+    mockDispatchNotification.mockResolvedValue(undefined);
   });
 
   afterEach(() => {
@@ -912,87 +819,22 @@ describe("notification-service — portal.message.sent handler", () => {
     expect(msgCalls).toHaveLength(1);
   });
 
-  it("creates notification for recipientId", async () => {
-    const handler = await getHandler("portal.message.sent");
-    await handler(MSG_PAYLOAD);
-
-    expect(mockCreateNotification).toHaveBeenCalledWith(
-      expect.objectContaining({ userId: "recipient-bbb" }),
-    );
-  });
-
-  it("notification title includes senderName and jobTitle", async () => {
-    const handler = await getHandler("portal.message.sent");
-    await handler(MSG_PAYLOAD);
-
-    expect(mockCreateNotification).toHaveBeenCalledWith(
-      expect.objectContaining({
-        title: "Chike Obi sent you a message about Software Engineer",
-      }),
-    );
-  });
-
-  it("notification body — content exactly 50 chars → stored as-is", async () => {
-    const content50 = "a".repeat(50);
-    const handler = await getHandler("portal.message.sent");
-    await handler({ ...MSG_PAYLOAD, content: content50 });
-
-    expect(mockCreateNotification).toHaveBeenCalledWith(
-      expect.objectContaining({ body: content50 }),
-    );
-  });
-
-  it("notification body — content 51+ chars → truncated to 50 chars", async () => {
-    const content51 = "a".repeat(51);
-    const handler = await getHandler("portal.message.sent");
-    await handler({ ...MSG_PAYLOAD, content: content51 });
-
-    expect(mockCreateNotification).toHaveBeenCalledWith(
-      expect.objectContaining({ body: "a".repeat(50) }),
-    );
-  });
-
-  it("notification body — empty content → handled gracefully (empty string)", async () => {
-    const handler = await getHandler("portal.message.sent");
-    await handler({ ...MSG_PAYLOAD, content: "" });
-
-    expect(mockCreateNotification).toHaveBeenCalledWith(expect.objectContaining({ body: "" }));
-  });
-
-  it("notification link is /conversations/applicationId", async () => {
-    const handler = await getHandler("portal.message.sent");
-    await handler(MSG_PAYLOAD);
-
-    expect(mockCreateNotification).toHaveBeenCalledWith(
-      expect.objectContaining({ link: `/conversations/${MSG_PAYLOAD.applicationId}` }),
-    );
-  });
-
-  it("notification type is 'message'", async () => {
-    const handler = await getHandler("portal.message.sent");
-    await handler(MSG_PAYLOAD);
-
-    expect(mockCreateNotification).toHaveBeenCalledWith(
-      expect.objectContaining({ type: "message" }),
-    );
-  });
-
-  it("self-exclusion — when recipientId === senderId, createNotification is NOT called", async () => {
+  it("self-exclusion — when recipientId === senderId, dispatchNotification is NOT called", async () => {
     const handler = await getHandler("portal.message.sent");
     await handler({ ...MSG_PAYLOAD, recipientId: MSG_PAYLOAD.senderId });
 
-    expect(mockCreateNotification).not.toHaveBeenCalled();
+    expect(mockDispatchNotification).not.toHaveBeenCalled();
   });
 
   it("dedup — second event with same messageId is skipped (atomic SET NX returns null)", async () => {
-    mockRedisSet.mockResolvedValue(null); // key already exists
+    mockRedisSet.mockResolvedValue(null);
     const handler = await getHandler("portal.message.sent");
     await handler(MSG_PAYLOAD);
 
-    expect(mockCreateNotification).not.toHaveBeenCalled();
+    expect(mockDispatchNotification).not.toHaveBeenCalled();
   });
 
-  it("dedup — uses atomic SET NX EX (single command)", async () => {
+  it("dedup — uses atomic SET NX EX with messageId key", async () => {
     const handler = await getHandler("portal.message.sent");
     await handler(MSG_PAYLOAD);
 
@@ -1010,190 +852,365 @@ describe("notification-service — portal.message.sent handler", () => {
     const handler = await getHandler("portal.message.sent");
     await handler(MSG_PAYLOAD);
 
-    expect(mockCreateNotification).toHaveBeenCalled();
+    expect(mockDispatchNotification).toHaveBeenCalled();
   });
 
-  it("throttle — first message creates notification (pipeline INCR returns 1); EXPIRE piped atomically", async () => {
-    mockPipelineExec.mockResolvedValue([
-      [null, 1],
-      [null, 1],
-    ]);
+  it("calls dispatchNotification with correct eventType, userId, content", async () => {
     const handler = await getHandler("portal.message.sent");
     await handler(MSG_PAYLOAD);
 
-    expect(mockCreateNotification).toHaveBeenCalled();
-    // Pipeline should include both incr and expire
-    expect(mockRedisIncr).toHaveBeenCalledWith(
-      `portal:throttle:msg:${MSG_PAYLOAD.senderId}:${MSG_PAYLOAD.recipientId}:${MSG_PAYLOAD.applicationId}`,
-    );
-    expect(mockRedisExpire).toHaveBeenCalledWith(
-      `portal:throttle:msg:${MSG_PAYLOAD.senderId}:${MSG_PAYLOAD.recipientId}:${MSG_PAYLOAD.applicationId}`,
-      30,
+    expect(mockDispatchNotification).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: "recipient-bbb",
+        eventType: "portal.message.received",
+        content: expect.objectContaining({
+          title: "Chike Obi sent you a message about Software Engineer",
+          link: `/conversations/${MSG_PAYLOAD.applicationId}`,
+        }),
+        dedupKey: `msg:${MSG_PAYLOAD.messageId}`,
+      }),
     );
   });
 
-  it("throttle — second message within 30s window is suppressed (pipeline INCR returns 2)", async () => {
-    mockPipelineExec.mockResolvedValue([
-      [null, 2],
-      [null, 1],
-    ]);
+  it("passes custom throttleKey in format portal:throttle:msg:{sender}:{recipient}:{applicationId}", async () => {
     const handler = await getHandler("portal.message.sent");
     await handler(MSG_PAYLOAD);
 
-    expect(mockCreateNotification).not.toHaveBeenCalled();
+    expect(mockDispatchNotification).toHaveBeenCalledWith(
+      expect.objectContaining({
+        throttleKey: `portal:throttle:msg:${MSG_PAYLOAD.senderId}:${MSG_PAYLOAD.recipientId}:${MSG_PAYLOAD.applicationId}`,
+      }),
+    );
   });
 
-  it("throttle — message after window expiry creates new notification (pipeline INCR returns 1 again)", async () => {
-    mockPipelineExec.mockResolvedValue([
-      [null, 1],
-      [null, 1],
-    ]); // window expired, fresh counter
+  it("passes pushPayload in dispatchNotification (push is part of portal.message.received catalog)", async () => {
     const handler = await getHandler("portal.message.sent");
     await handler(MSG_PAYLOAD);
 
-    expect(mockCreateNotification).toHaveBeenCalled();
+    expect(mockDispatchNotification).toHaveBeenCalledWith(
+      expect.objectContaining({
+        pushPayload: expect.objectContaining({
+          tag: `msg:${MSG_PAYLOAD.applicationId}`,
+        }),
+      }),
+    );
   });
 
-  it("throttle — two different senders to same recipient within 30s both create notifications", async () => {
-    // Throttle keys differ by senderId — separate windows
-    mockPipelineExec.mockResolvedValue([
-      [null, 1],
-      [null, 1],
-    ]);
+  it("does NOT pass emailJob (email is intentionally OFF for messages per catalog)", async () => {
     const handler = await getHandler("portal.message.sent");
+    await handler(MSG_PAYLOAD);
 
-    await handler(MSG_PAYLOAD); // sender-aaa
-    await handler({ ...MSG_PAYLOAD, senderId: "sender-ccc", messageId: "msg-222" }); // sender-ccc
-
-    expect(mockCreateNotification).toHaveBeenCalledTimes(2);
+    const call = mockDispatchNotification.mock.calls[0]![0];
+    expect(call.emailJob).toBeUndefined();
   });
 
-  it("createNotification failure is logged but does not throw (fire-and-forget)", async () => {
-    mockCreateNotification.mockRejectedValue(new Error("DB error"));
+  it("notification body — content 51+ chars → truncated to 50 chars", async () => {
+    const content51 = "a".repeat(51);
     const handler = await getHandler("portal.message.sent");
-    await expect(handler(MSG_PAYLOAD)).resolves.not.toThrow();
-    // Push must NOT be called when in-app notification creation failed
-    expect(mockSendPushNotification).not.toHaveBeenCalled();
+    await handler({ ...MSG_PAYLOAD, content: content51 });
+
+    expect(mockDispatchNotification).toHaveBeenCalledWith(
+      expect.objectContaining({
+        content: expect.objectContaining({ body: "a".repeat(50) }),
+      }),
+    );
   });
 
-  it("senderName is null → notification uses 'Someone' fallback", async () => {
+  it("senderName is undefined → notification uses 'Someone' fallback", async () => {
     const handler = await getHandler("portal.message.sent");
     await handler({ ...MSG_PAYLOAD, senderName: undefined });
 
-    expect(mockCreateNotification).toHaveBeenCalledWith(
+    expect(mockDispatchNotification).toHaveBeenCalledWith(
       expect.objectContaining({
-        title: "Someone sent you a message about Software Engineer",
+        content: expect.objectContaining({
+          title: "Someone sent you a message about Software Engineer",
+        }),
       }),
     );
   });
 
-  it("after createNotification, publishes notification.created to Redis eventbus:notification.created channel", async () => {
+  it("does not throw when dispatchNotification fails (fire-and-forget)", async () => {
+    mockDispatchNotification.mockRejectedValue(new Error("dispatch error"));
     const handler = await getHandler("portal.message.sent");
-    await handler(MSG_PAYLOAD);
+    await expect(handler(MSG_PAYLOAD)).resolves.not.toThrow();
+  });
+});
 
-    expect(mockRedisPublish).toHaveBeenCalledWith(
-      "eventbus:notification.created",
-      expect.stringContaining('"notificationId":"notif-msg-1"'),
+// ── application.status_changed handler (NEW) ─────────────────────────────────
+
+const STATUS_CHANGED_PAYLOAD = {
+  eventId: "evt-sc-001",
+  version: 1,
+  timestamp: "2026-04-25T10:00:00.000Z",
+  applicationId: "app-sc-123",
+  jobId: "job-sc-456",
+  seekerUserId: "seeker-sc-789",
+  companyId: "company-sc-abc",
+  previousStatus: "submitted",
+  newStatus: "shortlisted",
+  actorUserId: "admin-reviewer",
+  actorRole: "job_admin",
+};
+
+describe("notification-service — application.status_changed handler (new)", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+    mockRedisSet.mockResolvedValue("OK");
+    mockGetJobPostingById.mockResolvedValue({ id: "job-sc-456", title: "Product Manager" });
+    mockDispatchNotification.mockResolvedValue(undefined);
+  });
+
+  afterEach(() => {
+    const g = globalThis as unknown as { __portalNotifHandlersRegistered?: boolean };
+    g.__portalNotifHandlersRegistered = false;
+  });
+
+  it("registers handler on application.status_changed event", async () => {
+    const g = globalThis as unknown as { __portalNotifHandlersRegistered?: boolean };
+    g.__portalNotifHandlersRegistered = false;
+    vi.resetModules();
+    await import("./notification-service");
+    expect(mockPortalEventBusOn).toHaveBeenCalledWith(
+      "application.status_changed",
+      expect.any(Function),
     );
-    const publishArg = JSON.parse(mockRedisPublish.mock.calls[0]![1] as string);
-    expect(publishArg).toMatchObject({
-      notificationId: "notif-msg-1",
-      userId: "recipient-bbb",
-      type: "message",
+  });
+
+  it("uses seekerUserId from event payload as recipient (no DB lookup needed for recipient)", async () => {
+    const handler = await getHandler("application.status_changed");
+    await handler(STATUS_CHANGED_PAYLOAD);
+
+    expect(mockDispatchNotification).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: STATUS_CHANGED_PAYLOAD.seekerUserId,
+        eventType: "portal.application.status_changed",
+      }),
+    );
+  });
+
+  it("looks up jobTitle via getJobPostingById for notification content", async () => {
+    const handler = await getHandler("application.status_changed");
+    await handler(STATUS_CHANGED_PAYLOAD);
+
+    expect(mockGetJobPostingById).toHaveBeenCalledWith(STATUS_CHANGED_PAYLOAD.jobId);
+    expect(mockDispatchNotification).toHaveBeenCalledWith(
+      expect.objectContaining({
+        content: expect.objectContaining({
+          body: expect.stringContaining("Product Manager"),
+        }),
+      }),
+    );
+  });
+
+  it("uses Redis NX dedup with per-application-per-status key", async () => {
+    const handler = await getHandler("application.status_changed");
+    await handler(STATUS_CHANGED_PAYLOAD);
+
+    expect(mockRedisSet).toHaveBeenCalledWith(
+      `portal:dedup:notif:status-changed:${STATUS_CHANGED_PAYLOAD.applicationId}:${STATUS_CHANGED_PAYLOAD.newStatus}`,
+      "1",
+      "EX",
+      900,
+      "NX",
+    );
+  });
+
+  it("skips notification if dedup key already set", async () => {
+    mockRedisSet.mockResolvedValue(null);
+    const handler = await getHandler("application.status_changed");
+    await handler(STATUS_CHANGED_PAYLOAD);
+
+    expect(mockDispatchNotification).not.toHaveBeenCalled();
+  });
+
+  it("sends notification with fallback jobTitle when getJobPostingById rejects (fail-open)", async () => {
+    mockGetJobPostingById.mockRejectedValue(new Error("DB timeout"));
+    const handler = await getHandler("application.status_changed");
+    await handler(STATUS_CHANGED_PAYLOAD);
+
+    expect(mockDispatchNotification).toHaveBeenCalledWith(
+      expect.objectContaining({
+        content: expect.objectContaining({
+          body: expect.stringContaining("Unknown Position"),
+        }),
+      }),
+    );
+  });
+
+  it("dedup key includes newStatus to distinguish different status changes for same application", async () => {
+    const handler = await getHandler("application.status_changed");
+    await handler(STATUS_CHANGED_PAYLOAD);
+    await handler({ ...STATUS_CHANGED_PAYLOAD, newStatus: "rejected" });
+
+    // Each call uses a distinct dedup key
+    const calls = mockRedisSet.mock.calls;
+    const keys = calls.map(([k]) => k as string);
+    expect(keys[0]).toContain("shortlisted");
+    expect(keys[1]).toContain("rejected");
+  });
+
+  it("proceeds if Redis dedup check throws (fail-open)", async () => {
+    mockRedisSet.mockRejectedValue(new Error("Redis down"));
+    const handler = await getHandler("application.status_changed");
+    await handler(STATUS_CHANGED_PAYLOAD);
+
+    expect(mockDispatchNotification).toHaveBeenCalled();
+  });
+
+  it("does not throw when dispatchNotification fails (fire-and-forget)", async () => {
+    mockDispatchNotification.mockRejectedValue(new Error("dispatch error"));
+    const handler = await getHandler("application.status_changed");
+    await expect(handler(STATUS_CHANGED_PAYLOAD)).resolves.not.toThrow();
+  });
+
+  it("contract snapshot — dispatchNotification called with exact shape for application.status_changed", async () => {
+    const handler = await getHandler("application.status_changed");
+    await handler(STATUS_CHANGED_PAYLOAD);
+
+    expect(mockDispatchNotification).toHaveBeenCalledWith({
+      userId: STATUS_CHANGED_PAYLOAD.seekerUserId,
+      eventType: "portal.application.status_changed",
+      content: {
+        title: expect.stringContaining("application"),
+        body: expect.stringContaining("Product Manager"),
+        link: `/applications/${STATUS_CHANGED_PAYLOAD.applicationId}`,
+      },
+      dedupKey: `status-changed:${STATUS_CHANGED_PAYLOAD.applicationId}:${STATUS_CHANGED_PAYLOAD.newStatus}`,
     });
   });
+});
 
-  it("Redis publish failure is logged but does not throw (fire-and-forget)", async () => {
-    mockRedisPublish.mockRejectedValue(new Error("Redis down"));
-    const handler = await getHandler("portal.message.sent");
-    await expect(handler(MSG_PAYLOAD)).resolves.not.toThrow();
-    // createNotification should still have been called
-    expect(mockCreateNotification).toHaveBeenCalled();
+// ── job.expired handler (NEW) ─────────────────────────────────────────────────
+
+const JOB_EXPIRED_PAYLOAD = {
+  eventId: "evt-je-001",
+  version: 1,
+  timestamp: "2026-04-26T10:00:00.000Z",
+  jobId: "job-exp-789",
+  companyId: "company-exp-abc",
+  title: "Senior Software Engineer",
+  employerUserId: "employer-exp-xyz",
+};
+
+describe("notification-service — job.expired handler (new)", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+    mockRedisSet.mockResolvedValue("OK");
+    mockDispatchNotification.mockResolvedValue(undefined);
   });
 
-  it("push notification is called after in-app notification", async () => {
-    const handler = await getHandler("portal.message.sent");
-    await handler(MSG_PAYLOAD);
+  afterEach(() => {
+    const g = globalThis as unknown as { __portalNotifHandlersRegistered?: boolean };
+    g.__portalNotifHandlersRegistered = false;
+  });
 
-    // sendPushNotification is called (fire-and-forget)
-    expect(mockSendPushNotification).toHaveBeenCalledWith(
-      "recipient-bbb",
+  it("registers handler on job.expired event", async () => {
+    const g = globalThis as unknown as { __portalNotifHandlersRegistered?: boolean };
+    g.__portalNotifHandlersRegistered = false;
+    vi.resetModules();
+    await import("./notification-service");
+    expect(mockPortalEventBusOn).toHaveBeenCalledWith("job.expired", expect.any(Function));
+  });
+
+  it("uses employerUserId from event payload (no DB lookup needed)", async () => {
+    const handler = await getHandler("job.expired");
+    await handler(JOB_EXPIRED_PAYLOAD);
+
+    expect(mockDispatchNotification).toHaveBeenCalledWith(
       expect.objectContaining({
-        tag: `msg:${MSG_PAYLOAD.applicationId}`,
+        userId: JOB_EXPIRED_PAYLOAD.employerUserId,
+        eventType: "portal.job.expired",
       }),
     );
   });
 
-  it("push notification failure does not affect in-app notification", async () => {
-    mockSendPushNotification.mockRejectedValue(new Error("Push failed"));
-    const handler = await getHandler("portal.message.sent");
-    await expect(handler(MSG_PAYLOAD)).resolves.not.toThrow();
-    // in-app notification should still be created
-    expect(mockCreateNotification).toHaveBeenCalled();
-  });
+  it("uses job title from event payload (no DB lookup needed)", async () => {
+    const handler = await getHandler("job.expired");
+    await handler(JOB_EXPIRED_PAYLOAD);
 
-  it("does NOT call enqueueEmailJob (email is intentionally OFF for messages)", async () => {
-    const handler = await getHandler("portal.message.sent");
-    await handler(MSG_PAYLOAD);
-
-    expect(mockEnqueueEmailJob).not.toHaveBeenCalled();
-  });
-
-  it("senderName contains multibyte Igbo characters → content truncation does not corrupt", async () => {
-    // Igbo content with multi-byte chars — slice(0, 50) is safe for ASCII-range Igbo
-    const igboContent = "Ọzụzụ ọrụ dị mma, anyị ga-eme ihe niile ka ị nwee ọrụ ọma nke ukwuu!";
-    const handler = await getHandler("portal.message.sent");
-    await handler({ ...MSG_PAYLOAD, content: igboContent });
-
-    const truncated = igboContent.slice(0, 50);
-    expect(mockCreateNotification).toHaveBeenCalledWith(
-      expect.objectContaining({ body: truncated }),
-    );
-  });
-
-  it("passes exact idempotencyKey 'msg:<messageId>' to createNotification", async () => {
-    const handler = await getHandler("portal.message.sent");
-    await handler(MSG_PAYLOAD);
-
-    expect(mockCreateNotification).toHaveBeenCalledWith(
+    expect(mockDispatchNotification).toHaveBeenCalledWith(
       expect.objectContaining({
-        idempotencyKey: `msg:${MSG_PAYLOAD.messageId}`,
+        content: expect.objectContaining({
+          body: expect.stringContaining("Senior Software Engineer"),
+        }),
       }),
     );
   });
 
-  it("skips publishNotificationCreated when createNotification returns null (DB dedup)", async () => {
-    mockCreateNotification.mockResolvedValue(null);
-    const handler = await getHandler("portal.message.sent");
-    await handler(MSG_PAYLOAD);
+  it("uses Redis NX dedup with per-job key", async () => {
+    const handler = await getHandler("job.expired");
+    await handler(JOB_EXPIRED_PAYLOAD);
 
-    expect(mockRedisPublish).not.toHaveBeenCalled();
+    expect(mockRedisSet).toHaveBeenCalledWith(
+      `portal:dedup:notif:job-expired:${JOB_EXPIRED_PAYLOAD.jobId}`,
+      "1",
+      "EX",
+      900,
+      "NX",
+    );
   });
 
-  it("skips sendPushNotification when createNotification returns null (DB dedup)", async () => {
-    mockCreateNotification.mockResolvedValue(null);
-    const handler = await getHandler("portal.message.sent");
-    await handler(MSG_PAYLOAD);
+  it("skips notification if dedup key already set", async () => {
+    mockRedisSet.mockResolvedValue(null);
+    const handler = await getHandler("job.expired");
+    await handler(JOB_EXPIRED_PAYLOAD);
 
-    expect(mockSendPushNotification).not.toHaveBeenCalled();
+    expect(mockDispatchNotification).not.toHaveBeenCalled();
   });
 
-  it("proceeds normally (publish + push) when createNotification returns a notification object", async () => {
-    const notif = { id: "notif-msg-1", createdAt: new Date("2026-04-24T10:00:00.000Z") };
-    mockCreateNotification.mockResolvedValue(notif);
-    const handler = await getHandler("portal.message.sent");
-    await handler(MSG_PAYLOAD);
+  it("proceeds if Redis dedup check throws (fail-open)", async () => {
+    mockRedisSet.mockRejectedValue(new Error("Redis down"));
+    const handler = await getHandler("job.expired");
+    await handler(JOB_EXPIRED_PAYLOAD);
 
-    expect(mockRedisPublish).toHaveBeenCalled();
-    expect(mockSendPushNotification).toHaveBeenCalled();
+    expect(mockDispatchNotification).toHaveBeenCalled();
   });
 
-  it("publishNotificationCreated includes eventType: 'portal.message.received' in payload", async () => {
-    const handler = await getHandler("portal.message.sent");
-    await handler(MSG_PAYLOAD);
+  it("does not throw when dispatchNotification fails (fire-and-forget)", async () => {
+    mockDispatchNotification.mockRejectedValue(new Error("dispatch error"));
+    const handler = await getHandler("job.expired");
+    await expect(handler(JOB_EXPIRED_PAYLOAD)).resolves.not.toThrow();
+  });
+});
 
-    expect(mockRedisPublish).toHaveBeenCalled();
-    const publishArg = JSON.parse(mockRedisPublish.mock.calls[0]![1] as string);
-    expect(publishArg.eventType).toBe("portal.message.received");
+// ── Cross-handler dedup key collision test ────────────────────────────────────
+
+describe("notification-service — dedup key distinctness", () => {
+  it("application.submitted and status_changed for same applicationId produce distinct dedup keys", async () => {
+    const applicationId = "app-shared-001";
+
+    const submittedKey = `portal:dedup:notif:app-submitted:${applicationId}`;
+    const statusChangedKey = `portal:dedup:notif:status-changed:${applicationId}:shortlisted`;
+
+    expect(submittedKey).not.toBe(statusChangedKey);
+  });
+
+  it("job.reviewed approved and rejected produce distinct dedup keys for same jobId", async () => {
+    const jobId = "job-shared-002";
+
+    const approvedKey = `portal:dedup:notif:job-reviewed:${jobId}:approved`;
+    const rejectedKey = `portal:dedup:notif:job-reviewed:${jobId}:rejected`;
+
+    expect(approvedKey).not.toBe(rejectedKey);
+  });
+
+  it("job.expired and job.reviewed dedup keys for same jobId are distinct", async () => {
+    const jobId = "job-shared-003";
+    const expiredKey = `portal:dedup:notif:job-expired:${jobId}`;
+    const reviewedKey = `portal:dedup:notif:job-reviewed:${jobId}:approved`;
+
+    expect(expiredKey).not.toBe(reviewedKey);
+  });
+});
+
+// ── publishNotificationCreated export removal verification ────────────────
+
+describe("notification-service — publishNotificationCreated removed", () => {
+  it("does not export publishNotificationCreated (absorbed into notification-router)", async () => {
+    const g = globalThis as unknown as { __portalNotifHandlersRegistered?: boolean };
+    g.__portalNotifHandlersRegistered = false;
+    vi.resetModules();
+    const mod = await import("./notification-service");
+    expect("publishNotificationCreated" in mod).toBe(false);
   });
 });

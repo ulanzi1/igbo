@@ -357,7 +357,7 @@ development_status:
   # Portal Epic 6: Notifications & "Viewed by Employer" Signal
   portal-epic-6: in-progress
   p-6-1a-notification-event-types-contracts: done
-  p-6-1b-notification-routing-pipeline: backlog
+  p-6-1b-notification-routing-pipeline: done
   p-6-2-email-notifications: backlog
   p-6-3-push-in-app-notifications-delivery-guarantees: backlog
   p-6-4-notification-preferences-priority-hierarchy: backlog
