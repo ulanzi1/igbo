@@ -1165,6 +1165,17 @@
         "notConfigured": "Not configured"
       }
     },
+    "viewed": {
+      "badge": "Viewed",
+      "timelineEntry": "Viewed by {companyName}",
+      "toastTitle": "{companyName} viewed your application",
+      "toastBody": "Your application for {jobTitle} has been viewed",
+      "notificationTitle": "{companyName} viewed your application",
+      "notificationBody": "Your application for {jobTitle} was viewed by an employer",
+      "emailSubject": "{companyName} viewed your application for {jobTitle}",
+      "timelineAriaLabel": "Employer view event",
+      "viewedAtLabel": "Viewed"
+    },
     "chooseRole": {
       "title": "Choose Your Path",
       "subtitle": "How would you like to use the OBIGBO Job Portal?",

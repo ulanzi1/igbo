@@ -40,6 +40,11 @@ vi.mock("@/components/domain/application-status-badge", () => ({
     <span data-testid={`status-badge-${status}`}>{status}</span>
   ),
 }));
+vi.mock("@/components/ui/badge", () => ({
+  Badge: ({ children, ...rest }: { children: React.ReactNode; [key: string]: unknown }) => (
+    <span {...rest}>{children}</span>
+  ),
+}));
 
 import { render, screen } from "@testing-library/react";
 import { axe, toHaveNoViolations } from "jest-axe";
@@ -64,6 +69,7 @@ const mockApplications = [
     jobTitle: "Senior Engineer",
     companyId: "cp-1",
     companyName: "Acme Corp",
+    viewedAt: null,
   },
   {
     id: "app-2",
@@ -75,6 +81,7 @@ const mockApplications = [
     jobTitle: "Product Manager",
     companyId: "cp-2",
     companyName: "Beta Inc",
+    viewedAt: null,
   },
 ];
 
@@ -162,5 +169,30 @@ describe("ApplicationsPage", () => {
     const { container } = await renderPage();
     const results = await axe(container);
     expect(results).toHaveNoViolations();
+  });
+
+  it("shows viewed badge when application.viewedAt is set", async () => {
+    vi.mocked(getApplicationsWithJobDataBySeekerId).mockResolvedValue([
+      { ...mockApplications[0], viewedAt: new Date("2026-01-05T09:00:00Z") },
+      mockApplications[1],
+    ] as never);
+    await renderPage();
+    expect(screen.getByTestId("viewed-badge")).toBeTruthy();
+    expect(screen.getByText("Portal.viewed.badge")).toBeTruthy();
+  });
+
+  it("omits viewed badge when application.viewedAt is null", async () => {
+    // Both applications have viewedAt: null in default mock
+    await renderPage();
+    expect(screen.queryByTestId("viewed-badge")).toBeNull();
+  });
+
+  it("renders one viewed badge per viewed application", async () => {
+    vi.mocked(getApplicationsWithJobDataBySeekerId).mockResolvedValue([
+      { ...mockApplications[0], viewedAt: new Date("2026-01-05") },
+      { ...mockApplications[1], viewedAt: new Date("2026-01-06") },
+    ] as never);
+    await renderPage();
+    expect(screen.getAllByTestId("viewed-badge")).toHaveLength(2);
   });
 });

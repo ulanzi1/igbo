@@ -174,4 +174,36 @@ describe("useNotificationToast", () => {
     expect(mockToast).not.toHaveBeenCalled();
     expect(contextState.increment).not.toHaveBeenCalled();
   });
+
+  it("applies animate-warm-glow className when eventType is portal.application.viewed", () => {
+    renderToastHook();
+    const socket = socketState.current!;
+    const handler = getNotifHandler(socket)!;
+
+    act(() => {
+      handler({
+        title: "Acme Corp viewed your application",
+        eventType: "portal.application.viewed",
+      } as Parameters<typeof handler>[0] & { eventType?: string });
+    });
+
+    const opts = mockToast.mock.calls[0]?.[1] as { className?: string };
+    expect(opts.className).toBe("animate-warm-glow");
+  });
+
+  it("does NOT apply animate-warm-glow className for other event types", () => {
+    renderToastHook();
+    const socket = socketState.current!;
+    const handler = getNotifHandler(socket)!;
+
+    act(() => {
+      handler({
+        title: "Status changed",
+        eventType: "portal.application.status_changed",
+      } as Parameters<typeof handler>[0] & { eventType?: string });
+    });
+
+    const opts = mockToast.mock.calls[0]?.[1] as { className?: string };
+    expect(opts.className).toBeUndefined();
+  });
 });

@@ -193,6 +193,7 @@ export async function getApplicationsWithJobDataBySeekerId(seekerUserId: string)
     createdAt: Date;
     updatedAt: Date;
     transitionedAt: Date | null;
+    viewedAt: Date | null;
     jobTitle: string | null;
     companyId: string | null;
     companyName: string | null;
@@ -206,6 +207,7 @@ export async function getApplicationsWithJobDataBySeekerId(seekerUserId: string)
       createdAt: portalApplications.createdAt,
       updatedAt: portalApplications.updatedAt,
       transitionedAt: portalApplications.transitionedAt,
+      viewedAt: portalApplications.viewedAt,
       jobTitle: portalJobPostings.title,
       companyId: portalJobPostings.companyId,
       companyName: portalCompanyProfiles.name,
@@ -238,6 +240,7 @@ export async function getApplicationDetailForSeeker(
   coverLetterText: string | null;
   portfolioLinksJson: string[];
   selectedCvId: string | null;
+  viewedAt: Date | null;
   jobTitle: string | null;
   companyId: string | null;
   companyName: string | null;
@@ -254,6 +257,7 @@ export async function getApplicationDetailForSeeker(
       coverLetterText: portalApplications.coverLetterText,
       portfolioLinksJson: portalApplications.portfolioLinksJson,
       selectedCvId: portalApplications.selectedCvId,
+      viewedAt: portalApplications.viewedAt,
       jobTitle: portalJobPostings.title,
       companyId: portalJobPostings.companyId,
       companyName: portalCompanyProfiles.name,

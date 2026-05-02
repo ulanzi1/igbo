@@ -11,6 +11,7 @@ interface NotificationEvent {
   title: string;
   body?: string;
   link?: string;
+  eventType?: string;
 }
 
 /**
@@ -29,9 +30,12 @@ export function useNotificationToast() {
   const handler = useCallback(
     (notif: NotificationEvent) => {
       increment();
+      const isViewedEvent = notif.eventType === "portal.application.viewed";
       toast(notif.title, {
         description: notif.body,
         duration: 5000,
+        // Apply warm glow animation for "Viewed by Employer" — the platform's defining moment
+        className: isViewedEvent ? "animate-warm-glow" : undefined,
         ...(notif.link
           ? {
               onClick: () => router.push(notif.link!),

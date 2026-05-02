@@ -223,6 +223,16 @@ export interface PortalMessageDeletedEvent extends BaseEvent {
   deletedAt: string; // ISO 8601
 }
 
+// P-6.5: Outbox-delivered event (not EventBus — processed by outbox poller)
+export interface ApplicationViewedEvent extends BaseEvent {
+  applicationId: string;
+  jobId: string;
+  seekerUserId: string;
+  employerUserId: string;
+  companyName?: string;
+  jobTitle?: string;
+}
+
 // Portal event map — used by portal EventBus
 export interface PortalEventMap {
   "job.published": JobPublishedEvent;

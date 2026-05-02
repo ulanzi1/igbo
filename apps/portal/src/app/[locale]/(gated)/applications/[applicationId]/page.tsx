@@ -152,8 +152,18 @@ export default async function ApplicationDetailPage({ params }: PageProps) {
         {/* Right: timeline */}
         <div>
           <h2 className="mb-4 text-sm font-semibold">{t("timelineTitle")}</h2>
-          {transitions.length > 0 ? (
-            <ApplicationTimeline transitions={transitions} />
+          {transitions.length > 0 || application.viewedAt ? (
+            <ApplicationTimeline
+              transitions={transitions}
+              viewedBy={
+                application.viewedAt && application.companyName
+                  ? {
+                      companyName: application.companyName,
+                      viewedAt: application.viewedAt,
+                    }
+                  : null
+              }
+            />
           ) : (
             <p className="text-sm text-muted-foreground">{t("timelineSubmitted")}</p>
           )}

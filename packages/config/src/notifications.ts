@@ -270,7 +270,6 @@ export const PORTAL_NOTIFICATION_CATALOG: Record<
     description:
       "Seeker receives notification when employer views their application. " +
       "Informational — moved from system-critical to high so users can disable if noisy.",
-    reserved: true, // FUTURE: handler registered when application-view tracking is implemented (P-6.x)
   },
   "portal.message.received": {
     priorityTier: "high",

@@ -110,6 +110,7 @@ export function applicationFactory(overrides?: Partial<PortalApplication>): Port
     selectedCvId: null,
     coverLetterText: null,
     portfolioLinksJson: [],
+    viewedAt: null,
     createdAt: FIXED_DATE,
     updatedAt: FIXED_DATE,
     ...overrides,

@@ -15,6 +15,7 @@ import type { PortalApplicationStatus } from "@igbo/db/schema/portal-application
 import type { PortalApplicationTransition } from "@igbo/db/schema/portal-applications";
 import type { SeekerTrustSignals } from "@igbo/db/queries/cross-app";
 import type { ApplicationNote } from "@igbo/db/queries/portal-application-notes";
+import { useViewTracking } from "@/hooks/use-view-tracking";
 
 /** Returns true only for http/https URLs — blocks javascript: and data: protocol XSS. */
 function isSafeUrl(url: string): boolean {
@@ -126,6 +127,9 @@ export function CandidateSidePanel({
         // Silently ignore — badge stays at 0
       });
   }, [applicationId]);
+
+  // Dwell-time view tracking — fires POST after 2s for employer role (silent, non-blocking)
+  useViewTracking(applicationId);
 
   const isOpen = applicationId !== null;
 
