@@ -72,15 +72,18 @@ function encodeCursor(createdAt: Date, userId: string): string {
   );
 }
 
-/** Decode cursor or return null on invalid input. */
-function decodeCursor(cursor: string): { createdAt: Date; userId: string } | null {
+/** Decode cursor or return null on invalid input. Returns createdAt as ISO string for safe SQL interpolation. */
+function decodeCursor(cursor: string): { createdAt: string; userId: string } | null {
   try {
     const parsed = JSON.parse(Buffer.from(cursor, "base64url").toString("utf-8")) as {
       createdAt: string;
       userId: string;
     };
     if (!parsed.createdAt || !parsed.userId) return null;
-    return { createdAt: new Date(parsed.createdAt), userId: parsed.userId };
+    // Validate it's a parseable date, but return the ISO string (not a Date)
+    // so drizzle's raw sql`` serializer doesn't use Date.toString() locale format
+    if (isNaN(Date.parse(parsed.createdAt))) return null;
+    return { createdAt: new Date(parsed.createdAt).toISOString(), userId: parsed.userId };
   } catch {
     return null;
   }
@@ -117,7 +120,7 @@ export async function searchMembersInDirectory(
   const allExcludedIds = [...new Set([...blockedByViewer, ...blockersOfViewer, viewerUserId])];
 
   // Decode cursor
-  let cursorCreatedAt: Date | null = null;
+  let cursorCreatedAt: string | null = null;
   let cursorUserId: string | null = null;
   if (cursor) {
     const decoded = decodeCursor(cursor);
@@ -207,7 +210,9 @@ export async function searchMembersInDirectory(
 
   const lastRow = pageRows.at(-1);
   const nextCursor =
-    hasMore && lastRow ? encodeCursor(lastRow.created_at as Date, String(lastRow.user_id)) : null;
+    hasMore && lastRow
+      ? encodeCursor(new Date(lastRow.created_at as string), String(lastRow.user_id))
+      : null;
 
   return { members, hasMore, nextCursor };
 }
@@ -328,7 +333,7 @@ export async function searchMembersWithGeoFallback(
   const activeCountryFilter = activeLevel === "country" ? locationCountry : undefined;
 
   // Decode cursor
-  let cursorCreatedAt: Date | null = null;
+  let cursorCreatedAt: string | null = null;
   let cursorUserId: string | null = null;
   if (cursor) {
     const decoded = decodeCursor(cursor);
@@ -396,7 +401,9 @@ export async function searchMembersWithGeoFallback(
 
   const lastRow = pageRows.at(-1);
   const nextCursor =
-    hasMore && lastRow ? encodeCursor(lastRow.created_at as Date, String(lastRow.user_id)) : null;
+    hasMore && lastRow
+      ? encodeCursor(new Date(lastRow.created_at as string), String(lastRow.user_id))
+      : null;
 
   return {
     members,

@@ -2,11 +2,15 @@
 
 import { useQuery } from "@tanstack/react-query";
 
+const MAX_BATCH_SIZE = 50;
+
 /**
  * Batch follow-status hook.
  *
  * Replaces N parallel per-card `GET /api/v1/members/[userId]/follow` requests
- * with a single `GET /api/v1/members/follow-status?userIds=...` request per page load.
+ * with batched `GET /api/v1/members/follow-status?userIds=...` requests.
+ *
+ * Automatically chunks into batches of 50 (server-side limit) and merges results.
  *
  * Usage (e.g. in MemberGrid):
  * ```tsx
@@ -25,11 +29,25 @@ export function useFollowBatch(userIds: string[]) {
     queryKey: ["follow-status-batch", sortedIds],
     queryFn: async () => {
       if (sortedIds.length === 0) return {};
-      const params = new URLSearchParams({ userIds: sortedIds.join(",") });
-      const res = await fetch(`/api/v1/members/follow-status?${params.toString()}`);
-      if (!res.ok) throw new Error("Failed to fetch batch follow status");
-      const json = (await res.json()) as { data: Record<string, boolean> };
-      return json.data;
+
+      // Chunk into batches of MAX_BATCH_SIZE to respect server limit
+      const chunks: string[][] = [];
+      for (let i = 0; i < sortedIds.length; i += MAX_BATCH_SIZE) {
+        chunks.push(sortedIds.slice(i, i + MAX_BATCH_SIZE));
+      }
+
+      const results = await Promise.all(
+        chunks.map(async (chunk) => {
+          const params = new URLSearchParams({ userIds: chunk.join(",") });
+          const res = await fetch(`/api/v1/members/follow-status?${params.toString()}`);
+          if (!res.ok) throw new Error("Failed to fetch batch follow status");
+          const json = (await res.json()) as { data: Record<string, boolean> };
+          return json.data;
+        }),
+      );
+
+      // Merge all chunk results into a single map
+      return Object.assign({}, ...results) as Record<string, boolean>;
     },
     staleTime: 60_000,
     enabled: sortedIds.length > 0,

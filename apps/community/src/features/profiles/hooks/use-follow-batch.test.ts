@@ -96,6 +96,44 @@ describe("useFollowBatch", () => {
     expect(result.current.getIsFollowing("00000000-0000-4000-8000-000000000099")).toBe(false);
   });
 
+  it("chunks userIds into batches of 50 and merges results", async () => {
+    useRealTimersForReactQuery();
+
+    // Generate 75 user IDs (should split into 50 + 25)
+    const manyIds = Array.from(
+      { length: 75 },
+      (_, i) => `00000000-0000-4000-8000-${String(i).padStart(12, "0")}`,
+    );
+
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({ data: Object.fromEntries(manyIds.map((id) => [id, true])) }),
+    });
+
+    const { result } = renderHook(() => useFollowBatch(manyIds), {
+      wrapper: makeWrapper(),
+    });
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    // Should have made 2 fetch calls (50 + 25)
+    expect(mockFetch).toHaveBeenCalledTimes(2);
+
+    // First call should have 50 IDs
+    const [url1] = mockFetch.mock.calls[0] as [string];
+    const ids1 = new URL(url1, "http://localhost").searchParams.get("userIds")!.split(",");
+    expect(ids1).toHaveLength(50);
+
+    // Second call should have 25 IDs
+    const [url2] = mockFetch.mock.calls[1] as [string];
+    const ids2 = new URL(url2, "http://localhost").searchParams.get("userIds")!.split(",");
+    expect(ids2).toHaveLength(25);
+
+    // Results should be merged
+    expect(result.current.getIsFollowing(manyIds[0]!)).toBe(true);
+    expect(result.current.getIsFollowing(manyIds[74]!)).toBe(true);
+  });
+
   it("uses a stable sorted query key regardless of userIds order", async () => {
     useRealTimersForReactQuery();
     mockFetch.mockResolvedValue({
