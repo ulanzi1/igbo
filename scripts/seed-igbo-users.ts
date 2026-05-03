@@ -28,6 +28,7 @@ import { authRoles, authUserRoles } from "@igbo/db/schema/auth-permissions";
 import { portalSeekerProfiles } from "@igbo/db/schema/portal-seeker-profiles";
 import { portalSeekerPreferences } from "@igbo/db/schema/portal-seeker-preferences";
 import { portalCompanyProfiles } from "@igbo/db/schema/portal-company-profiles";
+import { communityMemberFollows } from "@igbo/db/schema/community-connections";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // DB connection
@@ -948,6 +949,53 @@ async function seedCompanyProfiles(users: UserData[]): Promise<void> {
   console.info(`  Done: ${employers.length} portal_company_profiles`);
 }
 
+async function seedFollows(users: UserData[]): Promise<void> {
+  console.info("Phase 7: Inserting community_member_follows...");
+
+  const userIds = users.map((u) => u.id);
+  const seen = new Set<string>();
+  const followRows: { followerId: string; followingId: string; createdAt: Date }[] = [];
+
+  // Each user follows 3–30 others (power-law: most follow few, some follow many)
+  for (const userId of userIds) {
+    const count = Math.floor(3 + 27 * Math.pow(Math.random(), 2));
+    for (let i = 0; i < count; i++) {
+      const targetId = pickRandom(userIds);
+      if (targetId === userId) continue;
+      const key = `${userId}:${targetId}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      followRows.push({
+        followerId: userId,
+        followingId: targetId,
+        createdAt: randomPastDate(300),
+      });
+    }
+  }
+
+  for (const [i, batch] of chunk(followRows, BATCH_SIZE).entries()) {
+    await safeInsert(`follows-batch-${i}`, () =>
+      db.insert(communityMemberFollows).values(batch).onConflictDoNothing(),
+    );
+  }
+
+  // Update denormalized follower/following counts on community_profiles
+  await db.execute(sql`
+    UPDATE community_profiles SET
+      follower_count = (
+        SELECT COUNT(*) FROM community_member_follows
+        WHERE community_member_follows.following_id = community_profiles.user_id
+      ),
+      following_count = (
+        SELECT COUNT(*) FROM community_member_follows
+        WHERE community_member_follows.follower_id = community_profiles.user_id
+      )
+    WHERE user_id = ANY(${userIds}::uuid[])
+  `);
+
+  console.info(`  Done: ${followRows.length} follows`);
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Main
 // ─────────────────────────────────────────────────────────────────────────────
@@ -987,6 +1035,7 @@ async function main() {
   const seekerProfileIdMap = await seedSeekerProfiles(users);
   await seedSeekerPreferences(users, seekerProfileIdMap);
   await seedCompanyProfiles(users);
+  await seedFollows(users);
 
   const elapsed = ((Date.now() - start) / 1000).toFixed(1);
   console.info(`\nSeeding complete in ${elapsed}s`);
