@@ -980,6 +980,8 @@ async function seedFollows(users: UserData[]): Promise<void> {
   }
 
   // Update denormalized follower/following counts on community_profiles
+  // Build a PostgreSQL array literal — drizzle expands JS arrays as tuples, not arrays
+  const pgArray = `{${userIds.join(",")}}`;
   await db.execute(sql`
     UPDATE community_profiles SET
       follower_count = (
@@ -990,7 +992,7 @@ async function seedFollows(users: UserData[]): Promise<void> {
         SELECT COUNT(*) FROM community_member_follows
         WHERE community_member_follows.follower_id = community_profiles.user_id
       )
-    WHERE user_id = ANY(${userIds}::uuid[])
+    WHERE user_id = ANY(${pgArray}::uuid[])
   `);
 
   console.info(`  Done: ${followRows.length} follows`);
