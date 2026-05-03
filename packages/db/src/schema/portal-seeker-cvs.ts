@@ -1,4 +1,3 @@
-import "server-only";
 import { pgTable, uuid, varchar, boolean, index, timestamp } from "drizzle-orm/pg-core";
 import { portalSeekerProfiles } from "./portal-seeker-profiles";
 import { platformFileUploads } from "./file-uploads";

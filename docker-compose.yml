@@ -41,6 +41,8 @@ services:
       REALTIME_PORT: 3002
       REALTIME_CORS_ORIGIN: http://localhost:3000,http://localhost:3001
       NODE_ENV: development
+      AUTH_SECRET: ${AUTH_SECRET}
+      DATABASE_URL: ${DATABASE_URL}
     depends_on:
       redis:
         condition: service_healthy

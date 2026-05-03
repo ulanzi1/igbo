@@ -1,4 +1,3 @@
-import "server-only";
 import { eq, ne, asc, desc, sql } from "drizzle-orm";
 import { db } from "../index";
 import { portalSavedSearches } from "../schema/portal-saved-searches";

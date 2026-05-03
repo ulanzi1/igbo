@@ -34,10 +34,12 @@ COPY apps/portal/ ./apps/portal/
 ARG NEXT_PUBLIC_PORTAL_URL=http://localhost:3001
 ARG NEXT_PUBLIC_APP_URL=http://localhost:3000
 ARG NEXT_PUBLIC_COMMUNITY_URL=http://localhost:3000
+ARG NEXT_PUBLIC_REALTIME_URL=http://localhost:3002
 
 ENV NEXT_PUBLIC_PORTAL_URL=$NEXT_PUBLIC_PORTAL_URL
 ENV NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL
 ENV NEXT_PUBLIC_COMMUNITY_URL=$NEXT_PUBLIC_COMMUNITY_URL
+ENV NEXT_PUBLIC_REALTIME_URL=$NEXT_PUBLIC_REALTIME_URL
 
 # Skip env validation during build — server vars are injected at runtime
 ENV SKIP_ENV_VALIDATION=1
@@ -54,7 +56,7 @@ ENV DATABASE_URL=postgresql://build:build@localhost:5432/build
 # (pointing to dist/). Compile config and db so dist/ exists before next build.
 RUN pnpm --filter @igbo/config build && pnpm --filter @igbo/db build
 
-# Ensure public/ exists — portal has no static assets but runner COPY requires it
+# Ensure public/ exists — runner COPY requires it even if empty
 RUN mkdir -p apps/portal/public
 
 RUN pnpm --filter @igbo/portal build

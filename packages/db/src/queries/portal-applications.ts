@@ -1,4 +1,3 @@
-import "server-only";
 import { db } from "../index";
 import { portalApplications, portalApplicationTransitions } from "../schema/portal-applications";
 import type {

@@ -1,4 +1,3 @@
-import "server-only";
 import { db } from "../index";
 import { portalApplicationViews } from "../schema/portal-outbox";
 import { portalApplications } from "../schema/portal-applications";

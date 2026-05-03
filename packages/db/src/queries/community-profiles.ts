@@ -1,4 +1,3 @@
-import "server-only";
 import { and, eq, isNull, isNotNull, sql } from "drizzle-orm";
 import { db } from "../index";
 import { communityProfiles, communitySocialLinks } from "../schema/community-profiles";

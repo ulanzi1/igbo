@@ -36,7 +36,8 @@
       "logout": "Log Out",
       "discover": "Discover Jobs",
       "employerApplications": "Applications",
-      "notificationSettings": "Notification Settings"
+      "notificationSettings": "Notification Settings",
+      "userMenuAriaLabel": "User menu"
     },
     "role": {
       "seeker": "Job Seeker",

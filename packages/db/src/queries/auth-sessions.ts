@@ -1,4 +1,3 @@
-import "server-only";
 import { eq, and, gt, asc } from "drizzle-orm";
 import { db } from "../index";
 import { authSessions } from "../schema/auth-sessions";

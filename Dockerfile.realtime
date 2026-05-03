@@ -12,6 +12,7 @@ COPY package.json ./
 COPY apps/community/package.json ./apps/community/package.json
 COPY packages/config/package.json ./packages/config/package.json
 COPY packages/db/package.json ./packages/db/package.json
+COPY packages/auth/package.json ./packages/auth/package.json
 
 RUN pnpm install --frozen-lockfile
 
@@ -24,6 +25,11 @@ COPY packages/ ./packages/
 # Build workspace packages so their dist/ exports resolve at runtime
 # (esbuild --packages=external leaves @igbo/* imports as runtime requires)
 RUN pnpm --filter @igbo/config build && pnpm --filter @igbo/db build
+
+# tsc with moduleResolution:"bundler" emits extensionless relative imports, but
+# Node.js ESM requires .js extensions. Config uses tsup (already correct); only db needs fixing.
+RUN find packages/db/dist -name '*.js' -exec sed -i \
+  's/from "\(\.\{1,2\}\/[^"]*\)"/from "\1.js"/g' {} +
 
 # --tsconfig resolves @/* aliases from tsconfig paths
 # --packages=external marks ALL node_modules as external — never breaks as deps grow

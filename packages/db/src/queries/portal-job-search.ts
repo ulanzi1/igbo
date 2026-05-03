@@ -1,7 +1,6 @@
 // TODO(P-4.1-TECHDEBT-1): collapse dual search paths post-P-4.1B once the UI has
 // shipped against the production path (searchJobPostingsWithFilters) and the PoC
 // signature (searchJobPostings) can be safely retired.
-import "server-only";
 import { sql } from "drizzle-orm";
 import { db } from "../index";
 

@@ -1,4 +1,3 @@
-import "server-only";
 import { db } from "../index";
 import { portalOutbox } from "../schema/portal-outbox";
 import type { PortalOutboxEvent } from "../schema/portal-outbox";

@@ -1,4 +1,3 @@
-import "server-only";
 import { db } from "../index";
 import { portalSeekerPreferences } from "../schema/portal-seeker-preferences";
 import type {

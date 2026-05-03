@@ -1,4 +1,3 @@
-import "server-only";
 import { eq, isNull, and, gt, sql } from "drizzle-orm";
 import { db } from "../index";
 import { authUsers, authVerificationTokens } from "../schema/auth-users";

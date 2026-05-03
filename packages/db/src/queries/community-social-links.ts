@@ -1,4 +1,3 @@
-import "server-only";
 import { and, asc, eq } from "drizzle-orm";
 import { db } from "../index";
 import { communitySocialLinks } from "../schema/community-profiles";

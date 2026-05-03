@@ -20,7 +20,6 @@
  *
  * TODO (Epic 3): Add keyset pagination, block/mute filter, profile-visibility check.
  */
-import "server-only";
 import { sql } from "drizzle-orm";
 import { db } from "../index";
 

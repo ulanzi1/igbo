@@ -1,4 +1,3 @@
-import "server-only";
 import { db } from "../index";
 import { portalSeekerProfiles } from "../schema/portal-seeker-profiles";
 import type { NewPortalSeekerProfile, PortalSeekerProfile } from "../schema/portal-seeker-profiles";

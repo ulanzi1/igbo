@@ -1,4 +1,3 @@
-import "server-only";
 import { db } from "../index";
 import { portalSeekerCvs } from "../schema/portal-seeker-cvs";
 import { platformFileUploads } from "../schema/file-uploads";

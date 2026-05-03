@@ -1,4 +1,3 @@
-import "server-only";
 import { db } from "../index";
 import { portalAdminFlags } from "../schema/portal-admin-flags";
 import { portalJobPostings } from "../schema/portal-job-postings";

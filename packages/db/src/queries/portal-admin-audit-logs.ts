@@ -1,4 +1,3 @@
-import "server-only";
 import { db } from "../index";
 import { auditLogs } from "../schema/audit-logs";
 import { authUsers } from "../schema/auth-users";
