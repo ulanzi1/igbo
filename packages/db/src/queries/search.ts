@@ -1,4 +1,3 @@
-import "server-only";
 import { sql } from "drizzle-orm";
 import sanitizeHtml from "sanitize-html";
 import { db } from "../index";

@@ -1,4 +1,3 @@
-import "server-only";
 import { db } from "../index";
 import { platformGovernanceDocuments } from "../schema/platform-governance-documents";
 import { eq, and, sql } from "drizzle-orm";

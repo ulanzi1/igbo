@@ -1,4 +1,3 @@
-import "server-only";
 import { db } from "../index";
 import { authUsers } from "../schema/auth-users";
 import { communityUserBadges } from "../schema/community-badges";

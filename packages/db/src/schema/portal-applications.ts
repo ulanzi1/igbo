@@ -1,4 +1,3 @@
-import "server-only";
 import { pgTable, uuid, timestamp, pgEnum, text, jsonb } from "drizzle-orm/pg-core";
 import { authUsers } from "./auth-users";
 import { portalJobPostings, type PortalJobStatus } from "./portal-job-postings";

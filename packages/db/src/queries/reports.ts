@@ -1,4 +1,3 @@
-import "server-only";
 import { eq, and, count, sql, desc, gte } from "drizzle-orm";
 import { db } from "../index";
 import { platformReports } from "../schema/reports";

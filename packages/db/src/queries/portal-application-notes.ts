@@ -1,4 +1,3 @@
-import "server-only";
 import { db } from "../index";
 import { portalApplicationNotes } from "../schema/portal-application-notes";
 import { authUsers } from "../schema/auth-users";

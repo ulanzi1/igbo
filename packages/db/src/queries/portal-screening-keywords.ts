@@ -1,4 +1,3 @@
-import "server-only";
 import { db } from "../index";
 import { portalScreeningKeywords } from "../schema/portal-screening-keywords";
 import type {

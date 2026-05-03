@@ -25,6 +25,11 @@ COPY packages/ ./packages/
 # (esbuild --packages=external leaves @igbo/* imports as runtime requires)
 RUN pnpm --filter @igbo/config build && pnpm --filter @igbo/db build
 
+# tsc with moduleResolution:"bundler" emits extensionless relative imports, but
+# Node.js ESM requires .js extensions. Config uses tsup (already correct); only db needs fixing.
+RUN find packages/db/dist -name '*.js' -exec sed -i \
+  's/from "\(\.\{1,2\}\/[^"]*\)"/from "\1.js"/g' {} +
+
 # --tsconfig resolves @/* aliases from tsconfig paths
 # --packages=external marks ALL node_modules as external — never breaks as deps grow
 RUN node_modules/.bin/esbuild apps/community/src/server/realtime/index.ts \

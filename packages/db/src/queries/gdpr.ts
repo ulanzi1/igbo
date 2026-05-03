@@ -1,4 +1,3 @@
-import "server-only";
 import { eq, lte, and } from "drizzle-orm";
 import { db } from "../index";
 import { gdprExportRequests } from "../schema/gdpr";

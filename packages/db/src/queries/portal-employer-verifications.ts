@@ -1,4 +1,3 @@
-import "server-only";
 import { db } from "../index";
 import { portalEmployerVerifications } from "../schema/portal-employer-verifications";
 import { portalCompanyProfiles } from "../schema/portal-company-profiles";
