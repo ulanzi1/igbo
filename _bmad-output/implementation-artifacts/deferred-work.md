@@ -141,3 +141,15 @@
 
 - F-7: Sequential N+1 query pattern in `sendPendingDigests` — O(users * digestTypes) sequential DB queries with no batching, concurrency limit, or timeout. Pre-existing pattern across all portal batch jobs (saved-search digest, outbox poller). Future: add `Promise.all` with concurrency limiter (e.g., p-limit) or batch query. (`apps/portal/src/services/digest-sender.ts:100-130`)
 - F-11: No DB-layer integration test for `getUndigestedNotifications` query — mock-only testing hides the F-4 type mismatch bug (query filters on `platformNotifications.type` enum using portal event type strings). Future: add packages/db integration test exercising the real query against test DB. (`packages/db/src/queries/notification-preferences.ts:232-243`)
+
+## Deferred from: review of prep-m2-batch-testing-spike (2026-05-09)
+
+- `describe.skip` for performance tests (§4.10) requires source-code edits to run manually. Consider replacing with `describe.skipIf(!process.env.RUN_PERF)` for env-var-driven toggle, consistent with `describe.skipIf(!DATABASE_URL)` pattern used for DB-gated tests.
+- Experience range parser edge cases (multiple ranges in text, word-form numbers like "ten years", structured `experienceMinYears`/`experienceMaxYears` field precedence) — detailed parser tests should be addressed during Story 7.1 implementation.
+- Duplicate/near-duplicate skills inflation (`["React", "react", "REACT"]` counting as 3 matches) — tokenizer normalization behavior should be validated during Story 7.1.
+- Malformed salary data (`salaryMin > salaryMax`) — data integrity edge case; determine graceful handling during Story 7.1.
+- Seeker preferences null/missing row — assembly-level degradation behavior; validate during Story 7.1.
+
+## Deferred from: review of prep-m2b-operational-observability-contract (2026-05-10)
+
+- Consent-revocation skips are indistinguishable from job-ineligibility skips in batch metrics (`scoring.batch.pairs_skipped` counter and `batch_completed.skipped` field aggregate all skip reasons). The `pair_skipped` log event has a `reason` field for per-event diagnosis, but no Tier B counter breakdown by reason exists. If compliance monitoring requires real-time alerting on consent-revocation spikes, add a `scoring.batch.pairs_skipped_consent` counter or add `reason` as a Prometheus label. Revisit when PREP-M9 (failure mode & recovery contract) defines compliance monitoring requirements.

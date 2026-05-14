@@ -26,7 +26,7 @@ RUN corepack enable && corepack prepare pnpm@latest --activate
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/apps/portal/node_modules ./apps/portal/node_modules
 
-COPY .npmrc pnpm-workspace.yaml turbo.json tsconfig.base.json ./
+COPY .npmrc pnpm-workspace.yaml pnpm-lock.yaml turbo.json tsconfig.base.json package.json ./
 COPY packages/ ./packages/
 COPY apps/portal/ ./apps/portal/
 
