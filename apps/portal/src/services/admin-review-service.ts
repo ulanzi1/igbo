@@ -302,6 +302,15 @@ export async function approvePosting(
     emittedBy: "admin-review-service",
   });
 
+  portalEventBus.emit("job.published", {
+    jobId: postingId,
+    companyId: posting.companyId,
+    title: posting.title,
+    employmentType: posting.employmentType,
+    status: "active",
+    emittedBy: "admin-review-service",
+  });
+
   // Invalidate job search cache — posting entered active state.
   // Fire-and-forget: cache will expire in 60s if invalidation fails.
   // See docs/decisions/search-cache-strategy.md §Decision 1.

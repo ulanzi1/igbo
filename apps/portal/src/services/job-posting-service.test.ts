@@ -47,6 +47,10 @@ vi.mock("@/services/screening", () => ({
   }),
 }));
 
+vi.mock("@/services/event-bus", () => ({
+  portalEventBus: { emit: vi.fn() },
+}));
+
 // Mock cache-registry invalidation — prevents real Redis calls in unit tests
 vi.mock("@/lib/cache-registry", () => ({
   invalidateAll: vi.fn().mockResolvedValue(undefined),
@@ -74,6 +78,7 @@ import {
   renewPosting,
 } from "./job-posting-service";
 import { invalidateAll } from "@/lib/cache-registry";
+import { portalEventBus } from "@/services/event-bus";
 import { jobPostingFactory } from "@/test/factories";
 
 const BASE_POSTING = jobPostingFactory({
@@ -308,6 +313,29 @@ describe("closePosting", () => {
     await expect(closePosting("posting-1", "cancelled", "wrong-company")).rejects.toMatchObject({
       status: 403,
     });
+  });
+
+  it("emits job.closed event with outcome as reason", async () => {
+    vi.mocked(getJobPostingById).mockResolvedValue({ ...BASE_POSTING, status: "active" } as never);
+    await closePosting("posting-1", "filled_via_portal", "company-1");
+
+    expect(vi.mocked(portalEventBus.emit)).toHaveBeenCalledWith(
+      "job.closed",
+      expect.objectContaining({
+        jobId: "posting-1",
+        companyId: "company-1",
+        reason: "filled_via_portal",
+        emittedBy: "job-posting-service",
+      }),
+    );
+  });
+
+  it("does not emit job.closed when status transition is invalid", async () => {
+    vi.mocked(getJobPostingById).mockResolvedValue({ ...BASE_POSTING, status: "draft" } as never);
+    await expect(closePosting("posting-1", "cancelled", "company-1")).rejects.toMatchObject({
+      status: 409,
+    });
+    expect(vi.mocked(portalEventBus.emit)).not.toHaveBeenCalled();
   });
 });
 

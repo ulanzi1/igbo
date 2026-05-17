@@ -521,6 +521,22 @@ describe("approvePosting", () => {
     );
   });
 
+  it("emits job.published lifecycle event after approval", async () => {
+    await approvePosting("posting-1", "admin-1");
+
+    expect(vi.mocked(portalEventBus.emit)).toHaveBeenCalledWith(
+      "job.published",
+      expect.objectContaining({
+        jobId: "posting-1",
+        companyId: "company-1",
+        title: "Software Engineer",
+        employmentType: PENDING_POSTING.employmentType,
+        status: "active",
+        emittedBy: "admin-review-service",
+      }),
+    );
+  });
+
   it("writes audit log entry inside transaction", async () => {
     await approvePosting("posting-1", "admin-1");
 

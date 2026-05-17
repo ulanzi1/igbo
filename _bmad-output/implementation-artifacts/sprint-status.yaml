@@ -377,7 +377,7 @@ development_status:
   portal-epic-6-prep-m9-failure-mode-recovery-contract: done             # Retry, degradation, fallback score, alert thresholds, recovery runbook
 
   # Portal Epic 6 — Retro Prep Items (Tier 2: Parallel — during early stories)
-  portal-epic-6-prep-m4-verify-ai-28-eventbus-validation: backlog        # Confirm Zod-at-emit-time fully wired for all portal events
+  portal-epic-6-prep-m4-verify-ai-28-eventbus-validation: done           # Verified: all 20 schemas present, all 17+3 emit sites have emittedBy, added missing job.published/updated/closed emissions
   portal-epic-6-prep-m5-placeholder-policy-enforcement: backlog          # CI test that nav hrefs resolve to real pages
   portal-epic-6-prep-m6-runtime-verification-enforcement: backlog        # Story file schema check for Runtime Verification section
 
