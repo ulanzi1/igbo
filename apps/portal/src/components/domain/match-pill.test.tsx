@@ -160,7 +160,6 @@ describe("MatchPill — info icon", () => {
     expect(screen.getByText("How this score works")).toBeInTheDocument();
     expect(screen.getByText("Skills overlap")).toBeInTheDocument();
     expect(screen.getByText("Location match")).toBeInTheDocument();
-    expect(screen.getByText("Work type match")).toBeInTheDocument();
   });
 });
 
@@ -216,7 +215,7 @@ describe("MatchPill — signal checkmarks", () => {
     await user.click(screen.getByTestId("match-info-trigger"));
 
     const checkmarks = screen.getAllByText("✓");
-    expect(checkmarks).toHaveLength(3);
+    expect(checkmarks).toHaveLength(2);
   });
 
   it("shows crosses for weak signals", async () => {
@@ -234,8 +233,7 @@ describe("MatchPill — signal checkmarks", () => {
 
     const crosses = screen.getAllByText("✗");
     expect(crosses).toHaveLength(2); // skills (10 < 30) + location
-    const checks = screen.getAllByText("✓");
-    expect(checks).toHaveLength(1); // employmentType
+    expect(screen.queryAllByText("✓")).toHaveLength(0);
   });
 });
 

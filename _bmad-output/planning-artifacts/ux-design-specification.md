@@ -516,8 +516,8 @@ Portal-specific semantic tokens extending the base system. Scoped to portal only
 
 /* Match Quality */
 --color-match-strong: /* confident green */
---color-match-moderate: /* neutral */
---color-match-weak: /* muted — visible but not discouraging */
+--color-match-good: /* neutral */
+--color-match-fair: /* muted — visible but not discouraging */
 
 /* Admin Signals (red reserved for admin risk only) */
 --color-risk-high: /* alert red */
@@ -753,8 +753,8 @@ Trust is community (warm), not system (cool). Trust badges never use teal or blu
 | Quality | Color | Token |
 |---------|-------|-------|
 | Strong Match | Success Green (`oklch(0.619 0.13 152)`) | `--color-match-strong` |
-| Moderate Match | Teal-shift (`oklch(0.45 0.09 160)`) | `--color-match-moderate` |
-| Weak Match | Muted Neutral (`oklch(0.7 0.01 75)`) | `--color-match-weak` |
+| Good Match | Teal-shift (`oklch(0.45 0.09 160)`) | `--color-match-good` |
+| Fair Match | Muted Neutral (`oklch(0.7 0.01 75)`) | `--color-match-fair` |
 
 **Admin Risk Signal Colors:**
 
@@ -942,7 +942,7 @@ The refinements address three validated concerns from stakeholder review and mul
 
 **Party Mode feedback noted for future testing:**
 - Non-viewed card anxiety gap — warm up reassurance notes to reduce contrast with glowing viewed cards (PM + Design Thinking concern)
-- Weak-match job card variant — test whether suppressing match pill for weak matches reduces discouragement (Design Thinking recommendation)
+- Low-match job card variant — test whether suppressing match pill for low matches reduces discouragement (Design Thinking recommendation)
 - Timeline collapse to breadcrumb on mobile — test vertical timeline vs. single-line breadcrumb for space efficiency (UX recommendation)
 
 ### Implementation Approach
@@ -1719,9 +1719,9 @@ These eight components must be built first. The Semantic layer components (1–3
 **Purpose:** Communicates skill match quality between a candidate's profile and a job's requirements. Positioned inline with salary on job cards (not as a hero element). On CandidateCards, appears as the lead signal pill.
 
 **Content:**
-- Match quality label: "Strong Match", "Moderate Match", "Weak Match"
+- Match quality label: "Strong Match", "Good Match", "Fair Match"
 - Optional score detail (e.g., "4/6 skills") — shown only when `showDetail` prop is true
-- Directional icon: `TrendingUp` (Strong), `Minus` (Moderate), `TrendingDown` (Weak)
+- Directional icon: `TrendingUp` (Strong), `Minus` (Good), `TrendingDown` (Fair)
 
 **Actions:**
 - Optional `onClick` or `onMouseEnter` to trigger `MatchBreakdown` popover
@@ -1731,8 +1731,8 @@ These eight components must be built first. The Semantic layer components (1–3
 | Quality | Color | Icon |
 |---|---|---|
 | Strong | Forest green (`--portal-match-strong`) | `TrendingUp` |
-| Moderate | Teal-shift (`--portal-match-moderate`) | `Minus` |
-| Weak | Muted gray (`--portal-match-weak`) | `TrendingDown` |
+| Good | Teal-shift (`--portal-match-good`) | `Minus` |
+| Fair | Muted gray (`--portal-match-fair`) | `TrendingDown` |
 
 **Variants:**
 

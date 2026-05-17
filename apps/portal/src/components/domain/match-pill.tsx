@@ -27,6 +27,7 @@ const TIER_CLASS: Record<Exclude<MatchScoreResult["tier"], "none">, string> = {
  */
 export function MatchPill({ matchScore, onInfoClick }: MatchPillProps) {
   const t = useTranslations("Portal.match");
+  const tSeeker = useTranslations("Portal.match.seeker");
   const { score, tier, signals } = matchScore;
 
   if (tier === "none") return null;
@@ -84,27 +85,23 @@ export function MatchPill({ matchScore, onInfoClick }: MatchPillProps) {
         <PopoverContent className="max-w-[320px] w-[calc(100vw-2rem)]">
           {hints.length > 0 && (
             <>
-              <p className="text-sm font-medium mb-2">{t("improveHeading")}</p>
+              <p className="text-sm font-medium mb-2">{tSeeker("improveHeading")}</p>
               <ul className="text-sm space-y-1 mb-3">
                 {hints.map((hint) => (
-                  <li key={hint.signal}>• {t(hint.messageKey)}</li>
+                  <li key={hint.signal}>• {tSeeker(hint.messageKey)}</li>
                 ))}
               </ul>
               <Separator className="mb-3" />
             </>
           )}
-          <p className="text-sm font-medium mb-2">{t("howItWorks")}</p>
+          <p className="text-sm font-medium mb-2">{tSeeker("howItWorks")}</p>
           <ul className="text-sm space-y-1">
             <li>
-              <span aria-hidden="true">{skillsMatched ? "✓" : "✗"}</span> {t("signalSkills")}
+              <span aria-hidden="true">{skillsMatched ? "✓" : "✗"}</span> {tSeeker("signalSkills")}
             </li>
             <li>
               <span aria-hidden="true">{signals.locationMatch ? "✓" : "✗"}</span>{" "}
-              {t("signalLocation")}
-            </li>
-            <li>
-              <span aria-hidden="true">{signals.employmentTypeMatch ? "✓" : "✗"}</span>{" "}
-              {t("signalEmploymentType")}
+              {tSeeker("signalLocation")}
             </li>
           </ul>
         </PopoverContent>

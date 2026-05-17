@@ -2598,7 +2598,9 @@ So that I can proactively identify strong candidates beyond those who have appli
 **When** the section loads
 **Then** an empty state shows: "No strong candidate matches yet — try broadening your job requirements or checking back later"
 
-### Story 7.6: Skill Endorsement Weight from Community
+### Story 7.6: Skill Endorsement Weight from Community — Architectural Stub
+
+> **STUB GOVERNANCE (PREP-M3):** This story is an architectural stub. The community endorsement feature does not yet exist, so `endorsedSkillCount` is hardcoded to `0` in `assembleMatchInputs` until this story is activated. Only the verification bonus (0 or 1 point) is active before activation. See PREP-M3 Stub Activation Checklist (in PREP-M1) before enabling endorsement data.
 
 As the platform,
 I want community skill endorsements to provide a scoring bonus in the matching algorithm,
@@ -2606,9 +2608,16 @@ So that community-validated skills carry more weight than self-reported skills.
 
 **Acceptance Criteria:**
 
+**Given** this story is an architectural stub pending community endorsement data maturity
+**When** the scoring engine computes the cultural fit bonus before Story 7.6 activation
+**Then** cultural fit endorsement contribution is zero-weighted: `endorsedSkillCount` is always `0` for MVP
+**And** only the verification bonus (0 or 1 point) is active — a verified (blue badge) seeker earns +1 point, an unverified seeker earns 0
+**And** `culturalFitBonus ∈ {0, 1}` until this story is fully activated with real endorsement data
+**And** Story 7.1's implementation hardcodes `endorsedSkillCount: 0` in `assembleMatchInputs` with comment: `// STUB: Zero until Story 7.6 activates endorsement data — see PREP-M3`
+
 **Given** a seeker has skill endorsements from the community platform
 **When** the scoring engine computes the cultural fit bonus
-**Then** each endorsed skill that matches a job requirement adds a bonus: +2% per endorsement (capped at +5% total for the cultural fit component)
+**Then** each endorsed skill that matches a job requirement adds a bonus: +2% per endorsement (capped at +5% total for the cultural fit component) <!-- UNIT CONFLICT: PREP-M1 §4.5 defines +2 points per endorsement capped at 4 points; PREP-M1 is authoritative; correct this AC to points when Story 7.6 is activated — see deferred-work.md PREP-M7 section -->
 **And** endorsement data is read from community tables via `@igbo/db/queries/cross-app.ts`
 **And** the endorsement boost is a simple numeric modifier — no complex graph weighting or social network analysis for MVP
 
@@ -2626,6 +2635,7 @@ So that community-validated skills carry more weight than self-reported skills.
 **When** the scoring engine runs
 **Then** endorsements affect only the cultural fit bonus component (5% weight), not the core skills overlap component (50% weight)
 **And** a seeker with zero endorsements is not penalized — the cultural fit bonus simply starts at 0
+**And** the `endorsedSkillCount: 0` hardcode in Story 7.1 is intentional stub behavior governed by PREP-M3, not a bug — do not remove this hardcode until the PREP-M3 Stub Activation Checklist (in PREP-M1) is fully satisfied
 
 ### Story 7.7: Match Score Invalidation & Recompute Triggers
 
