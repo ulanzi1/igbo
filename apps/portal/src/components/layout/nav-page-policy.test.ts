@@ -112,7 +112,7 @@ function extractRoleSwitcherRedirects(): ExtractedHref[] {
   const hrefs: ExtractedHref[] = [];
 
   // Find the ROLE_REDIRECT block and extract quoted path values
-  const blockMatch = source.match(/ROLE_REDIRECT[^{]*\{([^}]+)\}/s);
+  const blockMatch = source.match(/ROLE_REDIRECT[^{]*\{([^}]+)\}/);
   if (!blockMatch) {
     throw new Error("ROLE_REDIRECT block not found in role-switcher.tsx");
   }
@@ -160,12 +160,14 @@ describe("AI-21 Placeholder Page Policy Enforcement", () => {
   it.each([...uniqueHrefs.entries()].map(([path, href]) => [path, href.source]))(
     "nav href %s (from %s) resolves to a real page",
     (path) => {
-      expect(
-        validPaths.has(path),
-        `Orphan nav link: "${path}" has no matching page.tsx.\n` +
-          `Valid paths: ${[...validPaths].sort().join(", ")}\n` +
-          `Fix: either create the page or remove the nav link.`,
-      ).toBe(true);
+      if (!validPaths.has(path)) {
+        throw new Error(
+          `Orphan nav link: "${path}" has no matching page.tsx.\n` +
+            `Valid paths: ${[...validPaths].sort().join(", ")}\n` +
+            `Fix: either create the page or remove the nav link.`,
+        );
+      }
+      expect(validPaths.has(path)).toBe(true);
     },
   );
 });
