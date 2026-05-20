@@ -15,6 +15,7 @@ const DISMISSED_KEY = "match_prompt_dismissed";
  */
 export function CompleteProfilePrompt() {
   const t = useTranslations("Portal.match");
+  const tSeeker = useTranslations("Portal.match.seeker");
   const locale = useLocale();
   const [dismissed, setDismissed] = useState(true); // default true to avoid SSR flash
 
@@ -34,18 +35,18 @@ export function CompleteProfilePrompt() {
   return (
     <div
       role="status"
-      aria-label={t("completeProfilePrompt")}
+      aria-label={tSeeker("completeProfilePrompt")}
       data-testid="complete-profile-prompt"
       className="flex items-center justify-between gap-2 rounded-md border border-border bg-muted/50 px-4 py-2 text-sm text-foreground"
     >
       <span>
-        {t("completeProfilePrompt")}{" "}
+        {tSeeker("completeProfilePrompt")}{" "}
         <a
           href={`/${locale}/profile`}
           className="font-medium text-primary hover:underline"
           data-testid="complete-profile-link"
         >
-          {t("completeProfileLink")}
+          {tSeeker("completeProfileLink")}
         </a>
       </span>
       <Button

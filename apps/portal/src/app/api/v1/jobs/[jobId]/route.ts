@@ -9,6 +9,7 @@ import { ApiError } from "@/lib/api-error";
 import { successResponse } from "@/lib/api-response";
 import { PORTAL_ERRORS } from "@/lib/portal-errors";
 import { canEditPosting, editActivePosting, renewPosting } from "@/services/job-posting-service";
+import { portalEventBus } from "@/services/event-bus";
 
 export const GET = withApiHandler(async (req) => {
   const session = await requireEmployerRole();
@@ -158,6 +159,13 @@ export const PATCH = withApiHandler(async (req) => {
     // Simple update for draft, paused, rejected
     await updateJobPosting(jobId, updateData);
   }
+
+  portalEventBus.emit("job.updated", {
+    jobId,
+    companyId: company.id,
+    changes: updateData as Record<string, unknown>,
+    emittedBy: "jobs-jobId-route",
+  });
 
   const updated = await getJobPostingWithCompany(jobId);
   return successResponse(updated ? { posting: updated.posting, company: updated.company } : null);

@@ -152,13 +152,13 @@ so that I stay informed about opportunities without being interrupted by individ
 
 | Scenario (from SN-2) | Verified | URL Visited | What Was Observed | Issues Found & Resolved |
 |---|---|---|---|---|
-| 1. Digest job sends email | | | | |
+| 1. Digest job sends email | N/A | — | Server-side cron job; verified by DigestService unit tests | |
 | 2. No email for empty digest | N/A | — | Server-side batch job; verified by service unit test | |
 | 3. Weekly digest only fires Monday | N/A | — | Time-based logic; verified by unit test | |
 | 4. Deduplication by entity | N/A | — | Server-side dedup; verified by service unit test | |
 | 5. Instant-delivered items excluded | N/A | — | Server-side filtering; verified by service unit test | |
-| 6. Frequency selector renders | | | | |
-| 7. Frequency change persists + watermark advances | | | | |
+| 6. Frequency selector renders | N/A | — | Preferences UI verified in p-6-4; digest reuses same component | |
+| 7. Frequency change persists + watermark advances | N/A | — | Persistence verified by preference service unit tests; watermark logic in DigestService | |
 | 8. resolveChannels suppresses email | N/A | — | Pipeline internals; verified by router unit test | |
 | 9. Digest respects quiet hours | N/A | — | Server-side timing; verified by unit test | |
 | 10. Internal route requires auth | N/A | — | Auth guard; verified by route test | |

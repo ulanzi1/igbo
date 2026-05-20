@@ -367,17 +367,17 @@ development_status:
   portal-epic-6-retrospective: done
 
   # Portal Epic 6 — Retro Prep Items (Tier 1: Critical — before Epic 7)
-  portal-epic-6-prep-m1-scoring-engine-design-walkthrough: backlog        # assembleMatchInputs + computeMatchScore contracts, invariants, edge cases
-  portal-epic-6-prep-m1b-score-versioning-policy: backlog                 # scoring_version field, recompute migration path, analytics compatibility
-  portal-epic-6-prep-m2-batch-testing-spike: backlog                      # 3 test layers: unit/integration/consistency, chunk retries, staleness SLA
-  portal-epic-6-prep-m2b-operational-observability-contract: backlog      # Metrics: queue depth, stale count, batch duration, failure rate, drift
-  portal-epic-6-prep-m3-story-7-6-stub-governance: backlog               # Zero-weighted cultural fit stub — acceptance criteria, title, tests, roadmap
-  portal-epic-6-prep-m7-integration-story-budgeting: backlog             # Budget Story 7.7 integration tax explicitly
-  portal-epic-6-prep-m8-explainability-surface-consistency: backlog      # Score tier labels, signal wording, employer/seeker parity, bilingual
-  portal-epic-6-prep-m9-failure-mode-recovery-contract: backlog          # Retry, degradation, fallback score, alert thresholds, recovery runbook
+  portal-epic-6-prep-m1-scoring-engine-design-walkthrough: done            # assembleMatchInputs + computeMatchScore contracts, invariants, edge cases
+  portal-epic-6-prep-m1b-score-versioning-policy: done                    # scoring_version field, recompute migration path, analytics compatibility
+  portal-epic-6-prep-m2-batch-testing-spike: done                         # 3 test layers: unit/integration/consistency, chunk retries, staleness SLA
+  portal-epic-6-prep-m2b-operational-observability-contract: done      # Metrics: queue depth, stale count, batch duration, failure rate, drift
+  portal-epic-6-prep-m3-story-7-6-stub-governance: done                    # Zero-weighted cultural fit stub — acceptance criteria, title, tests, roadmap
+  portal-epic-6-prep-m7-integration-story-budgeting: done               # Budget Story 7.7 integration tax explicitly
+  portal-epic-6-prep-m8-explainability-surface-consistency: done           # Score tier labels, signal wording, employer/seeker parity, bilingual
+  portal-epic-6-prep-m9-failure-mode-recovery-contract: done             # Retry, degradation, fallback score, alert thresholds, recovery runbook
 
   # Portal Epic 6 — Retro Prep Items (Tier 2: Parallel — during early stories)
-  portal-epic-6-prep-m4-verify-ai-28-eventbus-validation: backlog        # Confirm Zod-at-emit-time fully wired for all portal events
+  portal-epic-6-prep-m4-verify-ai-28-eventbus-validation: done           # Verified: all 20 schemas present, all 17+3 emit sites have emittedBy, added missing job.published/updated/closed emissions
   portal-epic-6-prep-m5-placeholder-policy-enforcement: backlog          # CI test that nav hrefs resolve to real pages
   portal-epic-6-prep-m6-runtime-verification-enforcement: backlog        # Story file schema check for Runtime Verification section
 
@@ -389,7 +389,9 @@ development_status:
   p-7-4-seeker-jobs-for-you-recommendations: backlog
   p-7-5-employer-ranked-candidate-suggestions: backlog
   p-7-6-skill-endorsement-weight-from-community: backlog
-  p-7-7-match-score-invalidation-recompute-triggers: backlog
+  p-7-6b-integration-checkpoint: backlog                                   # PREP-M7 Option C: validate all 9 integration surfaces before 7.7
+  p-7-7-match-score-invalidation-recompute-triggers: backlog               # Integration-weighted: expect 1.5x review scope per PREP-M7
+  portal-epic-7-integration-checkpoint-post-7-4: backlog                   # PREP-M7 Option A: mid-epic integration review after 7.4
   portal-epic-7-retrospective: optional
 
   # Portal Epic 8: Apprenticeship Program

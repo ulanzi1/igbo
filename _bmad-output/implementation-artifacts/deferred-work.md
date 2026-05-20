@@ -153,3 +153,30 @@
 ## Deferred from: review of prep-m2b-operational-observability-contract (2026-05-10)
 
 - Consent-revocation skips are indistinguishable from job-ineligibility skips in batch metrics (`scoring.batch.pairs_skipped` counter and `batch_completed.skipped` field aggregate all skip reasons). The `pair_skipped` log event has a `reason` field for per-event diagnosis, but no Tier B counter breakdown by reason exists. If compliance monitoring requires real-time alerting on consent-revocation spikes, add a `scoring.batch.pairs_skipped_consent` counter or add `reason` as a Prometheus label. Revisit when PREP-M9 (failure mode & recovery contract) defines compliance monitoring requirements.
+
+## Deferred from: code review of portal-epic-6-prep-m3-story-7-6-stub-governance (2026-05-10)
+
+- Endorsement bonus unit mismatch: epics.md says "+2% per endorsement (capped at +5%)" while PREP-M1 §4.5 defines `Math.min(4, endorsedSkillCount * 2)` (+2 points, capped at 4). PREP-M1 is authoritative; epics.md Story 7.6 ACs annotated inline with conflict notice (see epics.md line 2620); correct the AC unit when Story 7.6 is activated. **Owner: Story 7.6 implementer. Story ref: p-7-6-skill-endorsement-weight-from-community.**
+- No CI gate to prevent accidental removal of the `endorsedSkillCount: 0` stub hardcode in `assembleMatchInputs`. Add a grep-based lint rule or test assertion during Story 7.1 implementation. **Owner: Story 7.1 implementer. Story ref: p-7-1-match-score-table-scoring-engine-storage-contract.**
+- PREP-M2 test case #13b specifies `0 endorsements + verified` but should also include a test that injects nonzero `endorsedSkillCount` to verify the assembly layer overrides it to `0`. **Owner: Story 7.1 implementer. Story ref: p-7-1-match-score-table-scoring-engine-storage-contract.**
+- No constraint on direct `computeMatchScore` calls with nonzero `endorsedSkillCount` — the governance constrains only `assembleMatchInputs`. Review during Story 7.1 whether the function boundary is sufficient. **Owner: Story 7.1 implementer. Story ref: p-7-1-match-score-table-scoring-engine-storage-contract.**
+
+## Deferred from: code review of portal-epic-6-prep-m7-integration-story-budgeting (2026-05-10)
+
+- Bit-for-bit parity claim (PREP-M7 §5.1) is unverifiable from the planning document alone — the assertion that the scoring engine uses integer arithmetic throughout with no floating-point accumulation requires confirmation against PREP-M1 implementation details; validate during Story 7.1 implementation when `computeMatchScore` is built.
+- Risk 4 fan-out concurrency bound ("e.g., 10 parallel computations") is illustrative only — timeout handling, partial completion tracking, and circuit breaker behavior for the 5,000-pair synchronous fan-out are unspecified in the planning document; resolve concrete parameters during Story 7.7 implementation design.
+
+## Deferred from: code review of portal-epic-6-prep-m8-explainability-surface-consistency (2026-05-17)
+
+- `MATCH_SIGNAL_ORDER` ordering test uses `>=` (permits ties) — inert with current strictly distinct weights (50/20/15/10/5); tighten assertion to `>` when equal-weight signals are ever added. **Owner: Story 7.1 implementer or next person to modify weights.**
+- `ux-design-directions.html` retains old CSS token class names (`match-moderate`, `match-weak`) — HTML prototype file was not in diff scope for PREP-M8 label rename; update when the prototype is next revised. **Owner: UX maintainer.**
+- `MatchScoreResultV2.tier` union includes `"none"` but `TIER_CLASS` in `match-pill.tsx` is typed with `Exclude<MatchScoreResult["tier"], "none">` — when `MatchPill` migrates to V2 in Story 7.1, `TIER_CLASS` will need updating or the early-return guard must be preserved. **Owner: Story 7.1 implementer.**
+- Sprint status YAML comment alignment inconsistent after PREP-M8 edit — cosmetic; no tooling impact identified. **Owner: next sprint status update.**
+- Story 7.6 stub governance AC conflates `culturalFitBonus` and `endorsedSkillCount` terminology without explicit composition formula — ambiguity introduced by PREP-M3 annotation; correct AC wording when Story 7.6 is activated. **Owner: Story 7.6 implementer. Story ref: p-7-6-skill-endorsement-weight-from-community.**
+
+## Deferred from: review of prep-m9-failure-mode-recovery-contract (2026-05-17)
+
+- Permanent vs transient retry conflation: `assembleMatchInputs` returning null for permanent reasons (job deadline passed, seeker profile deleted) burns through 10 retry cycles before marking `failed`. The outbox poller has the same pattern. Consider adding reason-aware short-circuiting (immediate `failed` for permanent null reasons like `job_deadline_passed`, `seeker_not_found`) in a future iteration. **Owner: Story 7.7 implementer.**
+- Probe batch during auto-reset uses standard batch size, which may fail on partially-recovered infrastructure. Consider a reduced probe size (e.g., 10 rows) for health checks. Design tradeoff — current approach is simpler. **Owner: Story 7.7 implementer.**
+- `withHandlerGuard` emits generic error logs (not `portal.scoring.*` namespace) — Redis failures in real-time scoring path are invisible to scoring-specific log monitoring. The `ScoringRealTimeLatencyHigh` alert catches the symptom but not the cause. Consider adding a scoring-namespaced Redis error event. **Owner: Story 7.3 implementer.**
+- `BATCH_CLAIM_TIMEOUT_MS` (60s) may be exceeded by batch cycles processing many chunks sequentially. Single-poller architecture mitigates concurrent claim conflicts. If batch processing time grows beyond 60s, revisit timeout or add lease extension. **Owner: Story 7.7 implementer.**

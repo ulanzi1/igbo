@@ -15,22 +15,19 @@ describe("getMatchHints", () => {
     ]);
   });
 
-  it("returns skills only when booleans are both strong", () => {
+  it("returns skills only when location matches", () => {
     const hints = getMatchHints(signals(0, true, true));
     expect(hints).toEqual([{ signal: "skills", messageKey: "hintSkills" }]);
   });
 
-  it("returns location + employmentType when skills strong, both booleans false", () => {
+  it("returns location only when skills strong and location false (employmentType no longer active)", () => {
     const hints = getMatchHints(signals(60, false, false));
-    expect(hints).toEqual([
-      { signal: "location", messageKey: "hintLocation" },
-      { signal: "employmentType", messageKey: "hintEmploymentType" },
-    ]);
+    expect(hints).toEqual([{ signal: "location", messageKey: "hintLocation" }]);
   });
 
-  it("returns employmentType only when skills strong and location matches", () => {
+  it("returns empty when skills strong and location matches (employmentType deprecated, not a hint source)", () => {
     const hints = getMatchHints(signals(60, true, false));
-    expect(hints).toEqual([{ signal: "employmentType", messageKey: "hintEmploymentType" }]);
+    expect(hints).toEqual([]);
   });
 
   it("returns empty when all signals strong", () => {
@@ -51,20 +48,14 @@ describe("getMatchHints", () => {
     ]);
   });
 
-  it("returns skills + employmentType when location matches but type does not", () => {
+  it("returns skills only when skills weak and location matches (employmentType deprecated)", () => {
     const hints = getMatchHints(signals(0, true, false));
-    expect(hints).toEqual([
-      { signal: "skills", messageKey: "hintSkills" },
-      { signal: "employmentType", messageKey: "hintEmploymentType" },
-    ]);
+    expect(hints).toEqual([{ signal: "skills", messageKey: "hintSkills" }]);
   });
 
-  it("excludes skills at threshold with both booleans false", () => {
+  it("excludes skills at threshold with location false (employmentType no longer a hint slot)", () => {
     const hints = getMatchHints(signals(30, false, false));
-    expect(hints).toEqual([
-      { signal: "location", messageKey: "hintLocation" },
-      { signal: "employmentType", messageKey: "hintEmploymentType" },
-    ]);
+    expect(hints).toEqual([{ signal: "location", messageKey: "hintLocation" }]);
   });
 });
 

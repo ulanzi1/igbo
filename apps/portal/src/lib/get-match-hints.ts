@@ -1,8 +1,8 @@
 import type { MatchScoreResult } from "@igbo/config";
 
 export interface MatchHint {
-  signal: "skills" | "location" | "employmentType";
-  messageKey: "hintSkills" | "hintLocation" | "hintEmploymentType";
+  signal: "skills" | "location";
+  messageKey: "hintSkills" | "hintLocation";
 }
 
 /** Maximum possible skills score from computeMatchScore (60% weight). */
@@ -17,8 +17,10 @@ export const SKILLS_CHECKMARK_THRESHOLD = SKILLS_MAX_SCORE * 0.5; // 30
  * Rules:
  * - Skills priority: always included if normalized contribution < 0.5
  * - Remaining slots filled from weakest boolean signals (false = 0.0)
- * - Tiebreaker: location preferred over employmentType (higher weight)
  * - Max 2 hints total
+ *
+ * Note: employmentTypeMatch is deprecated (always true per PREP-M1 §5.3) and
+ * suppressed from hints. Epic 7 hint rewrite (Story 7.1) uses getMatchHintsV2.
  */
 export function getMatchHints(signals: MatchScoreResult["signals"]): MatchHint[] {
   const hints: MatchHint[] = [];
@@ -27,12 +29,9 @@ export function getMatchHints(signals: MatchScoreResult["signals"]): MatchHint[]
     hints.push({ signal: "skills", messageKey: "hintSkills" });
   }
 
-  // Fill remaining from weakest boolean signals (location first as tiebreaker)
+  // Fill remaining slot from location signal
   if (hints.length < 2 && !signals.locationMatch) {
     hints.push({ signal: "location", messageKey: "hintLocation" });
-  }
-  if (hints.length < 2 && !signals.employmentTypeMatch) {
-    hints.push({ signal: "employmentType", messageKey: "hintEmploymentType" });
   }
 
   return hints;

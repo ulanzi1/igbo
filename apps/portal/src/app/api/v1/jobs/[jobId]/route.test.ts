@@ -18,11 +18,15 @@ vi.mock("@/services/job-posting-service", () => ({
   editActivePosting: vi.fn(),
   renewPosting: vi.fn(),
 }));
+vi.mock("@/services/event-bus", () => ({
+  portalEventBus: { emit: vi.fn() },
+}));
 
 import { auth } from "@igbo/auth";
 import { getCompanyByOwnerId } from "@igbo/db/queries/portal-companies";
 import { getJobPostingWithCompany, updateJobPosting } from "@igbo/db/queries/portal-job-postings";
 import { canEditPosting, editActivePosting, renewPosting } from "@/services/job-posting-service";
+import { portalEventBus } from "@/services/event-bus";
 import { GET, PATCH } from "./route";
 
 const employerSession = {
@@ -265,5 +269,52 @@ describe("PATCH /api/v1/jobs/[jobId]", () => {
     expect(res.status).toBe(400);
     expect(updateJobPosting).not.toHaveBeenCalled();
     expect(renewPosting).not.toHaveBeenCalled();
+  });
+
+  it("emits job.updated event after successful PATCH (draft)", async () => {
+    await PATCH(makePatchRequest("posting-uuid", validPatchBody));
+
+    expect(vi.mocked(portalEventBus.emit)).toHaveBeenCalledWith(
+      "job.updated",
+      expect.objectContaining({
+        jobId: "posting-uuid",
+        companyId: "company-uuid",
+        changes: expect.objectContaining({ title: "Updated Engineer" }),
+        emittedBy: "jobs-jobId-route",
+      }),
+    );
+  });
+
+  it("emits job.updated event after successful PATCH (active → editActivePosting)", async () => {
+    vi.mocked(getJobPostingWithCompany).mockResolvedValue({
+      ...mockResult,
+      posting: { ...mockPosting, status: "active" },
+    } as never);
+    await PATCH(makePatchRequest("posting-uuid", validPatchBody));
+
+    expect(vi.mocked(portalEventBus.emit)).toHaveBeenCalledWith(
+      "job.updated",
+      expect.objectContaining({
+        jobId: "posting-uuid",
+        companyId: "company-uuid",
+        emittedBy: "jobs-jobId-route",
+      }),
+    );
+  });
+
+  it("does not emit job.updated when PATCH fails (403 ownership)", async () => {
+    vi.mocked(getJobPostingWithCompany).mockResolvedValue({
+      ...mockResult,
+      posting: { ...mockPosting, companyId: "other-company" },
+    } as never);
+    await PATCH(makePatchRequest("posting-uuid", validPatchBody));
+
+    expect(vi.mocked(portalEventBus.emit)).not.toHaveBeenCalled();
+  });
+
+  it("does not emit job.updated when PATCH fails (400 validation)", async () => {
+    await PATCH(makePatchRequest("posting-uuid", { employmentType: "full_time" }));
+
+    expect(vi.mocked(portalEventBus.emit)).not.toHaveBeenCalled();
   });
 });

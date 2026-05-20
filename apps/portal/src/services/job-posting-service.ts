@@ -16,6 +16,7 @@ import { checkFastLaneEligibility, approvePosting } from "@/services/admin-revie
 import { runScreening } from "@/services/screening";
 import { SYSTEM_USER_ID } from "@/lib/portal-constants";
 import { invalidateAll } from "@/lib/cache-registry";
+import { portalEventBus } from "@/services/event-bus";
 
 const VALID_TRANSITIONS: Record<PortalJobStatus, PortalJobStatus[]> = {
   draft: ["pending_review"],
@@ -188,6 +189,13 @@ export async function closePosting(
     status: "filled",
     closedOutcome: outcome,
     closedAt: new Date(),
+  });
+
+  portalEventBus.emit("job.closed", {
+    jobId: postingId,
+    companyId,
+    reason: outcome,
+    emittedBy: "job-posting-service",
   });
 
   // Invalidate search cache — posting is no longer active.
