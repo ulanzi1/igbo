@@ -156,20 +156,24 @@ describe("PREP-M6 Runtime Verification Enforcement", () => {
   const stories = discoverEnforceableStories();
 
   it("discovers at least one enforceable story file", () => {
-    expect(
-      stories.length,
-      `No story files found — expected at least one done Epic ${EPIC_CUTOFF}+ story in ${ARTIFACTS_DIR}`,
-    ).toBeGreaterThan(0);
+    if (stories.length === 0) {
+      throw new Error(
+        `No story files found — expected at least one done Epic ${EPIC_CUTOFF}+ story in ${ARTIFACTS_DIR}`,
+      );
+    }
+    expect(stories.length).toBeGreaterThan(0);
   });
 
   it.each(stories.map((s) => [s.filename, s.content]))(
     "%s has valid SN-6 section",
     (filename, content) => {
       const error = validateSn6(filename as string, content as string);
-      expect(
-        error,
-        `${filename}: ${error}\nFix: add a ## Runtime Smoke Test section with evidence rows or N/A justification.`,
-      ).toBeNull();
+      if (error !== null) {
+        throw new Error(
+          `${filename}: ${error}\nFix: add a ## Runtime Smoke Test section with evidence rows or N/A justification.`,
+        );
+      }
+      expect(error).toBeNull();
     },
   );
 });
